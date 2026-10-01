@@ -1,120 +1,112 @@
-import { describe, it, expect } from 'vitest';
+/**
+ * BedrockAgent's amazon_bedrock rendering. It stored maxTokens but never
+ * rendered it, dropped the presence_penalty and frequency_penalty settings
+ * the Bedrock prompt object defines, and setPromptLlmParams() ignored every
+ * setting. Mirrors signalwire-python fbd4be7 (B12, B13, B14): the rendered
+ * verb is validated against the SWML schema. The platform's Bedrock session
+ * (mod_openai bedrock_config.cpp) reads only the prompt's text or pom,
+ * voice_id, temperature and top_p, so confidence and the penalties are
+ * ignored with a warning (signalwire-python 623cf3e).
+ */
+
 import { BedrockAgent } from '../src/agents/BedrockAgent.js';
 import { SchemaUtils } from '../src/SchemaUtils.js';
 
-/**
- * `BedrockAgent.renderSwml` is a FOURTH SWML emission path in this port: it
- * re-parses the document its superclass already rendered and rewrites the `ai`
- * verb into an `amazon_bedrock` verb, touching neither `SwmlBuilder.addVerb`
- * nor the schema. Nothing validated its output, and the class had no tests at
- * all — which is how the `params` regression below shipped unnoticed.
- */
-describe('BedrockAgent', () => {
-  function bedrockVerb(agent: BedrockAgent): Record<string, unknown> {
-    const swml = JSON.parse(agent.renderSwml()) as {
-      sections: { main: Array<Record<string, unknown>> };
-    };
-    const verb = swml.sections.main.find((v) => 'amazon_bedrock' in v);
-    expect(verb, 'renderSwml must emit an amazon_bedrock verb').toBeDefined();
-    return verb!['amazon_bedrock'] as Record<string, unknown>;
-  }
+type Doc = { sections: { main: Record<string, unknown>[] } };
 
-  function agent(): BedrockAgent {
-    const a = new BedrockAgent({ name: 'b', route: '/b', agentOptions: { basicAuth: ['u', 'p'] } });
-    a.setPromptText('hello');
-    return a;
-  }
+function bedrockVerb(agent: BedrockAgent): Record<string, unknown> {
+  const doc = JSON.parse(agent.renderSwml()) as Doc;
+  return doc.sections.main.find((v) => 'amazon_bedrock' in v)!['amazon_bedrock'] as Record<
+    string,
+    unknown
+  >;
+}
 
-  it('replaces the ai verb with amazon_bedrock', () => {
-    const swml = JSON.parse(agent().renderSwml()) as {
-      sections: { main: Array<Record<string, unknown>> };
-    };
-    expect(swml.sections.main.some((v) => 'ai' in v)).toBe(false);
-    expect(swml.sections.main.some((v) => 'amazon_bedrock' in v)).toBe(true);
+const promptOf = (agent: BedrockAgent) => bedrockVerb(agent)['prompt'] as Record<string, unknown>;
+
+function makeAgent(): BedrockAgent {
+  const agent = new BedrockAgent({ name: 'bedrock', voiceId: 'tiffany', maxTokens: 512 });
+  agent.setPromptText('You are a helpful assistant.');
+  agent.setPromptLlmParams({
+    presence_penalty: 0.3,
+    frequency_penalty: 0.2,
+    confidence: 0.5,
+    barge_confidence: 0.4,
+  });
+  return agent;
+}
+
+describe('BedrockAgent prompt', () => {
+  it('renders an amazon_bedrock verb in place of ai', () => {
+    const doc = JSON.parse(makeAgent().renderSwml()) as Doc;
+    expect(doc.sections.main.some((v) => 'ai' in v)).toBe(false);
+    expect(doc.sections.main.some((v) => 'amazon_bedrock' in v)).toBe(true);
   });
 
-  it('emits a schema-valid amazon_bedrock verb', () => {
-    // Assert THROUGH the validator rather than against a literal blob, so a
-    // future key added to the rewrite is checked rather than merely recorded.
-    // `$defs/AmazonBedrockObject` is closed (`unevaluatedProperties: {"not":{}}`)
-    // over exactly the six keys this rewrite emits.
-    expect(new SchemaUtils().validateVerb('amazon_bedrock', bedrockVerb(agent()))).toEqual({
-      valid: true,
-      errors: [],
-    });
+  it('carries max_tokens', () => {
+    expect(promptOf(makeAgent())['max_tokens']).toBe(512);
   });
 
+  it('takes max_tokens from setInferenceParams', () => {
+    const agent = makeAgent();
+    agent.setInferenceParams(undefined, undefined, 2048);
+    expect(promptOf(agent)['max_tokens']).toBe(2048);
+  });
+
+  it('drops the prompt settings the Bedrock session does not read', () => {
+    const prompt = promptOf(makeAgent());
+    expect(prompt['voice_id']).toBe('tiffany');
+    for (const key of ['presence_penalty', 'frequency_penalty', 'confidence', 'barge_confidence']) {
+      expect(prompt).not.toHaveProperty(key);
+    }
+  });
+
+  it('routes temperature, top_p and max_tokens from setPromptLlmParams to the inference settings', () => {
+    const agent = makeAgent();
+    agent.setPromptLlmParams({ temperature: 0.2, top_p: 0.5, max_tokens: 300 });
+    expect(promptOf(agent)).toMatchObject({ temperature: 0.2, top_p: 0.5, max_tokens: 300 });
+  });
+
+  it('warns about a setting the Bedrock session does not use', () => {
+    const agent = new BedrockAgent();
+    const warn = vi.spyOn((agent as unknown as { log: { warn: () => void } }).log, 'warn');
+    expect(agent.setPromptLlmParams({ barge_confidence: 0.4, confidence: 0.5 })).toBe(agent);
+    expect(warn).toHaveBeenCalledWith(
+      "setPromptLlmParams(): the platform's Bedrock session doesn't use barge_confidence, confidence, so they're ignored",
+    );
+  });
+
+  it('renders a verb the SWML schema accepts', () => {
+    const result = new SchemaUtils().validateVerb('amazon_bedrock', bedrockVerb(makeAgent()));
+    expect(result.errors).toEqual([]);
+  });
+
+  it('renders a verb the SWML schema accepts for an agent with contexts', () => {
+    const agent = makeAgent();
+    agent.defineContexts().addContext('default').addStep('greet').setText('Say hello.');
+    const result = new SchemaUtils().validateVerb('amazon_bedrock', bedrockVerb(agent));
+    expect(result.errors).toEqual([]);
+  });
+
+  it('fails schema validation with a voice Bedrock does not offer', () => {
+    const agent = new BedrockAgent({ voiceId: 'inworld.Mark' });
+    agent.setPromptText('You are a helpful assistant.');
+    const result = new SchemaUtils().validateVerb('amazon_bedrock', bedrockVerb(agent));
+    expect(result.errors[0]).toContain('voice_id must be one of');
+  });
+});
+
+describe('BedrockAgent debug events', () => {
   it('carries debug webhook config through into params', () => {
-    // REGRESSION. The rewrite rebuilds the verb from a fixed six-key allowlist
-    // (prompt/SWAIG/params/global_data/post_prompt/post_prompt_url), so any key
-    // outside that list is silently DROPPED. While `AgentBase` emitted
-    // `debug_webhook_url`/`_level` as ai TOP-LEVEL keys, they matched none of
-    // the six and vanished here — debug events were unreachable on every
-    // Bedrock agent, with no error. Now that they are correctly emitted inside
-    // `params` they survive the rewrite. Verified against 5d3135d: `params`
-    // came out `{}` there and carries both keys here.
-    const a = agent();
-    a.enableDebugEvents(2);
-    const params = bedrockVerb(a)['params'] as Record<string, unknown>;
+    // The rewrite rebuilds the verb from a fixed key allowlist, so a key
+    // outside it is dropped. debug_webhook_url / debug_webhook_level are
+    // `params` members (not ai top-level keys), so they survive the rewrite.
+    const agent = makeAgent();
+    agent.enableDebugEvents(2);
+    const params = bedrockVerb(agent)['params'] as Record<string, unknown>;
 
     expect(params['debug_webhook_url']).toBeDefined();
     expect(params['debug_webhook_url']).toContain('/debug_events');
     expect(params['debug_webhook_level']).toBe(2);
-  });
-
-  it('carries contexts through inside the prompt object', () => {
-    // Same allowlist hazard: `contexts` is only reachable because it nests
-    // inside `prompt`, which IS one of the six forwarded keys. Emitted at the
-    // ai top level it would be dropped exactly like the debug keys were.
-    const a = agent();
-    const ctx = a.defineContexts();
-    ctx.addContext('default').addStep('s1', { task: 'do the thing' });
-
-    const prompt = bedrockVerb(a)['prompt'] as Record<string, unknown>;
-    const contexts = prompt['contexts'] as Record<string, Record<string, unknown>>;
-    expect(contexts).toBeDefined();
-    expect(contexts['default']!['steps']).toHaveLength(1);
-  });
-
-  it('moves voice and inference params into the prompt object', () => {
-    const a = new BedrockAgent({
-      name: 'b',
-      route: '/b',
-      voiceId: 'joanna',
-      temperature: 0.5,
-      topP: 0.95,
-      maxTokens: 2048,
-      agentOptions: { basicAuth: ['u', 'p'] },
-    });
-    a.setPromptText('hello');
-
-    const prompt = bedrockVerb(a)['prompt'] as Record<string, unknown>;
-    expect(prompt['voice_id']).toBe('joanna');
-    expect(prompt['temperature']).toBe(0.5);
-    expect(prompt['top_p']).toBe(0.95);
-
-    // `maxTokens` is accepted by the constructor and by `setInferenceParams`
-    // but is NOT emitted — `_add_voice_to_prompt` writes only voice_id,
-    // temperature and top_p. This matches the reference exactly
-    // (`agents/bedrock.py:173-175`), so it is pinned as parity, not fixed here:
-    // changing it would diverge from the oracle. It is a reference-side gap.
-    expect(prompt['max_tokens']).toBeUndefined();
-  });
-
-  it('drops text-model-only prompt params that Bedrock cannot use', () => {
-    const a = agent();
-    a.setPromptLlmParams({
-      temperature: 0.1,
-      barge_confidence: 0.4,
-      presence_penalty: 0.2,
-      frequency_penalty: 0.3,
-    });
-
-    const prompt = bedrockVerb(a)['prompt'] as Record<string, unknown>;
-    expect(prompt['barge_confidence']).toBeUndefined();
-    expect(prompt['presence_penalty']).toBeUndefined();
-    expect(prompt['frequency_penalty']).toBeUndefined();
-    // The agent's own inference temperature overrides any prompt-level one.
-    expect(prompt['temperature']).toBe(0.7);
   });
 });

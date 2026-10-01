@@ -5,13 +5,16 @@
  * into a single HTTP-servable agent.
  */
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Hono } from 'hono';
+import { getPathNoStrict } from 'hono/utils/url';
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { HostAppRouter } from './web.js';
 import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { PromptManager } from './PromptManager.js';
 import { PromptObjectModel } from './POM/PromptObjectModel.js';
 import { SessionManager } from './SessionManager.js';
@@ -25,10 +28,22 @@ import {
   type SwaigErrorHandler,
 } from './SwaigFunction.js';
 import { inferSchema, createTypedHandlerWrapper, type TypedToolHandler } from './TypeInference.js';
-import { FunctionResult } from './FunctionResult.js';
-import { ContextBuilder } from './ContextBuilder.js';
-import { getLogger, suppressAllLogs, type Logger } from './Logger.js';
-import { safeAssign, filterSensitiveHeaders, redactUrl, isValidHostname } from './SecurityUtils.js';
+import { FunctionResult, type SwaigResultDict } from './FunctionResult.js';
+import {
+  Context as ConversationContext,
+  ContextBuilder,
+  GatherInfo,
+  GatherQuestion,
+  Step,
+} from './ContextBuilder.js';
+import { getExecutionMode, getLogger, suppressAllLogs, type Logger } from './Logger.js';
+import {
+  safeAssign,
+  filterSensitiveHeaders,
+  redactUrl,
+  isValidHostname,
+  corsOriginsFromEnv,
+} from './SecurityUtils.js';
 import { SkillManager } from './skills/SkillManager.js';
 import type { SkillBase, SkillConfig } from './skills/SkillBase.js';
 import { SkillRegistry } from './skills/SkillRegistry.js';
@@ -39,6 +54,7 @@ import {
   type ServerlessResponse,
 } from './ServerlessAdapter.js';
 import { webhookValidationMiddleware } from './WebhookMiddleware.js';
+import { _CLIENT_ADDRESS_ENV_KEY, _PLATFORM_BASE_ENV_KEY } from './ServerlessAdapter.js';
 import type {
   AgentOptions,
   LanguageConfig,
@@ -80,6 +96,177 @@ export type RoutingCallback = (
   body: SwmlRequestData,
   headers?: Record<string, string>,
 ) => string | null | undefined | Promise<string | null | undefined>;
+
+/** A URL's query parameters as a plain object (the last value of a repeated key wins). */
+function queryParamsOf(url: string): Record<string, string> {
+  const params: Record<string, string> = {};
+  try {
+    new URL(url, 'http://localhost').searchParams.forEach((v, k) => {
+      params[k] = v;
+    });
+  } catch {
+    /* not a URL: no query params */
+  }
+  return params;
+}
+
+/** A Hono request's headers as a plain object with lower-case names. */
+function headersOf(c: Context): Record<string, string> {
+  const headers: Record<string, string> = {};
+  c.req.raw.headers.forEach((v: string, k: string) => {
+    headers[k] = v;
+  });
+  return headers;
+}
+
+/** The Hono context of the served request being handled, for onSwmlRequest. */
+const servedRequestContext = new AsyncLocalStorage<Context>();
+
+/** Compare two strings in constant time, whatever their lengths. */
+function constantTimeEqual(a: string, b: string): boolean {
+  const digest = (v: string) => createHash('sha256').update(v, 'utf8').digest();
+  return timingSafeEqual(digest(a), digest(b));
+}
+
+/** SDK classes whose instances a per-request copy duplicates field by field. */
+const CLONEABLE_CLASSES = new Set<unknown>([
+  // A tool: its settings are copied, its handler (a function) is shared, so a
+  // callback that changes a tool changes it for that request only.
+  SwaigFunction,
+  ContextBuilder,
+  ConversationContext,
+  Step,
+  GatherInfo,
+  GatherQuestion,
+]);
+
+/**
+ * Deep-copy agent configuration for a per-request copy. Arrays, Maps, Sets,
+ * Dates, plain objects and the contexts classes (a ContextBuilder and its
+ * contexts, steps and gather questions) are copied. Anything else (a URL, a
+ * RegExp, a class with private fields, a function) is shared as is: it can't
+ * be rebuilt field by field, since its state lives in internal slots.
+ * `memo` maps originals to their copies, so shared references stay shared
+ * and a reference to the agent can be redirected to the copy.
+ */
+function deepCloneState<T>(value: T, memo: Map<object, unknown>): T {
+  if (value === null || typeof value !== 'object') return value;
+  const obj = value as unknown as object;
+  if (memo.has(obj)) return memo.get(obj) as T;
+  if (obj instanceof Date) return new Date(obj.getTime()) as T;
+  if (Array.isArray(obj)) {
+    const out: unknown[] = [];
+    memo.set(obj, out);
+    for (const item of obj) out.push(deepCloneState(item, memo));
+    return out as T;
+  }
+  if (obj instanceof Map) {
+    const out = new Map<unknown, unknown>();
+    memo.set(obj, out);
+    for (const [k, v] of obj) out.set(deepCloneState(k, memo), deepCloneState(v, memo));
+    return out as T;
+  }
+  if (obj instanceof Set) {
+    const out = new Set<unknown>();
+    memo.set(obj, out);
+    for (const v of obj) out.add(deepCloneState(v, memo));
+    return out as T;
+  }
+  const proto = Object.getPrototypeOf(obj) as { constructor?: unknown } | null;
+  const plain = proto === null || proto === Object.prototype;
+  if (!plain && !CLONEABLE_CLASSES.has(proto?.constructor)) return value;
+  const out = Object.create(proto) as object;
+  memo.set(obj, out);
+  for (const key of Reflect.ownKeys(obj)) {
+    const desc = Object.getOwnPropertyDescriptor(obj, key)!;
+    if ('value' in desc) desc.value = deepCloneState(desc.value, memo);
+    Object.defineProperty(out, key, desc);
+  }
+  return out as T;
+}
+
+/**
+ * The base URL a serverless platform serves the function on, built from the
+ * platform's environment as the reference's `get_full_url` builds it, or null
+ * in server mode. `FUNCTION_URL` (Google Cloud) and `AZURE_FUNCTION_URL`,
+ * which swaig-test's platform flags set, are used when present.
+ */
+function serverlessBaseUrl(): string | null {
+  const env = process.env;
+  switch (getExecutionMode()) {
+    case 'cgi': {
+      const protocol = env['HTTPS'] === 'on' ? 'https' : 'http';
+      const host = env['HTTP_HOST'] || env['SERVER_NAME'] || 'localhost';
+      return `${protocol}://${host}${env['SCRIPT_NAME'] ?? ''}`.replace(/\/+$/, '');
+    }
+    case 'lambda': {
+      if (env['AWS_LAMBDA_FUNCTION_URL']) return env['AWS_LAMBDA_FUNCTION_URL'].replace(/\/+$/, '');
+      const region = env['AWS_REGION'] || 'us-east-1';
+      const fn = env['AWS_LAMBDA_FUNCTION_NAME'] || 'unknown';
+      return `https://${fn}.lambda-url.${region}.on.aws`;
+    }
+    case 'google_cloud_function': {
+      if (env['FUNCTION_URL']) return env['FUNCTION_URL'].replace(/\/+$/, '');
+      // K_SERVICE and GOOGLE_CLOUD_PROJECT are also set on Cloud Run and in
+      // Cloud Shell; the functions framework sets FUNCTION_TARGET.
+      if (!env['FUNCTION_TARGET']) return null;
+      const project = env['GOOGLE_CLOUD_PROJECT'] || env['GCP_PROJECT'];
+      const region = env['FUNCTION_REGION'] || env['GOOGLE_CLOUD_REGION'] || 'us-central1';
+      const service = env['K_SERVICE'] || env['FUNCTION_TARGET'] || 'unknown';
+      return project
+        ? `https://${region}-${project}.cloudfunctions.net/${service}`
+        : 'https://localhost:8080';
+    }
+    case 'azure_function': {
+      if (env['AZURE_FUNCTION_URL']) return env['AZURE_FUNCTION_URL'].replace(/\/+$/, '');
+      const app = env['WEBSITE_SITE_NAME'] || env['AZURE_FUNCTIONS_APP_NAME'];
+      const fn = env['AZURE_FUNCTION_NAME'] || 'unknown';
+      return app
+        ? `https://${app}.azurewebsites.net/api/${fn}`
+        : `https://localhost:7071/api/${fn}`;
+    }
+    default:
+      return null;
+  }
+}
+
+/** The agent's own routes in an app buildApp() made: `METHOD path`, and the paths alone. */
+interface AgentRoutes {
+  byMethod: Set<string>;
+  paths: Set<string>;
+}
+
+/** The agent's own routes in each app buildApp() makes, normalized. */
+const AGENT_ROUTES = new WeakMap<object, AgentRoutes>();
+
+/**
+ * Whether the agent's own routes serve a request. HEAD counts as GET, and an
+ * OPTIONS preflight counts for a path the agent serves by any method.
+ */
+function ownsRoute(routes: AgentRoutes, method: string, path: string): boolean {
+  const p = normalizePath(path);
+  const m = method.toUpperCase() === 'HEAD' ? 'GET' : method.toUpperCase();
+  if (m === 'OPTIONS') return routes.paths.has(p);
+  return routes.byMethod.has(`${m} ${p}`) || routes.byMethod.has(`ALL ${p}`);
+}
+
+/** A path with repeated slashes collapsed and no trailing slash, as routing matches it. */
+function normalizePath(path: string): string {
+  return path.replace(/\/{2,}/g, '/').replace(/(.)\/$/, '$1') || '/';
+}
+
+/**
+ * A request path relative to where the app handling it is mounted: a
+ * middleware registered as `*` reports `routePath` `/agent/*` when its app is
+ * mounted at `/agent`, and `*` or `/*` at the root.
+ */
+function relativePath(path: string, routePath: string): string {
+  const base = normalizePath(routePath.replace(/\/?\*$/, '') || '/');
+  const normalized = normalizePath(path);
+  if (base === '/') return normalized;
+  if (normalized === base) return '/';
+  return normalized.startsWith(`${base}/`) ? normalized.slice(base.length) : normalized;
+}
 
 /**
  * Core agent class that composes an HTTP server, prompt management, session handling,
@@ -156,7 +343,7 @@ export class AgentBase extends SWMLService {
   // read basicAuthCreds directly. The Hono basicAuth middleware uses the
   // inherited credentials (set in super()).
   private basicAuthCreds: [string, string];
-  private basicAuthSource: 'provided' | 'environment' | 'generated' = 'generated';
+  private basicAuthSource: 'provided' | 'environment' | 'config file' | 'generated' = 'generated';
 
   // Call settings
   private autoAnswer: boolean;
@@ -185,7 +372,20 @@ export class AgentBase extends SWMLService {
   private postAiVerbs: [string, Record<string, unknown>][] = [];
 
   // Dynamic config
-  private dynamicConfigCallback: DynamicConfigCallback | null = null;
+  /** Per-request configuration callbacks, run in order on each request's copy. */
+  private perCallConfigs: DynamicConfigCallback[] = [];
+  /** Set once serve() runs an HTTP server; getFullUrl then ignores serverless environments. */
+  private _serving = false;
+  /** Handlers registered with {@link onCallEnd}. */
+  private callEndHandlers: ((
+    callLog: Record<string, unknown>[],
+    rawData: SwaigRequest,
+  ) => void | Promise<void>)[] = [];
+  /** Apps and routers added with {@link mount}, replayed on every app build. */
+  private mounts: {
+    app: Hono | ((req: Request) => Response | Promise<Response>);
+    prefix: string;
+  }[] = [];
   private swaigQueryParams: Record<string, string> = {};
 
   // Webhook URL overrides
@@ -194,6 +394,8 @@ export class AgentBase extends SWMLService {
 
   // Contexts
   private contextsBuilder: ContextBuilder | null = null;
+  /** Contexts given as a plain object, rendered as they are. */
+  private _rawContexts: Record<string, unknown> | null = null;
 
   // MCP
   private _mcpServers: Record<string, unknown>[] = [];
@@ -291,16 +493,13 @@ export class AgentBase extends SWMLService {
         // Config file not found or invalid — continue with constructor args
       }
     }
-    const resolvedName = (serviceConfig['name'] as string | undefined) ?? opts.name;
-    const routeArg = opts.route ?? '/';
+    // Constructor arguments take precedence: the config file fills in only an
+    // argument the caller left out. `name` is required, so it always wins.
+    const resolvedName = opts.name;
     const resolvedRoute =
-      (routeArg !== '/'
-        ? routeArg
-        : ((serviceConfig['route'] as string | undefined) ?? routeArg)
-      ).replace(/\/+$/, '') || '/';
-    const hostArg = opts.host ?? '0.0.0.0';
-    const resolvedHost =
-      hostArg !== '0.0.0.0' ? hostArg : ((serviceConfig['host'] as string | undefined) ?? hostArg);
+      (opts.route ?? (serviceConfig['route'] as string | undefined) ?? '/').replace(/\/+$/, '') ||
+      '/';
+    const resolvedHost = opts.host ?? (serviceConfig['host'] as string | undefined) ?? '0.0.0.0';
     const configPort = serviceConfig['port'] as number | undefined;
     const parsedPort = opts.port ?? configPort ?? parseInt(process.env['PORT'] ?? '3000', 10);
     if (isNaN(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
@@ -337,6 +536,11 @@ export class AgentBase extends SWMLService {
     this._schemaValidation = opts.schemaValidation ?? true;
     this._schemaPath = opts.schemaPath ?? null;
 
+    // Before any warning below, so suppressLogs silences the constructor too.
+    if (opts.suppressLogs) {
+      suppressAllLogs(true);
+    }
+
     // Webhook signing key: explicit option > SIGNALWIRE_SIGNING_KEY env > null.
     // Per porting-sdk/webhooks.md: when null, validation is disabled and we
     // log a prominent one-shot warning so operators don't ship an unsigned
@@ -355,47 +559,50 @@ export class AgentBase extends SWMLService {
       );
     }
 
-    if (opts.suppressLogs) {
-      suppressAllLogs(true);
-    }
-
     this._promptManager = new PromptManager(opts.usePom ?? true, this);
-    this.sessionManager = new SessionManager(opts.tokenExpirySecs ?? 3600);
+    // A shared secret (option, then SIGNALWIRE_SWAIG_SECRET) lets tokens minted
+    // by one process validate on another replica or after a restart.
+    this.sessionManager = new SessionManager(
+      opts.tokenExpirySecs ?? 3600,
+      opts.swaigSecret || process.env['SIGNALWIRE_SWAIG_SECRET'] || undefined,
+    );
     // swmlBuilder is inherited from SWMLService (initialized via super()).
 
     // Setup auth — populate the legacy basicAuthCreds/basicAuthSource
     // mirrors so AgentBase callers that read them still work.
     // SWMLService's authCredentials (set in super()) is the source of truth
     // for HTTP-level enforcement.
+    // Resolution order: constructor > config file > environment > generated.
+    // SecurityConfig (built by SWMLService from the config file and the
+    // environment) applies the middle two and records which supplied it.
+    const configured = opts.basicAuth ? null : this.security.getBasicAuth();
     if (opts.basicAuth) {
       this.basicAuthCreds = opts.basicAuth;
       this.basicAuthSource = 'provided';
+    } else if (configured) {
+      this.basicAuthCreds = configured;
+      this.basicAuthSource = this.security.basicAuthSource ?? 'environment';
     } else {
       const envUser = process.env['SWML_BASIC_AUTH_USER'];
-      const envPass = process.env['SWML_BASIC_AUTH_PASSWORD'];
-      if (envUser && envPass) {
-        this.basicAuthCreds = [envUser, envPass];
-        this.basicAuthSource = 'environment';
-      } else {
-        // No SWML_BASIC_AUTH_PASSWORD was found in the environment and
-        // the caller did not pass basicAuth. Fall back to a random
-        // password that exists only in this process; warn loudly so
-        // external callers (tests, RPC clients, MCP) know why they are
-        // getting HTTP 401.
-        const username = envUser || this.name;
-        this.basicAuthCreds = [username, randomBytes(16).toString('hex')];
-        this.basicAuthSource = 'generated';
-        this.log.warn(
-          `basic_auth_password_autogenerated: username="${username}". ` +
-            `No SWML_BASIC_AUTH_PASSWORD found in environment and no basicAuth ` +
-            `passed to the agent constructor. The SDK generated a random ` +
-            `password that exists only in this process; external callers will ` +
-            `get HTTP 401 unless they read the value from this process's env. ` +
-            `To fix, set SWML_BASIC_AUTH_USER and SWML_BASIC_AUTH_PASSWORD in ` +
-            `your .env, or pass { basicAuth: [user, pass] } to the agent ` +
-            `constructor.`,
-        );
-      }
+      // No password in the config file or SWML_BASIC_AUTH_PASSWORD, and
+      // the caller did not pass basicAuth. Fall back to a random
+      // password that exists only in this process; warn loudly so
+      // external callers (tests, RPC clients, MCP) know why they are
+      // getting HTTP 401.
+      const username = envUser || this.name;
+      this.basicAuthCreds = [username, randomBytes(16).toString('hex')];
+      this.basicAuthSource = 'generated';
+      this.log.warn(
+        `basic_auth_password_autogenerated: username="${username}". ` +
+          `No SWML_BASIC_AUTH_PASSWORD found in environment and no basicAuth ` +
+          `passed to the agent constructor. The SDK generated a random ` +
+          `password that exists only in this process; external callers will ` +
+          `get HTTP 401 unless this process hands it to them ` +
+          `(getBasicAuthCredentials()). ` +
+          `To fix, set SWML_BASIC_AUTH_USER and SWML_BASIC_AUTH_PASSWORD in ` +
+          `your .env, or pass { basicAuth: [user, pass] } to the agent ` +
+          `constructor.`,
+      );
     }
 
     // Apply static PROMPT_SECTIONS from the class if defined
@@ -708,27 +915,44 @@ export class AgentBase extends SWMLService {
   // ── Contexts ────────────────────────────────────────────────────────
 
   /**
-   * Define or replace the contexts configuration for the AI verb.
-   * @param contexts - An existing ContextBuilder instance or a plain object; a new ContextBuilder is created if omitted.
-   * @returns The active ContextBuilder for further configuration.
+   * Get the agent's contexts builder, creating it on first use, or replace it.
+   *
+   * Called with no argument, it returns the builder the agent already has, so
+   * calling it again adds to the same workflow, as in the Python SDK.
+   *
+   * Given a plain object, it uses that object as the contexts, rendered as it
+   * is, and returns the agent, as the Python SDK does with a dict.
+   *
+   * @param contexts - A ContextBuilder to use in place of the current one, or
+   *   the contexts as a plain object.
+   * @returns The active ContextBuilder, or the agent when given an object.
    */
-  defineContexts(contexts?: ContextBuilder | Record<string, unknown>): ContextBuilder {
+  defineContexts(contexts?: ContextBuilder): ContextBuilder;
+  defineContexts(contexts: Record<string, unknown>): this;
+  defineContexts(contexts?: ContextBuilder | Record<string, unknown>): ContextBuilder | this {
+    if (contexts !== undefined && !(contexts instanceof ContextBuilder)) {
+      if (contexts === null || typeof contexts !== 'object' || Array.isArray(contexts)) {
+        throw new TypeError('contexts must be an object or a ContextBuilder');
+      }
+      this._rawContexts = contexts;
+      this.contextsBuilder = null;
+      // A supplied dict is also stored in the prompt manager, so
+      // `promptManager.getContexts()` reads back what the caller defined.
+      this._promptManager.defineContexts(contexts);
+      return this;
+    }
+    this._rawContexts = null;
     if (contexts instanceof ContextBuilder) {
       this.contextsBuilder = contexts;
-    } else {
+    } else if (!this.contextsBuilder) {
       this.contextsBuilder = new ContextBuilder();
     }
     // Attach agent reference so ContextBuilder.validate() can check
     // user tool names against reserved native tool names.
     this.contextsBuilder.attachAgent(this);
-    // Mirror the reference: when a value IS supplied, PromptMixin.define_contexts
-    // delegates it to the prompt manager's own store (`core/mixins/prompt_mixin.py:149`),
-    // so `promptManager.getContexts()` reads back what the caller defined.
-    if (contexts !== undefined) {
-      this._promptManager.defineContexts(
-        contexts instanceof ContextBuilder ? contexts : (contexts as Record<string, unknown>),
-      );
-    }
+    // A supplied ContextBuilder is returned for the caller to fill in, so it is
+    // rendered from the builder itself (getContexts()), not snapshotted into the
+    // prompt manager here: snapshotting an empty builder would throw.
     return this.contextsBuilder;
   }
 
@@ -745,6 +969,7 @@ export class AgentBase extends SWMLService {
     if (this.contextsBuilder) {
       this.contextsBuilder.reset();
     }
+    this._rawContexts = null;
     return this;
   }
 
@@ -755,7 +980,7 @@ export class AgentBase extends SWMLService {
    * @returns Contexts dict, or null when no contexts are defined.
    */
   getContexts(): Record<string, unknown> | null {
-    if (!this.contextsBuilder) return null;
+    if (!this.contextsBuilder) return this._rawContexts;
     return this.contextsBuilder.toDict();
   }
 
@@ -851,16 +1076,28 @@ export class AgentBase extends SWMLService {
 
     if (config.speechModel) lang['speech_model'] = config.speechModel;
 
-    // Fillers. Both present → the two canonical keys. Exactly one present → the
-    // DEPRECATED single `fillers` key carrying whichever was given (Python
-    // equivalent: `fillers = speech_fillers or function_fillers`).
-    const speech = config.speechFillers;
-    const fn = config.functionFillers;
-    if (speech && speech.length > 0 && fn && fn.length > 0) {
+    // Fillers as the reference emits them: speech_fillers and function_fillers
+    // when both are given, and one given alone as the older `fillers` list.
+    // The object forms this SDK once took are flattened into lists.
+    const flatten = (value: unknown): string[] => {
+      if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string');
+      if (value && typeof value === 'object') return Object.values(value).flatMap(flatten);
+      return [];
+    };
+    const legacyFillers = config.fillers && !Array.isArray(config.fillers);
+    const speech = config.speechFillers ?? (config.fillers ? flatten(config.fillers) : undefined);
+    const fn = config.functionFillers ? flatten(config.functionFillers) : undefined;
+    if (legacyFillers || (config.functionFillers && !Array.isArray(config.functionFillers))) {
+      this.log.warn(
+        'addLanguage(): fillers keyed by category, and functionFillers keyed by function, are ' +
+          'flattened into lists; pass speechFillers and functionFillers as string arrays',
+      );
+    }
+    if (speech?.length && fn?.length) {
       lang['speech_fillers'] = speech;
       lang['function_fillers'] = fn;
-    } else if ((speech && speech.length > 0) || (fn && fn.length > 0)) {
-      lang['fillers'] = speech && speech.length > 0 ? speech : fn;
+    } else if (speech?.length || fn?.length) {
+      lang['fillers'] = speech?.length ? speech : fn;
     }
 
     // Per-language params — only emit the key when non-empty (Python equivalent:
@@ -1323,8 +1560,8 @@ export class AgentBase extends SWMLService {
    *
    * When called, the endpoint at `path` will invoke `callback` with the parsed
    * request body. If `callback` returns a non-empty route string the server
-   * responds with `{ action: "redirect", route }` so the platform can forward the
-   * request to the right agent. If `callback` returns `null` / `undefined` the
+   * responds with a `307` redirect to it (`Location: <route>`), so the
+   * request goes to the right agent. If `callback` returns `null` / `undefined` the
    * agent's own SWML is returned instead (normal processing).
    *
    * @param callback - Function receiving the parsed request body and returning a
@@ -1342,6 +1579,7 @@ export class AgentBase extends SWMLService {
     // _app is non-nullable on the parent (SWMLService); rebuild fresh.
     this._app = new Hono();
     this._appBuiltByAgent = false;
+    this._routerApp = null;
     return this;
   }
 
@@ -1401,6 +1639,8 @@ export class AgentBase extends SWMLService {
   /**
    * Expose this agent's tools as an MCP server endpoint at /mcp.
    * Adds a JSON-RPC 2.0 endpoint that MCP clients (Claude Desktop, other agents) can connect to.
+   * The endpoint requires the agent's basic auth credentials, and lists and
+   * calls only the tools the agent runs itself (not DataMap or external webhook tools).
    * @returns This agent instance for chaining
    */
   enableMcpServer(): this {
@@ -1418,11 +1658,20 @@ export class AgentBase extends SWMLService {
     return [...this._mcpServers];
   }
 
+  /**
+   * Whether the /mcp endpoint may list and call this tool: only tools this
+   * agent runs itself. DataMap tools run on SignalWire and external webhook
+   * tools run on another server, so neither has a handler here.
+   */
+  private isMcpCallable(fn: unknown): fn is SwaigFunction {
+    return fn instanceof SwaigFunction && !fn.isExternal;
+  }
+
   /** Build MCP tool list from registered tools. */
   private buildMcpToolList(): Record<string, unknown>[] {
     const tools: Record<string, unknown>[] = [];
     for (const [name, fn] of this.toolRegistry) {
-      if (fn instanceof SwaigFunction) {
+      if (this.isMcpCallable(fn)) {
         const tool: Record<string, unknown> = {
           name,
           description: fn.description || name,
@@ -1478,7 +1727,7 @@ export class AgentBase extends SWMLService {
       const args = (params['arguments'] as Record<string, unknown>) || {};
 
       const fn = this.toolRegistry.get(toolName);
-      if (!fn || !(fn instanceof SwaigFunction)) {
+      if (!this.isMcpCallable(fn)) {
         return {
           jsonrpc: '2.0',
           id: reqId,
@@ -1493,8 +1742,11 @@ export class AgentBase extends SWMLService {
           function: toolName,
           argument: { parsed: [args] },
         } as unknown as SwaigRequest;
-        const resultDict = await fn.execute(args, rawData, this._onError);
-        const responseText = (resultDict['response'] as string) ?? '';
+        const resultDict = await fn._executeAs(this, args, rawData, this._onError);
+        // MCP content is text: a structured { tool_result, tool_prompt }
+        // response goes as its JSON.
+        const response = resultDict['response'] ?? '';
+        const responseText = typeof response === 'string' ? response : JSON.stringify(response);
         return {
           jsonrpc: '2.0',
           id: reqId,
@@ -1736,19 +1988,30 @@ export class AgentBase extends SWMLService {
    * @returns This agent instance for chaining.
    */
   async addSkill(skill: SkillBase): Promise<this> {
+    // On a per-request copy, a skill it inherited from the agent is already
+    // loaded, with its tools, prompts, hints and data: nothing to add.
+    if (this._skillManager._inherits(skill)) return this;
     skill.setAgent(this);
     await this._skillManager.addSkill(skill);
 
-    // Register skill tools, then apply any swaigFields as extraFields on the SWAIG function
+    // Register skill tools. As in Python's SkillBase.define_tool
+    // (skill_base.py:59-79), swaig_fields are define_tool arguments with the
+    // tool's own fields winning: `secure` sets whether the tool needs a token,
+    // and the other keys go into the SWAIG definition.
+    const { secure: skillSecure, ...skillExtraFields } = skill.swaigFields;
     for (const toolDef of skill.getTools()) {
-      this.defineTool(toolDef);
+      this.defineTool(
+        toolDef.secure === undefined && typeof skillSecure === 'boolean'
+          ? { ...toolDef, secure: skillSecure }
+          : toolDef,
+      );
       const fn = this.toolRegistry.get(toolDef.name);
       if (fn instanceof SwaigFunction) {
         // Apply skill-level swaigFields as the base, then let tool-level filler
         // flags override — matches Python skill_base.py:70-73 (swaig_fields base,
         // explicit kwargs win) and SkillBase.defineTool() ({...swaigDefaults, ...toolDef}).
-        if (Object.keys(skill.swaigFields).length > 0) {
-          safeAssign(fn.extraFields, skill.swaigFields);
+        if (Object.keys(skillExtraFields).length > 0) {
+          safeAssign(fn.extraFields, skillExtraFields);
         }
         if (toolDef.wait_for_fillers !== undefined) {
           fn.extraFields['wait_for_fillers'] = toolDef.wait_for_fillers;
@@ -1794,8 +2057,9 @@ export class AgentBase extends SWMLService {
    * Throws if the skill name is not found in the registry.
    *
    * Accepts a typed {@link SkillNameOrString}: one of the built-in
-   * {@link SkillName} values (autocompleted, with a typo caught at compile
-   * time) or any other string for custom / third-party skills. The value is
+   * {@link SkillName} values (autocompleted) or any other string for custom
+   * and third-party skills. Because any string is accepted, a misspelled name
+   * compiles, and this rejects at runtime because it isn't registered. The value is
    * forwarded to the registry unchanged — the typing is erased at runtime, so
    * any string reaches the registry.
    *
@@ -1832,9 +2096,9 @@ export class AgentBase extends SWMLService {
   /**
    * Check whether a skill with the given name is registered.
    *
-   * Accepts a typed {@link SkillNameOrString} so built-in names autocomplete
-   * and a typo is a compile-time error; any other string is still accepted
-   * (custom / third-party skills).
+   * Accepts a typed {@link SkillNameOrString} so built-in names autocomplete;
+   * any other string is accepted too (custom or third-party skills), so a
+   * misspelled name compiles and returns false.
    *
    * @param skillName - The skill name to check.
    * @returns True if a skill with that name exists.
@@ -1862,14 +2126,46 @@ export class AgentBase extends SWMLService {
     return false;
   }
 
+  /**
+   * A tool handler that calls `fn` with the agent running the call: with a
+   * dynamic config callback, the request's configured copy (so the handler
+   * sees what the callback configured), otherwise this agent. For handlers
+   * that read the agent's own state; the SDK's prefabs register theirs this
+   * way. A plain handler gets the same agent as its third argument.
+   * @internal
+   */
+  protected _onCallAgent<A, R>(
+    fn: (self: this, args: A, rawData: SwaigRequest) => R,
+  ): (args: A, rawData: SwaigRequest, agent?: AgentBase) => R {
+    return (args, rawData, agent) => fn((agent as this | undefined) ?? this, args, rawData);
+  }
+
   // ── Dynamic config ──────────────────────────────────────────────────
 
   /**
-   * Set a callback invoked on each SWML request to dynamically modify an ephemeral agent copy.
+   * Set a callback that configures a per-request copy of this agent.
    *
-   * The callback receives a clone of this agent — mutations apply only to the current
-   * request, so you can vary prompt, tools, languages, params, or global data per call
-   * without affecting the long-lived agent instance.
+   * On each request that renders SWML, runs a SWAIG function or delivers a
+   * summary, the SDK makes a copy of this agent, calls the callback with the
+   * request's query parameters, body and headers (credential-bearing headers
+   * removed) and the copy, and handles the request with the copy. Tool
+   * handlers get the copy as their third argument, and `onSummary` runs on it.
+   *
+   * The copy has its own prompt, tools, skills list, hints, languages,
+   * pronunciations, params, global data, function includes, LLM params,
+   * fillers, call-flow verbs, SWAIG query params, native functions, MCP
+   * servers, SIP usernames, routing callbacks and contexts, so changing any of
+   * them with the agent's methods affects only this request. Anything else is
+   * shared with this agent and every request in flight: a field a subclass
+   * adds, a skill instance, or an object inside the configuration that isn't
+   * plain data (a `URL`, a class instance). Assigning a new value to such a
+   * field on the copy is safe; mutating a shared object in place is not.
+   *
+   * A handler that captured this agent (an arrow function, or a method passed
+   * with `.bind(this)`) still sees this agent, not the copy: read per-call
+   * configuration from the handler's third argument. A subclass's JavaScript
+   * `#private` fields aren't on the copy, so its methods that read them
+   * throw there; use TypeScript `private` fields.
    *
    * @param cb - Callback receiving `(queryParams, bodyParams, headers, agent)` where
    *   `agent` is the ephemeral `AgentBase` copy to mutate. May be async.
@@ -1886,7 +2182,142 @@ export class AgentBase extends SWMLService {
    * ```
    */
   setDynamicConfigCallback(cb: DynamicConfigCallback): this {
-    this.dynamicConfigCallback = cb;
+    // Replaces the whole chain, including callbacks from addPerCallConfig.
+    this.perCallConfigs = [cb];
+    return this;
+  }
+
+  /**
+   * Register a per-request configuration callback, keeping any already set.
+   *
+   * Same signature and contract as {@link setDynamicConfigCallback}, except
+   * that callbacks accumulate instead of replacing each other. They run in
+   * registration order on the same per-request copy, so a later one sees what
+   * an earlier one configured. This is the composable form: a base class and a
+   * subclass, or an agent and a helper, can each register what they own
+   * without knowing about each other. `setDynamicConfigCallback` replaces
+   * every callback registered so far.
+   *
+   * @param cb - Callback receiving `(queryParams, bodyParams, headers, agent)`,
+   *   where `agent` is the per-request copy. Configure that, never the agent
+   *   itself, or the configuration leaks across callers. May be async.
+   * @returns This agent instance for chaining.
+   */
+  addPerCallConfig(cb: DynamicConfigCallback): this {
+    // Rebind rather than push: a per-request copy shares this array.
+    this.perCallConfigs = [...this.perCallConfigs, cb];
+    return this;
+  }
+
+  /**
+   * Register a handler that runs when the call ends, with the transcript.
+   *
+   * Handlers run in registration order with `(callLog, rawData)`: the
+   * conversation as the platform recorded it, and the whole SWAIG request
+   * (with `global_data` and `call_id`). This wraps the platform's reserved
+   * `hangup_hook` function, which fires on hangup and is never offered to the
+   * model, so it can't be called early or skipped.
+   *
+   * Registering a handler also turns on the `swaig_post_conversation`
+   * parameter: without it the hook still fires, but carries no transcript,
+   * and the handler gets an empty list with nothing to say why. If that
+   * parameter is explicitly `false`, it's left alone and a warning is logged.
+   *
+   * A handler's return value is ignored (the call is over), and an exception
+   * is logged, not raised, so a failing handler doesn't stop the others.
+   *
+   * @param handler - Called with `(callLog, rawData)`; may be async.
+   * @returns The handler.
+   *
+   * @example
+   * ```ts
+   * agent.onCallEnd((callLog, rawData) => {
+   *   archive(rawData.global_data?.['conversation_id'], callLog);
+   * });
+   * ```
+   */
+  onCallEnd(
+    handler: (callLog: Record<string, unknown>[], rawData: SwaigRequest) => void | Promise<void>,
+  ): (callLog: Record<string, unknown>[], rawData: SwaigRequest) => void | Promise<void> {
+    const first = this.callEndHandlers.length === 0;
+    // Rebind rather than push: a per-request copy shares this array.
+    this.callEndHandlers = [...this.callEndHandlers, handler];
+    if (first) this.ensureCallEndHook();
+    return handler;
+  }
+
+  /** Register the reserved hangup_hook tool once, and turn on its transcript. */
+  private ensureCallEndHook(): void {
+    if (this.params['swaig_post_conversation'] === false) {
+      this.log.warn(
+        '[signalwire] onCallEnd handlers are registered but swaig_post_conversation is explicitly false -- they will receive an empty call_log',
+      );
+    } else if (!('swaig_post_conversation' in this.params)) {
+      this.params['swaig_post_conversation'] = true;
+    }
+    this.defineTool({
+      name: 'hangup_hook',
+      description: 'Internal: fires when the call ends.',
+      parameters: {},
+      handler: async (_args, rawData, running) => {
+        const raw = (rawData ?? {}) as Record<string, unknown>;
+        // Both spellings are seen, depending on the engine; an empty log
+        // counts as absent, so the other spelling is tried.
+        const log = (v: unknown) =>
+          Array.isArray(v) && v.length > 0 ? (v as Record<string, unknown>[]) : null;
+        const callLog = log(raw['call_log']) ?? log(raw['raw_call_log']) ?? [];
+        // The handlers of the agent running the call: a per-call copy may
+        // have added its own.
+        const agent = running instanceof AgentBase ? running : this;
+        for (const callback of agent.callEndHandlers) {
+          // Each handler is isolated, so one failure doesn't stop the others.
+          try {
+            await callback(callLog, rawData);
+          } catch (err) {
+            this.log.error('call_end_handler_failed', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
+        return new FunctionResult('');
+      },
+    });
+  }
+
+  /**
+   * Mount an extra Hono app, or a fetch handler, alongside this agent's routes.
+   *
+   * Use this instead of adding routes to {@link getApp}'s app by hand: the
+   * agent rebuilds its app when its routes change (a routing callback, say),
+   * and a mount is replayed on every build. A mounted app answers its own
+   * CORS preflights (the agent's CORS and CSRF middleware don't apply to it),
+   * sets its own security headers, and isn't behind the agent's basic auth.
+   * Mount before calling `serve()`.
+   *
+   * @param appOrRouter - A Hono app (its routes are added under `prefix`) or a
+   *   fetch handler `(request) => Response` (mounted at `prefix`, which it
+   *   doesn't see).
+   * @param opts - `prefix`: the path to mount at, from the host root (a
+   *   trailing slash is dropped; default the root). `name`: accepted so
+   *   code written for the Python SDK works; it has no effect here.
+   * @returns This agent instance for chaining.
+   *
+   * @example
+   * ```ts
+   * agent.mount(gateway.router(), { prefix: '/chat' });
+   * ```
+   */
+  mount(
+    appOrRouter: Hono | ((req: Request) => Response | Promise<Response>),
+    opts: { prefix?: string; name?: string } = {},
+  ): this {
+    // opts.name is accepted but unused; the Python SDK names an ASGI mount with it.
+    const clean = (opts.prefix ?? '').replace(/\/+$/, '');
+    this.mounts = [...this.mounts, { app: appOrRouter, prefix: clean }];
+    // Rebuild the apps on next use, with the mount.
+    this._appBuiltByAgent = false;
+    this._routerApp = null;
+    this.log.info('agent_route_mounted', { prefix: clean || '/' });
     return this;
   }
 
@@ -2027,12 +2458,46 @@ export class AgentBase extends SWMLService {
       if (this.route && this.route !== '/') base += this.route;
       return base;
     }
-    const protocol = this._enforceHttps ? 'https' : 'http';
-    const hostPart = this.host === '0.0.0.0' ? 'localhost' : this.host;
-    let base = `${protocol}://${hostPart}:${this.port}`;
+    // Serverless: the URL the platform serves the function on, from its
+    // environment, as the reference builds it. Not once serve() runs an HTTP
+    // server: a server on Cloud Run also has K_SERVICE set.
+    const platformBase = this._serving ? null : serverlessBaseUrl();
+    if (platformBase) {
+      let base = includeAuth ? this.insertAuth(platformBase) : platformBase;
+      if (this.route && this.route !== '/' && !base.endsWith(this.route)) {
+        base = `${base}/${this.route.replace(/^\/+/, '')}`;
+      }
+      return base;
+    }
+    // An agent that serves HTTPS itself (SSL configured, as serve() checks)
+    // gives https URLs, on the SSL domain when one is set, as the reference's
+    // _get_base_url does.
+    const tls = this._servesTls();
+    const protocol = this._enforceHttps || tls ? 'https' : 'http';
+    let base: string;
+    if (tls && this.domain) {
+      base = `${protocol}://${this.domain}${this.port === 443 ? '' : `:${this.port}`}`;
+    } else {
+      const hostPart = this.host === '0.0.0.0' ? 'localhost' : this.host;
+      base = `${protocol}://${hostPart}:${this.port}`;
+    }
     if (includeAuth) base = this.insertAuth(base);
     if (this.route && this.route !== '/') base += this.route;
     return base;
+  }
+
+  /**
+   * Whether serve() serves HTTPS: SSL enabled with a certificate and key that
+   * exist. getFullUrl() uses the same check, so the webhook URLs match.
+   */
+  private _servesTls(): boolean {
+    return !!(
+      this.sslEnabled &&
+      this.sslCertPath &&
+      this.sslKeyPath &&
+      existsSync(this.sslCertPath) &&
+      existsSync(this.sslKeyPath)
+    );
   }
 
   private insertAuth(baseUrl: string): string {
@@ -2059,13 +2524,19 @@ export class AgentBase extends SWMLService {
    * Lifecycle hook called when a post-prompt summary is received. Override in subclasses.
    *
    * Invoked once at the end of a call when the AI has produced a structured summary
-   * (configured via `setPostPrompt()` / `setPostPromptJson()`). Use this hook to persist
+   * (configured via `setPostPrompt()`). Use this hook to persist
    * call data, notify other systems, or trigger follow-up workflows.
    *
    * @param _summary - Parsed summary object (JSON when the post-prompt requests
    *   structured output), or `null` if extraction/parsing failed.
    * @param _rawData - Full raw post-prompt payload received from the platform,
    *   including call metadata, conversation history, and the summary text.
+   *
+   * With a dynamic config callback set, this runs on the request's configured
+   * copy of the agent. For a request whose `action` is `fetch_conversation`,
+   * an override may return the conversation (for example
+   * `{ conversation_summary: '...' }`); the post-prompt endpoint sends that
+   * back instead of `{ success: true }`.
    *
    * @example
    * ```ts
@@ -2081,7 +2552,10 @@ export class AgentBase extends SWMLService {
    * }
    * ```
    */
-  onSummary(_summary: PostPromptData | null, _rawData?: PostPrompt): void | Promise<void> {
+  onSummary(
+    _summary: PostPromptData | null,
+    _rawData?: PostPrompt,
+  ): void | Record<string, unknown> | Promise<void | Record<string, unknown>> {
     // Default no-op
   }
 
@@ -2150,16 +2624,31 @@ export class AgentBase extends SWMLService {
     headers: Record<string, string>,
     body?: Record<string, unknown> | null,
   ): Promise<[number, Record<string, string>, string]> {
+    // The Hono context of a served request (see serveViaHandleRequest), which
+    // onSwmlRequest receives as its third argument; undefined on the
+    // primitive path.
+    const context = servedRequestContext.getStore();
     const parsedBody: Record<string, unknown> = body ?? {};
     const callbackPath = this._callbackPathForUrl(url);
 
-    // Auth: AgentBase's Hono path always enforces basicAuth against basicAuthCreds.
-    if (!this.checkAgentBasicAuth(headers)) {
+    // Auth. A served request (context set) has passed the route's basic-auth
+    // middleware already, which every route that serves through here has, so
+    // validateBasicAuth() isn't run twice; a direct call is checked here.
+    if (!context && !(await this.checkAgentBasicAuth(headers))) {
       return [401, { 'WWW-Authenticate': 'Basic' }, JSON.stringify({ error: 'Unauthorized' })];
     }
 
-    // call_id: from the body for POST, absent otherwise.
+    // call_id: from the body for POST, from the `call_id` query parameter for
+    // GET. The GET form is how a caller outside SignalWire fetches the SWML (and
+    // so the per-function `__token`s) for a known call.
     let callId: string | undefined;
+    if (method === 'GET') {
+      try {
+        callId = new URL(url, 'http://localhost').searchParams.get('call_id') ?? undefined;
+      } catch {
+        callId = undefined;
+      }
+    }
     if (method === 'POST' && Object.keys(parsedBody).length > 0) {
       callId = (parsedBody['call_id'] as string | undefined) ?? undefined;
       if (!callId && parsedBody['call'] && typeof parsedBody['call'] === 'object') {
@@ -2183,52 +2672,55 @@ export class AgentBase extends SWMLService {
       }
     }
 
-    // Subclass modification hook (primitive path passes no Hono context).
+    // Subclass modification hook, with the Hono context on the served path.
     let modifications: Record<string, unknown> | void = undefined;
     try {
-      modifications = await this.onSwmlRequest(parsedBody, callbackPath ?? undefined);
+      modifications = await this.onSwmlRequest(parsedBody, callbackPath ?? undefined, context);
     } catch (err) {
       this.log.error(
         `error_in_request_modifier error=${err instanceof Error ? err.message : String(err)}`,
       );
     }
 
-    // Per-request dynamic config: render from an ephemeral copy so the Hono and
-    // primitive paths produce identical SWML. Mirrors the Hono root handler and
-    // Python's _render_swml (which applies the dynamic-config callback inline).
-    // eslint-disable-next-line @typescript-eslint/no-this-alias -- agentToUse is either `this` or an ephemeral copy, not a closure alias
-    let agentToUse: AgentBase = this;
-    if (this.dynamicConfigCallback) {
-      agentToUse = this.createEphemeralCopy();
-      const queryParams: Record<string, string> = {};
-      try {
-        new URL(url).searchParams.forEach((v, k) => {
-          queryParams[k] = v;
-        });
-      } catch {
-        /* bare path — no query params to extract */
-      }
-      try {
-        await this.dynamicConfigCallback(
-          queryParams,
-          parsedBody,
-          filterSensitiveHeaders(headers),
-          agentToUse,
-        );
-      } catch (err) {
-        this.log.error(
-          `dynamic_config_error error=${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-    }
-
+    // Per-request dynamic config: render from the configured copy, so the Hono
+    // and primitive paths produce identical SWML.
+    const agentToUse = await this.perCallAgent(queryParamsOf(url), parsedBody, headers);
     const swml = agentToUse.renderSwml(callId, modifications || undefined);
     return [200, {}, swml];
   }
 
-  /** Validate basic-auth against AgentBase's `basicAuthCreds` from a plain
-   *  headers dict (the primitive analog of the Hono `basicAuth` middleware). */
-  private checkAgentBasicAuth(headers: Record<string, string>): boolean {
+  /**
+   * The agent a request runs on: this agent, or, when a dynamic config
+   * callback is set, a per-request copy that the callback configured from the
+   * request's query parameters, body and headers (credential-bearing headers
+   * removed). Rendering SWML, running a SWAIG function and delivering a
+   * summary all use it, so a tool the callback registers or secures is the one
+   * that runs, and is checked, when the call invokes it. Mirrors the
+   * reference's `_per_call_agent`.
+   */
+  private async perCallAgent(
+    queryParams: Record<string, string>,
+    body: Record<string, unknown>,
+    headers: Record<string, string>,
+  ): Promise<AgentBase> {
+    if (this.perCallConfigs.length === 0) return this;
+    const copy = this.createEphemeralCopy();
+    const safeHeaders = filterSensitiveHeaders(headers);
+    try {
+      for (const cb of this.perCallConfigs) {
+        await cb(queryParams, body, safeHeaders, copy);
+      }
+    } catch (err) {
+      this.log.error(
+        `dynamic_config_error error=${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    return copy;
+  }
+
+  /** Validate basic-auth from a plain headers dict (the primitive analog of
+   *  the Hono `basicAuth` middleware), through {@link validateBasicAuth}. */
+  private async checkAgentBasicAuth(headers: Record<string, string>): Promise<boolean> {
     const [user, pass] = this.basicAuthCreds;
     if (!user || !pass) return true;
     const authHeader = headers['authorization'] ?? headers['Authorization'];
@@ -2242,7 +2734,7 @@ export class AgentBase extends SWMLService {
     }
     const idx = decoded.indexOf(':');
     if (idx < 0) return false;
-    return decoded.slice(0, idx) === user && decoded.slice(idx + 1) === pass;
+    return await this.validateBasicAuth(decoded.slice(0, idx), decoded.slice(idx + 1));
   }
 
   /**
@@ -2254,13 +2746,19 @@ export class AgentBase extends SWMLService {
   }
 
   /**
-   * Override to add custom basic-auth validation logic beyond credential matching.
-   * @param _username - The username from the request.
-   * @param _password - The password from the request.
+   * Check a request's basic-auth credentials. Every route that requires
+   * basic auth calls it. The default compares them with the agent's
+   * credentials in constant time; override it to check credentials another
+   * way, as the Python SDK's `validate_basic_auth` allows. An override
+   * replaces the comparison, so call `super.validateBasicAuth()` to keep it.
+   * @param username - The username from the request.
+   * @param password - The password from the request.
    * @returns True if the credentials are valid; false to reject the request.
    */
-  validateBasicAuth(_username: string, _password: string): boolean | Promise<boolean> {
-    return true;
+  override validateBasicAuth(username: string, password: string): boolean | Promise<boolean> {
+    const [user, pass] = this.basicAuthCreds;
+    if (!user || !pass) return false;
+    return constantTimeEqual(username, user) && constantTimeEqual(password, pass);
   }
 
   /**
@@ -2300,6 +2798,41 @@ export class AgentBase extends SWMLService {
    * @param reqLog - Request-scoped logger for the raw-parse-error path.
    * @returns The extracted argument object (empty object when none present).
    */
+  /**
+   * Check a SWAIG request's token before a function runs.
+   *
+   * A secure function runs only with a valid token minted for that function
+   * and call. The token is in the `web_hook_url` the agent rendered, so a
+   * request without one didn't come from that SWML: a missing token, or a
+   * missing `call_id`, is refused like a wrong token. A non-secure function
+   * runs without a token.
+   *
+   * @returns The SWAIG response to send instead of running the function, or
+   *   `null` when the function may run.
+   */
+  private swaigTokenRefusal(
+    fn: SwaigFunction,
+    token: string | null,
+    callId: string,
+    reqLog: Logger,
+  ): SwaigResultDict | null {
+    if (!fn.secure) return null;
+    if (!token) {
+      reqLog.warn('token_missing');
+    } else if (!callId) {
+      reqLog.warn('token_rejected_no_call_id');
+    } else if (this.sessionManager.validateToken(callId, fn.name, token)) {
+      reqLog.debug('token_valid');
+      return null;
+    } else {
+      reqLog.warn('token_invalid');
+    }
+    // The reference's exact wording: the refusal is part of the SWAIG wire contract.
+    return new FunctionResult(
+      "I'm sorry, the security token for this function is invalid or expired. I cannot execute this action.",
+    ).toDict();
+  }
+
   private extractSwaigArgs(body: Record<string, unknown>, reqLog: Logger): Record<string, unknown> {
     const isPlainObject = (v: unknown): v is Record<string, unknown> =>
       v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -2457,16 +2990,11 @@ export class AgentBase extends SWMLService {
       if (Object.keys(this.promptLlmParams).length) Object.assign(obj, this.promptLlmParams);
       return obj;
     };
-    if (this.contextsBuilder) {
-      const contextsDict = this.contextsBuilder.toDict();
+    const contextsDict = this.contextsBuilder?.toDict() ?? this._rawContexts;
+    if (contextsDict) {
+      // Contexts live inside the prompt (`ai.prompt.contexts`), where the
+      // platform reads them and the reference SDK renders them.
       const promptObj = buildPromptObj(prompt || `You are ${this.name}, a helpful AI assistant.`);
-      // `contexts` nests INSIDE the prompt object, not at the ai top level.
-      // Reference: `swml_handler.py:191` `prompt_config["contexts"] = contexts`,
-      // fed by `agent_base.py:1246` `contexts=contexts_dict`. The bundled
-      // `schema.json` agrees: `contexts` is a property of `$defs/AIPromptText`
-      // and `$defs/AIPromptPom`, and `$defs/AIObject` is closed
-      // (`unevaluatedProperties: {"not": {}}`) over 9 keys that do NOT include it.
-      // Emitting it at the top level produced a document the schema rejects.
       promptObj['contexts'] = contextsDict;
       aiConfig['prompt'] = promptObj;
     } else {
@@ -2569,88 +3097,50 @@ export class AgentBase extends SWMLService {
   private createEphemeralCopy(): AgentBase {
     const copy = Object.create(Object.getPrototypeOf(this)) as AgentBase;
     Object.assign(copy, this);
-    // Deep-copy mutable state
-    // The back-reference must point at the COPY, not `this` — an ephemeral
-    // per-request clone whose manager still pointed at the original would read
-    // back the wrong agent (the clone-drops-configuration defect class).
-    copy._promptManager = new PromptManager(true, copy);
-    // Carry over the current prompt
-    const p = this.getPrompt();
-    if (p) copy._promptManager.setPromptText(p);
-    const pp = this.getPostPrompt();
-    if (pp) copy._promptManager.setPostPrompt(pp);
-    copy.toolRegistry = new Map(this.toolRegistry);
-    copy.hints = [...this.hints];
-    copy.languages = [...this.languages];
-    copy.multilingual = { ...this.multilingual };
-    copy.pronounce = [...this.pronounce];
-    copy.params = { ...this.params };
-    copy.globalData = { ...this.globalData };
-    copy.preAnswerVerbs = [...this.preAnswerVerbs];
-    copy.postAnswerVerbs = [...this.postAnswerVerbs];
-    copy.postAiVerbs = [...this.postAiVerbs];
+    // Every field starts as a reference to this agent's. The configuration a
+    // per-request callback can change is then replaced with independent
+    // copies, so a callback's changes stay on this request: without that, one
+    // caller's query params, MCP servers or context edits would reach every
+    // later call. References to this agent inside the copied state (the
+    // contexts builder's back-reference) are redirected to the copy.
+    const memo = new Map<object, unknown>([[this, copy]]);
+    const clone = <T>(value: T): T => deepCloneState(value, memo);
+    // The copy's own prompt state, with the POM sections copied rather than
+    // rendered to text, so it still emits a structured prompt and a callback
+    // can add sections to it. The back-reference points at the COPY, not
+    // `this` (the clone-drops-configuration defect class).
+    copy._promptManager = this._promptManager._copyFor(copy);
+    copy.toolRegistry = clone(this.toolRegistry);
+    copy.hints = clone(this.hints);
+    copy.languages = clone(this.languages);
+    copy.multilingual = clone(this.multilingual);
+    copy.pronounce = clone(this.pronounce);
+    copy.params = clone(this.params);
+    copy.globalData = clone(this.globalData);
+    copy.functionIncludes = clone(this.functionIncludes);
+    copy.promptLlmParams = clone(this.promptLlmParams);
+    copy.postPromptLlmParams = clone(this.postPromptLlmParams);
+    copy.internalFillers = clone(this.internalFillers);
+    copy.preAnswerVerbs = clone(this.preAnswerVerbs);
+    copy.answerConfig = clone(this.answerConfig);
+    copy.postAnswerVerbs = clone(this.postAnswerVerbs);
+    copy.postAiVerbs = clone(this.postAiVerbs);
+    copy.swaigQueryParams = clone(this.swaigQueryParams);
+    copy._nativeFunctions = clone(this._nativeFunctions);
+    copy._mcpServers = clone(this._mcpServers);
+    copy._sipUsernames = this._sipUsernames ? new Map(this._sipUsernames) : null;
+    copy._routingCallbacks = new Map(this._routingCallbacks);
+    copy.contextsBuilder = clone(this.contextsBuilder);
+    copy._rawContexts = clone(this._rawContexts);
     // Back-reference points at the COPY, not `this` (see _promptManager above).
-    copy.swmlBuilder = new SwmlBuilder({ service: copy });
+    copy.swmlBuilder = new SwmlBuilder({ service: copy, ...this._builderSchemaOptions });
 
-    // Replay skills into the ephemeral copy so dynamic config callbacks can modify them
-    // Back-reference points at the COPY, not `this` (see _promptManager above).
+    // The copy starts with the skills this agent loaded. Their tools, hints,
+    // prompt sections and global data are already in the state copied above,
+    // so they aren't set up again: running every skill's setup() on every
+    // request was slow, and left the copy's skill list empty until it finished.
     copy._skillManager = new SkillManager(copy);
-    for (const entry of this._skillManager.getLoadedSkillEntries()) {
-      try {
-        // entry.SkillClass is typed as the abstract `typeof SkillBase`; the
-        // registry only ever holds concrete subclasses, so widen to a
-        // constructable signature before instantiating.
-        const SkillCtor = entry.SkillClass as unknown as new (config?: SkillConfig) => SkillBase;
-        const skill = new SkillCtor(entry.config);
-        skill.setAgent(copy);
-        // Synchronous re-add: mark initialized, register tools/prompts/hints/data
-        skill.markInitialized();
-        copy._skillManager.addSkill(skill).catch((err: unknown) => {
-          // Swallow re-add errors in the cloning path — the primary agent already
-          // validated env vars / packages / schema / setup when this skill was first
-          // added, and the clone inherits that validation. Python's equivalent at
-          // skill_manager.py:161-170 specifically swallows "already exists"
-          // ValueErrors during cloning; TS has no such error class (toolRegistry
-          // uses Map.set which silently overwrites), so the blanket swallow is
-          // the closest parity. Log at debug so the error isn't entirely lost.
-          this.log.debug('Skipping re-add error during agent clone', {
-            skill: entry.skillName,
-            error: err instanceof Error ? err.message : String(err),
-          });
-        });
-
-        for (const toolDef of skill.getTools()) {
-          copy.defineTool(toolDef);
-          const fn = copy.toolRegistry.get(toolDef.name);
-          if (fn instanceof SwaigFunction) {
-            if (Object.keys(skill.swaigFields).length > 0) {
-              safeAssign(fn.extraFields, skill.swaigFields);
-            }
-            if (toolDef.wait_for_fillers !== undefined) {
-              fn.extraFields['wait_for_fillers'] = toolDef.wait_for_fillers;
-            }
-            if (toolDef.skip_fillers !== undefined) {
-              fn.extraFields['skip_fillers'] = toolDef.skip_fillers;
-            }
-            if (toolDef.isHangupHook) {
-              fn.extraFields['is_hangup_hook'] = true;
-            }
-          }
-        }
-        for (const dmFn of skill.getDataMapTools()) {
-          copy.registerSwaigFunction(dmFn);
-        }
-        for (const section of skill.getPromptSections()) {
-          copy.promptAddSection(section.title, section);
-        }
-        const hints = skill.getHints();
-        if (hints.length) copy.addHints(hints);
-        const globalData = skill.getGlobalData();
-        if (Object.keys(globalData).length) copy.updateGlobalData(globalData);
-      } catch (e) {
-        this.log.warn(`Failed to replay skill '${entry.skillName}' in ephemeral copy: ${e}`);
-      }
-    }
+    copy._skillManager._inheritFrom(this._skillManager);
 
     return copy;
   }
@@ -2670,8 +3160,17 @@ export class AgentBase extends SWMLService {
    * Proxy detection stays here as framework plumbing (it needs the raw request);
    * everything else comes from `handleRequest`.
    */
+  // Call it only from a route behind the basic-auth middleware: handleRequest()
+  // skips its own credential check for a served request.
   private async serveViaHandleRequest(c: Context): Promise<Response> {
     this.detectProxyFromRequest(c);
+    // A serverless adapter passes the base URL the platform was called on
+    // (Azure's /api/<function>, say), so the SWML's webhook URLs point back
+    // there. SWML_PROXY_URL_BASE still wins.
+    const platformBase = (c.env as Record<string, unknown> | undefined)?.[_PLATFORM_BASE_ENV_KEY];
+    if (typeof platformBase === 'string' && platformBase && !this._proxyUrlBaseFromEnv) {
+      this._proxyUrlBase = platformBase.replace(/\/+$/, '');
+    }
 
     let body: Record<string, unknown> | null = null;
     try {
@@ -2685,11 +3184,10 @@ export class AgentBase extends SWMLService {
       headers[k] = v;
     });
 
-    const [status, respHeaders, bodyStr] = await this.handleRequest(
-      c.req.method,
-      c.req.url,
-      headers,
-      body,
+    // Through the public handleRequest(), so a subclass override still
+    // decides served requests; the Hono context rides along for onSwmlRequest.
+    const [status, respHeaders, bodyStr] = await servedRequestContext.run(c, () =>
+      this.handleRequest(c.req.method, c.req.url, headers, body),
     );
 
     // 307 routing redirect — real redirect status + Location, empty body.
@@ -2721,13 +3219,49 @@ export class AgentBase extends SWMLService {
     // Service's constructor eagerly initialised _app; AgentBase rebuilds it
     // here with its own middleware stack and route handlers on first call.
     if (this._appBuiltByAgent) return this._app;
+    this._app = this.buildApp(this.route === '/' ? '' : this.route);
+    this._appBuiltByAgent = true;
+    return this._app;
+  }
 
-    const app = new Hono();
+  /**
+   * Build the Hono app serving this agent's routes under `basePath` ('' for
+   * route-relative routes, as {@link asRouter} returns them).
+   *
+   * Paths are matched without regard to a trailing slash or repeated slashes
+   * (`/agent/swaig/`, `/agent//swaig`), as the reference's router and
+   * catch-all routes accept them; the signature check still covers the URL
+   * as the request spelled it.
+   */
+  private buildApp(basePath: string): Hono {
+    // getPathNoStrict drops a trailing slash; repeated slashes are collapsed
+    // too. (Hono ignores a custom getPath when `strict: false` is passed.)
+    const app = new Hono({
+      getPath: (req: Request) => getPathNoStrict(req).replace(/\/{2,}/g, '/'),
+    });
+    // Each path with and without a trailing slash, so a host app that mounts
+    // asRouter() with strict routing still serves `/swaig/` (as the
+    // reference's router registers both).
+    const withSlash = (path: string): string[] => [path, `${path}/`];
 
     // Security headers
     const maxRequestSize = parseInt(process.env['SWML_MAX_REQUEST_SIZE'] ?? '1048576', 10);
+    // The agent's header, CORS and CSRF middleware apply to the requests its
+    // own routes serve (by method and path), so a mounted app (see mount())
+    // keeps its own headers and CORS preflights, and so does another agent's
+    // route or mount below this one's under AgentServer. (A mounted page
+    // couldn't work under default-src 'none'.) Paths are compared relative
+    // to where this app is mounted (routePath), so asRouter() under
+    // AgentServer works the same.
+    const agentRoutes: AgentRoutes = { byMethod: new Set(), paths: new Set() };
+    AGENT_ROUTES.set(app, agentRoutes);
+    const underMount = (c: Context) =>
+      !ownsRoute(agentRoutes, c.req.method, relativePath(c.req.path, c.req.routePath));
     app.use('*', async (c, next) => {
+      // routePath names the handler after next(), so decide first.
+      const mounted = underMount(c);
       await next();
+      if (mounted) return;
       c.res.headers.set('X-Content-Type-Options', 'nosniff');
       c.res.headers.set('X-Frame-Options', 'DENY');
       c.res.headers.set('X-XSS-Protection', '1; mode=block');
@@ -2747,9 +3281,14 @@ export class AgentBase extends SWMLService {
     });
 
     // Allowed hosts (configurable via env)
+    // "*" allows every host, as the reference reads it.
     const allowedHosts = process.env['SWML_ALLOWED_HOSTS'];
-    if (allowedHosts) {
-      const hostSet = new Set(allowedHosts.split(',').map((h) => h.trim().toLowerCase()));
+    const hostList = (allowedHosts ?? '')
+      .split(',')
+      .map((h) => h.trim().toLowerCase())
+      .filter(Boolean);
+    if (hostList.length > 0 && !hostList.includes('*')) {
+      const hostSet = new Set(hostList);
       app.use('*', async (c, next) => {
         const host = (c.req.header('host') ?? '').split(':')[0]!.toLowerCase(); // split yields >=1 element
         if (!hostSet.has(host)) {
@@ -2766,11 +3305,21 @@ export class AgentBase extends SWMLService {
       if (maxPerMinute > 0) {
         const hits = new Map<string, { count: number; resetAt: number }>();
         app.use('*', async (c, next) => {
+          // The connection's own address, as the reference keys on
+          // request.client.host; the forwarded headers only when trusted.
+          // On a serverless platform, the address the platform reports.
+          const env = c.env as
+            | ({ incoming?: { socket?: { remoteAddress?: string } } } & Record<string, unknown>)
+            | undefined;
+          const platformIp = env?.[_CLIENT_ADDRESS_ENV_KEY];
+          const socketIp =
+            env?.incoming?.socket?.remoteAddress ??
+            (typeof platformIp === 'string' ? platformIp : 'unknown');
           const ip = this._trustProxyHeaders
             ? (c.req.header('x-forwarded-for')?.split(',')[0]!.trim() ??
               c.req.header('x-real-ip') ??
-              'unknown')
-            : 'unknown';
+              socketIp)
+            : socketIp;
           const now = Date.now();
           let entry = hits.get(ip);
           if (!entry || now >= entry.resetAt) {
@@ -2794,17 +3343,17 @@ export class AgentBase extends SWMLService {
 
     // CORS (configurable via env)
     const corsOrigins = process.env['SWML_CORS_ORIGINS'];
-    const corsOrigin = corsOrigins ? corsOrigins.split(',').map((o) => o.trim()) : '*';
+    const corsOrigin = corsOriginsFromEnv(corsOrigins);
     const corsCredentials = corsOrigin !== '*';
-    app.use('*', cors({ origin: corsOrigin, credentials: corsCredentials }));
+    const corsMw = cors({ origin: corsOrigin, credentials: corsCredentials });
+    app.use('*', (c, next) => (underMount(c) ? next() : corsMw(c, next)));
 
     // CSRF protection (optional, gated by env)
     if (process.env['SWML_CSRF_PROTECTION'] === 'true') {
-      const allowedOrigins = corsOrigins
-        ? new Set(corsOrigins.split(',').map((o) => o.trim().toLowerCase()))
-        : null;
+      const allowedOrigins =
+        corsOrigin === '*' ? null : new Set(corsOrigin.map((o) => o.toLowerCase()));
       app.use('*', async (c, next) => {
-        if (c.req.method === 'POST') {
+        if (c.req.method === 'POST' && !underMount(c)) {
           const origin = c.req.header('origin');
           if (origin && allowedOrigins && !allowedOrigins.has(origin.toLowerCase())) {
             return c.json({ error: 'Origin not allowed' }, 403);
@@ -2819,10 +3368,8 @@ export class AgentBase extends SWMLService {
     // (auth_mixin._send_lambda_auth_challenge / the primitive handleRequest 401);
     // Hono's default basicAuth returns a plain "Unauthorized" text body, which
     // diverges on the serverless dispatch path.
-    const [user, pass] = this.basicAuthCreds;
     const authMw = basicAuth({
-      username: user,
-      password: pass,
+      verifyUser: (username, password) => this.validateBasicAuth(username, password),
       invalidUserMessage: JSON.stringify({ error: 'Unauthorized' }),
     });
 
@@ -2838,8 +3385,6 @@ export class AgentBase extends SWMLService {
             trustProxy: this._webhookTrustProxy,
           })
         : null;
-
-    const basePath = this.route === '/' ? '' : this.route;
 
     // Root - returns SWML. Delegates the auth / routing-callback / dynamic-config
     // / render DECISION to handleRequest (the decomposed core), then marshals the
@@ -2895,7 +3440,16 @@ export class AgentBase extends SWMLService {
       const callIdStr = (body['call_id'] as string) ?? '';
       if (callIdStr) reqLog = reqLog.bind({ call_id: callIdStr });
 
-      const fn = this.toolRegistry.get(fnName);
+      // The function runs on the agent the call's SWML came from: with a
+      // dynamic config callback, the request's configured copy. So a tool the
+      // callback registered or secured is found, and its token checked, here.
+      const target = await this.perCallAgent(
+        queryParamsOf(c.req.url),
+        body as unknown as Record<string, unknown>,
+        headersOf(c),
+      );
+
+      const fn = target.toolRegistry.get(fnName);
       if (!fn || !(fn instanceof SwaigFunction)) {
         reqLog.warn('function_not_found', { requested: fnName });
         return c.json({ error: `Unknown function: ${fnName}` }, 404);
@@ -2921,33 +3475,12 @@ export class AgentBase extends SWMLService {
       // BEHAVIORAL-HTTP corpus. Do not reword it.
       const url = new URL(c.req.url);
       const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
-      if (token) {
-        reqLog.debug('token_found');
-      } else {
-        reqLog.warn('token_missing');
-      }
-
-      // A token can only be validated against a call_id; without one there is
-      // nothing to check it against, so treat it as unvalidated.
-      const tokenValid = Boolean(
-        token && callIdStr && this.sessionManager.validateToken(callIdStr, fnName, token),
-      );
-      if (tokenValid) {
-        reqLog.debug('token_valid');
-      } else {
-        if (token) reqLog.warn('token_invalid');
-        if (fn.secure) {
-          reqLog.warn('secure_function_refused', { token_present: Boolean(token) });
-          const result = new FunctionResult(
-            "I'm sorry, the security token for this function is invalid or expired. I cannot execute this action.",
-          );
-          return c.json(result.toDict());
-        }
-      }
+      const refusal = target.swaigTokenRefusal(fn, token, callIdStr, reqLog);
+      if (refusal) return c.json(refusal);
 
       const args = this.extractSwaigArgs(body, reqLog);
       reqLog.debug('executing_function', { args: JSON.stringify(args) });
-      const hookResult = await this.onFunctionCall(fnName, args, body);
+      const hookResult = await target.onFunctionCall(fnName, args, body);
 
       // If onFunctionCall returned a result, use it (dispatch interception)
       if (hookResult !== undefined && hookResult !== null) {
@@ -2956,7 +3489,7 @@ export class AgentBase extends SWMLService {
       }
 
       try {
-        const result = await fn.execute(args, body, this._onError);
+        const result = await fn._executeAs(target, args, body, target._onError);
         reqLog.info('function_executed_successfully');
         reqLog.debug('function_result', { result_size: JSON.stringify(result).length });
         return c.json(result);
@@ -2968,11 +3501,14 @@ export class AgentBase extends SWMLService {
       }
     };
 
-    app.get(`${basePath}/swaig`, authMw, handleSwaig);
+    // A GET renders the SWML, like the agent's root (with ?call_id= for a
+    // call's tokens); only a POST runs a function.
+    const swaigPaths = withSlash(`${basePath}/swaig`);
+    app.on('GET', swaigPaths, authMw, (c: Context) => this.serveViaHandleRequest(c));
     if (sigMw) {
-      app.post(`${basePath}/swaig`, authMw, sigMw, handleSwaig);
+      app.on('POST', swaigPaths, authMw, sigMw, handleSwaig);
     } else {
-      app.post(`${basePath}/swaig`, authMw, handleSwaig);
+      app.on('POST', swaigPaths, authMw, handleSwaig);
     }
 
     // Post-prompt handler
@@ -2990,21 +3526,67 @@ export class AgentBase extends SWMLService {
         /* empty */
       }
 
-      const callId = (body['call_id'] as string) || undefined;
+      // A POST delivers a call's summary, so like a secure SWAIG function it
+      // needs the token minted into the post-prompt URL for that call. The
+      // call is the one the body names, or the URL's call_id when the body
+      // names none; when they disagree the request is refused, so a token for
+      // one call can't deliver another call's summary.
+      const url = new URL(c.req.url);
+      const queryCallId = url.searchParams.get('call_id') || undefined;
+      const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
+      const rawBodyCallId = (body as Record<string, unknown>)['call_id'];
+      const bodyCallId =
+        typeof rawBodyCallId === 'string' && rawBodyCallId ? rawBodyCallId : undefined;
+      if (queryCallId && bodyCallId && queryCallId !== bodyCallId) {
+        reqLog.warn('call_id_mismatch');
+        return c.json({ error: 'The call_id in the URL and the body differ' }, 400);
+      }
+      const callId = bodyCallId ?? queryCallId;
       if (callId) reqLog = reqLog.bind({ call_id: callId });
+
+      if (!token) {
+        reqLog.warn('token_missing');
+        return c.json({ error: 'Invalid or missing token' }, 403);
+      }
+      if (!callId || !this.sessionManager.validateToken(callId, 'post_prompt', token)) {
+        reqLog.warn('invalid_token');
+        return c.json({ error: 'Invalid or missing token' }, 403);
+      }
 
       reqLog.info('post_prompt_received');
 
-      const summary = this.findSummary(body);
-      await this.onSummary(summary, body);
-      return c.json({ ok: true });
+      // The summary goes to the agent the call ran on: with a dynamic config
+      // callback, the request's configured copy.
+      const target = await this.perCallAgent(
+        queryParamsOf(c.req.url),
+        body as unknown as Record<string, unknown>,
+        headersOf(c),
+      );
+      const summary = target.findSummary(body);
+      let result: unknown;
+      try {
+        // onSummary is declared to return nothing, but an override may return
+        // the conversation for a fetch_conversation request.
+        result = await (target.onSummary(summary, body) as unknown);
+      } catch (err) {
+        reqLog.error('error_in_summary_handler', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+      if ((body as Record<string, unknown>)['action'] === 'fetch_conversation' && result != null) {
+        return c.json(result as Record<string, unknown>);
+      }
+      return c.json({ success: true });
     };
 
-    app.get(`${basePath}/post_prompt`, authMw, handlePostPrompt);
+    // A GET renders the SWML, like the agent's root; only a POST delivers a
+    // summary.
+    const postPromptPaths = withSlash(`${basePath}/post_prompt`);
+    app.on('GET', postPromptPaths, authMw, (c: Context) => this.serveViaHandleRequest(c));
     if (sigMw) {
-      app.post(`${basePath}/post_prompt`, authMw, sigMw, handlePostPrompt);
+      app.on('POST', postPromptPaths, authMw, sigMw, handlePostPrompt);
     } else {
-      app.post(`${basePath}/post_prompt`, authMw, handlePostPrompt);
+      app.on('POST', postPromptPaths, authMw, handlePostPrompt);
     }
 
     // Debug events handler
@@ -3026,9 +3608,11 @@ export class AgentBase extends SWMLService {
 
     app.post(`${basePath}/debug_events`, authMw, handleDebugEvents);
 
-    // MCP server endpoint (JSON-RPC 2.0)
+    // MCP server endpoint (JSON-RPC 2.0). It runs the agent's tools, so it
+    // takes the same basic auth as /swaig. MCP clients don't sign requests,
+    // so there is no webhook signature check here.
     if (this._mcpServerEnabled) {
-      app.post(`${basePath}/mcp`, async (c: Context) => {
+      app.post(`${basePath}/mcp`, authMw, async (c: Context) => {
         let body: Record<string, unknown>;
         try {
           body = await c.req.json();
@@ -3101,32 +3685,82 @@ export class AgentBase extends SWMLService {
         return this.serveViaHandleRequest(c);
       };
 
-      app.get(fullPath, authMw, handleRouting);
-      app.post(fullPath, authMw, handleRouting);
+      // A routing-callback path renders SWML like the root, so a POST to it
+      // needs a signature like the root when a signing key is set. A GET
+      // (the platform's SWML probe) stays unsigned, as it is on the root.
+      const callbackPaths = withSlash(fullPath);
+      app.on('GET', callbackPaths, authMw, handleRouting);
+      if (sigMw) {
+        app.on('POST', callbackPaths, authMw, sigMw, handleRouting);
+      } else {
+        app.on('POST', callbackPaths, authMw, handleRouting);
+      }
     }
 
     // Health / Ready
     app.get(`${basePath}/health`, (c: Context) => c.json({ status: 'ok' }));
     app.get(`${basePath}/ready`, (c: Context) => c.json({ status: 'ready' }));
 
-    this._app = app;
-    this._appBuiltByAgent = true;
+    // The agent's own paths, for the mount exemption above.
+    for (const r of app.routes) {
+      if (r.path.includes('*')) continue;
+      const path = normalizePath(r.path);
+      agentRoutes.byMethod.add(`${r.method.toUpperCase()} ${path}`);
+      agentRoutes.paths.add(path);
+    }
+
+    // Mounted apps (see mount()), after the agent's own routes so those win.
+    for (const m of this.mounts) {
+      if (typeof m.app === 'function') {
+        app.mount(m.prefix || '/', m.app);
+      } else {
+        app.route(m.prefix || '/', m.app);
+      }
+    }
+
     return app;
   }
+
+  /** The route-relative app {@link asRouter} returns, built on first use. */
+  private _routerApp: Hono | null = null;
 
   /**
    * Get a router to embed this agent's routes in a host web app.
    *
-   * Returns the fully-wired Hono app (routes for `/`, `/swaig`, `/post_prompt`,
-   * plus any routing callbacks) as a mountable sub-app. The host mounts it with
-   * `hostApp.route(path, agent.asRouter())`. This is the TypeScript realization
-   * of Python's `as_router()`; the named {@link HostAppRouter} type is the
-   * cross-port "embed my routes in a host app" contract.
+   * Returns a Hono sub-app with this agent's routes relative to its root
+   * (`/`, `/swaig`, `/post_prompt`, plus any routing callbacks), for the host
+   * to mount under the agent's route: `hostApp.route(agent.route,
+   * agent.asRouter())`. This is the TypeScript realization of Python's
+   * `as_router()`, which is route-relative the same way; the named
+   * {@link HostAppRouter} type is the cross-port "embed my routes in a host
+   * app" contract. {@link getApp} serves the same routes under the agent's
+   * route.
    *
    * @returns A mountable Hono sub-app carrying this agent's routes.
    */
   asRouter(): HostAppRouter {
-    return this.getApp();
+    this.ensureToolsDefined();
+    this._routerApp ??= this.buildApp('');
+    return this._routerApp;
+  }
+
+  /**
+   * Whether a request path is served by an app added with {@link mount}
+   * rather than by the agent's own routes, so the agent's security headers,
+   * CORS and CSRF handling should leave it alone. Internal; AgentServer uses
+   * it for the agents it serves.
+   *
+   * @param path - The path relative to the agent's route-relative router.
+   * @param method - The request's method.
+   */
+  _servedByMount(path: string, method = 'GET'): boolean {
+    if (this.mounts.length === 0) return false;
+    const routes = AGENT_ROUTES.get(this.asRouter() as Hono);
+    if (routes && ownsRoute(routes, method, path)) return false;
+    const normalized = normalizePath(path);
+    return this.mounts.some(
+      (m) => m.prefix === '' || normalized === m.prefix || normalized.startsWith(`${m.prefix}/`),
+    );
   }
 
   /**
@@ -3154,25 +3788,57 @@ export class AgentBase extends SWMLService {
 
     const host = opts?.host ?? this.host;
     const port = opts?.port ?? this.port;
+    // Serving HTTP itself, the agent is a server whatever the environment
+    // says, so its webhook URLs are the host's (see getFullUrl).
+    this._serving = true;
 
-    const { serve: honoServe } = await import('@hono/node-server');
     const app = this.getApp();
-    const listenUrl = `http://${host}:${port}${this.route}`;
+    // HTTPS when SSL is configured (SWML_SSL_ENABLED with a certificate and
+    // key, or the config file), as the reference's serve() passes them to
+    // uvicorn; plain HTTP otherwise.
+    const tls = this._servesTls();
+    if (this.sslEnabled && !tls) {
+      this.log.warn(
+        `SSL is enabled but the certificate or key isn't found (${this.sslCertPath ?? 'no cert'}, ${this.sslKeyPath ?? 'no key'}); serving HTTP`,
+      );
+    }
+    const listenUrl = `${tls ? 'https' : 'http'}://${host}:${port}${this.route}`;
     this.log.info(`Agent '${this.name}' running at ${listenUrl}`);
     this.log.info(`Auth: ${this.basicAuthCreds[0]}:**** (source: ${this.basicAuthSource})`);
     if (this._proxyUrlBase) {
       this.log.info(`Proxy URL: ${redactUrl(this._proxyUrlBase)}`);
     }
-    honoServe({ fetch: app.fetch, port, hostname: host });
+    if (tls) {
+      const { readFileSync } = await import('node:fs');
+      const { createServer } = await import('node:https');
+      const { getRequestListener } = await import('@hono/node-server');
+      const server = createServer(
+        {
+          cert: readFileSync(this.sslCertPath!, 'utf-8'),
+          key: readFileSync(this.sslKeyPath!, 'utf-8'),
+        },
+        getRequestListener(app.fetch),
+      );
+      server.listen(port, host);
+      this._server = server as unknown as typeof this._server;
+    } else {
+      const { serve: honoServe } = await import('@hono/node-server');
+      this._server = honoServe({
+        fetch: app.fetch,
+        port,
+        hostname: host,
+      }) as unknown as typeof this._server;
+    }
   }
 
   /**
    * Smart entry point: auto-detects the execution environment and dispatches
    * accordingly. When a serverless event
    * is supplied, or a serverless platform is detected from the environment
-   * (`AWS_LAMBDA_FUNCTION_NAME`/`_HANDLER`, `K_SERVICE`/`FUNCTION_TARGET`,
+   * (`AWS_LAMBDA_FUNCTION_NAME`/`_HANDLER`, `FUNCTION_TARGET`,
    * `FUNCTIONS_WORKER_RUNTIME`, `GATEWAY_INTERFACE`), it dispatches to
    * {@link runServerless}; otherwise it starts the HTTP server via {@link serve}.
+   * Cloud Run sets `K_SERVICE` but not `FUNCTION_TARGET`, so there it serves.
    *
    * For deterministic behavior, call {@link serve} (server) or
    * {@link runServerless} (serverless) directly.
@@ -3188,10 +3854,13 @@ export class AgentBase extends SWMLService {
     context?: unknown;
     platform?: 'lambda' | 'gcf' | 'azure' | 'cgi' | 'auto';
   }): Promise<void | ServerlessResponse> {
+    // Loaded by swaig-test: only the configuration is needed, never a request.
+    if (process.env['SWAIG_CLI_MODE'] === 'true') return;
     const serverlessEnv =
       !!process.env['AWS_LAMBDA_FUNCTION_NAME'] ||
       !!process.env['_HANDLER'] ||
-      !!process.env['K_SERVICE'] ||
+      // The Functions Framework sets FUNCTION_TARGET; K_SERVICE alone is Cloud
+      // Run (or Cloud Shell), where the agent serves HTTP itself.
       !!process.env['FUNCTION_TARGET'] ||
       !!process.env['FUNCTIONS_WORKER_RUNTIME'] ||
       !!process.env['GATEWAY_INTERFACE'];
@@ -3235,19 +3904,20 @@ export class AgentBase extends SWMLService {
     const adapter = new ServerlessAdapter(platform ?? 'auto');
     const app = this.getApp();
     // Wrap Hono's fetch (which returns `Response | Promise<Response>`) into a plain
-    // `Promise<Response>` so it satisfies ServerlessAdapter.handleRequest's type constraint.
-    const fetchFn = (req: Request): Promise<Response> => Promise.resolve(app.fetch(req));
+    // `Promise<Response>`. The adapter passes an `env` carrying the URL the
+    // platform was called on, for the webhook signature check; forward it.
+    const fetchFn = (req: Request, env?: Record<string, unknown>): Promise<Response> =>
+      Promise.resolve(app.fetch(req, env));
 
     // CGI has no event object — the request lives in the environment + stdin.
-    // When dispatched in CGI mode with no explicit event, reconstruct it from
-    // the CGI environment so the request routes through the same Hono path as
-    // the other platforms (mirrors Python serverless_mixin CGI mode).
-    let resolvedEvent = event;
+    // When dispatched in CGI mode with no explicit event, read the request from
+    // the CGI environment and stdin, and write the CGI response to stdout, as a
+    // CGI program must (mirrors Python serverless_mixin CGI mode).
     if (adapter.getPlatform() === 'cgi' && (event == null || Object.keys(event).length === 0)) {
-      resolvedEvent = ServerlessAdapter.buildCgiEvent();
+      return adapter._runCgi({ fetch: fetchFn }, process.env);
     }
 
-    return adapter.handleRequest({ fetch: fetchFn }, resolvedEvent);
+    return adapter.handleRequest({ fetch: fetchFn }, event);
   }
 
   // ── Graceful shutdown ─────────────────────────────────────────────
@@ -3305,10 +3975,10 @@ export class AgentBase extends SWMLService {
   getBasicAuthCredentials(includeSource?: false): [string, string];
   getBasicAuthCredentials(
     includeSource: true,
-  ): [string, string, 'provided' | 'environment' | 'generated'];
+  ): [string, string, 'provided' | 'environment' | 'config file' | 'generated'];
   getBasicAuthCredentials(
     includeSource: boolean = false,
-  ): [string, string] | [string, string, 'provided' | 'environment' | 'generated'] {
+  ): [string, string] | [string, string, 'provided' | 'environment' | 'config file' | 'generated'] {
     if (includeSource) return [...this.basicAuthCreds, this.basicAuthSource];
     return this.basicAuthCreds;
   }

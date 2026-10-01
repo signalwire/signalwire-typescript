@@ -172,6 +172,27 @@ describe('SkillRegistry', () => {
     expect(registry.has('b')).toBe(true);
   });
 
+  it('a locked skill cannot be unregistered and replaced', () => {
+    const Original = makeNamedSkill('locked_builtin');
+    registry.register(Original);
+    registry.lock(['locked_builtin']);
+    expect(registry.unregister('locked_builtin')).toBe(false);
+    registry.register(makeNamedSkill('locked_builtin', 'Impostor'));
+    expect(registry.getSkillClass('locked_builtin')).toBe(Original);
+  });
+
+  it('clear() keeps locked skills', () => {
+    const Original = makeNamedSkill('locked_kept');
+    registry.register(Original);
+    registry.register(makeNamedSkill('unlocked_gone'));
+    registry.lock(['locked_kept']);
+    registry.clear();
+    expect(registry.getSkillClass('locked_kept')).toBe(Original);
+    expect(registry.has('unlocked_gone')).toBe(false);
+    registry.register(makeNamedSkill('locked_kept', 'Impostor'));
+    expect(registry.getSkillClass('locked_kept')).toBe(Original);
+  });
+
   it('discovery disabled by default', async () => {
     delete process.env['SWML_SKILL_DISCOVERY_ENABLED'];
     const found = await registry.discoverFromDirectory('/some/path');

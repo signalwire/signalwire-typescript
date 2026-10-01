@@ -101,13 +101,13 @@ const JOKE_TYPES = ['jokes', 'dadjokes'] as const;
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('joke');
+ * await agent.addSkillByName('joke');
  * ```
  */
 export class JokeSkill extends SkillBase {
   // Python ground truth: skills/joke/skill.py
   static override SKILL_NAME = 'joke';
-  static override SKILL_DESCRIPTION = 'Tell jokes using the API Ninjas joke API';
+  static override SKILL_DESCRIPTION = 'Tell jokes from a built-in collection';
   static override SKILL_VERSION = '1.0.0';
   static override REQUIRED_PACKAGES: readonly string[] = [];
   static override REQUIRED_ENV_VARS: readonly string[] = [];
@@ -142,7 +142,7 @@ export class JokeSkill extends SkillBase {
     return [
       defineSkillTool({
         name: toolName,
-        description: 'Get a random joke.',
+        description: 'Get a joke to tell the caller',
         parameters: {
           type: {
             type: 'string',
@@ -166,7 +166,12 @@ export class JokeSkill extends SkillBase {
 
           const joke = pool[Math.floor(Math.random() * pool.length)]!;
 
-          return new FunctionResult(`${joke.setup} ... ${joke.punchline}`);
+          // A SWAIG result is a prompt the model reasons over, so it has to
+          // direct, not narrate: given only the joke, the model answers it
+          // instead of telling it.
+          return new FunctionResult(
+            `Tell this joke to the user: ${joke.setup} ... ${joke.punchline}`,
+          );
         },
       }),
     ];

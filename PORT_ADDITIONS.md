@@ -67,6 +67,59 @@ Most additions below fall into three buckets:
 
 ## Skill-specific additions
 
+signalwire.cli.core.agent_loader.describe_agents: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.agents_note.init: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.agents_note.note: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.api.close_matches: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.api.load_api_index: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.api.render_found: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.api.resolve_name: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.api.suggestions: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.api.summary: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.api.summary_of: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.api.use_api_index: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.files.all_doc_files: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.files.code_files: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.files.grep_files: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.files.headings: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.files.is_doc_file: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.files.is_text: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.files.resolve_doc: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.files.section: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.index.main: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.live.render_live: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.live.scan_env_names: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.locate.code_dir: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.locate.find_package_root: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.locate.package_root: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.locate.read_package_json: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.render.example_descriptions: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.render.expand_examples: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.render.render_examples: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.render.render_index: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.render.render_llms_txt: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.render.render_topic: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.render.render_topic_list: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.tsdocs.render.version: TS sw-tsdocs internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli.pydocs, which its oracle doesn't enumerate
+signalwire.cli.datamap_exec.execute_data_map: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.datamap_exec.expand_template: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.datamap_exec.expand_value: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.function_args.parse_function_arguments: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.function_args.schema_properties: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.function_args.undeclared_argument_warnings: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.ServerlessSimulator: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.ServerlessSimulator.__init__: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.ServerlessSimulator.activate: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.ServerlessSimulator.deactivate: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.ServerlessSimulator.environment: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.apply_convenience_mappings: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.apply_overrides: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.comprehensive_post_data: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.fake_swml_post_data: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.load_env_file: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.minimal_post_data: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.parse_override_value: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
+signalwire.cli.simulation.set_nested: TS swaig-test internals (src/cli), not SDK API; the reference's equivalents are in signalwire.cli, which its oracle doesn't enumerate
 signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.get_hints: TS-specific skill helper method or class
 signalwire.skills.api_ninjas_trivia.skill.create_skill: TS-specific skill helper method or class
 signalwire.skills.ask_claude.skill.AskClaudeSkill: TS-specific skill helper method or class
@@ -161,6 +214,13 @@ signalwire.prefabs.survey.SurveyAgent.define_tools: TS port-only helper — func
 signalwire.prefabs.survey.create_survey_agent: TS port-only helper — functionality has no direct Python equivalent
 signalwire.rest._pagination.paginate: TS port-only helper — functionality has no direct Python equivalent
 signalwire.rest._pagination.paginate_all: TS port-only helper — functionality has no direct Python equivalent
+signalwire.prefabs.call_session_store.CallSessionStore: TS internal store for SurveyAgent and ReceptionistAgent per-call state (pruned on summary, idle and size); the reference keeps no per-call map
+signalwire.prefabs.call_session_store.CallSessionStore.__init__: TS internal store for SurveyAgent and ReceptionistAgent per-call state; the reference keeps no per-call map
+signalwire.prefabs.call_session_store.CallSessionStore.delete: TS internal store for SurveyAgent and ReceptionistAgent per-call state; the reference keeps no per-call map
+signalwire.prefabs.call_session_store.CallSessionStore.get_or_create: TS internal store for SurveyAgent and ReceptionistAgent per-call state; the reference keeps no per-call map
+signalwire.prefabs.call_session_store.CallSessionStore.size: TS internal store for SurveyAgent and ReceptionistAgent per-call state; the reference keeps no per-call map
+signalwire.skills.ask_claude.skill.AskClaudeSkill.setup: TS-specific skill helper method or class
+signalwire.utils.cors_origins_from_env: TS port-only helper — reads SWML_CORS_ORIGINS once for every server, with "*" meaning all as the reference's SecurityConfig reads it
 signalwire.utils.is_private_ip: TS port-only helper — functionality has no direct Python equivalent
 signalwire.utils.resolve_and_validate_url: TS port-only helper — functionality has no direct Python equivalent
 signalwire.utils.safe_assign: TS port-only helper — functionality has no direct Python equivalent
@@ -432,8 +492,6 @@ signalwire.core.swml_service.SWMLService.swaig_pre_dispatch: TS SWMLService exte
 
 signalwire.cli.core.agent_loader.list_agents: TS CLI helper exposed by the TS swaig-test wrapper
 signalwire.cli.core.agent_loader.load_agent: TS CLI helper exposed by the TS swaig-test wrapper
-signalwire.cli.simulation.mock_env.generate_fake_post_data: TS CLI helper exposed by the TS swaig-test wrapper
-signalwire.cli.simulation.mock_env.generate_minimal_post_data: TS CLI helper exposed by the TS swaig-test wrapper
 
 ## DataMap port-specific
 

@@ -1,14 +1,14 @@
 # DataMap Guide
 
-Comprehensive guide to the `DataMap` class in the SignalWire AI Agents TypeScript SDK.
+This page is the reference for the `DataMap` class in the SignalWire AI Agents TypeScript SDK, and for the `data_map` definition it builds.
 
 <!-- snippet-setup -->
 ```ts
 export {}; // treat each runnable example as a module
-// Shared context the examples below assume: `DataMap`/`FunctionResult` (imported once above and
+// Shared context the examples assume: `DataMap`/`FunctionResult` (imported once and
 // reused), `agent` (an AgentBase), and `tool` (the DataMap built in the current example).
-// Declared as ambient globals so each fragment resolves without repeating the boilerplate — a
-// block that constructs/imports its own `const tool`/`DataMap` simply shadows these.
+// Declared as ambient globals so each fragment resolves without repeating the boilerplate.
+// A block that constructs or imports its own `const tool`/`DataMap` shadows these.
 declare global {
   const DataMap: typeof import('@signalwire/sdk').DataMap;
   const FunctionResult: typeof import('@signalwire/sdk').FunctionResult;
@@ -21,7 +21,10 @@ declare global {
 
 ## Table of Contents
 
+The page has these sections:
+
 - [Overview](#overview)
+  - [What the SDK does and what the platform does](#what-the-sdk-does-and-what-the-platform-does)
 - [Creating a DataMap](#creating-a-datamap)
 - [Configuration](#configuration)
   - [purpose / description](#purpose--description)
@@ -29,6 +32,7 @@ declare global {
 - [Webhooks](#webhooks)
   - [webhook](#webhook)
   - [params](#params)
+  - [body](#body)
   - [Webhook Headers](#webhook-headers)
 - [Expressions](#expressions)
   - [expression](#expression)
@@ -43,48 +47,63 @@ declare global {
   - [foreach](#foreach)
 - [Environment Variables](#environment-variables)
   - [enableEnvExpansion](#enableenvexpansion)
+  - [Allowed prefixes](#allowed-prefixes)
 - [Registration](#registration)
   - [registerWithAgent](#registerwithagent)
   - [toSwaigFunction](#toswaigfunction)
 - [Helper Functions](#helper-functions)
   - [createSimpleApiTool](#createsimpleapitool)
   - [createExpressionTool](#createexpressiontool)
-- [Template Variables Reference](#template-variables-reference)
-- [Complete Examples](#complete-examples)
+- [Template Reference](#template-reference)
+  - [Template data](#template-data)
+  - [Template syntax](#template-syntax)
+  - [Template functions](#template-functions)
+- [Testing a DataMap](#testing-a-datamap)
+- [Complete Example](#complete-example)
 
 ---
 
 ## Overview
 
-`DataMap` creates server-side tool definitions that execute entirely on the SignalWire platform without requiring your own webhook endpoints for the tool handler. Instead of writing a handler function that runs on your server, you describe what HTTP call to make (or what expression to evaluate), how to process the response, and what to return to the AI -- all as configuration.
+`DataMap` builds a SWAIG function that runs on the SignalWire platform instead of in your agent. You describe the HTTP request to make, or the pattern to match, and how to turn the result into the function's response. The definition goes into the SWML document as the function's `data_map`, and the platform runs it when the AI calls the function.
 
-### When to use DataMap vs. defineTool
+The two kinds of tool differ in where they run:
 
 | Feature            | `defineTool()`                             | `DataMap`                                      |
-|--------------------|--------------------------------------------|-------------------------------------------------|
-| Execution location | Your server                                | SignalWire platform                             |
-| Custom logic       | Full TypeScript/JavaScript                 | Template variables and pattern matching          |
-| External API calls | You make them in your handler              | SignalWire makes them for you                    |
-| Webhook required   | Yes (your agent server must be reachable)  | No (the data_map config is embedded in SWML)     |
-| Best for           | Complex logic, database access, auth flows | Simple API lookups, pattern matching, transforms |
+|--------------------|--------------------------------------------|------------------------------------------------|
+| Execution location | Your server                                | SignalWire platform                            |
+| Custom logic       | Full TypeScript/JavaScript                 | Template variables and pattern matching        |
+| External API calls | You make them in your handler              | SignalWire makes them for you                  |
+| Webhook required   | Yes (your agent server must be reachable)  | No (the `data_map` definition is in the SWML)  |
+| Best for           | Complex logic, database access, auth flows | API lookups, pattern matching, formatting      |
 
 ### How it works
 
-1. You define a `DataMap` with a name, parameters, and either webhooks or expressions.
-2. You register it with an agent via `registerWithAgent()` or `toSwaigFunction()`.
-3. When the AI decides to call this tool, SignalWire executes the data_map configuration directly:
-   - For **webhooks**: SignalWire makes the HTTP request, processes the response through your output template, and returns the result to the AI.
-   - For **expressions**: SignalWire evaluates the test value against the regex pattern and returns the matching output.
+A DataMap tool goes from definition to call in three steps:
 
-### Architecture
+1. You define a `DataMap` with a name, parameters, and webhooks or expressions.
+2. You register it with an agent through `registerWithAgent()` or `toSwaigFunction()`.
+3. When the AI calls the function, SignalWire runs the `data_map` definition:
+   - For **webhooks**, SignalWire makes the HTTP request and expands the output template with the response. The result goes back to the AI.
+   - For **expressions**, SignalWire expands the test value, matches it against the pattern, and returns the matching output.
 
-```
+The request path looks like this:
+
+```text
 Caller <-> SignalWire AI <-> DataMap (runs on SignalWire)
                                 |
                                 +--> External API (optional webhook call)
 ```
 
-No traffic flows to your server for DataMap tool invocations. Your server only serves the initial SWML document that contains the data_map configuration.
+A DataMap function call sends no request to your server. Your server only serves the SWML document that contains the `data_map` definition.
+
+### What the SDK does and what the platform does
+
+The SDK builds the definition. `toSwaigFunction()` serializes the builder's settings into a SWAIG function object with a `data_map` key. The one template the SDK expands itself is `${ENV.NAME}`, when you turn on [environment expansion](#environment-variables). Every other `${...}` is written into the SWML as text.
+
+The platform does the rest during a call. It fetches each webhook, expands the templates, evaluates the expressions and builds the output. [Template Reference](#template-reference) describes the platform's side. SignalWire's own reference is the [data_map page](https://signalwire.com/docs/swml/reference/calling/ai/swaig/functions/data-map) and the [template functions page](https://signalwire.com/docs/swml/reference/template-functions).
+
+`swaig-test --exec` runs a DataMap function locally in a simulator of the platform's processing. See [Testing a DataMap](#testing-a-datamap).
 
 ---
 
@@ -102,17 +121,19 @@ const tool = new DataMap('get_weather');
 |----------------|----------|------------------------------------------|
 | `functionName` | `string` | Unique name for this data map tool.      |
 
-All subsequent configuration is done via fluent method chaining:
+You configure the rest through method chaining. This tool calls the wttr.in weather API and reads the temperature from its JSON response:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('get_weather')
   .purpose('Get current weather for a city')
   .parameter('city', 'string', 'The city name', { required: true })
-  .webhook('GET', 'https://wttr.in/${lc:args.city}?format=j1')
-  .output(new FunctionResult('Temperature: ${response.temp_F}F'))
+  .webhook('GET', 'https://wttr.in/${lc:enc:args.city}?format=j1')
+  .output(new FunctionResult('Temperature: ${current_condition[0].temp_F}F'))
   .fallbackOutput(new FunctionResult('Weather data unavailable.'));
 ```
+
+The output reads `current_condition[0].temp_F` from the root of the response, with no `response.` prefix. [Template data](#template-data) explains why.
 
 ---
 
@@ -120,7 +141,7 @@ const tool = new DataMap('get_weather')
 
 ### purpose / description
 
-Set the tool description that the AI sees. The AI uses this description to decide when to call the tool. `description()` is an alias for `purpose()`.
+These methods set the tool description that the AI reads to decide when to call the tool. `description()` is an alias for `purpose()`.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -132,7 +153,7 @@ description(description: string): this
 |---------------|----------|----------------------------------------------------|
 | `description` | `string` | Human-readable description of what the tool does.  |
 
-If not set, the description defaults to `"Execute <functionName>"`.
+If you don't set one, the description is `"Execute <functionName>"`. Both calls in this example set the same description:
 
 ```typescript
 const tool = new DataMap('lookup_order')
@@ -147,7 +168,7 @@ const tool2 = new DataMap('lookup_order')
 
 ### parameter
 
-Define a parameter that the AI should extract from the conversation and pass to this tool.
+This method defines a parameter that the AI extracts from the conversation and passes to the tool.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -161,13 +182,13 @@ parameter(
 
 | Parameter         | Type       | Description                                              |
 |-------------------|------------|----------------------------------------------------------|
-| `name`            | `string`   | Parameter name (used in `${args.name}` templates).       |
+| `name`            | `string`   | Parameter name. A URL, `params`, the top-level expressions and the fallback output read it as `${args.name}`; a webhook's `output`, `expressions` and `foreach` read it as `${input.args.name}`. See [Template data](#template-data). |
 | `paramType`       | `string`   | JSON Schema type: `"string"`, `"number"`, `"boolean"`, `"integer"`, `"array"`, `"object"`. |
-| `description`     | `string`   | Description shown to the AI to explain what this parameter is.  |
-| `opts.required`   | `boolean`  | If `true`, the AI must provide this parameter.           |
+| `description`     | `string`   | Description the AI reads to decide how to fill in the value. |
+| `opts.required`   | `boolean`  | If `true`, the parameter is listed in the schema's `required` array. |
 | `opts.enum`       | `string[]` | Restrict the parameter to a fixed set of allowed values. |
 
-Multiple calls to `parameter()` define multiple parameters. Required parameters are tracked internally via a `_required` array in the parameter schema.
+The options are an object: write `{ required: true }`, not `true`. Each call to `parameter()` adds one parameter:
 
 ```typescript
 const tool = new DataMap('search_products')
@@ -179,7 +200,7 @@ const tool = new DataMap('search_products')
   .parameter('max_results', 'integer', 'Maximum number of results to return');
 ```
 
-The generated parameter schema:
+`toSwaigFunction()` turns those calls into this parameter schema:
 
 ```json
 {
@@ -203,7 +224,7 @@ The generated parameter schema:
 
 ### webhook
 
-Add a webhook that SignalWire calls when the tool is invoked. You can add multiple webhooks to a single DataMap.
+This method adds an HTTP request for SignalWire to make when the tool is called. You can add more than one. The platform tries them in order and skips a webhook when none of its `require_args` is among the arguments. The first webhook it requests decides the result: if that webhook fails, the [fallback output](#fallbackoutput) answers, and later webhooks aren't tried.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -219,47 +240,48 @@ webhook(
 ): this
 ```
 
-| Parameter              | Type                     | Description                                                |
-|------------------------|--------------------------|------------------------------------------------------------|
-| `method`               | `string`                 | HTTP method (`"GET"`, `"POST"`, `"PUT"`, etc.). Automatically uppercased. |
-| `url`                  | `string`                 | The webhook URL. Supports template variables like `${args.city}`. |
-| `opts.headers`         | `Record<string, string>` | Custom HTTP headers for the request.                       |
-| `opts.formParam`       | `string`                 | Name of the form parameter to send the body as.            |
-| `opts.inputArgsAsParams` | `boolean`              | If `true`, pass all input arguments as query/form parameters. |
-| `opts.requireArgs`     | `string[]`               | Arguments that must be present for this webhook to fire.   |
+| Parameter                | Type                     | Written as             | Description |
+|--------------------------|--------------------------|------------------------|-------------|
+| `method`                 | `string`                 | `method`               | HTTP method, uppercased. The SWML schema allows `GET`, `POST`, `PUT` and `DELETE`. The platform sends a `POST` when the method is `POST` or the webhook has `params`, and a `GET` for any other method. |
+| `url`                    | `string`                 | `url`                  | The request URL. The platform expands templates in it, such as `${enc:args.city}`. |
+| `opts.headers`           | `Record<string, string>` | `headers`              | HTTP headers for the request, sent as written. The platform expands no templates in them. |
+| `opts.formParam`         | `string`                 | `form_param`           | The SWML schema's webhook object doesn't define this key. |
+| `opts.inputArgsAsParams` | `boolean`                | `input_args_as_params` | If `true`, the platform merges the function's arguments into `params`. With no `params`, the arguments are the whole request body. |
+| `opts.requireArgs`       | `string[]`               | `require_args`         | Arguments that decide whether the platform makes this request. It skips the webhook, and tries the next one, unless at least one of them is present. The SWML schema and the platform name the key `require_args`, and SignalWire's reference page lists it as `required_args`. |
 
 **Returns:** `this` for chaining.
 
+A webhook's other settings (`params()`, `foreach()`, `output()`, `errorKeys()`, `webhookExpressions()`) apply to the most recently added webhook. This example builds two tools, one with a URL template and one with an authentication header:
+
 ```typescript
-// Simple GET request with URL template
+// GET request with the argument URL-encoded into the path
 const tool = new DataMap('get_stock_price')
   .purpose('Get the current stock price')
   .parameter('symbol', 'string', 'Stock ticker symbol', { required: true })
-  .webhook('GET', 'https://api.stocks.example.com/v1/price/${uc:args.symbol}');
+  .webhook('GET', 'https://api.stocks.example.com/v1/price/${enc:args.symbol}');
 
-// POST with authentication header
+// POST with an authentication header read from the environment
 const tool2 = new DataMap('create_ticket')
   .purpose('Create a support ticket')
   .parameter('subject', 'string', 'Ticket subject', { required: true })
   .parameter('description', 'string', 'Ticket description', { required: true })
+  .enableEnvExpansion()
   .webhook('POST', 'https://api.helpdesk.example.com/tickets', {
     headers: {
-      'Authorization': 'Bearer ${ENV.HELPDESK_API_KEY}',
+      'Authorization': 'Bearer ${ENV.SW_HELPDESK_API_KEY}',
       'Content-Type': 'application/json',
     },
-  });
+  })
+  .params({ subject: '${args.subject}', description: '${args.description}' });
 ```
+
+`${ENV.SW_HELPDESK_API_KEY}` is expanded by the SDK, and only because the name starts with an allowed prefix. See [Environment Variables](#environment-variables).
 
 ---
 
 ### params
 
-Set query or form parameters for the most recently added webhook — including POST/PUT
-request data. Must be called after `webhook()`.
-
-> There is no `body()` builder. `params` is the only request-data key in the webhook
-> contract: `schema.json` `$defs/Webhook` permits exactly ten properties and forbids
-> everything else, and the engine's webhook readers look up `params`, never `body`.
+This method sets the `params` object of the most recently added webhook. The platform sends `params` as the request's JSON body, and expands templates in its values first. A webhook with `params` is a `POST`, whatever its method. A webhook with no `params` sends no body, even as a `POST`.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -268,17 +290,19 @@ params(data: Record<string, unknown>): this
 
 | Parameter | Type                       | Description              |
 |-----------|----------------------------|--------------------------|
-| `data`    | `Record<string, unknown>`  | The parameters object.   |
+| `data`    | `Record<string, unknown>`  | The request body object. Values can contain templates. |
 
 **Throws:** `Error` if no webhook has been added yet.
 
 **Returns:** `this` for chaining.
 
+This tool posts a search to a knowledge base API, with the caller's query in the body:
+
 ```typescript
 const tool = new DataMap('search_kb')
   .purpose('Search the knowledge base')
   .parameter('query', 'string', 'Search query', { required: true })
-  .webhook('GET', 'https://api.kb.example.com/search')
+  .webhook('POST', 'https://api.kb.example.com/search')
   .params({
     q: '${args.query}',
     limit: 5,
@@ -286,24 +310,51 @@ const tool = new DataMap('search_kb')
   });
 ```
 
+The request body is `{"q": "<the query>", "limit": 5, "format": "json"}`. Because `params` becomes a body, put query-string values for a `GET` request in the URL instead: `https://api.kb.example.com/search?q=${enc:args.query}`. The built-in `datasphere_serverless` skill sends its search request with `params()`.
+
+---
+
+### body
+
+This method sets the request body of the most recently added webhook. It does the same as [params](#params): the platform reads a webhook's body from its `params` field, so `body()` writes `params`, and a later `params()` or `body()` call replaces it.
+
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
+```typescript
+body(data: Record<string, unknown>): this
+```
+
+| Parameter | Type                       | Description                |
+|-----------|----------------------------|----------------------------|
+| `data`    | `Record<string, unknown>`  | The request body object, written as the webhook's `params`. Values can contain templates. |
+
+**Throws:** `Error` if no webhook has been added yet.
+
+**Returns:** `this` for chaining.
+
+`createSimpleApiTool()` uses `body()` for its `body` option.
+
+> **Upgrading:** before this release, `body()` wrote a `body` key, which the platform doesn't read, so the webhook was sent without a request body (and as a `GET` unless its method was `POST`). It now writes `params`, so the body is sent and the request is a `POST`. If a tool called both `body()` and `params()`, only the later call's object is sent now; merge them into one object. A hand-written `body` key in a `data_map` is still not sent.
+
 ---
 
 ### Webhook Headers
 
-Headers are set via the `opts.headers` parameter of `webhook()`. Template variables are supported in header values.
+You set headers through the `opts.headers` parameter of `webhook()`. The platform sends each header value as written: it expands templates in `url` and `params`, not in headers, so `${args.id}` in a header is sent as that text. The SDK expands `${ENV.*}` in header values when environment expansion is on, before the SWML is sent. This tool sends a token from the environment:
 
 ```typescript
 const tool = new DataMap('authenticated_lookup')
   .purpose('Look up data from an authenticated API')
   .parameter('id', 'string', 'Record ID', { required: true })
   .enableEnvExpansion()
-  .webhook('GET', 'https://api.example.com/records/${args.id}', {
+  .webhook('GET', 'https://api.example.com/records/${enc:args.id}', {
     headers: {
-      'Authorization': 'Bearer ${ENV.API_TOKEN}',
+      'Authorization': 'Bearer ${ENV.SW_RECORDS_API_TOKEN}',
       'X-Request-Source': 'signalwire-agent',
     },
   });
 ```
+
+A header value is written into the SWML document, so a token in it is readable by anyone who can fetch the agent's SWML. [Environment Variables](#environment-variables) covers what that means for secrets.
 
 ---
 
@@ -311,7 +362,7 @@ const tool = new DataMap('authenticated_lookup')
 
 ### expression
 
-Add a pattern-matching expression that evaluates a test value against a regex pattern. Expressions work without making any HTTP calls -- they are evaluated entirely on the SignalWire platform.
+This method adds a pattern-matching expression. The platform expands the test value, matches it against a regular expression, and returns the output of the first expression that matches. Expressions make no HTTP request.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -323,31 +374,18 @@ expression(
 ): this
 ```
 
-| Parameter       | Type                       | Description                                              |
-|-----------------|----------------------------|----------------------------------------------------------|
-| `testValue`     | `string`                   | The string or template variable to test (e.g., `"${args.input}"`). |
-| `pattern`       | `string \| RegExp`       | Regex pattern to match against. If a `RegExp`, the `.source` is used. |
-| `output`        | `FunctionResult`      | Result returned when the pattern matches.                |
-| `nomatchOutput` | `FunctionResult`      | Optional result returned when the pattern does not match.|
+| Parameter       | Type                  | Description                                              |
+|-----------------|-----------------------|----------------------------------------------------------|
+| `testValue`     | `string`              | The text to test, usually a template such as `"${args.input}"`. Written as `string`. |
+| `pattern`       | `string \| RegExp`    | The regular expression, written as `pattern`. It matches case-insensitively unless written as `/pattern/`. For a `RegExp`, only `.source` is kept: its flags are dropped. |
+| `output`        | `FunctionResult`      | The result when the pattern matches. Written as `output`. |
+| `nomatchOutput` | `FunctionResult`      | The result when the pattern doesn't match. Written as `nomatch-output`, which the platform reads. The SWML schema's expression object doesn't define this key. |
 
 **Returns:** `this` for chaining.
 
-You can add multiple expressions. They are evaluated in order; the first match wins.
+The platform wraps a pattern that doesn't start with `/` as `/pattern/i`, so matching is case-insensitive by default: `'star\\s*wars'` matches "Star Wars". To match case-sensitively, write the pattern as `'/pattern/'`, such as `'/^[A-Z]{3}$/'`. A pattern written as `/pattern/flags` takes only its own `i` and `s` flags.
 
-<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
-```typescript
-const tool = new DataMap('validate_email')
-  .purpose('Validate an email address format')
-  .parameter('email', 'string', 'The email address to validate', { required: true })
-  .expression(
-    '${args.email}',
-    /^[^@]+@[^@]+\.[^@]+$/,
-    new FunctionResult('The email address ${args.email} is valid.'),
-    new FunctionResult('The email address ${args.email} is not valid. Please ask for a correct email.'),
-  );
-```
-
-Multiple expressions for different test values:
+Expressions are tried in order, and the first match's output ends the function. An expression with a `nomatchOutput` also ends it when its pattern doesn't match, so later expressions aren't tried. For an answer when nothing matches, add a last expression with a catch-all pattern, or a [fallbackOutput](#fallbackoutput). This tool classifies input with a final catch-all:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
@@ -355,17 +393,23 @@ const tool = new DataMap('classify_input')
   .purpose('Classify user input as a question or command')
   .parameter('input', 'string', 'The user input to classify', { required: true })
   .expression(
-    '${args.input}',
+    '${lc:args.input}',
     '^(what|how|why|when|where|who|is|are|can|do|does)',
     new FunctionResult('The input is a question.'),
   )
   .expression(
-    '${args.input}',
-    '^(please|set|change|update|delete|create|send)',
+    '${lc:args.input}',
+    '^(set|change|update|delete|create|send)',
     new FunctionResult('The input is a command.'),
+  )
+  .expression(
+    '${args.input}',
+    '.*',
     new FunctionResult('The input type could not be determined.'),
   );
 ```
+
+The platform matches case-insensitively, so "What time is it" counts as a question. The `lc` helper lowercases the input as well, so the match doesn't depend on that.
 
 ---
 
@@ -373,38 +417,40 @@ const tool = new DataMap('classify_input')
 
 ### output
 
-Set the output template for the most recently added webhook. The template uses `${response.*}` variables to reference fields in the webhook's JSON response and `${args.*}` to reference the tool's input arguments.
+This method sets the output of the most recently added webhook. The output's templates read the webhook's JSON response from the root of the template data, such as `${temp}`, and the arguments as `${input.args.name}`. An array response is under `array`. `${args.name}` expands to nothing here. See [Template data](#template-data).
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 output(result: FunctionResult): this
 ```
 
-| Parameter | Type                  | Description                                          |
-|-----------|-----------------------|------------------------------------------------------|
-| `result`  | `FunctionResult` | The result template. Use template variables in the response text. |
+| Parameter | Type             | Description                                          |
+|-----------|------------------|------------------------------------------------------|
+| `result`  | `FunctionResult` | The result template. Templates can appear in the response text and in action values. |
 
 **Throws:** `Error` if no webhook has been added yet.
 
 **Returns:** `this` for chaining.
+
+The output's response text goes back to the AI as context for its reply. The AI decides what to say. This tool formats three fields of the wttr.in response:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('get_weather')
   .purpose('Get current weather')
   .parameter('city', 'string', 'City name', { required: true })
-  .webhook('GET', 'https://wttr.in/${lc:args.city}?format=j1')
+  .webhook('GET', 'https://wttr.in/${lc:enc:args.city}?format=j1')
   .output(
     new FunctionResult(
-      'Weather in ${args.city}: ' +
-      'Temperature: ${response.current_condition[0].temp_F}F, ' +
-      'Conditions: ${response.current_condition[0].weatherDesc[0].value}, ' +
-      'Humidity: ${response.current_condition[0].humidity}%'
+      'Weather in ${input.args.city}: ' +
+      'Temperature: ${current_condition[0].temp_F}F, ' +
+      'Conditions: ${current_condition[0].weatherDesc[0].value}, ' +
+      'Humidity: ${current_condition[0].humidity}%'
     ),
   );
 ```
 
-The `output()` method calls `toDict()` on the `FunctionResult`, so you can also include actions:
+`output()` stores `result.toDict()`, so the output can carry actions as well as text. This tool records the alert's ID in the function's metadata:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
@@ -414,8 +460,8 @@ const tool = new DataMap('urgent_alert')
   .webhook('POST', 'https://api.alerts.example.com/send')
   .params({ message: '${args.message}' })
   .output(
-    new FunctionResult('Alert sent: ${response.alert_id}')
-      .setMetadata({ alert_id: '${response.alert_id}' }),
+    new FunctionResult('Alert sent: ${alert_id}')
+      .setMetadata({ alert_id: '${alert_id}' }),
   );
 ```
 
@@ -423,7 +469,7 @@ const tool = new DataMap('urgent_alert')
 
 ### webhookExpressions
 
-Set pattern-matching expressions on the most recently added webhook. These expressions are evaluated against the webhook's response, allowing conditional output based on the response content.
+This method sets the `expressions` array of the most recently added webhook. The platform evaluates a webhook's `foreach`, then its `expressions`, then its `output`, so the expressions can test fields of the response.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -432,43 +478,45 @@ webhookExpressions(expressions: Record<string, unknown>[]): this
 
 | Parameter     | Type                        | Description                                                    |
 |---------------|-----------------------------|----------------------------------------------------------------|
-| `expressions` | `Record<string, unknown>[]` | Array of expression objects with `string`, `pattern`, and `output` fields. |
+| `expressions` | `Record<string, unknown>[]` | Expression objects with `string`, `pattern` and `output` fields, written as given. |
 
 **Throws:** `Error` if no webhook has been added yet.
 
 **Returns:** `this` for chaining.
+
+The SDK writes the objects without converting them, so call `toDict()` on each output yourself. Like the output, the expressions read the response from the root and the arguments as `${input.args.name}`. The platform expands a matched expression's output a second time, against the same data. This tool answers differently for each order status, and falls back to the webhook's output:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('check_order_status')
   .purpose('Check the status of an order')
   .parameter('order_id', 'string', 'Order ID', { required: true })
-  .webhook('GET', 'https://api.store.example.com/orders/${args.order_id}')
+  .webhook('GET', 'https://api.store.example.com/orders/${enc:args.order_id}')
   .webhookExpressions([
     {
-      string: '${response.status}',
+      string: '${status}',
       pattern: 'shipped',
       output: new FunctionResult(
-        'Order ${args.order_id} has shipped! Tracking: ${response.tracking_number}'
+        'Order ${input.args.order_id} has shipped. Tracking: ${tracking_number}'
       ).toDict(),
     },
     {
-      string: '${response.status}',
+      string: '${status}',
       pattern: 'processing',
       output: new FunctionResult(
-        'Order ${args.order_id} is being processed. Estimated ship date: ${response.est_ship_date}'
+        'Order ${input.args.order_id} is being processed. Estimated ship date: ${est_ship_date}'
       ).toDict(),
     },
     {
-      string: '${response.status}',
+      string: '${status}',
       pattern: 'delivered',
       output: new FunctionResult(
-        'Order ${args.order_id} was delivered on ${response.delivery_date}.'
+        'Order ${input.args.order_id} was delivered on ${delivery_date}.'
       ).toDict(),
     },
   ])
   .output(
-    new FunctionResult('Order ${args.order_id} status: ${response.status}'),
+    new FunctionResult('Order ${input.args.order_id} status: ${status}'),
   );
 ```
 
@@ -478,38 +526,42 @@ const tool = new DataMap('check_order_status')
 
 ### fallbackOutput
 
-Set a fallback output used when no webhook succeeds or no expression matches. This ensures the AI always gets a response even when the tool encounters an error.
+This method sets the `data_map`'s own `output`. The platform uses it when no expression matched and no webhook produced a result: the webhook it requested failed, it requested none, or the webhook's expressions didn't match and it has no output. Without one, the AI gets the generic "There was an error processing this request."
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
 fallbackOutput(result: FunctionResult): this
 ```
 
-| Parameter | Type                  | Description                                   |
-|-----------|-----------------------|-----------------------------------------------|
+| Parameter | Type             | Description                                   |
+|-----------|------------------|-----------------------------------------------|
 | `result`  | `FunctionResult` | The fallback result.                          |
 
 **Returns:** `this` for chaining.
+
+The fallback's templates read the arguments as `${args.name}`, and no response exists when it runs. This tool reports the price, or says the lookup failed:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('get_price')
   .purpose('Get the price of a product')
   .parameter('product', 'string', 'Product name', { required: true })
-  .webhook('GET', 'https://api.store.example.com/price/${args.product}')
-  .output(new FunctionResult('${args.product} costs $${response.price}'))
+  .webhook('GET', 'https://api.store.example.com/price/${enc:args.product}')
+  .output(new FunctionResult('${input.args.product} costs $${price}'))
   .fallbackOutput(
-    new FunctionResult('Sorry, I could not look up the price for ${args.product}. Please try again later.'),
+    new FunctionResult('The price lookup for ${args.product} failed. Offer to try again later.'),
   );
 ```
+
+In `$${price}`, the first `$` is a literal dollar sign and `${price}` is the template.
 
 ---
 
 ### errorKeys
 
-Set error keys on the most recently added webhook. If the webhook response contains any of these keys, the response is treated as an error and the fallback output is used instead.
+This method sets `error_keys` on the most recently added webhook. If the JSON response has any of these keys, the webhook counts as failed, whatever the key's value: `"errors": []` fails it. The platform then uses the fallback output, and doesn't try the next webhook. A response that isn't JSON, or a request that doesn't complete, fails the webhook the same way. An HTTP status outside 200-299 doesn't fail it by itself: the platform adds an `http_code` key to such a response, which the output can read as `${http_code}`, so `'http_code'` in the list fails the webhook on any such status.
 
-If no webhook has been added, the error keys are set globally (same as `globalErrorKeys`).
+If no webhook has been added yet, the keys are set on the `data_map` itself, as `globalErrorKeys()` does, and the platform ignores them there.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -518,26 +570,28 @@ errorKeys(keys: string[]): this
 
 | Parameter | Type       | Description                                        |
 |-----------|------------|----------------------------------------------------|
-| `keys`    | `string[]` | Response keys that indicate an error occurred.     |
+| `keys`    | `string[]` | Response keys whose presence marks the response as a failure. |
 
 **Returns:** `this` for chaining.
+
+This tool treats a response with an `error`, `error_message` or `fault` key as a failure:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('api_lookup')
   .purpose('Look up data from an API')
   .parameter('id', 'string', 'Record ID', { required: true })
-  .webhook('GET', 'https://api.example.com/data/${args.id}')
+  .webhook('GET', 'https://api.example.com/data/${enc:args.id}')
   .errorKeys(['error', 'error_message', 'fault'])
-  .output(new FunctionResult('Found: ${response.name}'))
-  .fallbackOutput(new FunctionResult('Lookup failed. Please try again.'));
+  .output(new FunctionResult('Found: ${name}'))
+  .fallbackOutput(new FunctionResult('The lookup failed.'));
 ```
 
 ---
 
 ### globalErrorKeys
 
-Set error keys at the top-level data map scope, regardless of webhook context. These apply to all webhooks in the DataMap.
+This method sets `error_keys` on the `data_map` object itself, whether or not a webhook has been added.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -546,21 +600,32 @@ globalErrorKeys(keys: string[]): this
 
 | Parameter | Type       | Description                                        |
 |-----------|------------|----------------------------------------------------|
-| `keys`    | `string[]` | Response keys that indicate an error occurred.     |
+| `keys`    | `string[]` | Response keys whose presence marks a response as a failure. |
 
 **Returns:** `this` for chaining.
 
+The SWML schema defines `error_keys` only on a webhook. Its `data_map` object has `expressions`, `webhooks` and `output`, and the platform reads `error_keys` only on a webhook, so a top-level `error_keys` has no effect. Set the keys on each webhook with [errorKeys](#errorkeys) instead. This example sets them on each webhook of a two-webhook chain, where `requireArgs` picks the webhook for the arguments the caller gave:
+
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
-const tool = new DataMap('multi_api')
-  .purpose('Call multiple APIs')
-  .globalErrorKeys(['error', 'err'])
-  .webhook('GET', 'https://api1.example.com/data')
-  .output(new FunctionResult('API 1: ${response.value}'))
-  .webhook('GET', 'https://api2.example.com/data')
-  .output(new FunctionResult('API 2: ${response.value}'))
-  .fallbackOutput(new FunctionResult('Both APIs failed.'));
+const tool = new DataMap('find_store')
+  .purpose('Find the nearest store by ZIP code or by city')
+  .parameter('zip', 'string', 'ZIP code')
+  .parameter('city', 'string', 'City name')
+  .webhook('GET', 'https://api.stores.example.com/near?zip=${enc:args.zip}', {
+    requireArgs: ['zip'],
+  })
+  .errorKeys(['error', 'err'])
+  .output(new FunctionResult('The nearest store is ${name}.'))
+  .webhook('GET', 'https://api.stores.example.com/near?city=${enc:args.city}', {
+    requireArgs: ['city'],
+  })
+  .errorKeys(['error', 'err'])
+  .output(new FunctionResult('The nearest store is ${name}.'))
+  .fallbackOutput(new FunctionResult('The store lookup failed.'));
 ```
+
+With a ZIP code, the platform requests the first webhook. With only a city, it skips the first webhook and requests the second. If the webhook it requests fails, the fallback output answers.
 
 ---
 
@@ -568,7 +633,7 @@ const tool = new DataMap('multi_api')
 
 ### foreach
 
-Configure iteration over an array in the webhook response. This allows you to loop over a list of items and build a composite response string.
+This method sets the `foreach` of the most recently added webhook. The platform walks an array in the response, expands a template once per element, and joins the results into one string for the output. It skips a `foreach` that lacks `input_key`, `output_key` or `append`.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -580,40 +645,40 @@ foreach(config: {
 }): this
 ```
 
-| Parameter          | Type     | Description                                                  |
-|--------------------|----------|--------------------------------------------------------------|
-| `config.input_key` | `string` | Dot-path to the array in the response (e.g., `"results"`).  |
-| `config.output_key`| `string` | Variable name that holds the concatenated output.            |
-| `config.append`    | `string` | Template string appended for each item in the array.         |
-| `config.max`       | `number` | Optional maximum number of items to iterate over.            |
+| Parameter           | Type     | Description                                                  |
+|---------------------|----------|--------------------------------------------------------------|
+| `config.input_key`  | `string` | The path to the array in the webhook's template data, such as `"orders"` or `"data.items"`. It's a path, not a template. |
+| `config.output_key` | `string` | Where the built text is stored. The output reads it as `${output_key}`. |
+| `config.append`     | `string` | The template added once per element. `${this.field}` reads a field of an object element, and `${this}` is a string or number element itself. It can also read the response and `${input.args.name}`. |
+| `config.max`        | `number` | Optional. The most elements to use, from the start of the array. With no `max`, or 0, every element is used. |
 
 **Throws:** `Error` if no webhook has been added yet.
 
 **Returns:** `this` for chaining.
 
-The `append` template has access to the current item's fields. After iteration, the concatenated result is available via `${output_key}` in the output template.
+Inside `append`, the current element is `this`. After the loop, the text is stored under the `output_key` name, and the webhook's output reads it there. This tool lists a customer's recent orders:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const tool = new DataMap('list_orders')
   .purpose('List recent orders for a customer')
   .parameter('customer_id', 'string', 'Customer ID', { required: true })
-  .webhook('GET', 'https://api.store.example.com/customers/${args.customer_id}/orders')
+  .webhook('GET', 'https://api.store.example.com/customers/${enc:args.customer_id}/orders')
   .foreach({
     input_key: 'orders',
     output_key: 'order_list',
-    append: 'Order #${id}: ${status} - $${total}\n',
+    append: 'Order #${this.id}: ${this.status} - $${this.total}\n',
     max: 5,
   })
   .output(
-    new FunctionResult('Recent orders for customer ${args.customer_id}:\n${order_list}'),
+    new FunctionResult('Recent orders for customer ${input.args.customer_id}:\n${order_list}'),
   )
   .fallbackOutput(
     new FunctionResult('Could not retrieve orders for customer ${args.customer_id}.'),
   );
 ```
 
-In this example, if the API returns:
+Suppose the API returns this response:
 
 ```json
 {
@@ -625,9 +690,9 @@ In this example, if the API returns:
 }
 ```
 
-The `${order_list}` variable becomes:
+`${order_list}` then holds one line per order:
 
-```
+```text
 Order #1001: shipped - $29.99
 Order #1002: processing - $49.50
 Order #1003: delivered - $15.00
@@ -639,7 +704,7 @@ Order #1003: delivered - $15.00
 
 ### enableEnvExpansion
 
-Enable `${ENV.*}` variable expansion in URLs, bodies, headers, and outputs. When enabled, all `${ENV.VARIABLE_NAME}` references are replaced with the corresponding `process.env` values at the time `toSwaigFunction()` is called.
+This method turns on `${ENV.NAME}` expansion for this DataMap. Expansion is a TypeScript SDK feature, not a platform one: the SDK replaces the template with a value from `process.env` before the definition reaches the SWML. It's off by default.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -648,33 +713,66 @@ enableEnvExpansion(enabled?: boolean): this
 
 | Parameter | Type      | Default | Description                             |
 |-----------|-----------|---------|-----------------------------------------|
-| `enabled` | `boolean` | `true`  | Whether to enable environment expansion.|
+| `enabled` | `boolean` | `true`  | Whether to turn expansion on. Calling the method with no argument turns it on. |
 
 **Returns:** `this` for chaining.
 
-This is useful for embedding API keys or configuration values without hardcoding them:
+With expansion on, `toSwaigFunction()` replaces every `${ENV.NAME}` in every string of the function definition. That includes the URL, headers, `params`, outputs, expressions and the description. Each replacement follows these rules:
+
+- A name that starts with an [allowed prefix](#allowed-prefixes) becomes the variable's value, or an empty string if the variable isn't set.
+- A name without an allowed prefix becomes an empty string. The SDK logs no warning.
+- With expansion off, the SDK leaves `${ENV.NAME}` as text. The platform's template data has no `ENV` object.
+
+Expansion runs when `toSwaigFunction()` is called. `registerWithAgent()` calls it at once, so the values are fixed at registration, not read again for each call. This tool reads its base URL and key from variables with the `SW_` prefix:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
-// Set environment variables (typically via .env file or deployment config)
-// API_KEY=sk-abc123
-// API_BASE_URL=https://api.example.com
+// Set in the environment, for example through deployment config:
+// SW_LOOKUP_BASE_URL=https://api.example.com
+// SW_LOOKUP_API_KEY=a-long-random-key
 
 const tool = new DataMap('secure_lookup')
   .purpose('Look up data from a secure API')
   .parameter('query', 'string', 'Search query', { required: true })
   .enableEnvExpansion()
-  .webhook('GET', '${ENV.API_BASE_URL}/search?q=${args.query}', {
+  .webhook('GET', '${ENV.SW_LOOKUP_BASE_URL}/search?q=${enc:args.query}', {
     headers: {
-      'Authorization': 'Bearer ${ENV.API_KEY}',
+      'Authorization': 'Bearer ${ENV.SW_LOOKUP_API_KEY}',
     },
   })
-  .output(new FunctionResult('Result: ${response.data}'));
+  .output(new FunctionResult('Result: ${data}'));
 ```
 
-When `toSwaigFunction()` is called, `${ENV.API_KEY}` is replaced with the value of `process.env.API_KEY`. If the environment variable is not set, it is replaced with an empty string.
+The expanded values are written into the SWML document. Anyone who can fetch the agent's SWML, which the agent's basic auth credentials allow, can read them, and SignalWire receives them with every call. Expansion keeps a secret out of your source code, not out of the SWML.
 
-**Important:** The expansion happens at serialization time (when `toSwaigFunction()` is called), not at runtime. The resolved values are baked into the SWML document.
+### Allowed prefixes
+
+Only variables whose names start with an allowed prefix are expanded. The default prefixes are `SIGNALWIRE_`, `SWML_` and `SW_`.
+
+The allowlist limits which variables a template can put into the SWML. Without it, a template such as `${ENV.DATABASE_PASSWORD}`, from a typo or from a definition someone else wrote, would publish any variable in the process. It doesn't protect variables that match a prefix: `${ENV.SIGNALWIRE_API_TOKEN}` is expanded like any other `SIGNALWIRE_` name.
+
+Two functions set the list:
+
+| Function | Scope |
+|---|---|
+| `setAllowedEnvPrefixes(prefixes)`, exported from the package | The default for every DataMap that has no list of its own. It's read when each DataMap's `toSwaigFunction()` runs. |
+| `tool.setAllowedEnvPrefixes(prefixes)`, a `DataMap` method | This DataMap only, replacing the default. |
+
+`getAllowedEnvPrefixes()` returns a copy of the default list. An empty array allows every variable, which removes the protection. Prefer adding a prefix to allowing everything. This example lets one DataMap read variables that start with `WEATHER_`:
+
+```typescript
+import { DataMap, FunctionResult } from '@signalwire/sdk';
+
+const weather = new DataMap('get_weather')
+  .purpose('Get current weather for a city')
+  .parameter('city', 'string', 'The city name', { required: true })
+  .enableEnvExpansion()
+  .setAllowedEnvPrefixes(['WEATHER_'])
+  .webhook('GET', 'https://api.weatherapi.com/v1/current.json?key=${ENV.WEATHER_API_KEY}&q=${lc:enc:args.city}')
+  .output(new FunctionResult('${current.condition.text}, ${current.temp_f} degrees'));
+```
+
+The per-DataMap list replaces the default, so this DataMap no longer expands `SIGNALWIRE_`, `SWML_` or `SW_` names.
 
 ---
 
@@ -682,7 +780,7 @@ When `toSwaigFunction()` is called, `${ENV.API_KEY}` is replaced with the value 
 
 ### registerWithAgent
 
-Register this DataMap tool with an `AgentBase` instance. This is a convenience method that calls `toSwaigFunction()` internally and passes the result to the agent's `registerSwaigFunction()` method.
+This method registers the DataMap tool with an agent. It calls `toSwaigFunction()` and passes the result to the agent's `registerSwaigFunction()` method.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -693,11 +791,13 @@ registerWithAgent(agent: {
 
 | Parameter | Type     | Description                                        |
 |-----------|----------|----------------------------------------------------|
-| `agent`   | `object` | An object with a `registerSwaigFunction` method.   |
+| `agent`   | `object` | An object with a `registerSwaigFunction` method, such as an `AgentBase`. |
 
 **Returns:** `this` for chaining.
 
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
+This agent registers a time lookup and starts serving:
+
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port): collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { AgentBase, DataMap, FunctionResult } from '@signalwire/sdk';
 
@@ -705,20 +805,22 @@ const agent = new AgentBase({ name: 'my-agent', basicAuth: ['user', 'pass'] });
 
 new DataMap('get_time')
   .purpose('Get the current time in a timezone')
-  .parameter('timezone', 'string', 'IANA timezone', { required: true })
+  .parameter('timezone', 'string', 'IANA timezone, such as America/Chicago', { required: true })
   .webhook('GET', 'https://worldtimeapi.org/api/timezone/${args.timezone}')
-  .output(new FunctionResult('Current time: ${response.datetime}'))
+  .output(new FunctionResult('Current time: ${datetime}'))
   .fallbackOutput(new FunctionResult('Could not get time for that timezone.'))
   .registerWithAgent(agent);
 
 agent.run();
 ```
 
+The timezone isn't URL-encoded, because its `/` is part of the URL path.
+
 ---
 
 ### toSwaigFunction
 
-Serialize the DataMap to a SWAIG function definition object suitable for inclusion in a SWML document. This is the terminal method that produces the wire format.
+This method serializes the DataMap to the SWAIG function object that goes into the SWML document.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -726,6 +828,8 @@ toSwaigFunction(): Record<string, unknown>
 ```
 
 **Returns:** A plain object with `function`, `description`, `parameters`, and `data_map` fields.
+
+This example builds an expression tool and prints its definition:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
@@ -742,7 +846,7 @@ const swaigDef = tool.toSwaigFunction();
 console.log(JSON.stringify(swaigDef, null, 2));
 ```
 
-Output:
+The script prints this definition:
 
 ```json
 {
@@ -751,27 +855,36 @@ Output:
   "parameters": {
     "type": "object",
     "properties": {
-      "text": { "type": "string", "description": "Text to echo" }
+      "text": {
+        "type": "string",
+        "description": "Text to echo"
+      }
     },
-    "required": ["text"]
+    "required": [
+      "text"
+    ]
   },
   "data_map": {
     "expressions": [
       {
         "string": "${args.text}",
         "pattern": ".*",
-        "output": { "response": "You said: ${args.text}" }
+        "output": {
+          "response": "You said: ${args.text}"
+        }
       }
     ]
   }
 }
 ```
 
-You can then register this definition manually:
+You can then register the definition yourself:
 
 ```typescript
 agent.registerSwaigFunction(tool.toSwaigFunction());
 ```
+
+`toSwaigFunction()` always writes `expressions` and `webhooks` as lists. A `data_map` you write by hand can give either one as a single object instead. The platform runs a single expression object as a one-element list. A single webhook object runs differently from a list: the platform doesn't check its `require_args` or its `error_keys`, and a response that isn't JSON or a request that doesn't complete doesn't fail it. Its `foreach`, `expressions` and `output` then read the error response: `${parse_error}` is `true`, `${raw_response}` is the body, and `${http_code}` is the last status received, a redirect's included, or `0` when no response came back. Like a webhook in a list, it needs an `output` or `expressions`. `swaig-test --exec` runs both forms as the platform does.
 
 ---
 
@@ -779,7 +892,7 @@ agent.registerSwaigFunction(tool.toSwaigFunction());
 
 ### createSimpleApiTool
 
-Create a DataMap tool that calls a single API endpoint and formats the response. This is a convenience function for the most common DataMap pattern: one GET/POST request with a response template.
+This function creates a DataMap tool with one webhook and one output template.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -796,46 +909,49 @@ createSimpleApiTool(opts: {
   }>;
   method?: string;
   headers?: Record<string, string>;
+  body?: Record<string, unknown>;
   errorKeys?: string[];
 }): DataMap
 ```
 
 | Parameter               | Type                       | Default   | Description                                       |
 |-------------------------|----------------------------|-----------|---------------------------------------------------|
-| `opts.name`             | `string`                   | --        | Tool name.                                        |
-| `opts.url`              | `string`                   | --        | Webhook URL (supports template variables).        |
-| `opts.responseTemplate` | `string`                   | --        | Response template with `${response.*}` variables. |
-| `opts.parameters`       | `Record<string, {...}>`    | --        | Parameter definitions.                            |
-| `opts.method`           | `string`                   | `'GET'`   | HTTP method.                                      |
-| `opts.headers`          | `Record<string, string>`   | --        | Request headers.                                  |
-| `opts.errorKeys`        | `string[]`                 | --        | Response keys indicating errors.                  |
+| `opts.name`             | `string`                   | None      | Tool name.                                        |
+| `opts.url`              | `string`                   | None      | Webhook URL, with templates.                      |
+| `opts.responseTemplate` | `string`                   | None      | The output's response text. Response fields are read from the root, as `${field}`, and arguments as `${input.args.name}`. |
+| `opts.parameters`       | `Record<string, {...}>`    | None      | Parameter definitions. A missing `type` is `string`. |
+| `opts.method`           | `string`                   | `'GET'`   | HTTP method. The platform sends a `GET` unless it's `POST` or the tool has a `body`. |
+| `opts.headers`          | `Record<string, string>`   | None      | Request headers.                                  |
+| `opts.body`             | `Record<string, unknown>`  | None      | The request body, written as the webhook's `params` with `body()`. A tool with a body is sent as a `POST`; an empty object is left out. See [params](#params). |
+| `opts.errorKeys`        | `string[]`                 | None      | Response keys that mark a failure.                |
 
-**Returns:** A configured `DataMap` instance ready for registration.
+**Returns:** A configured `DataMap` instance, ready for registration.
+
+These two tools call a joke API and a document search API:
 
 ```typescript
 import { createSimpleApiTool } from '@signalwire/sdk';
 
-// Minimal: a single GET endpoint
+// A single GET endpoint that returns a JSON object
 const jokeTool = createSimpleApiTool({
   name: 'get_joke',
   url: 'https://official-joke-api.appspot.com/random_joke',
-  responseTemplate: 'Here is a joke: ${response.setup} ... ${response.punchline}',
+  responseTemplate: 'Here is a joke: ${setup} ... ${punchline}',
 });
 
 agent.registerSwaigFunction(jokeTool.toSwaigFunction());
 
-// With parameters and POST
+// With parameters, a header and error keys
 const searchTool = createSimpleApiTool({
   name: 'search_docs',
-  url: 'https://api.docs.example.com/search',
-  method: 'POST',
-  responseTemplate: 'Found ${response.total} results. Top result: ${response.results[0].title}',
+  url: 'https://api.docs.example.com/search?q=${enc:args.query}&limit=${args.limit}',
+  responseTemplate: 'Found ${total} results. Top result: ${results[0].title}',
   parameters: {
     query: { type: 'string', description: 'Search query', required: true },
     limit: { type: 'integer', description: 'Max results' },
   },
   headers: {
-    'Authorization': 'Bearer my-token',
+    'Authorization': 'Bearer a-long-random-token',
   },
   errorKeys: ['error'],
 });
@@ -847,7 +963,7 @@ agent.registerSwaigFunction(searchTool.toSwaigFunction());
 
 ### createExpressionTool
 
-Create a DataMap tool that evaluates expressions against patterns without making any HTTP calls. Useful for validation, classification, and simple lookups.
+This function creates a DataMap tool from expressions alone, with no HTTP request.
 
 <!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
 ```typescript
@@ -864,13 +980,13 @@ createExpressionTool(opts: {
 }): DataMap
 ```
 
-| Parameter        | Type                                                  | Description                                            |
-|------------------|-------------------------------------------------------|--------------------------------------------------------|
-| `opts.name`      | `string`                                              | Tool name.                                             |
-| `opts.patterns`  | `Record<string, [string, FunctionResult]>`       | Map of test values to `[pattern, output]` tuples.      |
-| `opts.parameters`| `Record<string, {...}>`                               | Parameter definitions.                                 |
+| Parameter         | Type                                       | Description                                            |
+|-------------------|--------------------------------------------|--------------------------------------------------------|
+| `opts.name`       | `string`                                   | Tool name.                                             |
+| `opts.patterns`   | `Record<string, [string, FunctionResult]>` | Map of test values to `[pattern, output]` tuples.      |
+| `opts.parameters` | `Record<string, {...}>`                    | Parameter definitions.                                 |
 
-The `patterns` object maps test values (template strings) to tuples of `[regexPattern, result]`:
+Each key of `patterns` is a test value, usually a template, and each value is a `[regexPattern, result]` tuple. Because an object's keys are unique, each test value can have only one pattern. This tool checks a phone number's format:
 
 ```typescript
 import { createExpressionTool, FunctionResult } from '@signalwire/sdk';
@@ -893,265 +1009,152 @@ agent.registerSwaigFunction(validator.toSwaigFunction());
 
 ---
 
-## Template Variables Reference
+## Template Reference
 
-Template variables are strings enclosed in `${}` that are evaluated by the SignalWire platform at runtime.
+SignalWire's platform expands these templates when it runs a `data_map` function. The SDK writes them into the SWML as text. The source is SignalWire's [data_map reference](https://signalwire.com/docs/swml/reference/calling/ai/swaig/functions/data-map) and [template functions reference](https://signalwire.com/docs/swml/reference/template-functions).
 
-### Argument Variables
+### Template data
 
-| Variable          | Description                                              | Example                |
-|-------------------|----------------------------------------------------------|------------------------|
-| `${args.<name>}`  | Value of an input argument passed by the AI.             | `${args.city}`         |
-| `${lc:args.<name>}` | Argument value converted to lowercase.                | `${lc:args.city}`      |
-| `${uc:args.<name>}` | Argument value converted to uppercase.                | `${uc:args.symbol}`    |
+Every template reads from a JSON object, the template data, which the platform builds for each call of the function. A template names a path from its root: `${args.city}` reads `city` inside `args`. Which object that is depends on the stage the template is in.
 
-### Response Variables
+The first object is the call data. Its root holds these values:
 
-| Variable                    | Description                                           | Example                                     |
-|-----------------------------|-------------------------------------------------------|---------------------------------------------|
-| `${response.<key>}`         | Top-level field from the webhook JSON response.       | `${response.name}`                          |
-| `${response.<key>.<subkey>}` | Nested field from the response.                      | `${response.address.city}`                  |
-| `${response.<key>[N]}`      | Array element by index.                              | `${response.results[0].title}`              |
-| `${response.<key>[N].<sub>}` | Field within an array element.                      | `${response.current_condition[0].temp_F}`   |
+- `args`: the arguments the AI extracted for this call, by parameter name. Example: `${args.city}`.
+- `global_data`: the application's global data. Example: `${global_data.account_tier}`.
+- `meta_data`: the function's metadata, merged key by key over the global data the call starts with when the platform loads the function, so a `global_data` key the function's `meta_data` doesn't set is there too. Example: `${meta_data.table.sales}`.
+- The prompt variables, at the root.
+- Details of the call: `call_id`, `ai_session_id`, `conversation_id`, `function`, `caller_id_name`, `caller_id_num`, `project_id`, `space_id` and `app_name`.
 
-### Environment Variables
+When a webhook responds, its `foreach`, `expressions` and `output` read a second object, built from the response. An object response's fields are at its root: a response of `{"total": 25, "results": [...]}` gives `${total}` and `${results[0].title}`. There is no `response.` prefix, and `${response.total}` expands to nothing. An array response is under `array`, as in `${array[0].joke}`. The call data is under `input`, so the arguments are `${input.args.city}`, and `${args.city}` expands to nothing. The object also has `global_data` and `prompt_vars`. A status outside 200-299 is under `http_code`.
 
-| Variable          | Description                                                        | Example                |
-|-------------------|--------------------------------------------------------------------|------------------------|
-| `${ENV.<name>}`   | Value of `process.env.<name>`. Requires `enableEnvExpansion()`.    | `${ENV.API_KEY}`       |
+Each stage reads these values:
 
-### Foreach Variables
+| Where the template is | What it reads | The arguments |
+|---|---|---|
+| A webhook's `url` and `params` | The call data. The response doesn't exist yet. | `${args.name}` |
+| A webhook's `headers` | Nothing: the platform sends header values as written | None |
+| The top-level `expressions` | The call data | `${args.name}` |
+| A webhook's `foreach`, `expressions` and `output` | The response's fields (or `array`), `input` (the call data), `global_data`, `prompt_vars`, and `http_code` for a status outside 200-299 | `${input.args.name}` |
+| A `foreach` `append` template | The same as the webhook's output, plus `this`, the current element | `${input.args.name}` |
+| The `data_map`'s own `output` (the fallback) | The call data, plus `global_data` and `prompt_vars` | `${args.name}` |
 
-Inside a `foreach` `append` template, you can reference fields of the current item directly:
+During a `foreach`, `this` is the current element: `${this.title}` for a field of an object, and `${this}` for a string or number. The text it builds is stored under its `output_key`, as in `${order_list}`, which the webhook's `expressions` and `output` read.
 
-| Variable   | Description                                | Example        |
-|------------|--------------------------------------------|----------------|
-| `${<field>}` | Field of the current item in the array.  | `${id}`, `${name}` |
+### Template syntax
 
-### Case Transformation
+`${path}` is replaced by the value at `path` in the template data, and `%{path}` means the same. A path uses dots for object fields and zero-based `[n]` for array elements, as in `${args.filters.category}` and `${results[0].title}`. A negative index counts from the end: `${results[-1].title}` is the last element. A path whose value isn't set becomes an empty string.
 
-The `${lc:...}` and `${uc:...}` prefixes can be applied to argument variables to transform them to lowercase or uppercase respectively. This is particularly useful in URL templates:
+Inside `${...}`, a helper name and a colon before the path transform the value. The platform has three helpers, and matches their names in any case:
 
-<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
-```typescript
-// Lowercase city name for URL-friendly paths
-.webhook('GET', 'https://api.example.com/cities/${lc:args.city_name}')
+| Helper | What it does | Example |
+|---|---|---|
+| `lc` | Lowercases the value | `${lc:args.department}` |
+| `enc` | URL-encodes the value: spaces, control and non-ASCII characters, and ``"#%&+:;<=>?@[\]^`{\|}`` become `%XX`. Other characters, such as `/`, `,` and `$`, stay as they are, and a `%` that already starts an uppercase `%XX` isn't encoded again. | `${enc:args.query}` |
+| `fmt_ph` | Formats a phone number in national format, as it is dialed within its country. A number without a country code is read as a US number, the letters of a number with three or more of them are read as keypad digits (`1-800-FLOWERS`), and a value that isn't a valid number becomes `INVALID NUMBER`. | `${fmt_ph:args.phone}` |
 
-// Uppercase stock ticker symbol
-.webhook('GET', 'https://api.example.com/stocks/${uc:args.symbol}')
-```
+Helpers combine, as in `${lc:enc:args.city}`. The platform applies them in a fixed order, whatever order you write them in: `fmt_ph`, then `lc`, then `enc`. So `${lc:enc:args.city}` and `${enc:lc:args.city}` both lowercase the city, then URL-encode it.
+
+There is no uppercase helper, and `enc` takes no encoding name. Any other name before a colon is part of the path: in `${enc:url:args.query}`, the platform reads the path `url:args.query`, which doesn't resolve, so it writes nothing.
+
+Templates nest, and expand from the inside out. In `${meta_data.contacts.${lc:args.department}}`, the inner template turns "Sales" into `sales`, and the outer one then reads `meta_data.contacts.sales`.
+
+### Template functions
+
+`@{...}` functions take arguments after a space. SignalWire's template functions reference documents these:
+
+| Function | Syntax | What it does |
+|---|---|---|
+| `strftime_tz` | `@{strftime_tz <timezone> <format>}` | The current date and time in a time zone, with strftime codes: `@{strftime_tz America/Chicago %Y-%m-%d %H:%M:%S}` |
+| `fmt_ph` | `@{fmt_ph <format> <number>}` or `@{fmt_ph <format>:sep:<separator> <number>}` | Formats a phone number as `national` (the default), `international`, `RFC3966` or `e164`, optionally with a separator between digit groups: `@{fmt_ph national:sep:- ${caller_id_num}}` |
+| `expr` | `@{expr <expression>}` | Arithmetic on literal numbers, with `+ - * /` and parentheses. It can't read variables: `@{expr (100 - 25) / 5}` |
+| `echo` | `@{echo <text>}` | Returns its argument, for debugging expansion: `@{echo ${args.input}}` |
+| `separate` | `@{separate <text>}` | Puts a space between characters, so text-to-speech reads a code one character at a time: `@{separate ${args.code}}` |
+| `sleep` | `@{sleep <seconds>}` | Pauses for that many seconds. A delay can make the function time out. |
+
+Template functions work in SWAIG contexts: `data_map` expressions, webhooks and outputs, responses from SWAIG function webhooks, and AI prompt variable expansion.
 
 ---
 
-## Complete Examples
+## Testing a DataMap
 
-### Example 1: Weather lookup with DataMap builder
+`swaig-test --exec` runs a DataMap function locally. It makes the webhook requests and expands the templates the way [Template Reference](#template-reference) describes, so you can check a template before a real call. For the command and its options, see [DataMap Functions](cli-guide.md#datamap-functions) in the CLI guide.
 
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
-```typescript
-import { AgentBase, DataMap, FunctionResult } from '@signalwire/sdk';
+This command runs the weather tool from `examples/datamap-tools.ts` against the real wttr.in API:
 
-const agent = new AgentBase({
-  name: 'weather-agent',
-  route: '/',
-  basicAuth: ['user', 'pass'],
-});
-
-agent.setPromptText('You are a weather assistant. Help users check the weather.');
-
-const weatherTool = new DataMap('get_weather')
-  .purpose('Get current weather for a city')
-  .parameter('city', 'string', 'The city name', { required: true })
-  .webhook('GET', 'https://wttr.in/${lc:args.city}?format=j1')
-  .output(
-    new FunctionResult(
-      'Weather in ${args.city}: ${response.current_condition[0].temp_F}F, ' +
-      '${response.current_condition[0].weatherDesc[0].value}'
-    ),
-  )
-  .fallbackOutput(
-    new FunctionResult('Sorry, could not fetch weather for that city.'),
-  );
-
-agent.registerSwaigFunction(weatherTool.toSwaigFunction());
-agent.run();
+```bash
+npx tsx src/cli/swaig-test.ts examples/datamap-tools.ts --exec get_weather --city London
 ```
 
-### Example 2: Expression-only tool (no HTTP)
+The command prints the expanded response. The temperature and conditions depend on the day:
 
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
-```typescript
-import { AgentBase, DataMap, FunctionResult } from '@signalwire/sdk';
-
-const agent = new AgentBase({
-  name: 'validator-agent',
-  route: '/',
-  basicAuth: ['user', 'pass'],
-});
-
-agent.setPromptText('You help validate user data like emails and phone numbers.');
-
-const emailValidator = new DataMap('validate_email')
-  .purpose('Check if an email address is valid')
-  .parameter('email', 'string', 'Email address to validate', { required: true })
-  .expression(
-    '${args.email}',
-    /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-    new FunctionResult('The email ${args.email} is valid.'),
-    new FunctionResult('The email ${args.email} is invalid. Please provide a correct email address.'),
-  );
-
-emailValidator.registerWithAgent(agent);
-agent.run();
+```text
+RESULT:
+Response: Weather in London: 61°F, Overcast
 ```
 
-### Example 3: API tool with POST body and error handling
+The simulator follows the platform's stage template data, template rules and webhook rules, described in [Template data](#template-data), [Template Reference](#template-reference) and [errorKeys](#errorkeys). `--custom-data` gives it the call data the platform adds, such as `global_data`, `caller_id_num` and `prompt_vars`, as in `--custom-data '{"global_data": {"account_tier": "gold"}}'`. Without `global_data` in `--custom-data`, it uses the agent's global data, as a call starts with it. A path that doesn't resolve expands to an empty string, as on the platform, and the simulator says so on stderr. It adds a hint when the path starts with `response.`, or when `${args.name}` is used in a webhook's output, expressions or `foreach`. When nothing produces a result, it returns the platform's `{"response": "There was an error processing this request."}`, says so on stderr, and `swaig-test` exits with status 0, since that is a valid result on the platform, not a failure of the tool. It differs from the platform in these ways:
 
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
-```typescript
-import { AgentBase, DataMap, FunctionResult } from '@signalwire/sdk';
+- Without the optional `libphonenumber-js` package, `fmt_ph` formats only a North American number, as `(202) 555-0143`, and leaves any other value as it is, saying so on stderr. The platform formats any valid number in its national format, and writes `INVALID NUMBER` for one that isn't valid. With `libphonenumber-js` installed (`npm install -D libphonenumber-js`), so does the simulator, though the package's number data can differ from the platform's for a rare number. Either way, the simulator reads a vanity number as the platform does: when a number has three or more letters, they are keypad digits, so `1-800-FLOWERS` is `(800) 356-9377`.
+- The call data has only the function's name, `meta_data` and arguments, the agent's global data, and what you give with `--custom-data`. Call details such as `call_id` are there only if you give them.
+- `${meta_data.x}` reads this function's `meta_data` merged over the global data, and nothing more. On the platform, it reads a metadata store keyed by the function's token. The SDK sends no `meta_data_token`, and a DataMap function has no URL of its own, so it takes the agent's default webhook URL, and all of an agent's DataMap functions share one store. A call can then see keys from the other DataMap functions' `meta_data`, the last function loaded wins on a clash, and `set_meta_data` actions change the store during the call.
+- It leaves `@{...}` functions as they are, and doesn't evaluate an expression's `expr`.
+- It matches patterns with JavaScript regular expressions, where the platform uses PCRE. Like the platform, it matches case-insensitively unless the pattern is written `/pattern/flags`, and it accepts a leading `(?i)`. Other PCRE-only syntax is reported as an invalid pattern.
+- It refuses private and internal addresses, unless `SWML_ALLOW_PRIVATE_URLS` is `true`.
 
-const agent = new AgentBase({
-  name: 'ticket-agent',
-  route: '/',
-  basicAuth: ['user', 'pass'],
-});
+---
 
-agent.setPromptText('You are a support agent. Create tickets for customer issues.');
+## Complete Example
 
-const ticketTool = new DataMap('create_ticket')
-  .purpose('Create a support ticket for the customer')
-  .parameter('subject', 'string', 'Brief description of the issue', { required: true })
-  .parameter('priority', 'string', 'Urgency level', {
-    required: true,
-    enum: ['low', 'medium', 'high', 'critical'],
-  })
-  .parameter('description', 'string', 'Detailed description of the issue')
-  .enableEnvExpansion()
-  .webhook('POST', '${ENV.HELPDESK_URL}/api/tickets', {
-    headers: {
-      'Authorization': 'Bearer ${ENV.HELPDESK_TOKEN}',
-      'Content-Type': 'application/json',
-    },
-  })
-  .params({
-    subject: '${args.subject}',
-    priority: '${args.priority}',
-    description: '${args.description}',
-    source: 'phone',
-  })
-  .errorKeys(['error', 'message'])
-  .output(
-    new FunctionResult(
-      'Ticket #${response.ticket_id} created successfully with ${args.priority} priority.'
-    ),
-  )
-  .fallbackOutput(
-    new FunctionResult('Failed to create the ticket. Please try again or contact support via email.'),
-  );
+This agent registers the DataMap tools described in the earlier sections: a webhook tool with a `foreach` and error handling, and an expression tool. Each builder call is described in its own section: [webhook](#webhook), [foreach](#foreach), [errorKeys](#errorkeys), [fallbackOutput](#fallbackoutput) and [expression](#expression).
 
-ticketTool.registerWithAgent(agent);
-agent.run();
-```
-
-### Example 4: Iteration over array responses
-
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port): collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { AgentBase, DataMap, FunctionResult } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'store-agent',
   route: '/',
-  basicAuth: ['user', 'pass'],
+  basicAuth: [
+    process.env['SWML_BASIC_AUTH_USER'] ?? 'user',
+    process.env['SWML_BASIC_AUTH_PASSWORD'] ?? 'a-long-random-password',
+  ],
 });
 
-agent.setPromptText('You help customers find products and check orders.');
+agent.setPromptText('You help customers check their orders and validate their details.');
 
-const ordersTool = new DataMap('list_orders')
-  .purpose('List recent orders for the caller')
+// A webhook tool: fetch the caller's orders and format them as a list.
+new DataMap('list_orders')
+  .purpose('List recent orders for the caller. Use when the caller asks about their orders.')
   .parameter('email', 'string', 'Customer email address', { required: true })
-  .webhook('GET', 'https://api.store.example.com/orders?email=${args.email}')
+  .webhook('GET', 'https://api.store.example.com/orders?email=${enc:args.email}')
+  .errorKeys(['error'])
   .foreach({
     input_key: 'orders',
     output_key: 'order_summary',
-    append: '- Order #${id}: ${status}, Total: $${total}\n',
+    append: '- Order #${this.id}: ${this.status}, Total: $${this.total}\n',
     max: 10,
   })
-  .output(
-    new FunctionResult('Here are your recent orders:\n${order_summary}'),
+  .output(new FunctionResult('Recent orders:\n${order_summary}'))
+  .fallbackOutput(new FunctionResult('No orders were found for ${args.email}.'))
+  .registerWithAgent(agent);
+
+// An expression tool: check a ZIP code's format without an HTTP request.
+new DataMap('validate_zip')
+  .purpose('Check whether a US ZIP code is well formed')
+  .parameter('zip', 'string', 'ZIP code to validate', { required: true })
+  .expression(
+    '${args.zip}',
+    '^\\d{5}(-\\d{4})?$',
+    new FunctionResult('${args.zip} is a valid US ZIP code.'),
   )
-  .fallbackOutput(
-    new FunctionResult('No orders found for ${args.email}.'),
-  );
+  .expression(
+    '${args.zip}',
+    '.*',
+    new FunctionResult('${args.zip} is not a valid US ZIP code. Ask the caller to repeat it.'),
+  )
+  .registerWithAgent(agent);
 
-ordersTool.registerWithAgent(agent);
 agent.run();
 ```
 
-### Example 5: Quick setup with createSimpleApiTool
-
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
-```typescript
-import { AgentBase, createSimpleApiTool } from '@signalwire/sdk';
-
-const agent = new AgentBase({
-  name: 'fun-agent',
-  route: '/',
-  basicAuth: ['user', 'pass'],
-});
-
-agent.setPromptText('You tell jokes and fun facts.');
-
-// One-liner API integration
-const jokeTool = createSimpleApiTool({
-  name: 'get_joke',
-  url: 'https://official-joke-api.appspot.com/random_joke',
-  responseTemplate: '${response.setup} ... ${response.punchline}',
-});
-
-const factTool = createSimpleApiTool({
-  name: 'get_fact',
-  url: 'https://uselessfacts.jsph.pl/random.json?language=en',
-  responseTemplate: 'Fun fact: ${response.text}',
-});
-
-agent.registerSwaigFunction(jokeTool.toSwaigFunction());
-agent.registerSwaigFunction(factTool.toSwaigFunction());
-agent.run();
-```
-
-### Example 6: Expression tool with createExpressionTool
-
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
-```typescript
-import {
-  AgentBase,
-  createExpressionTool,
-  FunctionResult,
-} from '@signalwire/sdk';
-
-const agent = new AgentBase({
-  name: 'validator-agent',
-  route: '/',
-  basicAuth: ['user', 'pass'],
-});
-
-agent.setPromptText('You validate user inputs like zip codes and phone numbers.');
-
-const zipValidator = createExpressionTool({
-  name: 'validate_zip',
-  patterns: {
-    '${args.zip}': [
-      '^\\d{5}(-\\d{4})?$',
-      new FunctionResult('${args.zip} is a valid US zip code.'),
-    ],
-  },
-  parameters: {
-    zip: { type: 'string', description: 'Zip code to validate', required: true },
-  },
-});
-
-agent.registerSwaigFunction(zipValidator.toSwaigFunction());
-agent.run();
-```
+For a runnable file, see `examples/datamap-tools.ts` and `examples/advanced-datamap.ts`.

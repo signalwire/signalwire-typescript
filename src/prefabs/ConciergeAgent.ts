@@ -217,7 +217,7 @@ export class ConciergeAgent extends AgentBase {
           },
         },
       },
-      handler: this.checkAvailability.bind(this),
+      handler: this._onCallAgent((self, args, rawData) => self.checkAvailability(args, rawData)),
     });
 
     // Tool: get_directions
@@ -233,7 +233,7 @@ export class ConciergeAgent extends AgentBase {
           },
         },
       },
-      handler: this.getDirections.bind(this),
+      handler: this._onCallAgent((self, args, rawData) => self.getDirections(args, rawData)),
     });
   }
 

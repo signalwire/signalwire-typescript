@@ -23,9 +23,22 @@ import type {
 import type { AgentBase } from '../../AgentBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
 import { getLogger } from '../../Logger.js';
-import { validateUrl } from '../../SecurityUtils.js';
+import { redactUrl, validateUrl } from '../../SecurityUtils.js';
+import { _publicFetch } from '../../PublicFetch.js';
 
 const log = getLogger('NativeVectorSearchSkill');
+
+/**
+ * Log a failure at ERROR with only the error's type, and its message at DEBUG.
+ * A message can echo the caller's query, a remote server's error body, or a
+ * URL, so it stays out of error logs and alerting.
+ */
+function logErrorType(message: string, err: unknown): void {
+  log.error(message, { error_type: err instanceof Error ? err.name : typeof err });
+  log.debug(`${message} (detail)`, {
+    error: redactUrl(err instanceof Error ? err.message : String(err)),
+  });
+}
 
 /**
  * Callback signature for customizing the formatted search response.
@@ -232,15 +245,21 @@ function scoreTfIdf(
 /**
  * Document search using TF-IDF in-memory scoring or a remote search server.
  *
- * Multi-instance capable (distinguished by `tool_name` + `index_file`).
+ * Multi-instance capable (distinguished by `tool_name` + `index_file`). The
+ * Python skill's local-index parameters (`index_file`, `build_index`,
+ * `backend` and the rest) are accepted but not used, except `index_file` in
+ * the instance key.
  *
- * @example Local JSON index
+ * @example In-memory documents
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('native_vector_search', {
+ * await agent.addSkillByName('native_vector_search', {
  *   tool_name: 'search_docs',
- *   index_file: './data/support-docs.json',
+ *   documents: [
+ *     { id: 'returns', text: 'Items can be returned within 30 days with a receipt.' },
+ *     { id: 'hours', text: 'The store is open 9am to 6pm, Monday to Saturday.' },
+ *   ],
  *   count: 3,
  * });
  * ```
@@ -258,6 +277,14 @@ export class NativeVectorSearchSkill extends SkillBase {
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
     return {
       ...super.getParameterSchema(),
+      // The base schema's default is the skill name; the tool is named
+      // search_knowledge when tool_name is unset (Python skill.py:248 too).
+      tool_name: {
+        type: 'string',
+        description: 'Name of the search tool. A different name lets you add a second instance.',
+        default: 'search_knowledge',
+        required: false,
+      },
       index_file: {
         type: 'string',
         description:
@@ -418,14 +445,16 @@ export class NativeVectorSearchSkill extends SkillBase {
       },
       keyword_weight: {
         type: 'number',
-        description: 'Manual keyword weight (0.0-1.0). Overrides automatic weight detection',
+        description:
+          'In-memory mode only: how much keyword overlap counts against TF-IDF in the score (0.0-1.0, default 0.3). Has no effect with remote_url, where the server ranks results',
         required: false,
         min: 0.0,
         max: 1.0,
       },
       model_name: {
         type: 'string',
-        description: 'Embedding model to use',
+        description:
+          "Accepted for compatibility with the Python SDK, and has no effect here: in-memory mode ranks with TF-IDF, and a remote server uses its index's own model",
         default: 'mini',
         required: false,
       },
@@ -517,29 +546,34 @@ export class NativeVectorSearchSkill extends SkillBase {
     this.remoteUrl = this.getConfig<string | undefined>('remote_url', undefined);
     this.indexName = this.getConfig<string>('index_name', 'default');
 
-    // Parse auth from URL if present
+    // Parse auth from URL if present. remoteBaseUrl never carries the
+    // credentials, so it's the form to log and to build request URLs from. A
+    // user or a password alone is still credentials (http://:secret@host).
     if (this.remoteUrl) {
       try {
         const parsed = new URL(this.remoteUrl);
-        if (parsed.username && parsed.password) {
+        if (parsed.username || parsed.password) {
           this.remoteAuth = {
             user: decodeURIComponent(parsed.username),
             pass: decodeURIComponent(parsed.password),
           };
           parsed.username = '';
           parsed.password = '';
-          this.remoteBaseUrl = parsed.toString().replace(/\/+$/, '');
-        } else {
-          this.remoteBaseUrl = this.remoteUrl.replace(/\/+$/, '');
         }
+        this.remoteBaseUrl = parsed.toString().replace(/\/+$/, '');
       } catch {
-        this.remoteBaseUrl = this.remoteUrl;
+        this.remoteBaseUrl = redactUrl(this.remoteUrl);
       }
     }
 
     // Remote mode — validate and skip heavy local setup
     if (this.remoteUrl) {
       this.useRemote = true;
+      if (this.keywordWeight !== null) {
+        log.warn(
+          'native_vector_search: keyword_weight has no effect with remote_url; the server ranks results',
+        );
+      }
 
       // SSRF protection — match Python skills/native_vector_search/skill.py:292-293
       // which calls validate_url(self.remote_url) and refuses to connect to
@@ -547,7 +581,7 @@ export class NativeVectorSearchSkill extends SkillBase {
       const urlToValidate = this.remoteBaseUrl ?? this.remoteUrl;
       if (!(await validateUrl(urlToValidate))) {
         log.error('native_vector_search: remote_url rejected by SSRF protection', {
-          url: urlToValidate,
+          url: redactUrl(urlToValidate),
         });
         return false;
       }
@@ -576,9 +610,7 @@ export class NativeVectorSearchSkill extends SkillBase {
         }
         this.searchAvailable = false;
       } catch (err) {
-        log.error('native_vector_search: failed to connect to remote', {
-          error: err instanceof Error ? err.message : String(err),
-        });
+        logErrorType('native_vector_search: failed to connect to remote', err);
         this.searchAvailable = false;
       }
       return this.searchAvailable;
@@ -614,7 +646,9 @@ export class NativeVectorSearchSkill extends SkillBase {
     if (this._indexed) {
       globalData['search_stats'] = {
         doc_count: this._documents.length,
-        backend: this.useRemote ? 'remote' : this.backend,
+        // Documents are searched in memory here; `backend` configures a
+        // database mode this port doesn't have.
+        backend: this.useRemote ? 'remote' : 'memory',
       };
     }
     return globalData;
@@ -743,9 +777,7 @@ export class NativeVectorSearchSkill extends SkillBase {
         results = this._searchLocal(query, count);
       }
     } catch (err) {
-      log.error('native_vector_search: search error', {
-        error: err instanceof Error ? err.message : String(err),
-      });
+      logErrorType('native_vector_search: search error', err);
       return new FunctionResult(
         "I'm sorry, I encountered an issue while searching. Please try rephrasing your question.",
       );
@@ -769,9 +801,7 @@ export class NativeVectorSearchSkill extends SkillBase {
           });
           if (typeof formatted === 'string') msg = formatted;
         } catch (err) {
-          log.error('native_vector_search: response_format_callback error (no results)', {
-            error: err instanceof Error ? err.message : String(err),
-          });
+          logErrorType('native_vector_search: response_format_callback error (no results)', err);
         }
       }
       return new FunctionResult(msg);
@@ -827,9 +857,7 @@ export class NativeVectorSearchSkill extends SkillBase {
           log.warn('native_vector_search: response_format_callback returned non-string');
         }
       } catch (err) {
-        log.error('native_vector_search: response_format_callback error', {
-          error: err instanceof Error ? err.message : String(err),
-        });
+        logErrorType('native_vector_search: response_format_callback error', err);
       }
     }
 
@@ -922,22 +950,26 @@ export class NativeVectorSearchSkill extends SkillBase {
         metadata: r.metadata,
       }));
     } catch (err) {
-      log.error('native_vector_search: remote search error', {
-        error: err instanceof Error ? err.message : String(err),
-      });
+      logErrorType('native_vector_search: remote search error', err);
       return [];
     }
   }
 
-  /** Fetch wrapper that injects Basic auth if configured. */
+  /**
+   * Fetch from the remote server, with Basic auth if configured. Every
+   * request goes through _publicFetch, which checks the URL and every
+   * redirect as setup() checked remote_url, and connects only to an address
+   * it checked: a server that redirects to a private or internal address, or
+   * a hostname that resolves to one later, is refused.
+   */
   private async _fetchWithAuth(
     url: string,
-    init: RequestInit = {},
+    init: { method?: string; headers?: Record<string, string>; body?: string } = {},
     timeoutMs = 30_000,
   ): Promise<Response> {
     const headers: Record<string, string> = {
       Accept: 'application/json',
-      ...((init.headers as Record<string, string>) ?? {}),
+      ...(init.headers ?? {}),
     };
     if (this.remoteAuth) {
       const creds = Buffer.from(`${this.remoteAuth.user}:${this.remoteAuth.pass}`).toString(
@@ -948,7 +980,12 @@ export class NativeVectorSearchSkill extends SkillBase {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      return await fetch(url, { ...init, headers, signal: controller.signal });
+      return await _publicFetch(url, {
+        method: init.method,
+        headers,
+        body: init.body,
+        signal: controller.signal,
+      });
     } finally {
       clearTimeout(timer);
     }

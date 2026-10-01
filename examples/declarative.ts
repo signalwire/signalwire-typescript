@@ -7,8 +7,8 @@
  * Run: npx tsx examples/declarative.ts
  */
 
-import { AgentBase, FunctionResult } from '../src/index.js';
-import type { AgentOptions } from '../src/index.js';
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
+import type { AgentOptions } from '@signalwire/sdk';
 
 class HelpDeskAgent extends AgentBase {
   // Declarative prompt sections — applied automatically in the constructor

@@ -123,8 +123,11 @@ export class SkillRegistry {
   }
 
   /**
-   * Lock one or more skill names to prevent overwriting.
-   * If called with no arguments, locks all currently registered skills.
+   * Lock one or more skill names, so they can't be overwritten, unregistered
+   * or cleared. `registerBuiltinSkills()` locks the built-in skills, so a
+   * built-in can't be replaced by removing it and registering another class
+   * under its name. If called with no arguments, locks all currently
+   * registered skills.
    * @param names - Skill names to lock; if omitted, all current names are locked.
    */
   lock(names?: string[]): void {
@@ -135,11 +138,17 @@ export class SkillRegistry {
   }
 
   /**
-   * Unregister a skill by name, removing it from the registry.
+   * Unregister a skill by name, removing it from the registry. A locked skill
+   * (see {@link lock}) isn't removed.
    * @param name - The skill name to unregister.
-   * @returns True if the skill was found and removed.
+   * @returns True if the skill was found and removed; false if it isn't
+   *   registered or is locked.
    */
   unregister(name: string): boolean {
+    if (this.lockedNames.has(name)) {
+      log.warn(`Cannot unregister locked skill: ${name}`);
+      return false;
+    }
     return this.registry.delete(name);
   }
 
@@ -219,10 +228,11 @@ export class SkillRegistry {
    * Add a directory to search for skills.
    *
    * Validates that the path exists and is a directory, then appends it
-   * (de-duplicated) to `externalPaths`. Throws for non-existent paths or
-   * non-directories. Distinct from `addSearchPath`, which silently accepts
-   * anything; `addSkillDirectory` is the strict, validating surface and the
-   * recommended entry point for registering third-party skill directories.
+   * (de-duplicated) to `externalPaths`, which {@link discoverAll} scans along
+   * with the search paths. Throws for non-existent paths or non-directories.
+   * Distinct from `addSearchPath`, which silently accepts anything;
+   * `addSkillDirectory` is the strict, validating surface and the recommended
+   * entry point for registering third-party skill directories.
    *
    * @param path - Absolute or relative path to a directory containing
    *   skill subdirectories.
@@ -258,7 +268,9 @@ export class SkillRegistry {
 
   /**
    * Discover and register skills from a directory by importing each file.
-   * Looks for SkillBase subclass exports and registers them.
+   * Imports every `.ts` and `.js` file in the directory (not `.d.ts`), and
+   * `skill.ts`, or `skill.js` when there's no `skill.ts`, in each
+   * subdirectory. Looks for SkillBase subclass exports and registers them.
    * @param dirPath - Absolute path to the directory to scan.
    * @returns Array of newly discovered skill names.
    */
@@ -281,7 +293,10 @@ export class SkillRegistry {
       entries = dirEntries
         .filter(
           (e) =>
-            (e.isFile() && (e.name.endsWith('.ts') || e.name.endsWith('.js'))) || e.isDirectory(),
+            (e.isFile() &&
+              (e.name.endsWith('.ts') || e.name.endsWith('.js')) &&
+              !e.name.endsWith('.d.ts')) ||
+            e.isDirectory(),
         )
         .map((e) => e.name);
     } catch {
@@ -291,10 +306,15 @@ export class SkillRegistry {
 
     for (const entry of entries) {
       const fullPath = join(dirPath, entry);
+      let modulePath = fullPath;
+      if (!entry.endsWith('.ts') && !entry.endsWith('.js')) {
+        // A skill package: skill.ts, or skill.js when it's compiled.
+        modulePath = join(fullPath, 'skill.ts');
+        if (!existsSync(modulePath)) modulePath = join(fullPath, 'skill.js');
+        if (!existsSync(modulePath)) continue;
+      }
       try {
-        const fileUrl = pathToFileURL(
-          entry.endsWith('.ts') || entry.endsWith('.js') ? fullPath : join(fullPath, 'skill.ts'),
-        ).href;
+        const fileUrl = pathToFileURL(modulePath).href;
         const mod: Record<string, unknown> = await import(fileUrl);
 
         // Find any SkillBase subclass exported from the module. Matches
@@ -320,12 +340,14 @@ export class SkillRegistry {
   }
 
   /**
-   * Discover and register skills from all configured search paths.
+   * Discover and register skills from every configured directory: the search
+   * paths ({@link addSearchPath}, `SIGNALWIRE_SKILL_PATHS`) and the
+   * directories added with {@link addSkillDirectory}, each once.
    * @returns Array of all newly discovered skill names.
    */
   async discoverAll(): Promise<string[]> {
     const all: string[] = [];
-    for (const path of this.searchPaths) {
+    for (const path of new Set([...this.searchPaths, ...this.externalPaths])) {
       const found = await this.discoverFromDirectory(path);
       all.push(...found);
     }
@@ -390,9 +412,12 @@ export class SkillRegistry {
   }
 
   /**
-   * Clear all registrations.
+   * Clear every registration except locked skills (see {@link lock}), which
+   * stay registered.
    */
   clear(): void {
-    this.registry.clear();
+    for (const name of [...this.registry.keys()]) {
+      if (!this.lockedNames.has(name)) this.registry.delete(name);
+    }
   }
 }

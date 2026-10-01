@@ -46,7 +46,7 @@ describe('WebService.start — host defaults to 0.0.0.0', () => {
 
   it('binds 0.0.0.0 when host is omitted', async () => {
     // Port 0 = OS-assigned ephemeral, so the test is parallel-safe.
-    const svc = new WebService({ port: 0 });
+    const svc = new WebService({ port: 0, basicAuth: ['u', 'p'] });
     const log = vi.spyOn((svc as unknown as { log: { info: (m: string) => void } }).log, 'info');
     try {
       await svc.start(undefined, 0);
@@ -58,7 +58,7 @@ describe('WebService.start — host defaults to 0.0.0.0', () => {
   });
 
   it('an explicit host still overrides the default', async () => {
-    const svc = new WebService({ port: 0 });
+    const svc = new WebService({ port: 0, basicAuth: ['u', 'p'] });
     const log = vi.spyOn((svc as unknown as { log: { info: (m: string) => void } }).log, 'info');
     try {
       await svc.start('127.0.0.1', 0);

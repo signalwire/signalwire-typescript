@@ -9,7 +9,7 @@
  * Run: npx tsx examples/prefab-info-gatherer.ts
  */
 
-import { InfoGathererAgent } from '../src/index.js';
+import { InfoGathererAgent } from '@signalwire/sdk';
 
 export const agent = new InfoGathererAgent({
   name: 'intake-agent',

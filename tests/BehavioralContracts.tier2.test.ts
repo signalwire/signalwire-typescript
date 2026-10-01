@@ -697,9 +697,9 @@ describe('Contract 9 — defineTool defaults to secure, and the wire reflects it
     // route:'/' so the SWAIG endpoint is served at '/swaig' (the fixture agent
     // above is routed at '/sd', where it would be '/sd/swaig').
     //
-    // Parity with the reference (`agent_base.py` `_swaig_pre_dispatch`): a
-    // `secure` tool REQUIRES a valid token. A supplied-but-wrong one is
-    // refused; so is an ABSENT one (pinned by the sibling test below).
+    // Parity with the reference: a secure function runs only with a valid
+    // token for that function and call. A missing token is refused too; that
+    // case is covered in tests/SwaigTokens.test.ts.
     function agentFor(): AgentBase {
       const a = new AgentBase({ name: 'secure-dispatch', route: '/', basicAuth: ['u', 'p'] });
       a.setPromptText('secure default dispatch');

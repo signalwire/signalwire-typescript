@@ -6,12 +6,14 @@
  * Uses SwmlBuilder for verb methods and Hono for HTTP serving.
  */
 
+import type { AgentBase } from './AgentBase.js';
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import type { HostAppRouter } from './web.js';
 import { cors } from 'hono/cors';
 import { basicAuth } from 'hono/basic-auth';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { corsOriginsFromEnv } from './SecurityUtils.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SchemaUtils } from './SchemaUtils.js';
 import { SslConfig } from './SslConfig.js';
@@ -95,6 +97,12 @@ export class SecurityConfig {
   basicAuthUser: string | null;
   /** Basic auth password from config, or null. */
   basicAuthPassword: string | null;
+  /**
+   * Where {@link basicAuthPassword} came from: `'environment'`
+   * (`SWML_BASIC_AUTH_PASSWORD`), `'config file'` (which takes precedence), or
+   * `null` when neither set one.
+   */
+  basicAuthSource: 'environment' | 'config file' | null;
   /** Allowed request hosts (`['*']` = allow all). */
   allowedHosts: string[];
   /** Allowed CORS origins. */
@@ -118,8 +126,9 @@ export class SecurityConfig {
     this.domain = this.sslConfig.domain;
 
     // Auth + host/CORS/HSTS defaults from env vars
-    this.basicAuthUser = process.env['SWML_BASIC_AUTH_USER'] ?? null;
-    this.basicAuthPassword = process.env['SWML_BASIC_AUTH_PASSWORD'] ?? null;
+    this.basicAuthUser = process.env['SWML_BASIC_AUTH_USER'] || null;
+    this.basicAuthPassword = process.env['SWML_BASIC_AUTH_PASSWORD'] || null;
+    this.basicAuthSource = this.basicAuthPassword ? 'environment' : null;
     this.allowedHosts = ['*'];
     this.corsOrigins = ['*'];
     this.useHsts = true;
@@ -204,14 +213,26 @@ export class SecurityConfig {
       this.hstsMaxAge = Number(section['hsts_max_age']);
     }
 
-    // Authentication — reference shape is security.auth.basic.{user,password}
+    // Authentication — reference shape is security.auth.basic.{user,password};
+    // `security.basicAuth` is this SDK's earlier spelling, still read. The
+    // config file takes precedence over the environment.
     const auth = section['auth'];
-    if (auth !== null && typeof auth === 'object') {
-      const basic = (auth as Record<string, unknown>)['basic'];
-      if (basic !== null && typeof basic === 'object') {
-        const b = basic as Record<string, unknown>;
-        if (typeof b['user'] === 'string') this.basicAuthUser = b['user'];
-        if (typeof b['password'] === 'string') this.basicAuthPassword = b['password'];
+    const basicBlocks: unknown[] = [
+      section['basicAuth'],
+      auth !== null && typeof auth === 'object'
+        ? (auth as Record<string, unknown>)['basic']
+        : undefined,
+    ];
+    for (const basic of basicBlocks) {
+      if (basic === null || typeof basic !== 'object') continue;
+      const b = basic as Record<string, unknown>;
+      // An empty value sets nothing: an empty password would otherwise erase a
+      // working one from the environment and leave the service with no
+      // configured credentials.
+      if (typeof b['user'] === 'string' && b['user']) this.basicAuthUser = b['user'];
+      if (typeof b['password'] === 'string' && b['password']) {
+        this.basicAuthPassword = b['password'];
+        this.basicAuthSource = 'config file';
       }
     }
 
@@ -238,10 +259,13 @@ export class SecurityConfig {
     return null;
   }
 
-  /** Get basic auth credentials from security config, or null if not configured. */
+  /**
+   * Get basic auth credentials from the config file or environment, or null
+   * when no password is configured. The user defaults to `signalwire`.
+   */
   getBasicAuth(): [string, string] | null {
-    if (this.basicAuthUser && this.basicAuthPassword) {
-      return [this.basicAuthUser, this.basicAuthPassword];
+    if (this.basicAuthPassword) {
+      return [this.basicAuthUser || 'signalwire', this.basicAuthPassword];
     }
     return null;
   }
@@ -400,6 +424,25 @@ export interface SWMLServiceOptions {
  * @see {@link SwmlBuilder} — the underlying SWML document builder
  * @see {@link AgentBase} — AI-powered alternative
  */
+/**
+ * Services constructed while swaig-test imports a file (SWAIG_CLI_MODE). Kept
+ * on globalThis under a registered symbol, so it's one list even when the
+ * agent file loads its own copy of the SDK (a CommonJS file, or another
+ * build of the package) from the one swaig-test runs.
+ */
+const cliLoadedServices: SWMLService[] = ((globalThis as Record<symbol, unknown>)[
+  Symbol.for('signalwire.swaigTest.loadedServices')
+] ??= []) as SWMLService[];
+
+/**
+ * The services constructed since the last call, while swaig-test was
+ * importing a file, in construction order; clears the list. Internal to the
+ * CLI's loader.
+ */
+export function _takeCliLoadedServices(): SWMLService[] {
+  return cliLoadedServices.splice(0);
+}
+
 export class SWMLService {
   /** Service display name. */
   readonly name: string;
@@ -426,6 +469,10 @@ export class SWMLService {
 
   /** Schema validation utilities. */
   readonly schemaUtils: SchemaUtils;
+  /** @internal The schema settings every SwmlBuilder this service creates uses. */
+  protected _builderSchemaOptions: { enableValidation: boolean; schemaPath?: string } = {
+    enableValidation: true,
+  };
   /** Custom verb handler registry. */
   readonly verbRegistry: VerbHandlerRegistry;
 
@@ -434,7 +481,7 @@ export class SWMLService {
   protected _server: Server | null = null;
   protected onRequestCallback?: OnRequestCallback;
   protected authCredentials?: [string, string];
-  protected authSource: 'provided' | 'environment' | 'generated' = 'generated';
+  protected authSource: 'provided' | 'environment' | 'config file' | 'generated' = 'generated';
 
   /** Validate provided basic-auth credentials against the configured ones
    * using a constant-time comparison. */
@@ -445,10 +492,9 @@ export class SWMLService {
   }
 
   private timingSafeEqual(a: string, b: string): boolean {
-    if (a.length !== b.length) return false;
-    let diff = 0;
-    for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-    return diff === 0;
+    // Compare digests, so neither the content nor the length leaks.
+    const digest = (v: string) => createHash('sha256').update(v, 'utf8').digest();
+    return timingSafeEqual(digest(a), digest(b));
   }
   protected _proxyUrlBase: string | null = process.env['SWML_PROXY_URL_BASE'] ?? null;
   protected _proxyUrlBaseFromEnv = !!process.env['SWML_PROXY_URL_BASE'];
@@ -464,6 +510,8 @@ export class SWMLService {
   /** @deprecated Prefer passing an options object with a required `name`. The no-arg form defaults name to 'swml-service'. */
   constructor(opts?: Partial<SWMLServiceOptions>);
   constructor(opts?: Partial<SWMLServiceOptions>) {
+    // swaig-test finds services a file constructs without exporting them.
+    if (process.env['SWAIG_CLI_MODE'] === 'true') cliLoadedServices.push(this);
     this.name = opts?.name ?? 'swml-service';
     this.route = opts?.route ?? '/';
     this.host = opts?.host ?? '0.0.0.0';
@@ -490,11 +538,16 @@ export class SWMLService {
       skipValidation,
       ...(opts?.schemaPath !== undefined ? { schemaPath: opts.schemaPath } : {}),
     });
+    // The builder that renders the SWML validates verbs with the same settings.
+    this._builderSchemaOptions = {
+      enableValidation: !skipValidation,
+      ...(opts?.schemaPath !== undefined ? { schemaPath: opts.schemaPath } : {}),
+    };
 
     // Verb handler registry
     this.verbRegistry = new VerbHandlerRegistry();
 
-    // Auth resolution: provided > env > security config > generated
+    // Auth resolution: provided > config file > environment > generated
     // Track whether auth was explicitly provided (enforced on HTTP) vs auto-generated (available but not enforced)
     let enforceAuth = false;
     if (opts?.basicAuth) {
@@ -502,31 +555,25 @@ export class SWMLService {
       this.authSource = 'provided';
       enforceAuth = true;
     } else {
-      const envUser = process.env['SWML_BASIC_AUTH_USER'];
-      const envPass = process.env['SWML_BASIC_AUTH_PASSWORD'];
-      if (envUser && envPass) {
-        this.authCredentials = [envUser, envPass];
-        this.authSource = 'environment';
+      // The config file, then the environment: SecurityConfig applies that
+      // precedence and records which one supplied the password.
+      const configured = this.security.getBasicAuth();
+      if (configured) {
+        this.authCredentials = configured;
+        this.authSource = this.security.basicAuthSource ?? 'environment';
         enforceAuth = true;
       } else {
-        const fromConfig = this.security.getBasicAuth();
-        if (fromConfig) {
-          this.authCredentials = fromConfig;
-          this.authSource = 'environment';
-          enforceAuth = true;
-        } else {
-          // Auto-generate credentials like AgentBase does
-          const username = this.name.replace(/[^a-zA-Z0-9_-]/g, '_');
-          this.authCredentials = [username, randomBytes(16).toString('hex')];
-          this.authSource = 'generated';
-          // Not enforced on HTTP — available via getBasicAuthCredentials()
-        }
+        // Auto-generate credentials like AgentBase does
+        const username = this.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+        this.authCredentials = [username, randomBytes(16).toString('hex')];
+        this.authSource = 'generated';
+        // Not enforced on HTTP — available via getBasicAuthCredentials()
       }
     }
 
     // `service: this` is the builder's public back-reference (the reference's
     // `SWMLBuilder(service)`), so a caller holding the builder can reach its service.
-    this.swmlBuilder = new SwmlBuilder({ service: this });
+    this.swmlBuilder = new SwmlBuilder({ service: this, ...this._builderSchemaOptions });
     this._app = new Hono();
 
     // Security headers
@@ -542,14 +589,18 @@ export class SWMLService {
 
     // CORS — credentials only when origin is explicitly configured (wildcard + credentials violates spec)
     const corsOrigins = process.env['SWML_CORS_ORIGINS'];
-    const corsOrigin = corsOrigins ? corsOrigins.split(',').map((o: string) => o.trim()) : '*';
+    const corsOrigin = corsOriginsFromEnv(corsOrigins);
     const corsCredentials = corsOrigin !== '*';
     this._app.use('*', cors({ origin: corsOrigin, credentials: corsCredentials }));
 
     // Basic auth — only enforced when explicitly provided or from env, not auto-generated
     if (enforceAuth && this.authCredentials) {
-      const [user, pass] = this.authCredentials;
-      this._app.use('*', basicAuth({ username: user, password: pass }));
+      this._app.use(
+        '*',
+        basicAuth({
+          verifyUser: (username, password) => this.validateBasicAuth(username, password),
+        }),
+      );
     }
 
     // Health endpoints
@@ -558,46 +609,8 @@ export class SWMLService {
 
     // Main SWML endpoint — serves on both GET and POST
     const handler = async (c: Context) => {
-      let doc: Record<string, unknown>;
-
-      // Always parse request params so onRequest() hook and onRequestCallback
-      // can both receive them (mirrors Python's _handle_request param extraction).
-      const url = new URL(c.req.url);
-      const queryParams: Record<string, string> = {};
-      url.searchParams.forEach((v, k) => {
-        queryParams[k] = v;
-      });
-
-      let bodyParams: Record<string, unknown> = {};
-      if (c.req.method === 'POST') {
-        try {
-          bodyParams = await c.req.json();
-        } catch {
-          // empty body is fine
-        }
-      }
-
-      const headers: Record<string, string> = {};
-      c.req.raw.headers.forEach((v: string, k: string) => {
-        headers[k] = v;
-      });
-
-      // Protected override hook (Service-side SWML builder dispatch).
-      // Try buildSwmlForRequest() first; if it returns a SwmlBuilder use
-      // that document. This is distinct from WebMixin's onRequest hook
-      // (a public 2-arg variant on AgentBase that mirrors Python's
-      // on_request → on_swml_request delegation chain).
-      const hookResult = this.buildSwmlForRequest(queryParams, bodyParams, headers);
-      if (hookResult !== null) {
-        doc = hookResult.build();
-      } else if (this.onRequestCallback) {
-        const builder = await this.onRequestCallback(queryParams, bodyParams, headers);
-        doc = builder.build();
-      } else {
-        doc = this.swmlBuilder.build();
-      }
-
-      return c.json(doc);
+      const { bodyParams, headers } = await this._readRequest(c);
+      return c.json(await this._documentForRequest(c, bodyParams, headers));
     };
 
     const routePath = this.route === '/' ? '/' : this.route;
@@ -643,10 +656,13 @@ export class SWMLService {
       if (shortCircuit !== null && shortCircuit !== undefined) {
         return c.json(shortCircuit);
       }
-      const result = target.onFunctionCall(fnName, args, payload);
+      // A handler may be async: await it, or its Promise serializes as {}.
+      const result = await target.onFunctionCall(fnName, args, payload);
       if (result === null || result === undefined) {
         return c.json({ error: `Unknown function: ${fnName}` }, 404);
       }
+      if (result instanceof FunctionResult) return c.json(result.toDict());
+      if (typeof result === 'string') return c.json(new FunctionResult(result).toDict());
       return c.json(result);
     };
     this._app.get(swaigPath, swaigHandler);
@@ -691,6 +707,7 @@ export class SWMLService {
       handler: (
         args: ToolArgs<P, R>,
         rawData: SwaigRequest,
+        agent?: AgentBase,
       ) =>
         | FunctionResult
         | Record<string, unknown>
@@ -803,10 +820,13 @@ export class SWMLService {
       if (fn instanceof SwaigFunction) {
         tools.push({ name, description: fn.description, parameters: fn.parameters });
       } else {
+        // DataMap.toSwaigFunction() writes description/parameters; a hand-built
+        // SWAIG dict may use the older purpose/argument names.
         tools.push({
           name,
-          description: (fn['purpose'] as string) ?? '',
-          parameters: (fn['argument'] as Record<string, unknown>) ?? {},
+          description: ((fn['description'] ?? fn['purpose']) as string | undefined) ?? '',
+          parameters:
+            ((fn['parameters'] ?? fn['argument']) as Record<string, unknown> | undefined) ?? {},
         });
       }
     }
@@ -1043,7 +1063,9 @@ export class SWMLService {
     } catch {
       /* bare path — use as-is */
     }
-    const trimmed = path.replace(/^\/+|\/+$/g, '');
+    // Collapse repeated slashes, as the router does when it picks the route,
+    // so /agent/handoff//next finds the callback registered at /handoff/next.
+    const trimmed = path.replace(/\/{2,}/g, '/').replace(/^\/+|\/+$/g, '');
     const normalized = trimmed ? `/${trimmed}` : path.replace(/\/+$/, '');
     for (const cbPath of this._routingCallbacks.keys()) {
       if (normalized === cbPath || normalized.endsWith(cbPath)) return cbPath;
@@ -1106,40 +1128,72 @@ export class SWMLService {
     this.log.info(`Registering routing callback at ${normalized}`);
     this._routingCallbacks.set(normalized, callbackFn);
 
-    // Install an endpoint on the Hono app for this callback path
+    // Install an endpoint on the Hono app for this callback path. It runs
+    // this callback (awaited) for a POST, redirects with 307 when it returns
+    // a route, and otherwise serves the SWML for the request as the main
+    // route does, as the reference does. Auth is the app's middleware.
     const routeHandler = async (c: Context) => {
-      let body: SwmlRequestData = {};
-      if (c.req.method === 'POST') {
+      const { bodyParams, headers } = await this._readRequest(c);
+      if (c.req.method === 'POST' && Object.keys(bodyParams).length > 0) {
         try {
-          body = await c.req.json();
-        } catch {
-          // empty body
+          const route = await callbackFn(bodyParams as SwmlRequestData, headers);
+          if (route != null) {
+            this.log.info(`routing_request route=${route}`);
+            return c.redirect(route, 307);
+          }
+        } catch (err) {
+          this.log.error(
+            `error_in_routing_callback error=${err instanceof Error ? err.message : String(err)}`,
+          );
         }
       }
-
-      const cbHeaders: Record<string, string> = {};
-      c.req.raw.headers.forEach((v: string, k: string) => {
-        cbHeaders[k] = v;
-      });
-
-      const route = callbackFn(body, cbHeaders);
-      // Preserve the original `route !== null` runtime guard exactly — a
-      // types-only change must not alter behavior. The callback's declared
-      // return includes undefined|Promise, which the pre-typing `c: any` code
-      // passed to redirect verbatim; the cast keeps that identical rather than
-      // narrowing it away. Any real fix to non-string returns is a separate
-      // behavioral change, not part of the any-burndown.
-      if (route !== null) {
-        return c.redirect(route as string, 307);
-      }
-
-      // No redirect — serve normal SWML
-      const doc = this.swmlBuilder.build();
-      return c.json(doc);
+      return c.json(await this._documentForRequest(c, bodyParams, headers));
     };
 
     this._app.get(normalized, routeHandler);
     this._app.post(normalized, routeHandler);
+  }
+
+  /** The body (for a POST) and headers of a served request. */
+  private async _readRequest(
+    c: Context,
+  ): Promise<{ bodyParams: Record<string, unknown>; headers: Record<string, string> }> {
+    let bodyParams: Record<string, unknown> = {};
+    if (c.req.method === 'POST') {
+      try {
+        bodyParams = await c.req.json();
+      } catch {
+        // empty body is fine
+      }
+    }
+    const headers: Record<string, string> = {};
+    c.req.raw.headers.forEach((v: string, k: string) => {
+      headers[k] = v;
+    });
+    return { bodyParams, headers };
+  }
+
+  /**
+   * The SWML document for a served request: buildSwmlForRequest(), then the
+   * setOnRequestCallback() callback, then the service's own document (as
+   * Python's _handle_request does).
+   */
+  private async _documentForRequest(
+    c: Context,
+    bodyParams: Record<string, unknown>,
+    headers: Record<string, string>,
+  ): Promise<Record<string, unknown>> {
+    const queryParams: Record<string, string> = {};
+    new URL(c.req.url).searchParams.forEach((v, k) => {
+      queryParams[k] = v;
+    });
+    const hookResult = this.buildSwmlForRequest(queryParams, bodyParams, headers);
+    if (hookResult !== null) return hookResult.build();
+    if (this.onRequestCallback) {
+      const builder = await this.onRequestCallback(queryParams, bodyParams, headers);
+      return builder.build();
+    }
+    return this.swmlBuilder.build();
   }
 
   // ── Static utilities ─────────────────────────────────────────────────
@@ -1227,10 +1281,10 @@ export class SWMLService {
   getBasicAuthCredentials(includeSource?: false): [string, string];
   getBasicAuthCredentials(
     includeSource: true,
-  ): [string, string, 'provided' | 'environment' | 'generated'];
+  ): [string, string, 'provided' | 'environment' | 'config file' | 'generated'];
   getBasicAuthCredentials(
     includeSource: boolean = false,
-  ): [string, string] | [string, string, 'provided' | 'environment' | 'generated'] {
+  ): [string, string] | [string, string, 'provided' | 'environment' | 'config file' | 'generated'] {
     const creds = this.authCredentials ?? ['', ''];
     if (includeSource) return [...creds, this.authSource];
     return creds;
@@ -1330,6 +1384,16 @@ export class SWMLService {
 
     const h = host ?? this.host;
     const p = port ?? this.port;
+
+    // A service with generated credentials doesn't require them (a TypeScript
+    // divergence from the reference, which always does: PORT_BEHAVIORAL_NOTES.md).
+    if (this.authSource === 'generated') {
+      this.log.warn(
+        `${this.name} is serving without basic auth: its credentials were generated, and ` +
+          'generated credentials are not enforced. Pass basicAuth, or set ' +
+          'SWML_BASIC_AUTH_USER and SWML_BASIC_AUTH_PASSWORD, to require them.',
+      );
+    }
 
     // Determine effective SSL state (param > instance > env)
     const effectiveSslEnabled = opts?.sslEnabled ?? this.sslEnabled;

@@ -6,7 +6,7 @@
  * Run: npx tsx examples/record-call.ts
  */
 
-import { AgentBase, FunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'recording-agent',

@@ -1,7 +1,9 @@
 /**
  * SkillName closed-set typing — proves the typed built-in skill names accepted
  * by `AgentBase.addSkillByName` / `AgentBase.hasSkill` load the IDENTICAL skill
- * as the bare string, and that a typo'd literal is a compile-time error.
+ * as the bare string, that a typo'd literal is a compile-time error against
+ * `SkillName`, and that the same typo passed to `addSkillByName` (typed
+ * `SkillNameOrString`, which accepts any string) compiles and rejects at runtime.
  *
  * Mirrors the PHP proof (signalwire-php 7f305bc, `SkillName` backed enum):
  * the typing is erased at runtime, so wire behavior is identical to passing a
@@ -139,5 +141,19 @@ describe('SkillName closed-set typing', () => {
     // @ts-expect-error — typo'd skill name must not satisfy SkillName
     const bad: SkillName = 'datetiem';
     void bad;
+  });
+
+  it('accepts a typo through SkillNameOrString at compile time, and rejects it at runtime', async () => {
+    // addSkillByName takes SkillName | (string & {}), so any string compiles:
+    // the typo is caught only when the value is typed as SkillName.
+    const errs = typeCheckLines(
+      `type SkillNameOrString = SkillName | (string & {});\n` +
+        `declare function addSkillByName(name: SkillNameOrString): void;\n` +
+        `addSkillByName('datetiem');`,
+    );
+    expect([...errs.values()]).toEqual([]);
+
+    const agent = makeAgent();
+    await expect(agent.addSkillByName('datetiem')).rejects.toThrow(/not found in registry/);
   });
 });

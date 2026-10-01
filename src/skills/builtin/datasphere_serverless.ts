@@ -33,11 +33,20 @@ const DEFAULT_NO_RESULTS_MESSAGE =
  * `count`, `distance`, `tags`, `language`, `pos_to_expand`, `max_synonyms`,
  * and `no_results_message` config options.
  *
+ * `space_name`, `project_id`, `token` and `document_id` come only from the
+ * configuration, as in Python. The schema's `env_var` entries for `project_id`
+ * and `token` name the usual variables for tools that read the schema; the
+ * skill doesn't read them, so a process-wide API token isn't written into
+ * the SWML unless you pass it.
+ *
  * @example
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('datasphere_serverless', {
+ * await agent.addSkillByName('datasphere_serverless', {
+ *   space_name: 'example',
+ *   project_id: process.env.SIGNALWIRE_PROJECT_ID,
+ *   token: process.env.SIGNALWIRE_API_TOKEN,
  *   document_id: 'doc_abc123',
  *   count: 3,
  * });
@@ -255,7 +264,11 @@ export class DataSphereServerlessSkill extends SkillBase {
       append: '=== RESULT ===\n${this.text}\n' + '='.repeat(50) + '\n\n',
     });
 
-    dm.output(new FunctionResult('I found results for "${args.query}":\n\n${formatted_results}'));
+    // A webhook's output reads the arguments under `input` (the platform's
+    // template data there is the response plus `input`, with no `args`).
+    dm.output(
+      new FunctionResult('I found results for "${input.args.query}":\n\n${formatted_results}'),
+    );
 
     dm.errorKeys(['error']);
 

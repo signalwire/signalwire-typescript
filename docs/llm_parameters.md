@@ -1,6 +1,6 @@
 # LLM Parameters Guide
 
-This guide explains how to customize Language Model (LLM) parameters in SignalWire AI Agents to fine-tune the AI's behavior for your specific use case.
+This guide covers the LLM parameters of a SignalWire AI agent's main prompt and post-prompt, and how to set them with the TypeScript SDK.
 
 <!-- snippet-setup -->
 ```ts
@@ -13,22 +13,20 @@ declare global {
 
 ## Overview
 
-The SignalWire AI Agents TypeScript SDK provides methods to customize LLM parameters for both the main prompt and the post-prompt, giving precise control over the AI's response characteristics.
+The SDK has one method for the main prompt's LLM parameters and one for the post-prompt's. The SDK writes the parameters into the SWML `prompt` and `post_prompt` objects, next to the prompt text.
 
-**Important:** The SDK passes parameters through to the SignalWire server without validation. Model-specific parameters are validated and handled by the server based on the target model's capabilities. Parameters that are invalid for the selected model are handled or ignored by the server.
+**Important:** The SDK doesn't validate these parameters. It passes every key and value through to SignalWire unchanged, so a misspelled key or an out-of-range value reaches the platform as written.
 
 ## Available Methods
 
 ### `setPromptLlmParams(params)`
 
-Merges LLM parameters into the main agent prompt. Accepts an object of parameters passed
-through to the server.
+`setPromptLlmParams()` merges parameters into the main prompt:
 
 ```typescript
 agent.setPromptLlmParams({
   temperature: 0.7,
   top_p: 0.9,
-  barge_confidence: 0.6,
   presence_penalty: 0.0,
   frequency_penalty: 0.0,
 });
@@ -36,7 +34,7 @@ agent.setPromptLlmParams({
 
 ### `setPostPromptLlmParams(params)`
 
-Merges LLM parameters into the post-prompt (conversation summary).
+`setPostPromptLlmParams()` merges parameters into the post-prompt, which produces the call summary:
 
 ```typescript
 agent.setPostPromptLlmParams({
@@ -47,51 +45,75 @@ agent.setPostPromptLlmParams({
 });
 ```
 
-Note: `barge_confidence` does not apply to the post-prompt, since interruption doesn't apply
-to summaries.
+Both methods merge into the parameters already set, so you can call them more than once. A later value for the same key replaces the earlier one.
 
-Both methods merge into the existing parameters, so you can call them more than once to
-build up the configuration incrementally.
+The prompt objects are separate from the `ai` verb's `params`, which `setParam()` and `setParams()` set. `temperature` and the other keys in this guide belong in the prompt objects.
 
-## Common Parameter Descriptions
+## Parameter Reference
 
-These are commonly used parameters, but any parameter accepted by your model can be used. The actual ranges and defaults are model-specific and handled by the server. SWML output keys are `snake_case` (the platform format).
+The SWML schema defines these parameters for both `prompt` and `post_prompt`. The ranges and defaults come from the schema bundled with the SDK (`src/schema.json`):
+
+| Parameter | Type | Range | Default | Description |
+|---|---|---|---|---|
+| `temperature` | number | 0.0 to 1.5 | 1.0 | Randomness. Values closer to 0 make the output less random. |
+| `top_p` | number | 0.0 to 1.0 | 1.0 | Nucleus sampling, an alternative to `temperature`. Values closer to 0 make the output less random. |
+| `presence_penalty` | number | -2.0 to 2.0 | 0 | Aversion to staying on a topic. Positive values make new topics more likely. |
+| `frequency_penalty` | number | -2.0 to 2.0 | 0 | Aversion to repeating lines. Positive values make verbatim repetition less likely. |
+| `confidence` | number | 0.0 to 1.0 | 0.6 | Threshold for the speech-detect event at the end of an utterance. Lower values shorten the pause after the caller speaks, and can add false positives. |
+| `max_tokens` | integer | 0 to 4096 | 256 | Limit on the tokens the model may generate for a response. |
+
+The defaults are the platform's. The SDK sends a parameter only when you set it.
 
 ### temperature
-Controls the randomness of the AI's responses.
-- **Lower values (e.g., 0.0-0.3)**: More deterministic, focused, and consistent responses
-- **Medium values (e.g., 0.4-0.7)**: Balanced creativity and consistency
-- **Higher values (e.g., 0.8+)**: More creative, diverse, and unpredictable responses
+
+`temperature` controls how random the responses are. These ranges are guidance, not rules:
+
+- **Lower values (for example, 0.0 to 0.3)**: more deterministic and consistent responses
+- **Middle values (for example, 0.4 to 0.7)**: a balance of variety and consistency
+- **Higher values (for example, 0.8 and up)**: more varied and less predictable responses
 
 ### top_p
-Nucleus sampling parameter that controls the cumulative probability of token selection.
-- **Lower values (e.g., 0.1-0.5)**: Only considers the most likely tokens
-- **Medium values (e.g., 0.6-0.9)**: Balanced token selection
-- **Higher values (e.g., 0.95-1.0)**: Considers a wider range of tokens
 
-### barge_confidence
-ASR (Automatic Speech Recognition) confidence threshold to interrupt the AI while it's speaking (main prompt only).
-- **Lower values (e.g., 0.0-0.4)**: Easier to interrupt, more sensitive to user speech
-- **Medium values (e.g., 0.5-0.7)**: Balanced interruption sensitivity
-- **Higher values (e.g., 0.8-1.0)**: Harder to interrupt, requires clear user speech
+`top_p` limits token selection to the most likely tokens whose probabilities add up to the value:
+
+- **Lower values (for example, 0.1 to 0.5)**: only the most likely tokens
+- **Middle values (for example, 0.6 to 0.9)**: a balanced selection
+- **Higher values (for example, 0.95 to 1.0)**: a wider range of tokens
 
 ### presence_penalty
-Topic diversity control. Penalizes tokens based on whether they appear in the conversation so far.
-- **Negative values**: Encourages repetition of topics
-- **Zero**: No penalty
-- **Positive values**: Discourages repetition, encourages new topics
+
+`presence_penalty` penalizes tokens that already appear in the conversation:
+
+- **Negative values**: encourage returning to the same topics
+- **Zero**: no penalty
+- **Positive values**: discourage repetition, and encourage new topics
 
 ### frequency_penalty
-Repetition control. Penalizes tokens based on their frequency in the conversation.
-- **Negative values**: Encourages repetition of specific words
-- **Zero**: No penalty
-- **Positive values**: Discourages word repetition, encourages vocabulary variety
 
-**Note:** No default values are sent unless explicitly set using the methods above. The server applies model-appropriate defaults if parameters are not specified.
+`frequency_penalty` penalizes tokens by how often they appear in the conversation:
+
+- **Negative values**: encourage repeating the same words
+- **Zero**: no penalty
+- **Positive values**: discourage word repetition
+
+### Interruption
+
+How easily the caller can interrupt the AI isn't an LLM parameter. `barge_confidence` isn't in the SWML schema's `prompt` object, so a document that sets it there fails validation against the SWML schema, and the platform doesn't apply it. Tune interruption with these AI params, through `setParam()`:
+
+- **`barge_min_words`** (1 to 99): how many words the caller must say before the AI stops speaking. Higher values make the AI harder to interrupt.
+- **`enable_barge`**: which barge modes are on: `"complete"`, `"partial"`, `"all"`, or a boolean. `false` turns barge-in off.
+- **`barge_match_string`**: a string or regular expression that interrupts the AI when the caller says it.
+
+```typescript
+agent.setParam('barge_min_words', 3); // Let the AI finish unless the caller says 3 or more words
+```
 
 ## Use Case Examples
 
 ### Customer Service Agent
+
+A low temperature and a small penalty keep the responses consistent:
+
 ```typescript
 import { AgentBase } from '@signalwire/sdk';
 
@@ -107,7 +129,6 @@ class CustomerServiceAgent extends AgentBase {
     this.setPromptLlmParams({
       temperature: 0.3, // Low randomness for consistency
       top_p: 0.9, // Focused token selection
-      barge_confidence: 0.6, // Moderate interruption threshold
       presence_penalty: 0.1, // Slight penalty to avoid repetition
       frequency_penalty: 0.1, // Encourage varied language
     });
@@ -116,6 +137,9 @@ class CustomerServiceAgent extends AgentBase {
 ```
 
 ### Creative Writing Assistant
+
+A higher temperature and a wider `top_p` suit an agent that should vary its answers:
+
 ```typescript
 class CreativeWritingAgent extends AgentBase {
   constructor() {
@@ -123,11 +147,10 @@ class CreativeWritingAgent extends AgentBase {
 
     this.promptAddSection('Role', { body: 'You are a creative writing assistant.' });
 
-    // Creative, diverse responses
+    // Varied responses
     this.setPromptLlmParams({
-      temperature: 0.8, // High randomness for creativity
+      temperature: 0.8, // Higher randomness for variety
       top_p: 0.95, // Wide token selection
-      barge_confidence: 0.3, // Easy to interrupt for collaboration
       presence_penalty: -0.1, // Allow topic revisiting
       frequency_penalty: 0.3, // Encourage vocabulary diversity
     });
@@ -136,6 +159,9 @@ class CreativeWritingAgent extends AgentBase {
 ```
 
 ### Technical Documentation Bot
+
+A low temperature keeps technical answers precise, and the post-prompt uses a lower one still:
+
 ```typescript
 class TechnicalDocsAgent extends AgentBase {
   constructor() {
@@ -143,13 +169,13 @@ class TechnicalDocsAgent extends AgentBase {
 
     this.promptAddSection('Role', { body: 'You are a technical documentation assistant.' });
 
-    // Precise, accurate responses
+    // Precise responses
     this.setPromptLlmParams({
-      temperature: 0.2, // Very low randomness
+      temperature: 0.2, // Low randomness
       top_p: 0.8, // More focused token selection
-      barge_confidence: 0.8, // Hard to interrupt - let it finish
       presence_penalty: 0.0, // Neutral on repetition
       frequency_penalty: 0.2, // Some vocabulary variety
+      max_tokens: 400, // Room for longer explanations
     });
 
     // Even more focused for summaries
@@ -158,7 +184,10 @@ class TechnicalDocsAgent extends AgentBase {
 }
 ```
 
-### Legal Advisor Bot
+### Legal Information Bot
+
+A legal information agent repeats legal terms on purpose, so it sets no penalties:
+
 ```typescript
 class LegalAdvisorAgent extends AgentBase {
   constructor() {
@@ -171,9 +200,8 @@ class LegalAdvisorAgent extends AgentBase {
 
     // Cautious, precise responses
     this.setPromptLlmParams({
-      temperature: 0.2, // Very consistent
+      temperature: 0.2, // Consistent
       top_p: 0.85, // Focused selection
-      barge_confidence: 0.9, // Very hard to interrupt - legal accuracy important
       presence_penalty: 0.0, // Allow legal term repetition
       frequency_penalty: 0.0, // Legal language often repeats
     });
@@ -183,77 +211,88 @@ class LegalAdvisorAgent extends AgentBase {
 
 ## Best Practices
 
-### 1. Start with Defaults
-Begin with the server defaults (set nothing) and adjust based on observed behavior.
+### 1. Start with the Platform Defaults
 
-### 2. Test Incrementally
-Make small adjustments and test thoroughly to understand the impact.
+Set nothing at first, and adjust based on the behavior you observe.
 
-### 3. Consider the Use Case
-- **Customer Service**: Low temperature (0.2-0.4), moderate barge_confidence (0.6-0.7)
-- **Creative Tasks**: Higher temperature (0.7-0.9), low barge_confidence (0.4-0.6)
-- **Technical/Legal**: Very low temperature (0.1-0.3), high barge_confidence (0.8-0.9)
-- **General Assistant**: Medium temperature (0.5-0.7), medium barge_confidence (0.6-0.7)
+### 2. Change One Thing at a Time
 
-### 4. Match Post-Prompt Parameters
-Post-prompt parameters should typically be a lower temperature than the main prompt for consistent summaries.
+Make small changes and test each one, so you know which change had which effect.
 
-### 5. Monitor Barge Confidence Levels
-- Too high: Users have difficulty interrupting the AI
-- Too low: AI gets interrupted too easily by background noise
+### 3. Match the Use Case
+
+These starting points are guidance, not measured values:
+
+- **Customer service**: low temperature (0.2 to 0.4)
+- **Creative tasks**: higher temperature (0.7 to 0.9)
+- **Technical or legal**: the lowest temperatures (0.1 to 0.3)
+- **General assistant**: middle temperature (0.5 to 0.7)
+
+### 4. Lower the Post-Prompt Temperature
+
+A post-prompt usually produces a structured summary, so a lower temperature than the main prompt's keeps it consistent.
 
 ## Parameter Interactions
 
-### Temperature + Top-p
-These parameters work together to control randomness:
-- Low temperature + Low top_p = Very focused responses
-- High temperature + High top_p = Maximum creativity
-- Low temperature + High top_p = Consistent but with fallback options
-- High temperature + Low top_p = Creative within constraints
+### Temperature and top_p
+
+Both parameters control randomness, and they combine:
+
+- Low temperature and low `top_p`: the most focused responses
+- High temperature and high `top_p`: the most variety
+- Low temperature and high `top_p`: consistent, with some alternatives available
+- High temperature and low `top_p`: varied, within a narrow token set
 
 ### Penalty Parameters
-Presence and frequency penalties can be used together:
-- Both positive: Strong encouragement for variety
-- Both negative: Strong encouragement for repetition
-- Mixed: Fine-tuned control over specific repetition patterns
+
+The two penalties can be used together:
+
+- Both positive: stronger push toward variety
+- Both negative: stronger push toward repetition
+- Mixed: finer control over which kind of repetition is allowed
 
 ## Troubleshooting
 
-### AI is too repetitive
-- Increase `presence_penalty` (try 0.3-0.6)
-- Increase `frequency_penalty` (try 0.3-0.6)
-- Slightly increase `temperature`
+### The AI Repeats Itself
 
-### AI is too random/inconsistent
-- Decrease `temperature` (try 0.2-0.4)
-- Decrease `top_p` (try 0.7-0.85)
+These changes reduce repetition:
 
-### AI gets interrupted too easily
-- Increase `barge_confidence` threshold
-- Check for background noise in the environment
+- Increase `presence_penalty` (try 0.3 to 0.6)
+- Increase `frequency_penalty` (try 0.3 to 0.6)
+- Increase `temperature` slightly
 
-### Users can't interrupt the AI
-- Decrease `barge_confidence` threshold
-- Consider the use case (e.g., legal/medical may need higher thresholds)
+### The AI Is Too Random or Inconsistent
+
+These changes make the output steadier:
+
+- Decrease `temperature` (try 0.2 to 0.4)
+- Decrease `top_p` (try 0.7 to 0.85)
+
+### Interruptions
+
+Interruption behavior is set in the `ai` verb's `params`, not in the prompt objects:
+
+- If background noise interrupts the AI, raise `barge_min_words`, as in `agent.setParam('barge_min_words', 3)`.
+- If callers can't interrupt the AI, lower `barge_min_words`, and check that `enable_barge` isn't `false`.
+
+See also `barge_match_string` and `interrupt_on_noise` in the SWML schema.
 
 ## Parameter Behavior
 
-**No Default Values:** The SDK does not send any LLM parameters unless explicitly set via `setPromptLlmParams()` or `setPostPromptLlmParams()`. When parameters are not specified, the SignalWire server applies appropriate defaults based on the model.
+**No defaults from the SDK:** The SDK sends no LLM parameters unless you set them with `setPromptLlmParams()` or `setPostPromptLlmParams()`. Without them, the platform uses its own defaults.
 
-**Server-Side Validation:** All parameter validation is handled by the SignalWire server. The SDK accepts any parameters and passes them through unchanged. This allows:
-- Use of model-specific parameters without SDK updates
-- Forward compatibility with new models and parameters
-- Server-side optimization based on model capabilities
+**No validation in the SDK:** The SDK accepts any key and passes it through unchanged. A parameter the platform adds later works without an SDK update, and a typo isn't caught.
 
-**Partial Configuration:** You can set only the parameters you want to customize:
+**Partial configuration:** You can set only the parameters you want to change:
+
 ```typescript
-// Only set temperature, let the server handle the rest
+// Only set temperature; the platform handles the rest
 agent.setPromptLlmParams({ temperature: 0.7 });
 
-// Or set multiple specific parameters
-agent.setPromptLlmParams({ temperature: 0.5, barge_confidence: 0.6 });
+// Or set several specific parameters
+agent.setPromptLlmParams({ temperature: 0.5, top_p: 0.9 });
 ```
 
 ## Related
 
-- [Agent Guide](agent-guide.md) — full `AgentBase` configuration reference, including `setParams()` for non-LLM AI parameters.
+For the rest of `AgentBase`'s configuration, including `setParams()` for the `ai` verb's other parameters, see the [Agent Guide](agent-guide.md).

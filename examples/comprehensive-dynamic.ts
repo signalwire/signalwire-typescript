@@ -7,7 +7,7 @@
  * Test: curl "http://user:pass@localhost:3000/?tier=premium&industry=healthcare"
  */
 
-import { AgentBase, FunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'comprehensive-dynamic',

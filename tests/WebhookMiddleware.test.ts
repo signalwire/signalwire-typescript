@@ -61,6 +61,28 @@ describe('webhookValidationMiddleware', () => {
     expect(await res.json()).toEqual({ ok: true });
   });
 
+  it('a valid SHA-256 signature alone passes through the Hono middleware', async () => {
+    const app = new Hono();
+    let handlerCalled = false;
+    app.use('/webhook', webhookValidationMiddleware({ signingKey: KEY }));
+    app.post('/webhook', (c) => {
+      handlerCalled = true;
+      return c.json({ ok: true });
+    });
+
+    const sig = createHmac('sha256', KEY)
+      .update(URL_PATH + RAW_BODY, 'utf8')
+      .digest('hex');
+    const res = await app.request('/webhook', {
+      method: 'POST',
+      headers: { 'X-SignalWire-Sha256-Signature': sig, 'Content-Type': 'application/json' },
+      body: RAW_BODY,
+    });
+
+    expect(res.status).toBe(200);
+    expect(handlerCalled).toBe(true);
+  });
+
   it('invalid signature returns 403 and does not call handler', async () => {
     const app = new Hono();
     let handlerCalled = false;
@@ -255,6 +277,37 @@ describe('webhookValidationMiddleware', () => {
  */
 describe('validate (decomposed framework-free core)', () => {
   const URL = 'http://localhost/webhook';
+
+  const sha256Sig = (key: string, url: string, body: string) =>
+    createHmac('sha256', key)
+      .update(url + body, 'utf8')
+      .digest('hex');
+
+  it('passes a valid SHA-256 signature with no SHA-1 header', () => {
+    const headers = { 'X-SignalWire-Sha256-Signature': sha256Sig(KEY, URL, RAW_BODY) };
+    expect(validate('POST', URL, headers, RAW_BODY, KEY)).toBeNull();
+  });
+
+  it('falls back to the SHA-1 header when the SHA-256 one does not match', () => {
+    const headers = {
+      'X-SignalWire-Sha256-Signature': 'f'.repeat(64),
+      'X-SignalWire-Signature': schemeASig(KEY, URL, RAW_BODY),
+    };
+    expect(validate('POST', URL, headers, RAW_BODY, KEY)).toBeNull();
+  });
+
+  it('rejects when both the SHA-256 and SHA-1 signatures are wrong', () => {
+    const headers = {
+      'X-SignalWire-Sha256-Signature': 'f'.repeat(64),
+      'X-SignalWire-Signature': 'bogus',
+    };
+    expect(validate('POST', URL, headers, RAW_BODY, KEY)?.[0]).toBe(403);
+  });
+
+  it('rejects a SHA-256 signature over a tampered body', () => {
+    const headers = { 'X-SignalWire-Sha256-Signature': sha256Sig(KEY, URL, RAW_BODY) };
+    expect(validate('POST', URL, headers, RAW_BODY + ' ', KEY)?.[0]).toBe(403);
+  });
 
   it('returns null (pass) for a valid Scheme-A signature', () => {
     const sig = schemeASig(KEY, URL, RAW_BODY);

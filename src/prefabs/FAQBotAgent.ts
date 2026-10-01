@@ -291,7 +291,7 @@ export class FAQBotAgent extends AgentBase {
           },
         },
       },
-      handler: this.searchFaqs.bind(this),
+      handler: this._onCallAgent((self, args, rawData) => self.searchFaqs(args, rawData)),
     });
 
     // Tool: escalate (only if escalation number is configured)
@@ -309,14 +309,14 @@ export class FAQBotAgent extends AgentBase {
             },
           },
         },
-        handler: (args) => {
+        handler: this._onCallAgent((self, args) => {
           const reason = args.reason || 'Caller needs assistance beyond FAQ';
           const result = new FunctionResult(
-            `${this.escalationMessage} Transferring caller to a live agent. Reason: ${reason}`,
+            `${self.escalationMessage} Transferring caller to a live agent. Reason: ${reason}`,
           );
-          result.connect(this.escalationNumber!);
+          result.connect(self.escalationNumber!);
           return result;
-        },
+        }),
       });
     }
   }

@@ -6,7 +6,7 @@
  * Run: npx tsx examples/wikipedia.ts
  */
 
-import { AgentBase, WikipediaSearchSkill, DateTimeSkill } from '../src/index.js';
+import { AgentBase, WikipediaSearchSkill, DateTimeSkill } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'wiki-agent',

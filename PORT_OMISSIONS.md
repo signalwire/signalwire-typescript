@@ -121,6 +121,9 @@ the Python-specific server/CLI tooling. See `PORTING_GUIDE.md § What to Skip`.
 
 ## Mixin class identifiers (folded into AgentBase in TS)
 
+signalwire.core._sync_handlers.is_async_callable: impossible: Python hands synchronous handlers to AnyIO's worker-thread pool; Node runs handlers on one event loop and has no thread pool to hand a function to (a worker_threads Worker can't share the handler's closures or the request's objects), so there is nothing for this helper to do. async handlers don't block. See PORT_BEHAVIORAL_NOTES.md, 'Synchronous handlers in worker threads'
+signalwire.core._sync_handlers.run_sync_handler: impossible: Python hands synchronous handlers to AnyIO's worker-thread pool; Node runs handlers on one event loop and has no thread pool to hand a function to (a worker_threads Worker can't share the handler's closures or the request's objects), so there is nothing for this helper to do. async handlers don't block. See PORT_BEHAVIORAL_NOTES.md, 'Synchronous handlers in worker threads'
+signalwire.core._sync_handlers.sync_handlers_inline: impossible: Python hands synchronous handlers to AnyIO's worker-thread pool; Node runs handlers on one event loop and has no thread pool to hand a function to (a worker_threads Worker can't share the handler's closures or the request's objects), so there is nothing for this helper to do. async handlers don't block. See PORT_BEHAVIORAL_NOTES.md, 'Synchronous handlers in worker threads'
 signalwire.core.mixins.tool_mixin.ToolMixin.tool: impossible: Python @tool class/instance decorator API; TS registers tools via defineTools()/the tool builder — no decorator-based registration equivalent
 
 ## Web-search variants (skill_improved / skill_original)
@@ -198,6 +201,7 @@ signalwire.rest._pagination.PaginatedIterator.__init__: impossible: TS paginates
 #
 # The §I.1 Python-only ruling is NOT being overturned here — it never applied to this
 # port in the first place, because this port implements the skill.
+signalwire.skills.spider.skill.SpiderSkill.session: impossible: Python exposes the skill's requests.Session (a _PublicSession that refuses private addresses); TS fetches through _publicFetch, whose guarded transport does the same per request, and fetch has no session object to expose
 signalwire.utils.schema_utils.SchemaUtils.generate_method_body: impossible: Python build-time codegen that generates SWML verb-method stubs from schema; TS's verb methods are hand-written/declaration-merged — no runtime method-source generation
 signalwire.utils.schema_utils.SchemaUtils.generate_method_signature: impossible: Python build-time codegen that generates SWML verb-method stubs from schema; TS's verb methods are hand-written/declaration-merged — no runtime method-source generation
 # SchemaValidationError: RESOLVED 2026-07-26, entries DELETED — the capability was

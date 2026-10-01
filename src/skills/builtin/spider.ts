@@ -15,6 +15,8 @@
 import { SkillBase, defineSkillTool } from '../SkillBase.js';
 import type { SkillToolDefinition, SkillConfig, ParameterSchemaEntry } from '../SkillBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
+import { _publicFetch, _RedirectRefused } from '../../PublicFetch.js';
+import { _RobotsRules } from '../../RobotsTxt.js';
 import { resolveAndValidateUrl, validateUrl, MAX_SKILL_INPUT_LENGTH } from '../../SecurityUtils.js';
 import { getLogger } from '../../Logger.js';
 // cheerio is an OPTIONAL dependency (only the scraping skills use it). Import
@@ -38,6 +40,9 @@ interface CachedResponse {
 }
 
 const WHITESPACE_REGEX = /\s+/g;
+
+/** Headers that carry credentials for one origin (as _publicFetch treats them). */
+const ORIGIN_BOUND_HEADERS = new Set(['authorization', 'cookie', 'proxy-authorization']);
 
 /**
  * Translate a `removeXpaths` entry into the cheerio selector that removes the
@@ -64,7 +69,7 @@ function removeTagFor(xpath: string): string {
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('spider', { max_pages: 5, max_depth: 2 });
+ * await agent.addSkillByName('spider', { max_pages: 5, max_depth: 2 });
  * ```
  */
 export class SpiderSkill extends SkillBase {
@@ -77,20 +82,69 @@ export class SpiderSkill extends SkillBase {
   static override REQUIRED_ENV_VARS: readonly string[] = [];
   static override SUPPORTS_MULTIPLE_INSTANCES = true;
 
+  /**
+   * Each setting's default. The parameter schema and setup() both read this,
+   * so the schema can't advertise a default the skill doesn't use.
+   */
+  private static readonly DEFAULTS = {
+    delay: 0.1,
+    concurrent_requests: 5,
+    timeout: 5,
+    max_pages: 1,
+    max_depth: 0,
+    extract_type: 'fast_text',
+    max_text_length: 3000,
+    clean_text: true,
+    cache_enabled: true,
+    follow_robots_txt: false,
+    user_agent: 'Spider/1.0 (SignalWire AI Agent)',
+  } as const;
+
+  /** The extraction methods scrape_url implements. */
+  private static readonly EXTRACT_TYPES: readonly string[] = [
+    'fast_text',
+    'markdown',
+    'structured',
+  ];
+
+  /**
+   * Values the schema once listed that were never implemented. They have
+   * always worked as fast_text, so they still do, with a warning.
+   */
+  private static readonly LEGACY_EXTRACT_TYPES: ReadonlySet<string> = new Set([
+    'clean_text',
+    'full_text',
+    'html',
+    'custom',
+  ]);
+
+  /** Seconds to keep a site's robots.txt rules; RFC 9309 allows up to 24 hours. */
+  private static readonly ROBOTS_TTL = 24 * 60 * 60;
+
   static override getParameterSchema(): Record<string, ParameterSchemaEntry> {
+    const d = SpiderSkill.DEFAULTS;
     return {
       ...super.getParameterSchema(),
+      // The base schema's default is the skill name, but tool_name is a
+      // prefix that's empty when unset (Python skill.py:306 too).
+      tool_name: {
+        type: 'string',
+        description:
+          'Prefix for the tool names, as in <tool_name>_scrape_url, and for the instance key. ' +
+          'Unset, the tools keep their plain names.',
+        required: false,
+      },
       delay: {
         type: 'number',
         description: 'Delay between requests in seconds',
-        default: 0.1,
+        default: d.delay,
         required: false,
         min: 0,
       },
       concurrent_requests: {
         type: 'integer',
-        description: 'Number of concurrent requests allowed',
-        default: 5,
+        description: 'Deprecated, and has no effect: the spider fetches one page at a time',
+        default: d.concurrent_requests,
         required: false,
         min: 1,
         max: 20,
@@ -98,7 +152,7 @@ export class SpiderSkill extends SkillBase {
       timeout: {
         type: 'integer',
         description: 'Request timeout in seconds',
-        default: 5,
+        default: d.timeout,
         required: false,
         min: 1,
         max: 60,
@@ -106,7 +160,7 @@ export class SpiderSkill extends SkillBase {
       max_pages: {
         type: 'integer',
         description: 'Maximum number of pages to scrape',
-        default: 1,
+        default: d.max_pages,
         required: false,
         min: 1,
         max: 100,
@@ -114,7 +168,7 @@ export class SpiderSkill extends SkillBase {
       max_depth: {
         type: 'integer',
         description: 'Maximum crawl depth (0 = single page only)',
-        default: 0,
+        default: d.max_depth,
         required: false,
         min: 0,
         max: 5,
@@ -122,14 +176,14 @@ export class SpiderSkill extends SkillBase {
       extract_type: {
         type: 'string',
         description: 'Content extraction method',
-        default: 'fast_text',
+        default: d.extract_type,
         required: false,
-        enum: ['fast_text', 'clean_text', 'full_text', 'html', 'markdown', 'structured', 'custom'],
+        enum: [...SpiderSkill.EXTRACT_TYPES],
       },
       max_text_length: {
         type: 'integer',
         description: 'Maximum text length to return',
-        default: 3000,
+        default: d.max_text_length,
         required: false,
         min: 100,
         max: 100000,
@@ -137,7 +191,7 @@ export class SpiderSkill extends SkillBase {
       clean_text: {
         type: 'boolean',
         description: 'Whether to clean extracted text',
-        default: true,
+        default: d.clean_text,
         required: false,
       },
       selectors: {
@@ -157,7 +211,7 @@ export class SpiderSkill extends SkillBase {
       user_agent: {
         type: 'string',
         description: 'User agent string for requests',
-        default: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        default: d.user_agent,
         required: false,
       },
       headers: {
@@ -169,35 +223,31 @@ export class SpiderSkill extends SkillBase {
       } as ParameterSchemaEntry & { additionalProperties?: unknown },
       follow_robots_txt: {
         type: 'boolean',
-        // Matches Python's __init__ runtime fallback (skills/spider/skill.py:177
-        // uses `params.get('follow_robots_txt', False)`). Python's schema said
-        // True but the runtime and TS both use False — aligning the schema
-        // eliminates the cross-SDK contract mismatch.
-        description: 'Whether to respect robots.txt (default: false to match Python runtime)',
-        default: false,
+        description: "Skip pages that the site's robots.txt disallows for user_agent",
+        default: d.follow_robots_txt,
         required: false,
       },
       cache_enabled: {
         type: 'boolean',
         description: 'Whether to cache scraped pages',
-        default: true,
+        default: d.cache_enabled,
         required: false,
       },
     };
   }
 
   // Runtime state, populated in setup()
-  private delay = 0.1;
-  private concurrentRequests = 5;
-  private timeout = 5;
-  private maxPages = 1;
-  private maxDepth = 0;
-  private extractType = 'fast_text';
-  private maxTextLength = 3000;
-  private cleanText = true;
-  private cacheEnabled = true;
-  private followRobotsTxt = true;
-  private userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+  private delay: number = SpiderSkill.DEFAULTS.delay;
+  private concurrentRequests: number = SpiderSkill.DEFAULTS.concurrent_requests;
+  private timeout: number = SpiderSkill.DEFAULTS.timeout;
+  private maxPages: number = SpiderSkill.DEFAULTS.max_pages;
+  private maxDepth: number = SpiderSkill.DEFAULTS.max_depth;
+  private extractType: string = SpiderSkill.DEFAULTS.extract_type;
+  private maxTextLength: number = SpiderSkill.DEFAULTS.max_text_length;
+  private cleanText: boolean = SpiderSkill.DEFAULTS.clean_text;
+  private cacheEnabled: boolean = SpiderSkill.DEFAULTS.cache_enabled;
+  private followRobotsTxt: boolean = SpiderSkill.DEFAULTS.follow_robots_txt;
+  private userAgent: string = SpiderSkill.DEFAULTS.user_agent;
   private headers: Record<string, string> = {};
   private selectors: Record<string, string> = {};
   private compiledFollowPatterns: RegExp[] = [];
@@ -218,6 +268,8 @@ export class SpiderSkill extends SkillBase {
     '//aside',
     '//noscript',
   ];
+  /** robots.txt rules per origin, with when they expire, when follow_robots_txt is on. */
+  private robots = new Map<string, { rules: _RobotsRules; expires: number }>();
   // Lazily-loaded optional `cheerio` module, populated in setup(). Non-null
   // for the lifetime of an initialized skill (setup() returns false if absent).
   private _cheerio!: typeof import('cheerio');
@@ -240,31 +292,26 @@ export class SpiderSkill extends SkillBase {
       return false;
     }
 
+    const d = SpiderSkill.DEFAULTS;
     // Performance
-    this.delay = this.getConfig<number>('delay', 0.1);
-    this.concurrentRequests = this.getConfig<number>('concurrent_requests', 5);
-    this.timeout = this.getConfig<number>('timeout', 5);
+    this.delay = this.getConfig<number>('delay', d.delay);
+    this.concurrentRequests = this.getConfig<number>('concurrent_requests', d.concurrent_requests);
+    this.timeout = this.getConfig<number>('timeout', d.timeout);
 
     // Crawl limits
-    this.maxPages = this.getConfig<number>('max_pages', 1);
-    this.maxDepth = this.getConfig<number>('max_depth', 0);
+    this.maxPages = this.getConfig<number>('max_pages', d.max_pages);
+    this.maxDepth = this.getConfig<number>('max_depth', d.max_depth);
 
     // Content processing
-    this.extractType = this.getConfig<string>('extract_type', 'fast_text');
-    // Python has an internal inconsistency (schema: 10000, __init__ fallback:
-    // 3000). The effective runtime default is 3000 because Python reads via
-    // `self.params.get('max_text_length', 3000)` and schema defaults are not
-    // applied. Use 3000 for parity. Follow-up: reconcile Python schema vs init.
-    this.maxTextLength = this.getConfig<number>('max_text_length', 3000);
-    this.cleanText = this.getConfig<boolean>('clean_text', true);
+    this.extractType = this.getConfig<string>('extract_type', d.extract_type);
+    this.maxTextLength = this.getConfig<number>('max_text_length', d.max_text_length);
+    this.cleanText = this.getConfig<boolean>('clean_text', d.clean_text);
 
     // Features
-    this.cacheEnabled = this.getConfig<boolean>('cache_enabled', true);
-    this.followRobotsTxt = this.getConfig<boolean>('follow_robots_txt', false);
-    this.userAgent = this.getConfig<string>(
-      'user_agent',
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    );
+    this.cacheEnabled = this.getConfig<boolean>('cache_enabled', d.cache_enabled);
+    this.followRobotsTxt = this.getConfig<boolean>('follow_robots_txt', d.follow_robots_txt);
+    this.userAgent = this.getConfig<string>('user_agent', d.user_agent);
+    this.robots = new Map();
 
     // Optional headers + user-agent merge
     const headers = this.getConfig<Record<string, string>>('headers', {}) ?? {};
@@ -285,6 +332,23 @@ export class SpiderSkill extends SkillBase {
       log.error('spider: concurrent_requests must be between 1 and 20', {
         concurrent_requests: this.concurrentRequests,
       });
+      return false;
+    }
+    if ('concurrent_requests' in this.config) {
+      log.warn(
+        'spider: concurrent_requests is deprecated and has no effect: the spider fetches one page at a time',
+      );
+    }
+
+    // Validate the extraction method
+    const types = SpiderSkill.EXTRACT_TYPES.join(', ');
+    if (SpiderSkill.LEGACY_EXTRACT_TYPES.has(this.extractType)) {
+      log.warn(
+        `spider: extract_type '${this.extractType}' was never implemented and works as fast_text; use one of ${types}`,
+      );
+      this.extractType = 'fast_text';
+    } else if (!SpiderSkill.EXTRACT_TYPES.includes(this.extractType)) {
+      log.error(`spider: unknown extract_type '${this.extractType}'; use one of ${types}`);
       return false;
     }
     if (this.maxPages < 1) {
@@ -396,6 +460,17 @@ export class SpiderSkill extends SkillBase {
    * the test URL to resolve.
    * Preserves the path (and any query/fragment) from the original target.
    */
+  /** Whether a URL is on the operator-set SPIDER_BASE_URL's origin, a trusted target. */
+  private static _isAuditOrigin(target: string): boolean {
+    const base = process.env['SPIDER_BASE_URL'];
+    if (!base) return false;
+    try {
+      return new URL(target).origin === new URL(base).origin;
+    } catch {
+      return false;
+    }
+  }
+
   private static _redirectForAudit(target: string): string {
     const base = process.env['SPIDER_BASE_URL'];
     if (!base) return target;
@@ -411,6 +486,89 @@ export class SpiderSkill extends SkillBase {
     }
   }
 
+  /**
+   * Whether a URL the caller supplied may be fetched: it must not be private
+   * or internal (`SWML_ALLOW_PRIVATE_URLS` allows it). With `SPIDER_BASE_URL`
+   * set, the fetch goes to that operator-configured base instead of the URL's
+   * host, so the host isn't checked.
+   */
+  private static async _targetAllowed(url: string): Promise<boolean> {
+    if (SpiderSkill._redirectForAudit(url) !== url) return true;
+    try {
+      await resolveAndValidateUrl(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * False when follow_robots_txt is on and the site's robots.txt disallows
+   * `url` for user_agent.
+   *
+   * As in Python's `urllib.robotparser`, a robots.txt answered with 401 or
+   * 403 disallows everything and any other 4xx allows everything. Rules are
+   * kept for {@link ROBOTS_TTL}. A server error or failed request disallows
+   * this page without keeping anything, so the next request tries again.
+   */
+  private async _allowedByRobots(
+    url: string,
+    opts: { withoutCredentials?: boolean } = {},
+  ): Promise<boolean> {
+    if (!this.followRobotsTxt) return true;
+    let origin: string;
+    try {
+      // Check the URL as it will be requested: fetch normalizes it, so
+      // /public/../private is a request for /private.
+      const parsed = new URL(url);
+      url = parsed.href;
+      origin = parsed.origin;
+    } catch {
+      return false;
+    }
+    const now = performance.now() / 1000;
+    const cached = this.robots.get(origin);
+    if (cached && cached.expires > now) return cached.rules.canFetch(this.userAgent, url);
+
+    const robotsUrl = `${origin}/robots.txt`;
+    const fetchUrl = SpiderSkill._redirectForAudit(robotsUrl);
+    // Credentials for the page's origin don't go to another origin's
+    // robots.txt, as _publicFetch drops them on a redirect there.
+    const headers = { ...this.headers };
+    if (opts.withoutCredentials) {
+      for (const name of Object.keys(headers)) {
+        if (ORIGIN_BOUND_HEADERS.has(name.toLowerCase())) delete headers[name];
+      }
+    }
+    let status: number;
+    let body = '';
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeout * 1000);
+    try {
+      const response = await _publicFetch(fetchUrl, {
+        method: 'GET',
+        headers,
+        signal: controller.signal,
+        allowPrivate: fetchUrl !== robotsUrl || SpiderSkill._isAuditOrigin(robotsUrl),
+      });
+      status = response.status;
+      body = await response.text();
+    } catch {
+      status = 599;
+    } finally {
+      clearTimeout(timer);
+    }
+
+    // Unavailable for now: disallow this request, and try again next time.
+    if (status >= 500) return false;
+    let rules: _RobotsRules;
+    if (status === 401 || status === 403) rules = _RobotsRules.disallowAll();
+    else if (status >= 400) rules = _RobotsRules.allowAll();
+    else rules = new _RobotsRules(body);
+    this.robots.set(origin, { rules, expires: now + SpiderSkill.ROBOTS_TTL });
+    return rules.canFetch(this.userAgent, url);
+  }
+
   /** Fetch a URL with caching and timeout handling. Returns null on failure. */
   private async _fetchUrl(url: string): Promise<CachedResponse | null> {
     if (this.cacheEnabled && this.cache?.has(url)) {
@@ -423,14 +581,29 @@ export class SpiderSkill extends SkillBase {
     // a `https://audit.example/page` target and expects the skill to hit
     // `http://127.0.0.1:NNNN/page` — preserving the path after the host.
     const fetchUrl = SpiderSkill._redirectForAudit(url);
+    const startOrigin = new URL(fetchUrl).origin;
+    let crossedOrigin = false;
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeout * 1000);
     try {
-      const response = await fetch(fetchUrl, {
+      // _publicFetch checks the URL and every redirect, and refuses a
+      // connection to a private or internal address. An operator-set
+      // SPIDER_BASE_URL is a trusted target, so its fetches skip the check.
+      const response = await _publicFetch(fetchUrl, {
         method: 'GET',
         headers: this.headers,
         signal: controller.signal,
+        allowPrivate: fetchUrl !== url,
+        // Each redirect's target needs its own robots.txt check.
+        allowRedirect: this.followRobotsTxt
+          ? (target) => {
+              // Once a redirect leaves the page's origin, _publicFetch has
+              // dropped the credentials for good, and so does robots.txt.
+              if (new URL(target).origin !== startOrigin) crossedOrigin = true;
+              return this._allowedByRobots(target, { withoutCredentials: crossedOrigin });
+            }
+          : undefined,
       });
 
       if (!response.ok) {
@@ -454,6 +627,10 @@ export class SpiderSkill extends SkillBase {
       }
       return cached;
     } catch (err) {
+      if (err instanceof _RedirectRefused) {
+        log.info('spider: robots.txt disallows the redirect', { url, target: err.target });
+        return null;
+      }
       log.error('spider: fetch error', {
         url,
         error: err instanceof Error ? err.message : String(err),
@@ -667,11 +844,12 @@ export class SpiderSkill extends SkillBase {
     }
 
     // SSRF protection
-    const allowPrivate = process.env['SWML_ALLOW_PRIVATE_URLS'] === 'true';
-    try {
-      await resolveAndValidateUrl(url, allowPrivate);
-    } catch {
+    if (!(await SpiderSkill._targetAllowed(url))) {
       return new FunctionResult('URL rejected: cannot access private or internal URLs');
+    }
+
+    if (!(await this._allowedByRobots(url))) {
+      return new FunctionResult(`The site's robots.txt disallows fetching ${url}`);
     }
 
     const cached = await this._fetchUrl(url);
@@ -723,10 +901,7 @@ export class SpiderSkill extends SkillBase {
       return new FunctionResult(`Invalid URL: ${startUrl}`);
     }
 
-    const allowPrivate = process.env['SWML_ALLOW_PRIVATE_URLS'] === 'true';
-    try {
-      await resolveAndValidateUrl(startUrl, allowPrivate);
-    } catch {
+    if (!(await SpiderSkill._targetAllowed(startUrl))) {
       return new FunctionResult('URL rejected: cannot access private or internal URLs');
     }
 
@@ -737,6 +912,7 @@ export class SpiderSkill extends SkillBase {
     if (maxPages < 1) return new FunctionResult('Max pages must be at least 1');
 
     const visited = new Set<string>();
+    const disallowed = new Set<string>();
     const toVisit: [string, number][] = [[startUrl, 0]];
     const results: {
       url: string;
@@ -757,7 +933,13 @@ export class SpiderSkill extends SkillBase {
       if (!next) break;
       const [url, depth] = next;
 
-      if (visited.has(url) || depth > maxDepth) continue;
+      if (visited.has(url) || disallowed.has(url) || depth > maxDepth) continue;
+
+      if (!(await this._allowedByRobots(url))) {
+        log.info('spider: robots.txt disallows a page; skipping it', { url });
+        disallowed.add(url);
+        continue;
+      }
 
       const cached = await this._fetchUrl(url);
       if (!cached) continue;
@@ -866,15 +1048,16 @@ export class SpiderSkill extends SkillBase {
       return new FunctionResult(`Invalid URL: ${url}`);
     }
 
-    const allowPrivate = process.env['SWML_ALLOW_PRIVATE_URLS'] === 'true';
-    try {
-      await resolveAndValidateUrl(url, allowPrivate);
-    } catch {
+    if (!(await SpiderSkill._targetAllowed(url))) {
       return new FunctionResult('URL rejected: cannot access private or internal URLs');
     }
 
     if (!this.selectors || Object.keys(this.selectors).length === 0) {
       return new FunctionResult('No selectors configured for structured data extraction');
+    }
+
+    if (!(await this._allowedByRobots(url))) {
+      return new FunctionResult(`The site's robots.txt disallows fetching ${url}`);
     }
 
     const cached = await this._fetchUrl(url);

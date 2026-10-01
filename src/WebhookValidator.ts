@@ -36,6 +36,10 @@ function hexHmacSha1(key: string, message: string): string {
   return createHmac('sha1', key).update(message, 'utf8').digest('hex');
 }
 
+function hexHmacSha256(key: string, message: string): string {
+  return createHmac('sha256', key).update(message, 'utf8').digest('hex');
+}
+
 function b64HmacSha1(key: string, message: string): string {
   return createHmac('sha1', key).update(message, 'utf8').digest('base64');
 }
@@ -345,6 +349,46 @@ export function validateWebhookSignature(
   }
 
   return false;
+}
+
+/**
+ * Validate the SHA-256 webhook signature (Scheme A with a stronger hash).
+ *
+ * SignalWire sends ``X-SignalWire-Sha256-Signature`` alongside the SHA-1
+ * ``X-SignalWire-Signature`` on signed webhooks. Its message is the same as
+ * Scheme A, hashed with SHA-256:
+ *
+ *     hex(HMAC-SHA256(signingKey, url + rawBody))
+ *
+ * Only Scheme A (RELAY, SWML and JSON webhooks) is defined for this header; the
+ * cXML/form Scheme B stays on SHA-1 (see {@link validateWebhookSignature}).
+ *
+ * @param signingKey - The customer's Signing Key. Empty throws.
+ * @param signature - The ``X-SignalWire-Sha256-Signature`` header value
+ *   (64-character lowercase hex). Missing or empty returns ``false``.
+ * @param url - The full public URL SignalWire POSTed to, exactly as the
+ *   platform saw it when it computed the signature.
+ * @param rawBody - The raw request body, before any parsing.
+ * @returns ``true`` if the SHA-256 signature matches.
+ * @throws Error when ``signingKey`` is missing / empty.
+ * @throws TypeError when ``rawBody`` is not a string.
+ */
+export function validateWebhookSignatureSha256(
+  signingKey: string,
+  signature: string,
+  url: string,
+  rawBody: string,
+): boolean {
+  if (!signingKey || typeof signingKey !== 'string') {
+    throw new Error('signingKey is required');
+  }
+  if (typeof rawBody !== 'string') {
+    throw new TypeError('rawBody must be a string; did you pass parsed JSON by mistake?');
+  }
+  if (signature === null || signature === undefined || signature === '') {
+    return false;
+  }
+  return safeEq(hexHmacSha256(signingKey, url + rawBody), signature);
 }
 
 /**

@@ -178,6 +178,8 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   // to the reference module ``signalwire.ai_chat.client`` (else it falls back
   // to ``signalwire.ai_chat.ai_chat_client``).
   'src/ai-chat/AIChatClient.ts': 'signalwire.ai_chat.client',
+  'src/ai-chat/ChatGateway.ts': 'signalwire.ai_chat.gateway',
+  'src/ai-chat/HandoffRouter.ts': 'signalwire.ai_chat.handoff',
   'src/AgentBase.ts': 'signalwire.core.agent_base',
   'src/AgentServer.ts': 'signalwire.agent_server',
   'src/AuthHandler.ts': 'signalwire.core.auth_handler',
@@ -208,6 +210,8 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   // `signalwire.rest.namespaces.swml_webhooks_types_generated`.
   'src/PlatformContracts.generated.ts': 'signalwire.rest.namespaces.swml_webhooks_types_generated',
   'src/TypeInference.ts': 'signalwire.core.agent.tools.type_inference',
+  'src/capabilities.ts': 'signalwire.core.capabilities',
+  'src/PostPrompt.ts': 'signalwire.core.post_prompt',
   'src/WebhookMiddleware.ts': 'signalwire.core.security.webhook_middleware',
   'src/WebhookValidator.ts': 'signalwire.core.security.webhook_validator',
   'src/WebService.ts': 'signalwire.web.web_service',
@@ -250,7 +254,6 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   // CLI
   'src/cli/swaig-test.ts': 'signalwire.cli.test_swaig',
   'src/cli/agent-loader.ts': 'signalwire.cli.core.agent_loader',
-  'src/cli/mock-data.ts': 'signalwire.cli.simulation.mock_env',
   // index.ts barrel exports — top-level module functions go under `signalwire`.
   'src/index.ts': 'signalwire',
 };

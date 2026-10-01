@@ -7,7 +7,7 @@
  * Test: curl http://user:pass@localhost:3000/
  */
 
-import { AgentBase } from '../src/index.js';
+import { AgentBase } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'greeter',

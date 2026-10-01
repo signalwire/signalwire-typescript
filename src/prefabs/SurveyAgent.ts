@@ -7,6 +7,7 @@
  */
 
 import { AgentBase } from '../AgentBase.js';
+import { CallSessionStore } from './CallSessionStore.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
 import type { SwaigRequest, PostPrompt } from '../SwaigContracts.js';
@@ -126,7 +127,8 @@ export class SurveyAgent extends AgentBase {
     responses: Record<string, unknown>,
     score: number,
   ) => void | Promise<void>;
-  private sessions: Map<string, SurveySession> = new Map();
+  /** Per-call state, dropped on the call's summary or after an hour idle. */
+  private sessions = new CallSessionStore<SurveySession>();
 
   /**
    * Create a SurveyAgent with the specified questions and callbacks.
@@ -289,19 +291,16 @@ export class SurveyAgent extends AgentBase {
 
   private getSession(rawData: Record<string, unknown>): SurveySession {
     const callId = (rawData['call_id'] as string) ?? 'default';
-    let session = this.sessions.get(callId);
-    if (!session) {
+    return this.sessions.getOrCreate(callId, () => {
       const firstQuestion = this.questions[0];
-      session = {
+      return {
         currentQuestionIndex: 0,
         currentQuestionId: firstQuestion ? firstQuestion.id : '',
         responses: {},
         score: 0,
         completed: false,
       };
-      this.sessions.set(callId, session);
-    }
-    return session;
+    });
   }
 
   private resolveNextQuestion(question: SurveyQuestion, answer: string): string | null {
@@ -427,7 +426,7 @@ export class SurveyAgent extends AgentBase {
           },
         },
       },
-      handler: this.validateResponse.bind(this),
+      handler: this._onCallAgent((self, args, rawData) => self.validateResponse(args, rawData)),
     });
 
     // Tool: log_response (Python parity — acknowledge recording)
@@ -447,7 +446,7 @@ export class SurveyAgent extends AgentBase {
           },
         },
       },
-      handler: this.logResponse.bind(this),
+      handler: this._onCallAgent((self, args, rawData) => self.logResponse(args, rawData)),
     });
 
     // Tool: answer_question (TS-specific atomic validate+record+advance)
@@ -469,7 +468,7 @@ export class SurveyAgent extends AgentBase {
         },
         required: ['question_id', 'answer'],
       },
-      handler: async (args, rawData: SwaigRequest) => {
+      handler: this._onCallAgent(async (self, args, rawData: SwaigRequest) => {
         const questionId = args.question_id;
         const answer = args.answer;
 
@@ -477,48 +476,48 @@ export class SurveyAgent extends AgentBase {
           return new FunctionResult('Both question_id and answer are required.');
         }
 
-        const question = this.questionMap.get(questionId);
+        const question = self.questionMap.get(questionId);
         if (!question) {
           return new FunctionResult(`Unknown question ID "${questionId}".`);
         }
 
-        const session = this.getSession(rawData);
+        const session = self.getSession(rawData);
 
         if (session.completed) {
           return new FunctionResult('The survey has already been completed.');
         }
 
-        const validationError = this.validateAnswer(question, answer);
+        const validationError = self.validateAnswer(question, answer);
         if (validationError) {
           return new FunctionResult(validationError);
         }
 
-        const normalizedAnswer = this.normalizeAnswer(question, answer);
+        const normalizedAnswer = self.normalizeAnswer(question, answer);
         session.responses[questionId] = normalizedAnswer;
 
-        const points = this.calculatePoints(question, normalizedAnswer);
+        const points = self.calculatePoints(question, normalizedAnswer);
         session.score += points;
 
-        const nextId = this.resolveNextQuestion(question, normalizedAnswer);
+        const nextId = self.resolveNextQuestion(question, normalizedAnswer);
 
-        if (!nextId || !this.questionMap.has(nextId)) {
+        if (!nextId || !self.questionMap.has(nextId)) {
           session.completed = true;
-          if (this.onCompleteCallback) {
+          if (self.onCompleteCallback) {
             try {
-              await this.onCompleteCallback({ ...session.responses }, session.score);
+              await self.onCompleteCallback({ ...session.responses }, session.score);
             } catch (err) {
-              this.log.error(`onComplete callback error: ${err}`);
+              self.log.error(`onComplete callback error: ${err}`);
             }
           }
           const answeredCount = Object.keys(session.responses).length;
           return new FunctionResult(
-            `Answer recorded. The survey is now complete! ${answeredCount} questions answered, total score: ${session.score}. ${this.conclusion}`,
+            `Answer recorded. The survey is now complete! ${answeredCount} questions answered, total score: ${session.score}. ${self.conclusion}`,
           );
         }
 
         session.currentQuestionId = nextId;
-        const nextQ = this.questionMap.get(nextId)!;
-        const nextIdx = this.questions.findIndex((q) => q.id === nextId);
+        const nextQ = self.questionMap.get(nextId)!;
+        const nextIdx = self.questions.findIndex((q) => q.id === nextId);
         if (nextIdx >= 0) session.currentQuestionIndex = nextIdx;
 
         let nextInfo = `Answer recorded. Next question [${nextQ.id}]: "${nextQ.text}"`;
@@ -531,7 +530,7 @@ export class SurveyAgent extends AgentBase {
         }
 
         return new FunctionResult(nextInfo);
-      },
+      }),
     });
 
     // Tool: get_current_question
@@ -542,14 +541,14 @@ export class SurveyAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: (_args, rawData: SwaigRequest) => {
-        const session = this.getSession(rawData);
+      handler: this._onCallAgent((self, _args, rawData: SwaigRequest) => {
+        const session = self.getSession(rawData);
 
         if (session.completed) {
           return new FunctionResult('The survey has been completed. No more questions.');
         }
 
-        const question = this.questionMap.get(session.currentQuestionId);
+        const question = self.questionMap.get(session.currentQuestionId);
         if (!question) {
           return new FunctionResult('No current question available.');
         }
@@ -564,7 +563,7 @@ export class SurveyAgent extends AgentBase {
         }
 
         return new FunctionResult(info);
-      },
+      }),
     });
 
     // Tool: get_survey_progress
@@ -576,10 +575,10 @@ export class SurveyAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: (_args, rawData: SwaigRequest) => {
-        const session = this.getSession(rawData);
+      handler: this._onCallAgent((self, _args, rawData: SwaigRequest) => {
+        const session = self.getSession(rawData);
         const answeredCount = Object.keys(session.responses).length;
-        const totalCount = this.questions.length;
+        const totalCount = self.questions.length;
         const percentage = totalCount > 0 ? Math.round((answeredCount / totalCount) * 100) : 0;
 
         let progress = `Survey progress: ${answeredCount}/${totalCount} questions answered (${percentage}%). Current score: ${session.score}.`;
@@ -598,7 +597,7 @@ export class SurveyAgent extends AgentBase {
         }
 
         return new FunctionResult(progress);
-      },
+      }),
     });
   }
 
@@ -655,11 +654,18 @@ export class SurveyAgent extends AgentBase {
    * The parameter type widens the base `AgentBase.onSummary` signature to
    * accept string payloads as well, so the unstructured branch stays reachable
    * even though the current framework only surfaces object summaries.
+   *
+   * The summary marks the end of the call, so this also drops the call's
+   * per-call survey state. A subclass that overrides this hook should call
+   * `super.onSummary(summary, rawData)`; otherwise the state is dropped after
+   * the call has been idle for an hour.
    */
   override onSummary(
     summary: Record<string, unknown> | string | null,
-    _rawData: PostPrompt,
+    rawData: PostPrompt,
   ): void | Promise<void> {
+    const callId = rawData?.['call_id'];
+    if (typeof callId === 'string') this.sessions.delete(callId);
     if (summary) {
       try {
         if (typeof summary === 'string') {

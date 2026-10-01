@@ -1,23 +1,21 @@
 # REST Client Guide
 
-The SignalWire REST client provides typed HTTP access to all SignalWire platform APIs. It's a standalone module that doesn't depend on AgentBase — you can use it independently for any server-side integration.
+The SignalWire REST client gives you typed HTTP access to the SignalWire platform APIs. It's a standalone module that doesn't depend on `AgentBase`, so you can use it in any server-side integration. This guide shows each namespace, then pagination, request options, error handling and test injection.
 
 <!-- snippet-setup -->
 ```ts
-// Shared context the fragments below assume. `client` is constructed in the
-// Quick Start example; `httpClient` is a constructed HttpClient (see Pagination).
+// Shared context the fragments on this page assume. `client` is a RestClient
+// configured from the environment (see Getting Started).
 import { RestClient } from '@signalwire/sdk';
 const client = new RestClient();
-declare const httpClient: import('@signalwire/sdk').HttpClient;
 ```
 
 ## Quick Start
 
-<!-- snippet: no-run makes live REST calls to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
-```ts
-// `client` is a constructed RestClient (see the setup above / Getting Started):
-//   const client = new RestClient({ project, token, host });
+This example lists AI agents, searches phone numbers and plays audio into a call:
 
+<!-- snippet: no-run makes live REST calls to a real SignalWire space -->
+```ts
 // List AI agents
 const agents = await client.fabric.aiAgents.list();
 
@@ -25,37 +23,34 @@ const agents = await client.fabric.aiAgents.list();
 const numbers = await client.phoneNumbers.search({ areacode: '512' });
 
 // Play audio into a call (the `play` array is positional)
-await client.calling.play('call-id', [{ type: 'audio', url: 'https://example.com/audio.mp3' }]);
+await client.calling.play('call-id', [
+  { type: 'audio', params: { url: 'https://example.com/audio.mp3' } },
+]);
 ```
 
 ## Authentication
 
-The client uses HTTP Basic Auth with your project ID and API token. Credentials can be provided explicitly or via environment variables:
+The client uses HTTP Basic Auth with your project ID and API token. You pass the credentials as options, or set the environment variables:
 
 | Option | Environment Variable |
 |--------|---------------------|
 | `project` | `SIGNALWIRE_PROJECT_ID` |
 | `token` | `SIGNALWIRE_API_TOKEN` |
-| `host` | `SIGNALWIRE_SPACE` |
+| `host` | `SIGNALWIRE_SPACE` (or `SIGNALWIRE_REST_BASE_URL`, a full URL, which takes precedence) |
 
-```ts
-// Using environment variables (no args needed):
-//   const client = new RestClient();
-const envClient = client; // the env-configured client (see setup)
-void envClient;
-```
+With the environment variables set, `new RestClient()` needs no arguments. [Getting Started](getting-started.md#configuration) has the details.
 
 ## Namespaces
 
-The client organizes all APIs into namespaces:
+The client groups the APIs into namespaces, one property each. The sections that follow show the common calls in each one.
 
 ### Fabric (`client.fabric.*`)
 
-Resource management for the SignalWire Fabric platform.
+The Fabric namespace manages resources such as AI agents, SWML scripts, call flows and subscribers:
 
-<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
+<!-- snippet: no-run makes a live REST call to a real SignalWire space -->
 ```ts
-// AI Agents (PATCH updates) — create requires both `name` and `prompt`
+// AI Agents (PATCH updates); create requires both `name` and `prompt`
 await client.fabric.aiAgents.list();
 await client.fabric.aiAgents.create({ name: 'My Agent', prompt: { text: 'Be helpful' } });
 await client.fabric.aiAgents.get('agent-id');
@@ -63,56 +58,63 @@ await client.fabric.aiAgents.update('agent-id', { name: 'Updated' });
 await client.fabric.aiAgents.delete('agent-id');
 await client.fabric.aiAgents.listAddresses('agent-id');
 
-// SWML Scripts (PUT updates) — the script body key is `contents`
-await client.fabric.swmlScripts.create({ name: 'flow', contents: '...' });
-await client.fabric.swmlScripts.update('id', { contents: '...' });
+// SWML Scripts (PUT updates); the script body key is `contents`
+const swml = JSON.stringify({ version: '1.0.0', sections: { main: [{ answer: {} }] } });
+await client.fabric.swmlScripts.create({ name: 'flow', contents: swml });
+await client.fabric.swmlScripts.update('id', { contents: swml });
 
 // Call Flows (with version management)
 await client.fabric.callFlows.list();
 await client.fabric.callFlows.listVersions('cf-id');
 await client.fabric.callFlows.deployVersion('cf-id', { document_version: 2 });
 
-// Subscribers (with SIP endpoints) — username + password are positional
+// Subscribers (with SIP endpoints); username and password are positional
 await client.fabric.subscribers.listSipEndpoints('sub-id');
-await client.fabric.subscribers.createSipEndpoint('sub-id', 'user', 'secret');
+await client.fabric.subscribers.createSipEndpoint('sub-id', 'user', 'a-long-random-password');
 
-// Tokens — the primary identifier is positional
+// Tokens; the primary identifier is positional
 await client.fabric.tokens.createSubscriberToken('user@example.com');
 await client.fabric.tokens.createGuestToken(['address-uuid']);
 ```
 
-**Sub-resources:** `swmlScripts`, `relayApplications`, `callFlows`, `conferenceRooms`, `freeswitchConnectors`, `subscribers`, `sipEndpoints`, `cxmlScripts`, `cxmlApplications`, `swmlWebhooks`, `aiAgents`, `sipGateways`, `cxmlWebhooks`, `resources`, `addresses`, `tokens`
+The Fabric sub-resources are `swmlScripts`, `relayApplications`, `callFlows`, `conferenceRooms`, `freeswitchConnectors`, `subscribers`, `sipEndpoints`, `cxmlScripts`, `cxmlApplications`, `swmlWebhooks`, `aiAgents`, `sipGateways`, `cxmlWebhooks`, `resources`, `addresses` and `tokens`. [Fabric Resources](fabric.md) covers each one.
 
 ### Calling (`client.calling.*`)
 
-REST-based call control — all 37 commands dispatched via POST.
+The Calling namespace controls calls over REST. Each command is a POST to `/api/calling/calls`:
 
-<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
+<!-- snippet: no-run makes a live REST call to a real SignalWire space -->
 ```ts
-// Dial — from and to are positional
-await client.calling.dial('+15559876543', '+15551234567');
+// Dial; from and to are positional
+await client.calling.dial('+15559876543', '+15551234567', { url: 'https://example.com/handler' });
 
-// Play audio — the play array is positional; pause/resume/stop take control_id positionally
-await client.calling.play('call-id', [{ type: 'audio', url: 'https://example.com/audio.mp3' }]);
+// Play audio; the play array is positional, and pause/resume/stop take control_id positionally
+await client.calling.play('call-id', [
+  { type: 'audio', params: { url: 'https://example.com/audio.mp3' } },
+], { control_id: 'ctrl-1' });
 await client.calling.playPause('call-id', 'ctrl-1');
 await client.calling.playResume('call-id', 'ctrl-1');
 await client.calling.playStop('call-id', 'ctrl-1');
 
-// Record — record takes an options object; recordStop takes control_id positionally
-await client.calling.record('call-id', { audio: { beep: true } });
+// Record; record takes an options object, and recordStop takes control_id positionally
+await client.calling.record('call-id', { control_id: 'rec-1', audio: { beep: true } });
 await client.calling.recordStop('call-id', 'rec-1');
 
 // AI control
-await client.calling.aiMessage('call-id', { message_text: 'Hello' });
+await client.calling.aiMessage('call-id', { role: 'system', message_text: 'The caller is a premium customer.' });
 await client.calling.aiStop('call-id', 'ai-1');
 
-// End call
+// End the call
 await client.calling.end('call-id');
 ```
 
+[Calling Commands](calling.md) lists every method and the wire command it sends.
+
 ### Phone Numbers (`client.phoneNumbers`)
 
-<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
+This example lists, searches, purchases, updates and releases phone numbers:
+
+<!-- snippet: no-run makes a live REST call to a real SignalWire space -->
 ```typescript
 await client.phoneNumbers.list();
 await client.phoneNumbers.search({ areacode: '512' });
@@ -121,20 +123,22 @@ await client.phoneNumbers.update('id', { name: 'Main Line' });
 await client.phoneNumbers.delete('id'); // Release
 ```
 
+To route a number's inbound calls, use the `phoneNumbers.set*` helpers that [phone-binding.md](phone-binding.md) describes.
+
 ### Datasphere (`client.datasphere.*`)
 
-Document management and semantic search.
+The Datasphere namespace manages documents and runs semantic search over them:
 
-<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
+<!-- snippet: no-run makes a live REST call to a real SignalWire space -->
 ```ts
-// Documents — create takes a document URL (chunked server-side)
+// Documents; create takes a document URL
 await client.datasphere.documents.list();
 await client.datasphere.documents.create({ url: 'https://example.com/faq.pdf', tags: ['faq'] });
 await client.datasphere.documents.get('doc-id');
 await client.datasphere.documents.update('doc-id', { tags: ['faq', 'billing'] });
 await client.datasphere.documents.delete('doc-id');
 
-// Search — the query string is positional
+// Search; the query string is positional
 await client.datasphere.documents.search('how do I reset my password', { count: 5 });
 
 // Chunks
@@ -145,16 +149,18 @@ await client.datasphere.documents.deleteChunk('doc-id', 'chunk-id');
 
 ### Video (`client.video.*`)
 
-<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
+The Video namespace manages rooms, room tokens, sessions and conferences:
+
+<!-- snippet: no-run makes a live REST call to a real SignalWire space -->
 ```ts
-// Rooms — update uses `max_members`
+// Rooms; update uses `max_members`
 await client.video.rooms.list();
 await client.video.rooms.create({ name: 'standup' });
 await client.video.rooms.update('room-id', { max_members: 10 });
 await client.video.rooms.listStreams('room-id');
 await client.video.rooms.createStream('room-id', 'rtmp://example.com/live');
 
-// Room Tokens — room_name is positional
+// Room tokens; room_name is positional
 await client.video.roomTokens.create('standup', { user_name: 'alice' });
 
 // Sessions
@@ -169,9 +175,14 @@ await client.video.conferences.listConferenceTokens('conf-id');
 
 ### Other Namespaces
 
-<!-- snippet: no-run makes a live REST call to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
+This example shows one or two calls from each of the remaining namespaces:
+
+<!-- snippet: no-run makes a live REST call to a real SignalWire space -->
 ```ts
-// Addresses — create takes the address fields positionally
+// Messaging; to and from are positional
+await client.messages.create('+15551234567', '+15559876543', { body: 'Your order has shipped.' });
+
+// Addresses; create takes the address fields positionally
 await client.addresses.list();
 await client.addresses.create(
   'Office', 'US', 'Jane', 'Doe', '123', 'Main St', 'Austin', 'TX', '78701',
@@ -187,38 +198,38 @@ await client.recordings.list();
 await client.recordings.get('recording-id');
 await client.recordings.delete('recording-id');
 
-// Number Groups (with membership) — phone_number_id is positional
+// Number Groups (with memberships); phone_number_id is positional
 await client.numberGroups.list();
 await client.numberGroups.listMemberships('group-id');
 await client.numberGroups.addMembership('group-id', 'pn-id');
 
-// Verified Callers — the create body key is `number`
+// Verified Callers; the create body key is `number`
 await client.verifiedCallers.list();
 await client.verifiedCallers.create({ number: '+15551234567' });
 await client.verifiedCallers.submitVerification('id', '1234');
 
-// SIP Profile (singleton) — codecs field is `default_codecs`
+// SIP Profile (one per project); the codecs field is `default_codecs`
 await client.sipProfile.get();
 await client.sipProfile.update({ default_codecs: ['PCMU', 'PCMA'] });
 
 // Lookup
 await client.lookup.phoneNumber('+15551234567', { include: 'cnam' });
 
-// Short Codes — update takes (id, name, message_handler) positionally
+// Short Codes; update takes (id, name, message_handler) positionally
 await client.shortCodes.list();
 await client.shortCodes.update('sc-id', 'Alerts', 'laml_webhooks', {
   message_request_url: 'https://example.com/sms',
 });
 
-// Imported Numbers — number + number_type are positional
+// Imported Numbers; number and number_type are positional
 await client.importedNumbers.create('+15551234567', 'longcode');
 
-// MFA — `to` is positional
+// MFA; `to` is positional
 await client.mfa.sms('+15551234567', { from: '+15559876543' });
 await client.mfa.call('+15551234567', { from: '+15559876543' });
 await client.mfa.verify('request-id', '1234');
 
-// Registry (10DLC) — createCampaign takes a typed campaign body
+// Registry (10DLC); createCampaign takes a typed campaign body
 await client.registry.brands.list();
 await client.registry.brands.createCampaign('brand-id', {
   name: 'Alerts',
@@ -234,69 +245,76 @@ await client.logs.messages.list();
 await client.logs.fax.list();
 await client.logs.conferences.list();
 
-// Project tokens — create takes (name, permissions) positionally
+// Project tokens; create takes (name, permissions) positionally
 await client.project.tokens.create('ci-token', ['calling', 'messaging', 'numbers']);
 await client.project.tokens.update('token-id', { name: 'updated' });
 await client.project.tokens.delete('token-id');
 
-// PubSub & Chat tokens — createToken(ttl, channels, options?)
+// Projects and subprojects
+await client.projects.list();
+await client.projects.rotateSigningKey('project-id');
+
+// PubSub and Chat tokens; createToken(ttl, channels, options?)
 await client.pubsub.createToken(60, { updates: { read: true, write: false } }, { member_id: 'user-1' });
 await client.chat.createToken(60, { support: { read: true, write: true } }, { member_id: 'user-1' });
 ```
 
+[All Namespaces](namespaces.md) covers each of these in more detail.
+
 ## Pagination
 
-The client provides two pagination utilities that work with both standard (`links.next`) and LAML (`next_page_uri`) pagination styles.
+A `list()` call returns one page of results, as the server sent it. The platform APIs use two pagination styles: a `links.next` URL, or a `next_page_uri` field.
 
-### Async Generator
+### Iterating a resource
 
-<!-- snippet: no-run illustrative fragment: references the assumed `httpClient` object established in the Pagination setup -->
+Resources built on `ReadResource` or `CrudResource` also have `paginate()`. Examples are `phoneNumbers`, `queues`, `video.rooms`, `logs.voice`, `fabric.addresses` and most Fabric resource types. `paginate()` follows the next-page link of either style and yields one item at a time:
+
+<!-- snippet: no-run makes live REST calls to a real SignalWire space -->
 ```ts
-import { paginate } from '@signalwire/sdk';
-
-// paginate() yields items one at a time across pages
-for await (const number of paginate<{ id: string; number: string }>(
-  httpClient,
-  '/api/relay/rest/phone_numbers',
-)) {
-  void number.id;
-  void number.number;
+for await (const number of client.phoneNumbers.paginate({ page_size: 50 })) {
+  console.log(number.id);
 }
 ```
 
-### Collect All
+The query parameters apply to the first request only. Later pages use the URL the server returns. `paginate()` stops when there's no next link, or when the server repeats a link it already returned.
 
-<!-- snippet: no-run illustrative fragment: references the assumed `httpClient` object established in the Pagination setup -->
+### The pagination functions
+
+The SDK also exports `paginate()` and `paginateAll()` as functions. They take an `HttpClient`, a path and optional query parameters. `dataKey` names the property that holds the items, and defaults to `data`. `paginateAll()` collects every item into one array, so it holds all pages in memory:
+
+<!-- snippet: no-run makes live REST calls to a real SignalWire space -->
 ```ts
-import { paginateAll } from '@signalwire/sdk';
+import { HttpClient, paginate, paginateAll } from '@signalwire/sdk';
 
-const allNumbers = await paginateAll(httpClient, '/api/relay/rest/phone_numbers');
-void allNumbers.length;
+const http = new HttpClient({
+  host: 'example.signalwire.com',
+  project: 'your-project-id',
+  token: 'your-api-token',
+});
+
+// Yield items one at a time across pages
+for await (const number of paginate<{ id: string; number: string }>(
+  http,
+  '/api/relay/rest/phone_numbers',
+)) {
+  console.log(number.number);
+}
+
+// Collect every item into an array
+const allNumbers = await paginateAll(http, '/api/relay/rest/phone_numbers');
+console.log(allNumbers.length);
 ```
 
-### Custom Data Key
-
-Some APIs use different keys for the data array. Use the `dataKey` parameter:
-
-<!-- snippet: no-run illustrative fragment: references the assumed `httpClient` object established in the Pagination setup -->
-```ts
-import { paginateAll } from '@signalwire/sdk';
-
-// LAML uses resource-specific keys like "calls", "messages"
-const allCalls = await paginateAll(httpClient, '/api/laml/.../Calls', undefined, 'calls');
-void allCalls;
-```
+`paginate()` takes `requestOptions` as its fifth argument and applies them to every page. `paginateAll()` doesn't take `requestOptions`.
 
 ## Request Options (timeout, retries, abort)
 
-Every request accepts a `RequestOptions` envelope controlling per-request transport
-behavior. Set a client-wide default via the `requestOptions` constructor option, and
-override it per call by passing an options object as the final argument to any method.
+Every request accepts request options that control its timeout, retries and cancellation. Set a client-wide default with the `requestOptions` constructor option. Override it for one call by passing an options object as the method's last argument:
 
-<!-- snippet: no-run makes live REST calls (phoneNumbers.list / fabric.aiAgents.get) to SIGNALWIRE_SPACE — the SDK has no plain-HTTP mock override, so it can't reach the loopback mock standalone -->
+<!-- snippet: no-run makes live REST calls to a real SignalWire space -->
 ```typescript
-// `RestClient` is imported in the shared setup above. Construct a client with
-// client-wide request defaults applied to every request:
+// `RestClient` is imported in the shared setup. Construct a client with
+// defaults that apply to every request:
 const tunedClient = new RestClient({
   project: 'your-project-id',
   token: 'your-api-token',
@@ -304,31 +322,31 @@ const tunedClient = new RestClient({
   requestOptions: { timeout: 10, retries: 2 },
 });
 
-// Per-call override (shallow-merges over the client default):
-await tunedClient.phoneNumbers.list({ areacode: '512' }, { timeout: 5 });
+// Per-call override (merged over the client default, field by field):
+await tunedClient.phoneNumbers.list({ page_size: 20 }, { timeout: 5 });
 await tunedClient.fabric.aiAgents.get('agent-id', { retries: 3 });
 
 // Cancel an in-flight request with an AbortSignal:
 const controller = new AbortController();
 const pending = tunedClient.phoneNumbers.list(undefined, { abortSignal: controller.signal });
-// ...later, call the controller's standard abort() to cancel `pending`.
+// Later, call the controller's abort() method: `pending` then rejects with a RestTransportError.
 ```
 
-Fields (all optional):
+The request options have these fields, all optional:
 
 | Field | Default | Meaning |
 |-------|---------|---------|
-| `timeout` | `30` | Max wall-clock **seconds per attempt**; on exceed the request raises a transport error. |
-| `retries` | `0` | RETRY attempts on a retryable failure (total attempts = `retries + 1`). Opt-in — the default is no retry. |
-| `retryOnStatus` | `{429,500,502,503,504}` | HTTP statuses that trigger a retry for an idempotent method. |
-| `retryBackoff` | `0.5` | Base seconds for exponential backoff (`backoff * 2 ** (attempt-1)`), honoring `Retry-After`. |
-| `abortSignal` | — | An `AbortSignal` for true in-flight cancellation; also checked before each attempt. |
+| `timeout` | `30` | Maximum seconds for each attempt. When it's exceeded, the request throws `RestTransportError`. |
+| `retries` | `0` | Number of retries after a retryable failure (total attempts = `retries + 1`). By default the client doesn't retry. |
+| `retryOnStatus` | `{429, 500, 502, 503, 504}` | HTTP statuses that trigger a retry for an idempotent method. |
+| `retryBackoff` | `0.5` | Base seconds for exponential backoff (`retryBackoff * 2 ** (attempt - 1)`). A numeric `Retry-After` header takes precedence. |
+| `abortSignal` | None | An `AbortSignal` that cancels the request in flight. It's also checked before each attempt. |
 
-Retries are idempotency-aware: non-idempotent methods (POST/PATCH) retry only on `429`/`503`.
+A field you leave unset falls back to the client default, then to the built-in default. Retries depend on the method. `GET`, `PUT` and `DELETE` retry on any status in `retryOnStatus`, and on transport errors. `POST` and `PATCH` retry only on transport errors and on a `429` or `503` in `retryOnStatus`. That way a request that changed data isn't sent twice after a `500`. A cancellation through `abortSignal` is never retried.
 
 ## Error Handling
 
-All HTTP errors throw `RestError` with status code, body, URL, and method:
+Every non-2xx response throws `RestError`, with the status code, body, URL and method. A request that gets no response throws `RestTransportError`, a subclass of `RestError` whose `statusCode` is `null`:
 
 ```typescript
 import { RestError } from '@signalwire/sdk';
@@ -343,9 +361,11 @@ try {
 }
 ```
 
+`RestError` is also exported as `SignalWireRestError`. [Client Reference](client-reference.md#error-properties) lists its properties.
+
 ## Test Injection
 
-For testing, inject a custom `fetch` implementation:
+For tests, pass your own `fetch` implementation as `fetchImpl`. This example returns an empty list for every request:
 
 ```ts
 const mockFetch = async (input: RequestInfo | URL, init?: RequestInit) =>
@@ -360,38 +380,42 @@ const testClient = new RestClient({
 void testClient;
 ```
 
-This follows the same pattern as the RELAY client's `_wsFactory` injection.
-
 ## Architecture
 
-```
+`RestClient` holds one `HttpClient` and a property for each namespace. This tree shows each property and the class behind it:
+
+```text
 RestClient
-  ├── HttpClient (fetch + Basic Auth)
-  ├── fabric: FabricNamespace (16 sub-resources)
-  ├── calling: CallingNamespace (37 commands)
-  ├── phoneNumbers: PhoneNumbersResource (CRUD + search)
-  ├── addresses: AddressesResource
-  ├── messages: MessagesResource
-  ├── queues: QueuesResource (CRUD + members)
-  ├── recordings: RecordingsResource
-  ├── numberGroups: NumberGroupsResource (CRUD + membership)
-  ├── verifiedCallers: VerifiedCallersResource (CRUD + verify)
-  ├── sipProfile: SipProfileResource (singleton)
-  ├── lookup: LookupResource
-  ├── shortCodes: ShortCodesResource
-  ├── importedNumbers: ImportedNumbersResource
-  ├── mfa: MfaResource
-  ├── registry: RegistryNamespace (brands, campaigns, orders, numbers)
-  ├── datasphere: DatasphereNamespace (documents)
-  ├── video: VideoNamespace (rooms, sessions, recordings, conferences, tokens, streams)
-  ├── logs: LogsNamespace (messages, voice, fax, conferences)
-  ├── project: ProjectNamespace (tokens)
-  ├── projects: ProjectsResource
-  ├── pubsub: PubSubResource
-  └── chat: ChatResource
+  HttpClient (fetch + Basic Auth, shared by every namespace)
+  fabric: FabricNamespace (16 sub-resources)
+  calling: Calling (command dispatch)
+  phoneNumbers: PhoneNumbers (CRUD + search + call-handler helpers)
+  addresses: Addresses
+  messages: Messages
+  queues: Queues (CRUD + members)
+  recordings: Recordings
+  numberGroups: NumberGroups (CRUD + memberships)
+  verifiedCallers: VerifiedCallers (CRUD + verification)
+  sipProfile: SipProfile (get and update)
+  lookup: Lookup
+  shortCodes: ShortCodes
+  importedNumbers: ImportedNumbers
+  mfa: Mfa
+  registry: RegistryNamespace (brands, campaigns, orders, numbers)
+  datasphere: DatasphereNamespace (documents)
+  video: VideoNamespace (rooms, roomTokens, roomSessions, roomRecordings, conferences, conferenceTokens, streams)
+  logs: LogsNamespace (messages, voice, fax, conferences)
+  project: ProjectNamespace (tokens)
+  projects: Projects
+  pubsub: PubSub
+  chat: Chat
 ```
 
-The base class hierarchy:
-- `BaseResource` — holds `HttpClient` + base path, provides `_path()` helper
-- `CrudResource` — adds `list()`, `create()`, `get()`, `update()`, `delete()` with configurable `_updateMethod` (PATCH or PUT)
-- `CrudWithAddresses` — adds `listAddresses()` to CrudResource
+The resource classes build on these base classes:
+
+- `BaseResource` holds the `HttpClient` and the base path, and provides the `_path()` helper.
+- `ReadResource` adds `list()`, `get()` and `paginate()`.
+- `CrudResource` adds `create()`, `update()` and `delete()` to `ReadResource`. Its update method is `PATCH` or `PUT`, depending on the resource.
+- `CrudWithAddresses` adds `listAddresses()` to `CrudResource`.
+
+Resources whose API doesn't fit these shapes, such as `recordings` and `sipProfile`, extend `BaseResource` and define their own methods. They have no `paginate()`.

@@ -6,6 +6,7 @@
  */
 
 import { AgentBase } from '../AgentBase.js';
+import { CallSessionStore } from './CallSessionStore.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
 import type { SwaigRequest, PostPrompt } from '../SwaigContracts.js';
@@ -92,7 +93,8 @@ export class ReceptionistAgent extends AgentBase {
   private readonly onVisitorCheckInCallback?: (
     visitor: Record<string, string>,
   ) => void | Promise<void>;
-  private readonly sessions: Map<string, CheckInSession> = new Map();
+  /** Per-call check-in state, dropped on the call's summary or after an hour idle. */
+  private readonly sessions = new CallSessionStore<CheckInSession>();
 
   /**
    * Create a ReceptionistAgent with the specified departments.
@@ -221,12 +223,7 @@ export class ReceptionistAgent extends AgentBase {
 
   private getSession(rawData: SwaigRequest): CheckInSession {
     const callId = (rawData['call_id'] as string) ?? 'default';
-    let session = this.sessions.get(callId);
-    if (!session) {
-      session = { visitors: [] };
-      this.sessions.set(callId, session);
-    }
-    return session;
+    return this.sessions.getOrCreate(callId, () => ({ visitors: [] }));
   }
 
   // ── Tool registration ─────────────────────────────────────────────────
@@ -285,13 +282,13 @@ export class ReceptionistAgent extends AgentBase {
           },
         },
       },
-      handler: (args, rawData: SwaigRequest) => {
+      handler: this._onCallAgent((self, args, rawData: SwaigRequest) => {
         const departmentName = (args.department ?? '').trim();
         const globalData = (rawData['global_data'] as Record<string, unknown>) ?? {};
         const callerInfo = (globalData['caller_info'] as Record<string, unknown>) ?? {};
         const name = (callerInfo['name'] as string) ?? 'the caller';
 
-        const dept = this.departments.find((d) => d.name === departmentName);
+        const dept = self.departments.find((d) => d.name === departmentName);
         if (!dept) {
           return new FunctionResult(`Sorry, I couldn't find the ${departmentName} department.`);
         }
@@ -304,7 +301,7 @@ export class ReceptionistAgent extends AgentBase {
         );
         result.connect(dept.number, true);
         return result;
-      },
+      }),
     });
 
     // Tool: check_in_visitor (TS-specific; only if checkInEnabled)
@@ -331,7 +328,7 @@ export class ReceptionistAgent extends AgentBase {
           },
           required: ['visitor_name', 'purpose', 'visiting'],
         },
-        handler: async (args, rawData: SwaigRequest) => {
+        handler: this._onCallAgent(async (self, args, rawData: SwaigRequest) => {
           const visitorName = args.visitor_name;
           const purpose = args.purpose;
           const visiting = args.visiting;
@@ -349,22 +346,22 @@ export class ReceptionistAgent extends AgentBase {
             checked_in_at: new Date().toISOString(),
           };
 
-          const session = this.getSession(rawData);
+          const session = self.getSession(rawData);
           session.visitors.push(visitorRecord);
 
-          if (this.onVisitorCheckInCallback) {
+          if (self.onVisitorCheckInCallback) {
             try {
-              await this.onVisitorCheckInCallback(visitorRecord);
+              await self.onVisitorCheckInCallback(visitorRecord);
             } catch (err) {
-              this.log.error(`onVisitorCheckIn callback error: ${err}`);
+              self.log.error(`onVisitorCheckIn callback error: ${err}`);
             }
           }
 
-          const companyPart = this.companyName ? ` Welcome to ${this.companyName}!` : '';
+          const companyPart = self.companyName ? ` Welcome to ${self.companyName}!` : '';
           return new FunctionResult(
             `Visitor checked in successfully! Name: ${visitorName}, Purpose: ${purpose}, Visiting: ${visiting}.${companyPart}`,
           );
-        },
+        }),
       });
     }
   }
@@ -372,14 +369,20 @@ export class ReceptionistAgent extends AgentBase {
   // ── Lifecycle hooks ───────────────────────────────────────────────────
 
   /**
-   * Receptionist summary hook. Default is a no-op; subclasses may override to
-   * persist the summary.
+   * Receptionist summary hook; subclasses may override to persist the
+   * summary. By default it stores nothing.
+   *
+   * The summary marks the end of the call, so this drops the call's check-in
+   * state. A subclass that overrides this hook should call
+   * `super.onSummary(summary, rawData)`; otherwise the state is dropped after
+   * the call has been idle for an hour.
    */
   override onSummary(
     _summary: Record<string, unknown> | null,
-    _rawData: PostPrompt,
+    rawData: PostPrompt,
   ): void | Promise<void> {
-    // Intentional no-op pass-through; subclasses override to handle the summary.
+    const callId = rawData?.['call_id'];
+    if (typeof callId === 'string') this.sessions.delete(callId);
   }
 }
 

@@ -6,7 +6,7 @@
  * Run: npx tsx examples/kubernetes-agent.ts
  */
 
-import { AgentBase, FunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
 // Set up graceful shutdown before anything else
 AgentBase.setupGracefulShutdown({ timeout: 10000 });

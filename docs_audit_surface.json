@@ -1,11 +1,15 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 297c5efe57c025c9741e3c31408a21d1c962709e",
+  "generated_from": "signalwire-typescript @ 19dec67cc61416c7f59734d1982ebed1584274f4",
   "typescript_version": "6.0.3",
   "note": "TS-native camelCase surface — used by audit_docs.py to verify doc/example references. NOT a substitute for port_surface.json (which is Python-translated for Layer B diffing).",
   "modules": {
     "signalwire": {
       "classes": {
+        "AgentRoutes": [
+          "byMethod",
+          "paths"
+        ],
         "AgentBase": [
           "PROMPT_SECTIONS",
           "SUPPORTED_INTERNAL_FILLER_NAMES",
@@ -17,6 +21,7 @@
           "addLanguage",
           "addMcpServer",
           "addPatternHint",
+          "addPerCallConfig",
           "addPostAiVerb",
           "addPostAnswerVerb",
           "addPreAnswerVerb",
@@ -79,8 +84,10 @@
           "listToolNames",
           "log",
           "manualSetProxyUrl",
+          "mount",
           "name",
           "nativeFunctions",
+          "onCallEnd",
           "onDebugEvent",
           "onError",
           "onFunctionCall",
@@ -347,6 +354,7 @@
           "validate"
         ],
         "DataMap": [
+          "body",
           "description",
           "enableEnvExpansion",
           "errorKeys",
@@ -412,6 +420,7 @@
           "removeMetadata",
           "replaceInHistory",
           "response",
+          "rpcAiGlobalData",
           "rpcAiMessage",
           "rpcAiUnhold",
           "rpcDial",
@@ -422,6 +431,7 @@
           "setPostProcess",
           "setResponse",
           "setSpeechEventTimeout",
+          "setToolResponse",
           "simulateUserInput",
           "sipRefer",
           "stop",
@@ -524,54 +534,6 @@
           "required",
           "string",
           "tapDirection"
-        ],
-        "SwaigRequestData": [
-          "action",
-          "ai_session_id",
-          "app_name",
-          "argument",
-          "call_id",
-          "content_type",
-          "conversation_id",
-          "function",
-          "meta_data",
-          "project_id",
-          "space_id",
-          "version"
-        ],
-        "SwaigArgument": [
-          "parsed",
-          "raw",
-          "substituted"
-        ],
-        "PostPromptData": [
-          "event_channel",
-          "event_type",
-          "params",
-          "parsed",
-          "project_id",
-          "raw",
-          "space_id",
-          "substituted",
-          "timestamp"
-        ],
-        "PostPromptParams": [
-          "ai_session_id",
-          "call_id",
-          "conversation",
-          "end_reason",
-          "function_calls",
-          "post_prompt_result",
-          "summary"
-        ],
-        "PostPromptConversationTurn": [
-          "content",
-          "role"
-        ],
-        "PostPromptFunctionCall": [
-          "function",
-          "params",
-          "result"
         ],
         "SwmlRequestData": [
           "call",
@@ -740,6 +702,14 @@
           "toJSON",
           "toJson"
         ],
+        "NormalizedPostPrompt": [
+          "callId",
+          "conversationId",
+          "dialogue",
+          "medium",
+          "raw",
+          "summary"
+        ],
         "PromptManager": [
           "addSection",
           "addSubsection",
@@ -754,6 +724,33 @@
           "hasSection",
           "setPostPrompt",
           "setPromptText"
+        ],
+        "_PublicFetchInit": [
+          "allowPrivate",
+          "allowRedirect",
+          "body",
+          "headers",
+          "insecureTls",
+          "method",
+          "onStatus",
+          "redirectMode",
+          "signal"
+        ],
+        "_RedirectRefused": [
+          "target"
+        ],
+        "RuleLine": [
+          "allowance",
+          "path"
+        ],
+        "Group": [
+          "rules",
+          "userAgents"
+        ],
+        "_RobotsRules": [
+          "allowAll",
+          "canFetch",
+          "disallowAll"
         ],
         "SWMLVerbHandler": [
           "buildConfig",
@@ -781,6 +778,7 @@
         "SecurityConfig": [
           "allowedHosts",
           "basicAuthPassword",
+          "basicAuthSource",
           "basicAuthUser",
           "corsOrigins",
           "domain",
@@ -878,6 +876,7 @@
         ],
         "SchemaUtils": [
           "clearCache",
+          "compileFailedVerbs",
           "fullValidationAvailable",
           "getCacheSize",
           "getVerbDescription",
@@ -887,6 +886,7 @@
           "getVerbRequiredProperties",
           "hasVerb",
           "loadSchema",
+          "precompileVerbValidators",
           "schemaPath",
           "validate",
           "validateVerb"
@@ -897,7 +897,9 @@
           "httpMethod",
           "isBase64Encoded",
           "method",
+          "multiValueQueryStringParameters",
           "path",
+          "pathParameters",
           "queryStringParameters",
           "rawPath",
           "rawQueryString",
@@ -906,8 +908,13 @@
         "GcfRequest": [
           "body",
           "headers",
+          "ip",
           "method",
+          "originalUrl",
           "path",
+          "protocol",
+          "rawBody",
+          "socket",
           "url"
         ],
         "GcfResponse": [
@@ -919,7 +926,23 @@
           "body",
           "headers",
           "method",
+          "rawBody",
           "url"
+        ],
+        "_SignatureTarget": [
+          "pathAndQuery",
+          "url"
+        ],
+        "PlatformRequest": [
+          "body",
+          "clientAddress",
+          "headers",
+          "method",
+          "path",
+          "platformBase",
+          "platformUrl",
+          "query",
+          "queryVariants"
         ],
         "AzureContext": [
           "res"
@@ -1044,6 +1067,11 @@
           "post_process",
           "response"
         ],
+        "SwaigArgument": [
+          "parsed",
+          "raw",
+          "substituted"
+        ],
         "SwaigRequest": [
           "SWMLCall",
           "SWMLVars",
@@ -1118,6 +1146,11 @@
           "total_wire_input_tokens_per_minute",
           "total_wire_output_tokens",
           "total_wire_output_tokens_per_minute"
+        ],
+        "PostPromptData": [
+          "parsed",
+          "raw",
+          "substituted"
         ],
         "PostPromptUserEntry": [
           "barge_count",
@@ -1439,6 +1472,7 @@
           "addLanguage",
           "addMcpServer",
           "addPatternHint",
+          "addPerCallConfig",
           "addPostAiVerb",
           "addPostAnswerVerb",
           "addPreAnswerVerb",
@@ -1501,8 +1535,10 @@
           "listToolNames",
           "log",
           "manualSetProxyUrl",
+          "mount",
           "name",
           "nativeFunctions",
+          "onCallEnd",
           "onDebugEvent",
           "onError",
           "onFunctionCall",
@@ -1658,48 +1694,281 @@
           "delete",
           "end",
           "log",
+          "rawPost",
           "summarize",
           "url"
         ],
-        "MockCallOptions": [
+        "GatewayRejection": [
+          "reason",
+          "status"
+        ],
+        "ChatGatewayOptions": [
+          "allowedOrigins",
+          "client",
+          "configUrl",
+          "conversationTimeout",
+          "handleTtl",
+          "key",
+          "maxNewConversations",
+          "maxTurns",
+          "secret",
+          "windowSeconds"
+        ],
+        "ChatGateway": [
+          "allowedOrigins",
+          "checkKey",
+          "checkOrigin",
+          "close",
+          "configUrl",
+          "conversationTimeout",
+          "effectiveTimeout",
+          "handleTtl",
+          "key",
+          "lastActivity",
+          "maxNewConversations",
+          "maxTurns",
+          "mintHandle",
+          "prepare",
+          "readHandle",
+          "readUserMetadata",
+          "router",
+          "visibleMessages",
+          "windowSeconds"
+        ],
+        "NonceEntry": [
+          "callId",
+          "conversationId",
+          "issuedAt",
+          "messages",
+          "redeemed"
+        ],
+        "HandoffRouterOptions": [
+          "captureLeg",
+          "captureTimeout",
+          "endCall",
+          "gateway",
+          "maxMessagesPerCall",
+          "nextConversationId",
+          "nonceTtl",
+          "registry",
+          "sendMessage"
+        ],
+        "HandoffRouter": [
+          "captureLeg",
+          "captureTimeout",
+          "endCall",
+          "escalate",
+          "gateway",
+          "maxMessagesPerCall",
+          "nextConversationId",
+          "nonceTtl",
+          "redeem",
+          "register",
+          "router",
+          "say",
+          "sendMessage"
+        ],
+        "LoadedModule": [
+          "constructed",
+          "exports"
+        ],
+        "LoadAgentOptions": [
+          "route"
+        ],
+        "AgentDescription": [
+          "agentName",
+          "kind",
+          "name",
+          "route"
+        ],
+        "_PhoneNumbers": [
+          "parsePhoneNumberFromString"
+        ],
+        "TemplateNote": [
+          "kind",
+          "path",
+          "raw",
+          "value"
+        ],
+        "DataMapExecOptions": [
+          "callData",
+          "fetchImpl",
+          "log",
+          "timeoutSeconds",
+          "verbose"
+        ],
+        "Run": [
+          "expand",
+          "expandJson",
+          "report",
+          "say"
+        ],
+        "ConvenienceFlags": [
           "callDirection",
           "callId",
           "callState",
           "callType",
           "fromNumber",
-          "overrides",
-          "toExtension"
+          "projectId",
+          "queryParams",
+          "spaceId",
+          "toExtension",
+          "userVars"
+        ],
+        "ServerlessSimulator": [
+          "activate",
+          "deactivate",
+          "environment"
         ],
         "CliOptions": [
           "action",
-          "actionExplicit",
           "agentClass",
           "agentPath",
-          "args",
+          "awsApiGatewayId",
+          "awsFunctionName",
+          "awsFunctionUrl",
+          "awsRegion",
+          "awsStage",
+          "azureEnv",
+          "azureFunctionUrl",
+          "body",
           "callDirection",
           "callId",
           "callState",
           "callType",
+          "cgiHost",
+          "cgiHttps",
+          "cgiPathInfo",
+          "cgiScriptName",
+          "customData",
           "envFile",
           "envVars",
           "execName",
+          "fakeFullData",
           "formatJson",
           "fromNumber",
+          "functionTokens",
+          "gcpFunctionUrl",
+          "gcpProject",
+          "gcpRegion",
+          "gcpService",
+          "headers",
+          "method",
+          "minimal",
+          "overrideJson",
           "overrides",
+          "projectId",
+          "queryParams",
           "raw",
           "route",
           "simulateServerless",
+          "spaceId",
           "toExtension",
+          "userVars",
           "verbose"
         ],
         "LoadedTarget": [
-          "basicAuthCreds",
           "getApp",
+          "getBasicAuthCredentials",
+          "getFullUrl",
           "getPrompt",
           "getRegisteredTools",
           "getTool",
-          "renderSwml",
-          "route"
+          "name",
+          "route",
+          "signingKey"
+        ],
+        "Io": [
+          "err",
+          "out",
+          "verbose"
+        ],
+        "Client": [
+          "prefix",
+          "send"
+        ],
+        "SwaigEntry": [
+          "data_map",
+          "description",
+          "function",
+          "parameters",
+          "web_hook_url"
+        ],
+        "Found": [
+          "entry",
+          "member",
+          "name"
+        ],
+        "ApiMember": [
+          "doc",
+          "file",
+          "kind",
+          "line",
+          "name",
+          "owner",
+          "protected",
+          "readonly",
+          "signature",
+          "static"
+        ],
+        "ApiEntry": [
+          "bases",
+          "contents",
+          "doc",
+          "exported",
+          "file",
+          "kind",
+          "line",
+          "members",
+          "name",
+          "signature"
+        ],
+        "ApiIndex": [
+          "entries",
+          "exports",
+          "version"
+        ],
+        "Heading": [
+          "level",
+          "line",
+          "text"
+        ],
+        "Match": [
+          "line",
+          "rel",
+          "text"
+        ],
+        "UsageError": [],
+        "LiveContext": [
+          "api",
+          "args",
+          "root"
+        ],
+        "SkillClassLike": [
+          "REQUIRED_ENV_VARS",
+          "REQUIRED_PACKAGES",
+          "SKILL_DESCRIPTION",
+          "SKILL_NAME",
+          "SUPPORTS_MULTIPLE_INSTANCES",
+          "getParameterSchema",
+          "name"
+        ],
+        "PackageJson": [
+          "bin",
+          "files",
+          "name",
+          "version"
+        ],
+        "Topic": [
+          "api",
+          "body",
+          "docs",
+          "examples",
+          "live",
+          "name",
+          "related",
+          "summary",
+          "title"
         ],
         "NoopTracker": [
           "hasLogged",
@@ -1793,6 +2062,17 @@
           "append",
           "messages"
         ],
+        "CallSessionStoreOptions": [
+          "maxEntries",
+          "maxIdleMs"
+        ],
+        "CallSessionStore": [
+          "DEFAULT_MAX_ENTRIES",
+          "DEFAULT_MAX_IDLE_MS",
+          "delete",
+          "getOrCreate",
+          "size"
+        ],
         "ConciergeConfig": [
           "agentOptions",
           "amenities",
@@ -1815,6 +2095,7 @@
           "addLanguage",
           "addMcpServer",
           "addPatternHint",
+          "addPerCallConfig",
           "addPostAiVerb",
           "addPostAnswerVerb",
           "addPreAnswerVerb",
@@ -1881,8 +2162,10 @@
           "listToolNames",
           "log",
           "manualSetProxyUrl",
+          "mount",
           "name",
           "nativeFunctions",
+          "onCallEnd",
           "onDebugEvent",
           "onError",
           "onFunctionCall",
@@ -1981,6 +2264,7 @@
           "addLanguage",
           "addMcpServer",
           "addPatternHint",
+          "addPerCallConfig",
           "addPostAiVerb",
           "addPostAnswerVerb",
           "addPreAnswerVerb",
@@ -2044,8 +2328,10 @@
           "listToolNames",
           "log",
           "manualSetProxyUrl",
+          "mount",
           "name",
           "nativeFunctions",
+          "onCallEnd",
           "onDebugEvent",
           "onError",
           "onFunctionCall",
@@ -2139,6 +2425,7 @@
           "addLanguage",
           "addMcpServer",
           "addPatternHint",
+          "addPerCallConfig",
           "addPostAiVerb",
           "addPostAnswerVerb",
           "addPreAnswerVerb",
@@ -2201,8 +2488,10 @@
           "listToolNames",
           "log",
           "manualSetProxyUrl",
+          "mount",
           "name",
           "nativeFunctions",
+          "onCallEnd",
           "onDebugEvent",
           "onError",
           "onFunctionCall",
@@ -2303,6 +2592,7 @@
           "addLanguage",
           "addMcpServer",
           "addPatternHint",
+          "addPerCallConfig",
           "addPostAiVerb",
           "addPostAnswerVerb",
           "addPreAnswerVerb",
@@ -2365,8 +2655,10 @@
           "listToolNames",
           "log",
           "manualSetProxyUrl",
+          "mount",
           "name",
           "nativeFunctions",
+          "onCallEnd",
           "onDebugEvent",
           "onError",
           "onFunctionCall",
@@ -2474,6 +2766,7 @@
           "addLanguage",
           "addMcpServer",
           "addPatternHint",
+          "addPerCallConfig",
           "addPostAiVerb",
           "addPostAnswerVerb",
           "addPreAnswerVerb",
@@ -2541,8 +2834,10 @@
           "logResponse",
           "manualSetProxyUrl",
           "maxRetries",
+          "mount",
           "name",
           "nativeFunctions",
+          "onCallEnd",
           "onDebugEvent",
           "onError",
           "onFunctionCall",
@@ -3744,14 +4039,14 @@
           "data",
           "message"
         ],
-        "CallingPlayPauseResult": [
+        "CallingPlayResult": [
           "call_id",
           "code",
           "control_id",
           "data",
           "message"
         ],
-        "CallingPlayResult": [
+        "CallingPlayPauseResult": [
           "call_id",
           "code",
           "control_id",
@@ -3832,13 +4127,6 @@
           "data",
           "message"
         ],
-        "CallingRecordPauseResult": [
-          "call_id",
-          "code",
-          "control_id",
-          "data",
-          "message"
-        ],
         "CallingRecordResult": [
           "call_id",
           "code",
@@ -3846,6 +4134,13 @@
           "data",
           "message",
           "url"
+        ],
+        "CallingRecordPauseResult": [
+          "call_id",
+          "code",
+          "control_id",
+          "data",
+          "message"
         ],
         "CallingRecordResumeResult": [
           "call_id",
@@ -4010,15 +4305,17 @@
           "type"
         ],
         "DialOptions": [
-          "from",
+          "dialTimeout",
           "maxDuration",
-          "timeout"
+          "tag"
         ],
         "SendMessageOptions": [
           "body",
           "context",
           "fromNumber",
           "media",
+          "onCompleted",
+          "region",
           "tags",
           "toNumber"
         ],
@@ -10076,6 +10373,7 @@
           "schemaValidation",
           "signingKey",
           "suppressLogs",
+          "swaigSecret",
           "tokenExpirySecs",
           "usePom",
           "webhookTrustProxy"
@@ -10083,6 +10381,7 @@
         "LanguageConfig": [
           "code",
           "engine",
+          "fillers",
           "functionFillers",
           "model",
           "name",
@@ -10104,7 +10403,15 @@
       },
       "functions": [
         "addSkillDirectory",
+        "allDocFiles",
+        "applyConvenienceMappings",
+        "applyOverrides",
+        "closeMatches",
+        "codeDir",
+        "codeFiles",
+        "comprehensivePostData",
         "configureLogging",
+        "corsOriginsFromEnv",
         "createBedrockAgent",
         "createConciergeAgent",
         "createDeferred",
@@ -10117,60 +10424,107 @@
         "createSkill",
         "createSurveyAgent",
         "createTypedHandlerWrapper",
+        "declaredCapabilities",
         "defineAgent",
         "defineSkillTool",
+        "describeAgents",
+        "dialogueTurns",
+        "exampleDescriptions",
+        "executeDataMap",
+        "expandExamples",
+        "expandTemplate",
+        "expandValue",
         "extractTextFromHtml",
+        "fakeSwmlPostData",
         "filterSensitiveHeaders",
-        "generateFakePostData",
-        "generateMinimalPostData",
+        "findPackageRoot",
         "getAllowedEnvPrefixes",
         "getExecutionMode",
         "getLogger",
+        "grepFiles",
         "handoff",
+        "hasCapability",
+        "headings",
         "inferSchema",
+        "init",
         "isCallStateTerminal",
         "isDialStateTerminal",
+        "isDocFile",
         "isFullParameterSchema",
         "isMessageStateTerminal",
         "isPrivateIp",
         "isServerlessMode",
+        "isText",
         "isValidHostname",
         "listAgents",
         "listSkills",
         "listSkillsWithParams",
         "loadAgent",
+        "loadApiIndex",
+        "loadEnvFile",
+        "main",
+        "minimalPostData",
         "normalizeDevice",
         "normalizeDevicePlan",
         "normalizeParameters",
         "normalizePlayItem",
         "normalizePlayItems",
+        "normalizePostPrompt",
+        "note",
+        "packageRoot",
         "paginate",
         "paginateAll",
         "paramSchema",
         "parseEvent",
+        "parseFunctionArguments",
         "parseFunctionParams",
+        "parseOverrideValue",
+        "parsePostPromptData",
+        "readPackageJson",
         "redactUrl",
         "registerBuiltinSkills",
         "registerSkill",
+        "renderExamples",
+        "renderFound",
+        "renderIndex",
+        "renderLive",
+        "renderLlmsTxt",
+        "renderTopic",
+        "renderTopicList",
         "resetLoggingConfiguration",
         "resolve",
         "resolveAndValidateUrl",
+        "resolveDoc",
+        "resolveName",
         "restClient",
         "runApp",
         "safeAssign",
+        "scanEnvNames",
+        "schemaProperties",
+        "section",
         "setAllowedEnvPrefixes",
         "setGlobalLogColor",
         "setGlobalLogFormat",
         "setGlobalLogLevel",
         "setGlobalLogStream",
+        "setNested",
         "statusIsRetryable",
         "stripControlChars",
+        "stripJsonFence",
+        "suggestions",
+        "summary",
+        "summaryOf",
         "suppressAllLogs",
         "tool",
+        "undeclaredArgumentWarnings",
+        "useApiIndex",
+        "userVariables",
         "validate",
         "validateRequest",
         "validateUrl",
         "validateWebhookSignature",
+        "validateWebhookSignatureSha256",
+        "version",
         "webhookValidationMiddleware",
         "withTimeout"
       ]

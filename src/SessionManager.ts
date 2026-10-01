@@ -29,6 +29,19 @@ export interface DebugTokenResult {
   error?: string;
 }
 
+/**
+ * Split a decoded token into its five fields: call id, function, expiry,
+ * nonce and signature. The call id comes first and may itself contain dots
+ * (composed conversation ids such as `root.2`); the other four fields never
+ * do, so split from the right. Returns `null` when there are fewer than five.
+ */
+function splitTokenParts(decoded: string): [string, string, string, string, string] | null {
+  const parts = decoded.split('.');
+  if (parts.length < 5) return null;
+  const [fn, expiry, nonce, signature] = parts.slice(-4) as [string, string, string, string];
+  return [parts.slice(0, -4).join('.'), fn, expiry, nonce, signature];
+}
+
 /** Stateless HMAC-SHA256 token manager for SWAIG function call authentication and per-session metadata storage. */
 export class SessionManager {
   /** Token validity duration in seconds. */
@@ -112,19 +125,12 @@ export class SessionManager {
   validateToken(callId: string, functionName: string, token: string): boolean {
     try {
       const decoded = Buffer.from(token, 'base64url').toString();
-      const parts = decoded.split('.');
-      if (parts.length !== 5) {
+      const parts = splitTokenParts(decoded);
+      if (!parts) {
         this.log.warn('token_invalid', { function: functionName });
         return false;
       }
-      // length === 5 checked above, so all five components are present.
-      const [tokenCallId, tokenFunction, tokenExpiry, tokenNonce, tokenSignature] = parts as [
-        string,
-        string,
-        string,
-        string,
-        string,
-      ];
+      const [tokenCallId, tokenFunction, tokenExpiry, tokenNonce, tokenSignature] = parts;
 
       if (!callId) {
         this.log.warn('token_rejected_no_call_id', { function: functionName });
@@ -199,22 +205,15 @@ export class SessionManager {
     }
     try {
       const decoded = Buffer.from(token, 'base64url').toString();
-      const parts = decoded.split('.');
-      if (parts.length !== 5) {
+      const parts = splitTokenParts(decoded);
+      if (!parts) {
         return {
           valid_format: false,
-          parts_count: parts.length,
+          parts_count: decoded.split('.').length,
           token_length: token ? token.length : 0,
         };
       }
-      // length === 5 checked above, so all five components are present.
-      const [tokenCallId, tokenFunction, tokenExpiry, tokenNonce, tokenSignature] = parts as [
-        string,
-        string,
-        string,
-        string,
-        string,
-      ];
+      const [tokenCallId, tokenFunction, tokenExpiry, tokenNonce, tokenSignature] = parts;
 
       const currentTime = Math.floor(Date.now() / 1000);
       let expiry: number | null = null;

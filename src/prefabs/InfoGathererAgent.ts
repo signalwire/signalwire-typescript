@@ -11,6 +11,7 @@ import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
 import type { SwmlRequestData } from '../PlatformContracts.js';
 import type { Context } from 'hono';
+import { filterSensitiveHeaders } from '../SecurityUtils.js';
 
 // ── Config types ────────────────────────────────────────────────────────────
 
@@ -27,6 +28,9 @@ export interface InfoGathererQuestion {
 /**
  * Callback invoked on each incoming SWML request to produce the list of
  * questions for that request. Registered via {@link InfoGathererAgent.setQuestionCallback}.
+ * `queryParams` are the request URL's query parameters, `bodyParams` the
+ * parsed request body, and `headers` the HTTP request headers (lower-case
+ * names, without Authorization, Cookie and other credential headers).
  * @returns a list of questions (may be async).
  */
 export type InfoGathererQuestionCallback = (
@@ -237,7 +241,7 @@ export class InfoGathererAgent extends AgentBase {
   override async onSwmlRequest(
     rawData?: SwmlRequestData | null,
     _callbackPath?: string,
-    _context?: Context,
+    context?: Context,
   ): Promise<Record<string, unknown> | void> {
     // Static mode: nothing to do.
     if (this.staticQuestions !== null) return;
@@ -253,16 +257,24 @@ export class InfoGathererAgent extends AgentBase {
       };
     }
 
-    // Build callback inputs from the incoming raw data. `rawData` is optional
-    // on the base hook (the reference defaults it to None), so treat an absent
-    // body as the empty request.
-    const body: SwmlRequestData = rawData ?? {};
-    const queryParams = this.extractRecord(body['query_params']);
-    const headers = this.extractRecord(body['headers']);
-    const bodyParams = body;
+    // Build callback inputs from the request itself: its query parameters and
+    // headers. Credential-bearing headers (Authorization, Cookie, ...) are
+    // removed, as for dynamic config. Without a request context (a direct
+    // call), both are empty. `rawData` is optional on the base hook, so an
+    // absent body is the empty request.
+    const queryParams: Record<string, string> = context ? { ...context.req.query() } : {};
+    const headers: Record<string, string> = {};
+    context?.req.raw.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    const bodyParams: SwmlRequestData = rawData ?? {};
 
     try {
-      const questions = await this.questionCallback(queryParams, bodyParams, headers);
+      const questions = await this.questionCallback(
+        queryParams,
+        bodyParams,
+        filterSensitiveHeaders(headers),
+      );
       InfoGathererAgent.validateQuestions(questions);
       return {
         global_data: {
@@ -283,18 +295,6 @@ export class InfoGathererAgent extends AgentBase {
     }
   }
 
-  private extractRecord(value: unknown): Record<string, string> {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      const result: Record<string, string> = {};
-      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-        if (typeof v === 'string') result[k] = v;
-        else if (v !== null && v !== undefined) result[k] = String(v);
-      }
-      return result;
-    }
-    return {};
-  }
-
   // ── Tool registration ─────────────────────────────────────────────────
 
   /** Register the `start_questions` and `submit_answer` SWAIG tools. */
@@ -307,7 +307,7 @@ export class InfoGathererAgent extends AgentBase {
         type: 'object',
         properties: {},
       },
-      handler: this.startQuestions.bind(this),
+      handler: this._onCallAgent((self, args, rawData) => self.startQuestions(args, rawData)),
     });
 
     // Tool: submit_answer
@@ -323,7 +323,7 @@ export class InfoGathererAgent extends AgentBase {
           },
         },
       },
-      handler: this.submitAnswer.bind(this),
+      handler: this._onCallAgent((self, args, rawData) => self.submitAnswer(args, rawData)),
     });
   }
 

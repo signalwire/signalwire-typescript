@@ -124,9 +124,11 @@ the list is empty (`core/swaig_function.py:128`). So "Python passes no
   contract divergence (the tool shape matches); listed here only so the backend
   difference is on the record.
 
-### Config-validation timing (api_ninjas_trivia, weather_api) — KEEP
+### Config-validation timing (api_ninjas_trivia) — KEEP
 - Python validates `api_key` eagerly (raises in `__init__` / `setup()`); TS
-  some skills check at handler time and return a "not configured" result.
+  api_ninjas_trivia checks at handler time and returns a "not configured"
+  result. weather_api now checks at `setup()`, as Python does, and loads with
+  `api_key` alone (`REQUIRED_ENV_VARS` is empty, 6f1db13).
 - Verdict: **KEEP** — observable failure mode is equivalent (the tool can't run
   without the key); the timing difference is idiomatic and low-stakes. Noted for
   completeness.
@@ -145,3 +147,65 @@ the emitted SWAIG `parameters`/`required` match, the model sees the same tool;
 the execution model (server-evaluated vs SDK-evaluated) differs. This is tracked
 as OPEN where it applies but is lower-stakes than a parameter-contract
 divergence.
+
+---
+
+## Runtime model divergences from Python 3.5
+
+### Synchronous handlers in worker threads — KEEP (not applicable to Node)
+- Python 3.5 runs synchronous (`def`) tool handlers and callbacks in AnyIO
+  worker threads (`61a57c2`), so one slow handler no longer holds up other
+  calls' requests on the event loop.
+- Node has one JavaScript thread. An `async` handler that awaits I/O (fetch,
+  a database client) doesn't block other requests, which is the idiomatic TS
+  shape; a handler that does CPU-heavy or synchronous blocking work (a busy
+  loop, `readFileSync` on a large file, `execSync`) blocks every request on
+  the server, as any Node request handler does. Move such work to a
+  `worker_threads` Worker or a child process.
+- Verdict: **KEEP**. There's no thread pool to port; the observable contract
+  (other calls keep being served while a handler waits on I/O) holds for
+  `async` handlers.
+
+### SDK logging is on by default — KEEP (owner decision, 2026-09-25)
+- Python 3.5 makes SDK loggers silent until logging is configured (its
+  `serve()` and `run()` do it) or the host app configures logging, so an app that
+  embeds an agent with `get_app()`/`as_router()` gets no SDK output on
+  stdout by default.
+- TS keeps logging at `info` by default (`src/Logger.ts`), so an app that
+  embeds an agent with `getApp()`/`asRouter()` does see SDK log lines.
+  `SIGNALWIRE_LOG_MODE=off`, `SIGNALWIRE_LOG_LEVEL` and `suppressAllLogs()`
+  control it.
+- Verdict: **KEEP**, by the SDK owner's decision; recorded so the difference
+  isn't silent.
+
+### Post-prompt summary that isn't a JSON object — KEEP
+- When `post_prompt_data.raw` parses to JSON that isn't an object (a list, a
+  number), Python's `parse_post_prompt_data` returns `{"summary": str(value)}`,
+  Python's `repr` of it (`[{'answer': 42}]`). TS returns the value's JSON text
+  (`[{"answer":42}]`); a JSON string is returned as it is in both.
+- Verdict: **KEEP**. Reproducing Python's `repr` in TS has no use to a
+  caller; both keep the content.
+
+### Serverless base URL from FUNCTION_URL / AZURE_FUNCTION_URL — KEEP
+- The reference's `get_full_url` builds a Google Cloud Function's URL from the
+  project, region and service, and an Azure Function's from the site and
+  function names; it never reads `FUNCTION_URL` or `AZURE_FUNCTION_URL`,
+  although its own swaig-test `--gcp-function-url` and `--azure-function-url`
+  set them, so those flags have no effect there.
+- TS uses `FUNCTION_URL` and `AZURE_FUNCTION_URL` first when set, then builds
+  the URL as the reference does.
+- Verdict: **KEEP**. It makes the swaig-test flags do what they say; with the
+  variables unset the two SDKs build the same URL.
+
+
+### SWMLService with generated credentials doesn't require them — KEEP (owner decision, 2026-09-28)
+- The reference's `SWMLService` always requires basic auth: with no
+  credentials configured, it generates a password and every route checks it
+  (`swml_service.py` `_check_basic_auth`).
+- A TS `SWMLService` with generated credentials serves every route, `/swaig`
+  included, without auth; only credentials passed as `basicAuth`, from the
+  config file or from `SWML_BASIC_AUTH_USER`/`SWML_BASIC_AUTH_PASSWORD` are
+  enforced. `AgentBase` always enforces, as the reference does.
+- `serve()` logs a warning when it serves without auth this way.
+- Verdict: **KEEP**, by the SDK owner's decision; recorded, and warned at
+  startup, so the difference isn't silent.

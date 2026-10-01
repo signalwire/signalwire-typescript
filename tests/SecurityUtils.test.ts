@@ -3,6 +3,7 @@ import {
   safeAssign,
   isPrivateIp,
   resolveAndValidateUrl,
+  validateUrl,
   filterSensitiveHeaders,
   redactUrl,
   isValidHostname,
@@ -101,6 +102,58 @@ describe('SecurityUtils', () => {
     });
   });
 
+  // ── isPrivateIp: spellings that reach a private host ───────────────
+  describe('isPrivateIp spellings', () => {
+    it.each([
+      ['[::1]', 'IPv6 loopback in URL brackets'],
+      ['::', 'IPv6 unspecified'],
+      ['[::]', 'IPv6 unspecified in brackets'],
+      ['0.0.0.0', 'IPv4 unspecified'],
+      ['0.1.2.3', '0.0.0.0/8'],
+      ['::ffff:169.254.169.254', 'IPv4-mapped metadata, dotted'],
+      ['::ffff:a9fe:a9fe', 'IPv4-mapped metadata, hex (as URL parsing normalizes it)'],
+      ['[::ffff:7f00:1]', 'IPv4-mapped loopback in brackets'],
+      ['0:0:0:0:0:ffff:10.0.0.1', 'IPv4-mapped private, uncompressed'],
+      ['fe80::1%eth0', 'link-local with a zone id'],
+    ])('blocks %s (%s)', (ip) => {
+      expect(isPrivateIp(ip)).toBe(true);
+    });
+
+    it.each(['::ffff:8.8.8.8', '2606:4700::1', 'example.com', ''])('allows %s', (ip) => {
+      expect(isPrivateIp(ip)).toBe(false);
+    });
+  });
+
+  // ── validateUrl: what a user-supplied URL may reach ─────────────────
+  describe('validateUrl', () => {
+    it.each([
+      'http://[::ffff:169.254.169.254]/latest/meta-data',
+      'http://[::1]:8080/',
+      'http://[::]/',
+      'http://0.1.2.3/',
+      'ftp://203.0.113.10/file',
+      'file:///etc/passwd',
+      'http://unresolvable-host.invalid/',
+    ])('refuses %s', async (url) => {
+      expect(await validateUrl(url)).toBe(false);
+    });
+
+    it('accepts a public IP literal without DNS', async () => {
+      expect(await validateUrl('http://203.0.113.10/page')).toBe(true);
+    });
+
+    it('SWML_ALLOW_PRIVATE_URLS (1/true/yes) allows private addresses', async () => {
+      for (const value of ['1', 'true', 'yes']) {
+        process.env['SWML_ALLOW_PRIVATE_URLS'] = value;
+        try {
+          expect(await validateUrl('http://127.0.0.1/')).toBe(true);
+        } finally {
+          delete process.env['SWML_ALLOW_PRIVATE_URLS'];
+        }
+      }
+    });
+  });
+
   // ── resolveAndValidateUrl ───────────────────────────────────────────
   describe('resolveAndValidateUrl', () => {
     it('rejects http://127.0.0.1/', async () => {
@@ -171,6 +224,16 @@ describe('SecurityUtils', () => {
       // stop at `/`, matching Python's `://([^:@/]+):([^@/]+)@`. A `:..@` that
       // lives after the first `/` is path data, not credentials.
       expect(redactUrl('https://host.com/a:b@c')).toBe('https://host.com/a:b@c');
+    });
+
+    it('redacts a password with an empty user', () => {
+      expect(redactUrl('http://:SECRET@host/x')).toBe('http://:****@host/x');
+    });
+
+    it('redacts every URL in a message, not only the first', () => {
+      expect(redactUrl('from http://a:one@h1/x to http://b:two@h2/y')).toBe(
+        'from http://a:****@h1/x to http://b:****@h2/y',
+      );
     });
   });
 

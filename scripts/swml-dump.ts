@@ -27,6 +27,7 @@ process.env['SIGNALWIRE_LOG_MODE'] = 'off';
 
 async function main(): Promise<void> {
   const { AgentBase } = await import('../src/AgentBase.js');
+  const { BedrockAgent } = await import('../src/agents/BedrockAgent.js');
 
   /** newAgent constructs a demo AgentBase (name "demo", route "/demo") with POM
    *  enabled so promptAddSection renders into ai.prompt.pom, matching the oracle. */
@@ -34,21 +35,20 @@ async function main(): Promise<void> {
     new AgentBase({ name: 'demo', route: '/demo', usePom: true });
 
   /** extract walks a dotted path into a rendered SWML doc. "ai.prompt" means:
-   *  find the ai verb in sections.main, then index into it — the TS mirror of
-   *  diff_port_swml._extract. */
+   *  find the ai verb in sections.main, then index into it ("amazon_bedrock.prompt"
+   *  likewise) — the TS mirror of diff_port_swml._extract. */
   const extract = (doc: Record<string, unknown>, path: string): unknown => {
-    let ai: unknown = undefined;
+    let node: unknown = doc;
     const sections = doc['sections'] as Record<string, unknown> | undefined;
     const mainSec = sections?.['main'];
     if (Array.isArray(mainSec)) {
       for (const sec of mainSec) {
-        if (sec && typeof sec === 'object' && 'ai' in (sec as Record<string, unknown>)) {
-          ai = (sec as Record<string, unknown>)['ai'];
+        if (sec && typeof sec === 'object' && ('ai' in sec || 'amazon_bedrock' in sec)) {
+          node = sec;
           break;
         }
       }
     }
-    let node: unknown = ai !== undefined ? { ai } : doc;
     for (const part of path.split('.')) {
       if (node && typeof node === 'object' && !Array.isArray(node)) {
         node = (node as Record<string, unknown>)[part];
@@ -64,7 +64,8 @@ async function main(): Promise<void> {
     if (!frag || typeof frag !== 'object' || Array.isArray(frag)) return frag;
     const m = frag as Record<string, unknown>;
     const o: Record<string, unknown> = {};
-    for (const k of keys) o[k] = m[k];
+    // A missing key is null, as the oracle's dict.get gives it.
+    for (const k of keys) o[k] = k in m ? m[k] : null;
     return o;
   };
 
@@ -72,6 +73,14 @@ async function main(): Promise<void> {
     JSON.parse(a.renderSwml()) as Record<string, unknown>;
 
   const out: Record<string, unknown> = {};
+
+  // swml_contexts_in_prompt: contexts render inside the prompt object.
+  {
+    const a = newAgent();
+    a.promptAddSection('Role', { body: 'You take orders.' });
+    a.defineContexts().addContext('default').addStep('greet').setText('Greet the caller.');
+    out['swml_contexts_in_prompt'] = pick(extract(render(a), 'ai.prompt'), ['contexts']);
+  }
 
   // swml_set_prompt_llm_params: two setPromptLlmParams calls MERGE.
   {
@@ -166,6 +175,48 @@ async function main(): Promise<void> {
       }
     }
     out['swml_define_tool_complete_schema'] = params;
+  }
+
+  // swml_on_call_end_hook / _post_conversation: onCallEnd registers the reserved
+  // hangup_hook and turns on swaig_post_conversation.
+  {
+    const a = newAgent();
+    a.onCallEnd(() => undefined);
+    const doc = render(a);
+    const fns = extract(doc, 'ai.SWAIG.functions') as Record<string, unknown>[];
+    out['swml_on_call_end_hook'] = fns.find((f) => f['function'] === 'hangup_hook')?.[
+      'description'
+    ];
+    out['swml_on_call_end_post_conversation'] = pick(extract(doc, 'ai.params'), [
+      'swaig_post_conversation',
+    ]);
+  }
+
+  // swml_bedrock_prompt: max_tokens and the prompt settings Bedrock defines.
+  {
+    const a = new BedrockAgent({
+      name: 'bedrock',
+      route: '/bedrock',
+      voiceId: 'tiffany',
+      maxTokens: 512,
+    });
+    a.setPromptText('You are a helpful assistant.');
+    a.setPromptLlmParams({
+      presence_penalty: 0.3,
+      frequency_penalty: 0.2,
+      confidence: 0.5,
+      barge_confidence: 0.4,
+    });
+    out['swml_bedrock_prompt'] = pick(extract(render(a), 'amazon_bedrock.prompt'), [
+      'voice_id',
+      'max_tokens',
+      'temperature',
+      'top_p',
+      'presence_penalty',
+      'frequency_penalty',
+      'confidence',
+      'barge_confidence',
+    ]);
   }
 
   process.stdout.write(JSON.stringify(out) + '\n');

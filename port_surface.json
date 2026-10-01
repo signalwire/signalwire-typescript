@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ d6c747e7b65bb835fa0f91fea47e4a88b4adb3ff",
+  "generated_from": "signalwire-typescript @ 19dec67cc61416c7f59734d1982ebed1584274f4",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -74,6 +74,7 @@
           "delete",
           "end",
           "log",
+          "raw_post",
           "summarize",
           "url"
         ],
@@ -97,18 +98,177 @@
       },
       "functions": []
     },
+    "signalwire.ai_chat.gateway": {
+      "classes": {
+        "GatewayRejection": [
+          "__init__",
+          "reason",
+          "status"
+        ],
+        "ChatGateway": [
+          "__init__",
+          "allowed_origins",
+          "check_key",
+          "check_origin",
+          "close",
+          "config_url",
+          "conversation_timeout",
+          "effective_timeout",
+          "handle_ttl",
+          "key",
+          "last_activity",
+          "max_new_conversations",
+          "max_turns",
+          "mint_handle",
+          "prepare",
+          "read_handle",
+          "read_user_metadata",
+          "router",
+          "visible_messages",
+          "window_seconds"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.ai_chat.handoff": {
+      "classes": {
+        "NonceEntry": [
+          "__init__",
+          "call_id",
+          "conversation_id",
+          "issued_at",
+          "messages",
+          "redeemed"
+        ],
+        "HandoffRouter": [
+          "__init__",
+          "capture_leg",
+          "capture_timeout",
+          "end_call",
+          "escalate",
+          "gateway",
+          "max_messages_per_call",
+          "next_conversation_id",
+          "nonce_ttl",
+          "redeem",
+          "register",
+          "router",
+          "say",
+          "send_message"
+        ]
+      },
+      "functions": []
+    },
     "signalwire.cli.core.agent_loader": {
       "classes": {},
       "functions": [
+        "describe_agents",
         "list_agents",
         "load_agent"
       ]
     },
-    "signalwire.cli.simulation.mock_env": {
+    "signalwire.cli.datamap_exec": {
       "classes": {},
       "functions": [
-        "generate_fake_post_data",
-        "generate_minimal_post_data"
+        "execute_data_map",
+        "expand_template",
+        "expand_value"
+      ]
+    },
+    "signalwire.cli.function_args": {
+      "classes": {},
+      "functions": [
+        "parse_function_arguments",
+        "schema_properties",
+        "undeclared_argument_warnings"
+      ]
+    },
+    "signalwire.cli.simulation": {
+      "classes": {
+        "ServerlessSimulator": [
+          "__init__",
+          "activate",
+          "deactivate",
+          "environment"
+        ]
+      },
+      "functions": [
+        "apply_convenience_mappings",
+        "apply_overrides",
+        "comprehensive_post_data",
+        "fake_swml_post_data",
+        "load_env_file",
+        "minimal_post_data",
+        "parse_override_value",
+        "set_nested"
+      ]
+    },
+    "signalwire.cli.tsdocs.agents_note": {
+      "classes": {},
+      "functions": [
+        "init",
+        "note"
+      ]
+    },
+    "signalwire.cli.tsdocs.api": {
+      "classes": {},
+      "functions": [
+        "close_matches",
+        "load_api_index",
+        "render_found",
+        "resolve_name",
+        "suggestions",
+        "summary",
+        "summary_of",
+        "use_api_index"
+      ]
+    },
+    "signalwire.cli.tsdocs.files": {
+      "classes": {},
+      "functions": [
+        "all_doc_files",
+        "code_files",
+        "grep_files",
+        "headings",
+        "is_doc_file",
+        "is_text",
+        "resolve_doc",
+        "section"
+      ]
+    },
+    "signalwire.cli.tsdocs.index": {
+      "classes": {},
+      "functions": [
+        "main"
+      ]
+    },
+    "signalwire.cli.tsdocs.live": {
+      "classes": {},
+      "functions": [
+        "render_live",
+        "scan_env_names"
+      ]
+    },
+    "signalwire.cli.tsdocs.locate": {
+      "classes": {},
+      "functions": [
+        "code_dir",
+        "find_package_root",
+        "package_root",
+        "read_package_json"
+      ]
+    },
+    "signalwire.cli.tsdocs.render": {
+      "classes": {},
+      "functions": [
+        "example_descriptions",
+        "expand_examples",
+        "render_examples",
+        "render_index",
+        "render_llms_txt",
+        "render_topic",
+        "render_topic_list",
+        "version"
       ]
     },
     "signalwire.core.agent.prompt.manager": {
@@ -190,6 +350,7 @@
           "handle_request",
           "is_mcp_server_enabled",
           "native_functions",
+          "on_call_end",
           "on_debug_event",
           "on_error",
           "on_summary",
@@ -236,6 +397,14 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.core.capabilities": {
+      "classes": {},
+      "functions": [
+        "declared_capabilities",
+        "has_capability",
+        "user_variables"
+      ]
     },
     "signalwire.core.config_loader": {
       "classes": {
@@ -361,6 +530,7 @@
       "classes": {
         "DataMap": [
           "__init__",
+          "body",
           "description",
           "enable_env_expansion",
           "error_keys",
@@ -415,6 +585,7 @@
           "remove_metadata",
           "replace_in_history",
           "response",
+          "rpc_ai_global_data",
           "rpc_ai_message",
           "rpc_ai_unhold",
           "rpc_dial",
@@ -425,6 +596,7 @@
           "set_post_process",
           "set_response",
           "set_speech_event_timeout",
+          "set_tool_response",
           "simulate_user_input",
           "sip_refer",
           "stop",
@@ -575,10 +747,12 @@
     "signalwire.core.mixins.web_mixin": {
       "classes": {
         "WebMixin": [
+          "add_per_call_config",
           "as_router",
           "enable_debug_routes",
           "get_app",
           "manual_set_proxy_url",
+          "mount",
           "on_request",
           "on_swml_request",
           "register_routing_callback",
@@ -620,9 +794,27 @@
       },
       "functions": []
     },
+    "signalwire.core.post_prompt": {
+      "classes": {
+        "NormalizedPostPrompt": [
+          "__init__",
+          "call_id",
+          "conversation_id",
+          "dialogue",
+          "medium",
+          "raw",
+          "summary"
+        ]
+      },
+      "functions": [
+        "dialogue_turns",
+        "normalize_post_prompt",
+        "parse_post_prompt_data",
+        "strip_json_fence"
+      ]
+    },
     "signalwire.core.post_prompt_generated": {
       "classes": {
-        "PostPromptData": [],
         "PostPrompt": [
           "call_log",
           "post_prompt_data",
@@ -630,6 +822,7 @@
           "swaig_log",
           "times"
         ],
+        "PostPromptData": [],
         "PostPromptUserEntry": [
           "entity",
           "eot",
@@ -696,7 +889,8 @@
       "classes": {},
       "functions": [
         "validate_request",
-        "validate_webhook_signature"
+        "validate_webhook_signature",
+        "validate_webhook_signature_sha256"
       ]
     },
     "signalwire.core.security_config": {
@@ -937,20 +1131,14 @@
         ],
         "SWMLMethod": [],
         "Answer": [],
-        "AI": [
-          "ai"
-        ],
-        "AmazonBedrock": [
-          "amazon_bedrock"
-        ],
+        "AI": [],
+        "AmazonBedrock": [],
         "Cond": [
           "cond"
         ],
         "Connect": [],
         "Denoise": [],
-        "EnterQueue": [
-          "enter_queue"
-        ],
+        "EnterQueue": [],
         "Execute": [],
         "Goto": [],
         "Label": [],
@@ -958,9 +1146,7 @@
         "LiveTranslate": [],
         "Hangup": [],
         "JoinRoom": [],
-        "JoinConference": [
-          "join_conference"
-        ],
+        "JoinConference": [],
         "Play": [],
         "Prompt": [],
         "ReceiveFax": [],
@@ -984,294 +1170,57 @@
         "Pay": [],
         "DetectMachine": [],
         "UserEvent": [],
-        "AIObject": [
-          "SWAIG",
-          "hints",
-          "languages",
-          "params",
-          "post_prompt",
-          "prompt",
-          "pronounce"
-        ],
-        "AmazonBedrockObject": [
-          "SWAIG",
-          "params",
-          "post_prompt",
-          "prompt"
-        ],
-        "CondParams": [],
-        "ConnectDeviceSingle": [
-          "call_state_events",
-          "headers"
-        ],
-        "ConnectDeviceSerial": [
-          "call_state_events",
-          "headers",
-          "serial"
-        ],
-        "ConnectDeviceParallel": [
-          "call_state_events",
-          "headers",
-          "parallel"
-        ],
-        "ConnectDeviceSerialParallel": [
-          "call_state_events",
-          "headers",
-          "serial_parallel"
-        ],
-        "EnterQueueObject": [],
-        "ExecuteSwitch": [
-          "default"
-        ],
+        "ConnectDeviceSingle": [],
+        "ConnectDeviceSerial": [],
+        "ConnectDeviceParallel": [],
+        "ConnectDeviceSerialParallel": [],
         "TranslateAction": [],
-        "JoinConferenceObject": [],
-        "PlayWithURL": [],
-        "PlayWithURLS": [],
-        "SMSWithBody": [],
-        "SMSWithMedia": [],
-        "PayParameters": [],
-        "PayPrompts": [
-          "actions"
-        ],
-        "Hint": [],
-        "Languages": [],
-        "AIParams": [
-          "convo"
-        ],
-        "AIPostPrompt": [],
-        "Pronounce": [],
-        "AIPrompt": [],
-        "SWAIG": [
-          "defaults",
-          "functions",
-          "includes",
-          "internal_fillers",
-          "native_functions"
-        ],
-        "BedrockParams": [],
-        "BedrockPostPrompt": [],
-        "BedrockPrompt": [],
-        "BedrockSWAIG": [
-          "defaults",
-          "functions",
-          "includes",
-          "native_functions"
-        ],
-        "CondReg": [
-          "then"
-        ],
-        "CondElse": [],
-        "ConnectHeaders": [],
-        "ConnectSwitch": [
-          "default"
-        ],
         "ValidConfirmMethods": [],
         "CallStatus": [],
-        "TranscribeStartAction": [],
         "TranscribeSummarizeActionUnion": [],
-        "StartAction": [],
         "SummarizeActionUnion": [],
-        "InjectAction": [],
-        "PayPromptAction": [],
-        "LanguagesWithSoloFillers": [
-          "params"
-        ],
-        "LanguagesWithFillers": [
-          "params"
-        ],
-        "ConversationMessage": [
-          "role"
-        ],
         "Direction": [],
-        "AIPostPromptText": [],
-        "AIPostPromptPom": [
-          "pom"
-        ],
-        "AIPromptText": [
-          "contexts"
-        ],
-        "AIPromptPom": [
-          "contexts",
-          "pom"
-        ],
-        "SWAIGDefaults": [],
         "SWAIGNativeFunction": [],
-        "SWAIGIncludes": [],
-        "SWAIGInternalFiller": [
-          "adjust_response_latency",
-          "change_context",
-          "check_time",
-          "get_ideal_strategy",
-          "get_visual_input",
-          "hangup",
-          "next_step",
-          "wait_for_user",
-          "wait_seconds"
-        ],
         "OmitPropertiesBedrockPostPomptTextOmittedPromptProps": [],
-        "OmitPropertiesBedrockPostPromptPomOmittedPromptProps": [
-          "pom"
-        ],
+        "OmitPropertiesBedrockPostPromptPomOmittedPromptProps": [],
         "OmitPropertiesBedrockPromptTextOmittedPromptProps": [],
-        "OmitPropertiesBedrockPromptPomOmittedPromptProps": [
-          "pom"
-        ],
-        "BedrockSWAIGFunction": [],
+        "OmitPropertiesBedrockPromptPomOmittedPromptProps": [],
         "TranscribeDirection": [],
         "SpeechEngine": [],
-        "TranscribeSummarizeAction": [],
         "TranslationFilterPreset": [],
         "TranslateDirection": [],
-        "SummarizeAction": [],
-        "PayPromptSayAction": [],
-        "PayPromptPlayAction": [],
-        "LanguageParams": [],
         "ConversationRole": [],
-        "POM": [],
-        "Contexts": [
-          "default"
-        ],
-        "UserSWAIGFunction": [
-          "argument",
-          "data_map",
-          "fillers",
-          "parameters"
-        ],
-        "StartUpHookSWAIGFunction": [
-          "argument",
-          "data_map",
-          "fillers",
-          "parameters"
-        ],
-        "HangUpHookSWAIGFunction": [
-          "argument",
-          "data_map",
-          "fillers",
-          "parameters"
-        ],
-        "SummarizeConversationSWAIGFunction": [
-          "argument",
-          "data_map",
-          "fillers",
-          "parameters"
-        ],
-        "FunctionFillers": [],
-        "PickPropertiesUserSWAIGFunctionPickedSWAIGFunctionProps": [
-          "data_map",
-          "parameters"
-        ],
-        "PickPropertiesStartUpHookSWAIGFunctionPickedSWAIGFunctionProps": [
-          "data_map",
-          "parameters"
-        ],
-        "PickPropertiesHangUpHookSWAIGFunctionPickedSWAIGFunctionProps": [
-          "data_map",
-          "parameters"
-        ],
-        "PickPropertiesSummarizeConversationSWAIGFunctionPickedSWAIGFunctionProps": [
-          "data_map",
-          "parameters"
-        ],
-        "PomSectionBodyContent": [
-          "subsections"
-        ],
-        "PomSectionBulletsContent": [
-          "subsections"
-        ],
+        "Contexts": [],
+        "PickPropertiesUserSWAIGFunctionPickedSWAIGFunctionProps": [],
+        "PickPropertiesStartUpHookSWAIGFunctionPickedSWAIGFunctionProps": [],
+        "PickPropertiesHangUpHookSWAIGFunctionPickedSWAIGFunctionProps": [],
+        "PickPropertiesSummarizeConversationSWAIGFunctionPickedSWAIGFunctionProps": [],
         "ContextsObject": [],
-        "FunctionParameters": [],
         "DataMap": [
-          "expressions",
-          "output",
-          "webhooks"
-        ],
-        "ContextsPOMObject": [
-          "enter_fillers",
-          "exit_fillers",
-          "pom",
-          "steps"
-        ],
-        "ContextsTextObject": [
-          "enter_fillers",
-          "exit_fillers",
-          "steps"
+          "output"
         ],
         "SchemaType": [],
-        "Output": [
-          "action"
-        ],
         "Expression": [
           "output"
         ],
         "Webhook": [
-          "expressions",
           "output"
         ],
         "ContextSteps": [],
-        "StringProperty": [
-          "format"
-        ],
-        "IntegerProperty": [],
-        "NumberProperty": [],
-        "BooleanProperty": [],
-        "ArrayProperty": [
-          "items"
-        ],
-        "ObjectProperty": [],
-        "NullProperty": [],
-        "OneOfProperty": [
-          "oneOf"
-        ],
-        "AllOfProperty": [
-          "allOf"
-        ],
-        "AnyOfProperty": [
-          "anyOf"
-        ],
-        "ConstProperty": [],
-        "ContextPOMSteps": [
-          "pom"
-        ],
-        "ContextTextSteps": [],
         "StringFormat": [],
-        "SWMLAction": [],
-        "ChangeContextAction": [],
-        "ChangeStepAction": [],
-        "ContextSwitchAction": [],
-        "HangupAction": [],
-        "HoldAction": [],
-        "PlaybackBGAction": [],
-        "SayAction": [],
-        "SetGlobalDataAction": [],
-        "SetMetaDataAction": [],
-        "StopAction": [],
-        "StopPlaybackBGAction": [],
-        "ToggleFunctionsAction": [],
-        "UnsetGlobalDataAction": [],
-        "UnsetMetaDataAction": [],
-        "UserInputAction": [],
         "AiSidecar": [],
         "RingbackConfig": [],
         "ConnectConfig": [
-          "call_state_events",
           "headers",
           "parallel",
           "serial",
           "serial_parallel"
         ],
-        "ExecuteConfig": [
-          "on_return"
-        ],
+        "ExecuteConfig": [],
         "GotoConfig": [],
-        "LiveTranscribeConfig": [
-          "action"
-        ],
-        "AiSidecarConfig": [
-          "SWAIG"
-        ],
-        "LiveTranslateConfig": [
-          "action"
-        ],
+        "LiveTranscribeConfig": [],
+        "AiSidecarConfig": [],
+        "LiveTranslateConfig": [],
         "JoinRoomConfig": [],
         "PromptConfig": [],
         "ReceiveFaxConfig": [],
@@ -1283,15 +1232,10 @@
         "SipReferConfig": [],
         "StopRecordCallConfig": [],
         "StopTapConfig": [],
-        "SwitchConfig": [
-          "default"
-        ],
+        "SwitchConfig": [],
         "TapConfig": [],
         "TransferConfig": [],
-        "PayConfig": [
-          "parameters",
-          "prompts"
-        ],
+        "PayConfig": [],
         "DetectMachineConfig": [],
         "UserEventConfig": []
       },
@@ -1441,6 +1385,17 @@
           "to_dict",
           "to_json",
           "to_yaml"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.prefabs.call_session_store": {
+      "classes": {
+        "CallSessionStore": [
+          "__init__",
+          "delete",
+          "get_or_create",
+          "size"
         ]
       },
       "functions": []
@@ -2034,8 +1989,8 @@
         "CallingPassResult": [],
         "CallingPayResult": [],
         "CallingPayStopResult": [],
-        "CallingPlayPauseResult": [],
         "CallingPlayResult": [],
+        "CallingPlayPauseResult": [],
         "CallingPlayResumeResult": [],
         "CallingPlayStopResult": [],
         "CallingPlayVolumeResult": [],
@@ -2047,8 +2002,8 @@
         "CallingReceiveResult": [],
         "CallingReceiveFaxResult": [],
         "CallingReceiveFaxStopResult": [],
-        "CallingRecordPauseResult": [],
         "CallingRecordResult": [],
+        "CallingRecordPauseResult": [],
         "CallingRecordResumeResult": [],
         "CallingRecordStopResult": [],
         "CallingReferResult": [],
@@ -2279,6 +2234,7 @@
         "AIPrompt": [],
         "AIPromptPom": [],
         "AIPromptText": [],
+        "Action": [],
         "AllOfProperty": [],
         "AmazonBedrock": [],
         "AmazonBedrockObject": [],
@@ -2433,6 +2389,7 @@
         "SMSWithMedia": [],
         "SWAIG": [],
         "SWAIGDefaults": [],
+        "SWAIGFunction": [],
         "SWAIGIncludes": [],
         "SWAIGInternalFiller": [],
         "SWAIGNativeFunction": [],
@@ -2485,7 +2442,8 @@
         "UserInputAction": [],
         "UserSWAIGFunction": [],
         "ValidConfirmMethods": [],
-        "Webhook": []
+        "Webhook": [],
+        "Stream": []
       },
       "functions": []
     },
@@ -2666,19 +2624,14 @@
         "AIAgentResponse": [],
         "AIAgentUpdateRequest": [],
         "AIAgentUpdateStatusCode422": [],
-        "AIPostPrompt": [],
         "AIPostPromptPomUpdate": [],
         "AIPostPromptTextUpdate": [],
         "AIPostPromptUpdate": [],
-        "AIPrompt": [],
         "AIPromptPomUpdate": [],
         "AIPromptTextUpdate": [],
         "AIPromptUpdate": [],
         "AddressChannel": [],
         "AudioChannel": [],
-        "BedrockPostPrompt": [],
-        "BedrockPrompt": [],
-        "BedrockSWAIGFunction": [],
         "CXMLScript": [],
         "CXMLScriptAddressListResponse": [],
         "CXMLScriptAddressPaginationResponse": [],
@@ -2718,7 +2671,6 @@
         "CallStatus": [],
         "Ciphers": [],
         "Codecs": [],
-        "CondParams": [],
         "ConferenceRoom": [],
         "ConferenceRoomAddressListResponse": [],
         "ConferenceRoomAddressPaginationResponse": [],
@@ -2728,7 +2680,12 @@
         "ConferenceRoomResponse": [],
         "ConferenceRoomUpdateRequest": [],
         "ConferenceRoomUpdateStatusCode422": [],
+        "ConnectDeviceParallel": [],
+        "ConnectDeviceSerial": [],
+        "ConnectDeviceSerialParallel": [],
+        "ConnectDeviceSingle": [],
         "ContextSteps": [],
+        "Contexts": [],
         "ContextsObject": [],
         "ContextsObjectUpdate": [],
         "ContextsPOMObjectUpdate": [],
@@ -2777,15 +2734,11 @@
         "FreeswitchConnectorResponse": [],
         "FreeswitchConnectorUpdateRequest": [],
         "FreeswitchConnectorUpdateStatusCode422": [],
-        "FunctionFillers": [],
         "FunctionFillersUpdate": [],
         "GuestTokenCreateStatusCode422": [],
         "InviteTokenCreateStatusCode422": [],
-        "Languages": [],
         "Layout": [],
         "MessagingChannel": [],
-        "POM": [],
-        "PayPromptAction": [],
         "PhoneRouteAssignRequest": [],
         "PhoneRouteCreateStatusCode422": [],
         "PhoneRouteResponse": [],
@@ -3367,7 +3320,6 @@
         "RoomSessionSummary": [],
         "RoomTokenPermission": [],
         "RoomTokenResponse": [],
-        "Stream": [],
         "UpdateConferenceRequest": [],
         "UpdateRoomRequest": [],
         "UpdateStreamRequest": [],
@@ -3427,7 +3379,8 @@
       "classes": {
         "AskClaudeSkill": [
           "get_parameter_schema",
-          "get_tools"
+          "get_tools",
+          "setup"
         ]
       },
       "functions": [
@@ -3733,6 +3686,7 @@
     "signalwire.utils": {
       "classes": {},
       "functions": [
+        "cors_origins_from_env",
         "is_private_ip",
         "is_serverless_mode",
         "resolve_and_validate_url",
@@ -3749,6 +3703,7 @@
         "SchemaUtils": [
           "__init__",
           "clear_cache",
+          "compile_failed_verbs",
           "full_validation_available",
           "get_all_verb_names",
           "get_cache_size",
@@ -3758,6 +3713,7 @@
           "get_verb_required_properties",
           "has_verb",
           "load_schema",
+          "precompile_verb_validators",
           "schema_path",
           "validate_document",
           "validate_verb"

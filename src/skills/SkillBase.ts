@@ -110,6 +110,7 @@ export function defineSkillTool<
     handler: (
       args: ToolArgs<P, R>,
       rawData: SwaigRequest,
+      agent?: AgentBase,
     ) =>
       | FunctionResult
       | Record<string, unknown>
@@ -152,7 +153,7 @@ export interface ParameterSchemaEntry {
   required?: boolean;
   /** Whether the parameter should be hidden from user-facing output (e.g., API keys). */
   hidden?: boolean;
-  /** Environment variable that can supply this parameter's value. */
+  /** Environment variable a configuration tool can read this value from. A hint only: the SDK doesn't read it, so the skill gets the value from its params. */
   env_var?: string;
   /** Allowed values for the parameter. */
   enum?: unknown[];
@@ -175,9 +176,10 @@ export interface ParameterSchemaEntry {
  * - **Speech hints** via `getHints()`
  * - **Global data** seeded into each call via `getGlobalData()`
  *
- * Skills are added to an agent with `agent.addSkill('name', config)` and the
- * {@link SkillManager} calls `setAgent()` + `setup()` in sequence before the
- * agent starts serving requests.
+ * Skills are added to an agent with `agent.addSkill(new MySkill(config))`, or
+ * by registered name with `agent.addSkillByName('name', config)`. The agent
+ * calls `setAgent()`, and the {@link SkillManager} then calls `setup()`,
+ * before the skill's tools are registered.
  *
  * @example Custom skill
  * ```ts
@@ -199,7 +201,7 @@ export interface ParameterSchemaEntry {
  *
  * // In your agent:
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkill(new GreetingSkill({ message: 'Howdy!' }));
+ * await agent.addSkill(new GreetingSkill({ message: 'Howdy!' }));
  * ```
  *
  * @see {@link SkillManager}

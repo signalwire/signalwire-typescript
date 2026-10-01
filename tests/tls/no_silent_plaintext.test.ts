@@ -14,11 +14,12 @@
  * mock, no reading of source.
  */
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { HttpClient } from '../../src/rest/HttpClient.js';
 import { RelayClient } from '../../src/relay/RelayClient.js';
+import * as SecurityUtils from '../../src/SecurityUtils.js';
 
 describe('TLS: scheme selection never silently downgrades', () => {
   const saved = { ...process.env };
@@ -91,14 +92,16 @@ describe('TLS: an https:// URL is never retried in the clear', () => {
 
 describe('TLS: mcp_gateway verification opt-out requires TWO keys', () => {
   it('verify_ssl=false ALONE leaves verification on; only the second key disables it', async () => {
+    // setup() runs the gateway URL's SSRF check (a DNS lookup) before the TLS
+    // decision; stub it so the decision is reached without network access.
+    const ssrf = vi.spyOn(SecurityUtils, 'validateUrl').mockResolvedValue(true);
     const { McpGatewaySkill } = await import('../../src/skills/builtin/mcp_gateway.js');
 
-    // `_undiciAgent` is created ONLY when verification is genuinely disabled —
-    // its presence is the observable proof of the decision. A single stray
-    // `verify_ssl: false` (a copied config, a flipped default) must not be
-    // enough to produce it.
-    const read = (s: unknown): boolean =>
-      (s as { _undiciAgent?: unknown })._undiciAgent !== undefined;
+    // `_insecureTls` is set ONLY when verification is genuinely disabled — it
+    // is what the guarded transport reads, so it is the observable proof of
+    // the decision. A single stray `verify_ssl: false` (a copied config, a
+    // flipped default) must not be enough to set it.
+    const read = (s: unknown): boolean => (s as { _insecureTls?: unknown })._insecureTls === true;
 
     const base = { gateway_url: 'https://gateway.example.com', auth_token: 'tok' };
     for (const cfg of [{}, { verify_ssl: false }, { allow_insecure_tls: true }]) {
@@ -114,5 +117,6 @@ describe('TLS: mcp_gateway verification opt-out requires TWO keys', () => {
     });
     await optedIn.setup().catch(() => undefined);
     expect(read(optedIn)).toBe(true);
+    ssrf.mockRestore();
   });
 });

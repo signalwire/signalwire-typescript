@@ -1,21 +1,23 @@
 # All Namespaces
 
-Reference for every namespace beyond Fabric and Calling (which have their own pages). All methods are async — `await` them.
+This page covers every namespace except Fabric and Calling, which have their own pages: [Fabric Resources](fabric.md) and [Calling Commands](calling.md). Every method is async, so `await` it. Every method also takes an optional `requestOptions` object as its last argument, as [Request Options](guide.md#request-options-timeout-retries-abort) describes.
 
 <!-- snippet-setup -->
 ```ts
 export {}; // treat each example as a module so top-level `await` is allowed
-// Shared context the fragments below assume: `client` is a constructed RestClient
+// Shared context the fragments on this page assume: `client` is a constructed RestClient
 // (see the Getting Started page). Declared here so each example can `await client.<ns>...`.
 declare const client: import('@signalwire/sdk').RestClient;
 ```
 
 ## Phone Numbers
 
+`client.phoneNumbers` lists, searches, purchases, updates and releases phone numbers:
+
 ```typescript
 // List your phone numbers
 let numbers = await client.phoneNumbers.list();
-numbers = await client.phoneNumbers.list({ name: 'Main' });
+numbers = await client.phoneNumbers.list({ filter_name: 'Main' });
 
 // Search available numbers to purchase
 const available = await client.phoneNumbers.search({ areacode: '512', number_type: 'local' });
@@ -29,9 +31,22 @@ await client.phoneNumbers.update('pn-uuid', { name: 'Support Line' });
 await client.phoneNumbers.delete('pn-uuid');
 ```
 
-> Search filters use the WIRE parameter names verbatim: `areacode` (all lowercase) and `number_type` (snake_case), exactly as in the REST spec — camelCase (`areaCode`, `numberType`) or other spellings are silently ignored by the server.
+The SDK sends query parameters unchanged, so use the API's parameter names: `areacode` (all lowercase), `number_type` and `filter_name`, not `areaCode` or `numberType`. The `number_type` parameter selects `local` (the default) or toll-free numbers. To route a number's inbound calls, see [phone-binding.md](phone-binding.md).
+
+## Messages
+
+`client.messages.create` sends an SMS or MMS message. `to` and `from` are positional, and `body`, `media` and the other fields are options. `update` redacts a sent message, and its only accepted body is an empty string:
+
+```typescript
+const message = await client.messages.create('+15551234567', '+15559876543', {
+  body: 'Your order has shipped.',
+});
+await client.messages.update(message.id, '');
+```
 
 ## Addresses
+
+`client.addresses` lists, creates, gets and deletes addresses:
 
 ```typescript
 const addresses = await client.addresses.list();
@@ -45,6 +60,8 @@ await client.addresses.delete('addr-uuid');
 ```
 
 ## Queues
+
+`client.queues` manages queues and reads their members:
 
 ```typescript
 const queues = await client.queues.list();
@@ -61,6 +78,8 @@ const member = await client.queues.getMember('q-uuid', 'member-uuid');
 
 ## Recordings
 
+`client.recordings` lists, gets and deletes recordings:
+
 ```typescript
 const recordings = await client.recordings.list();
 const recording = await client.recordings.get('rec-uuid');
@@ -68,6 +87,8 @@ await client.recordings.delete('rec-uuid');
 ```
 
 ## Number Groups
+
+`client.numberGroups` manages number groups and their memberships:
 
 ```typescript
 const groups = await client.numberGroups.list();
@@ -84,6 +105,8 @@ await client.numberGroups.deleteMembership('mem-uuid');
 ```
 
 ## Verified Caller IDs
+
+`client.verifiedCallers` manages verified caller IDs and runs the verification flow:
 
 ```typescript
 const callers = await client.verifiedCallers.list();
@@ -102,7 +125,7 @@ await client.verifiedCallers.submitVerification('vc-uuid', '123456');
 
 ## SIP Profile
 
-Singleton resource -- no ID needed:
+Each project has one SIP profile, so `get()` and `update()` take no ID:
 
 ```typescript
 const profile = await client.sipProfile.get();
@@ -111,14 +134,18 @@ await client.sipProfile.update({ domain_identifier: 'myproject', default_encrypt
 
 ## Phone Number Lookup
 
+`client.lookup.phoneNumber` looks up a number in E.164 format. The `include` parameter adds `carrier` or `cnam` information, or both:
+
 ```typescript
 let info = await client.lookup.phoneNumber('+15551234567');
 info = await client.lookup.phoneNumber('+15551234567', { include: 'carrier,cnam' });
 ```
 
-Note: carrier and CNAM lookups are billable.
+The API reference describes some of the `include` lookups as billable.
 
 ## Short Codes
+
+`client.shortCodes` lists, gets and updates short codes:
 
 ```typescript
 const codes = await client.shortCodes.list();
@@ -131,6 +158,8 @@ await client.shortCodes.update('sc-uuid', 'Alerts', 'laml_webhooks', {
 
 ## Imported Phone Numbers
 
+`client.importedNumbers.create` imports a number you host elsewhere:
+
 ```typescript
 // create takes (number, number_type) positionally, with optional capabilities
 await client.importedNumbers.create('+15559999999', 'longcode', {
@@ -140,11 +169,13 @@ await client.importedNumbers.create('+15559999999', 'longcode', {
 
 ## MFA (Multi-Factor Authentication)
 
+`client.mfa` sends a verification code by SMS or phone call, then checks the code the user enters. The `message` option is text sent before the code:
+
 ```typescript
-// Request a verification code via SMS — `to` is positional, the rest are options
+// Request a verification code via SMS; `to` is positional, and the rest are options
 const result = await client.mfa.sms('+15551234567', {
   from: '+15559876543',
-  message: 'Your code is {code}',
+  message: 'Your verification code is:',
 });
 const requestId = result.id;
 
@@ -153,14 +184,16 @@ await client.mfa.call('+15551234567', {
   from: '+15559876543',
 });
 
-// Verify the code (requestId, token) positionally
+// Verify the code; requestId and token are positional
 await client.mfa.verify(requestId, '123456');
 ```
 
 ## 10DLC Campaign Registry
 
+`client.registry` registers 10DLC brands and campaigns, and assigns numbers to campaigns:
+
 ```typescript
-// Brands — a self-registered (CSP) brand needs its approved TCR brand reference
+// Brands; a self-registered (CSP) brand needs its approved TCR brand reference
 const brands = await client.registry.brands.list();
 const brand = await client.registry.brands.create({
   csp_self_registered: true,
@@ -191,6 +224,8 @@ await client.registry.numbers.delete('number-assignment-uuid');
 
 ## Datasphere
 
+`client.datasphere.documents` manages documents, runs semantic search and manages the chunks of each document:
+
 ```typescript
 // Documents
 const docs = await client.datasphere.documents.list();
@@ -215,6 +250,8 @@ await client.datasphere.documents.deleteChunk('doc-uuid', 'chunk-uuid');
 ```
 
 ## Video
+
+`client.video` manages rooms, room tokens, sessions, recordings, conferences and streams:
 
 ```typescript
 // Rooms
@@ -264,7 +301,7 @@ await client.video.streams.delete('stream-uuid');
 
 ## Logs
 
-All log endpoints are read-only.
+The log endpoints are read-only. This example reads each kind of log:
 
 ```typescript
 // Message logs
@@ -286,13 +323,28 @@ const conferenceLogs = await client.logs.conferences.list();
 
 ## Project Tokens
 
+`client.project.tokens` creates, updates and deletes API tokens. `create` takes the token name and its permissions positionally:
+
 ```typescript
 const token = await client.project.tokens.create('ci-token', ['calling', 'messaging', 'numbers']);
 await client.project.tokens.update('token-uuid', { name: 'renamed-token' });
 await client.project.tokens.delete('token-uuid');
 ```
 
+## Projects
+
+`client.projects` manages projects and subprojects. The signing key is returned only by `create` and `rotateSigningKey`:
+
+```typescript
+const projects = await client.projects.list();
+const project = await client.projects.create({ name: 'Staging' });
+await client.projects.update(project.id, { name: 'Staging EU' });
+const rotated = await client.projects.rotateSigningKey(project.id);
+```
+
 ## PubSub Tokens
+
+`client.pubsub.createToken` creates a PubSub token. The time to live (`ttl`) and the channel permissions are positional:
 
 ```typescript
 const token = await client.pubsub.createToken(
@@ -303,6 +355,8 @@ const token = await client.pubsub.createToken(
 ```
 
 ## Chat Tokens
+
+`client.chat.createToken` creates a Chat token with the same arguments:
 
 ```typescript
 const token = await client.chat.createToken(

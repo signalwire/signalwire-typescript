@@ -6,8 +6,38 @@ import Ajv from 'ajv';
 import { FunctionResult, type SwaigResultDict } from './FunctionResult.js';
 import { getLogger } from './Logger.js';
 import type { SwaigRequest } from './SwaigContracts.js';
+import type { AgentBase } from './AgentBase.js';
 
 const ajv = new Ajv({ allErrors: true });
+
+/**
+ * Compiled argument validators, keyed by the schema's JSON, so every call of
+ * a tool (and of its per-request copies) reuses one. Bounded: the oldest
+ * entry goes when it's full. Each schema is removed from Ajv's own cache
+ * once compiled, so only this map holds it.
+ */
+const VALIDATOR_CACHE_LIMIT = 500;
+const compiledValidators = new Map<string, ReturnType<typeof ajv.compile>>();
+let compileCount = 0;
+
+function validatorFor(schema: Record<string, unknown>): ReturnType<typeof ajv.compile> {
+  const key = JSON.stringify(schema);
+  const cached = compiledValidators.get(key);
+  if (cached) return cached;
+  const validate = ajv.compile(schema);
+  ajv.removeSchema(schema);
+  compileCount += 1;
+  if (compiledValidators.size >= VALIDATOR_CACHE_LIMIT) {
+    compiledValidators.delete(compiledValidators.keys().next().value!);
+  }
+  compiledValidators.set(key, validate);
+  return validate;
+}
+
+/** @internal How many argument validators have been compiled (for tests). */
+export function _compiledValidatorCount(): number {
+  return compileCount;
+}
 
 const log = getLogger('SwaigFunction');
 
@@ -75,11 +105,16 @@ export function normalizeParameters(
  * Handler function for a SWAIG tool invocation.
  * @param args - Parsed arguments extracted by the AI from user speech.
  * @param rawData - The full raw request payload from SignalWire.
+ * @param agent - The agent running the call. With a dynamic config callback
+ *   set, this is the request's configured copy, so the handler sees what the
+ *   callback configured (the reference passes it as `self`). Undefined when a
+ *   caller runs {@link SwaigFunction.execute} directly.
  * @returns A FunctionResult, a plain object with a response key, a string, or a Promise of any of these.
  */
 export type SwaigHandler = (
   args: Record<string, unknown>,
   rawData: SwaigRequest,
+  agent?: AgentBase,
 ) =>
   | FunctionResult
   | Record<string, unknown>
@@ -310,7 +345,7 @@ export class SwaigFunction {
       return [true, []];
     }
 
-    const validate = ajv.compile(schema);
+    const validate = validatorFor(schema);
     const valid = validate(args);
     if (valid) {
       return [true, []];
@@ -335,11 +370,40 @@ export class SwaigFunction {
     rawData?: SwaigRequest,
     agentOnError?: SwaigErrorHandler,
   ): Promise<SwaigResultDict> {
+    return this._executeAs(undefined, args, rawData, agentOnError);
+  }
+
+  /**
+   * {@link execute}, passing `agent` to the handler as its third argument: the
+   * agent running the call, which with a dynamic config callback is the
+   * request's configured copy.
+   * @internal
+   */
+  async _executeAs(
+    agent: AgentBase | undefined,
+    args: Record<string, unknown>,
+    rawData?: SwaigRequest,
+    agentOnError?: SwaigErrorHandler,
+  ): Promise<SwaigResultDict> {
+    // Soft validation, as the reference's tool_mixin does: arguments that
+    // don't match the schema are logged, and the handler still runs.
+    if (args && Object.keys(args).length > 0) {
+      try {
+        const [valid, errors] = this.validateArgs(args);
+        if (!valid) {
+          log.warn(`Argument validation failed for function '${this.name}': ${errors.join('; ')}`);
+        }
+      } catch (err) {
+        log.debug(
+          `Argument validation error for function '${this.name}': ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
     try {
       // Runtime fallback is the empty object (unchanged); the cast is
       // compile-time only — the backend always sends the full payload, but
       // `execute` allows callers to omit it (e.g. CLI/test harnesses).
-      const result = await this.handler(args, rawData ?? ({} as SwaigRequest));
+      const result = await this.handler(args, rawData ?? ({} as SwaigRequest), agent);
       if (result instanceof FunctionResult) {
         return result.toDict();
       }

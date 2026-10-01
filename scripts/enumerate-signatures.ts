@@ -36,6 +36,7 @@ import * as yaml from 'js-yaml';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, '..');
+
 // PORTING_SDK is the env var run-ci.sh exports; PSDK is a legacy alias.
 // Fallback to the sibling-adjacency convention (../porting-sdk) if neither is set.
 const PSDK =
@@ -55,6 +56,8 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   // to the reference module ``signalwire.ai_chat.client`` (else it falls back
   // to ``signalwire.ai_chat.ai_chat_client``).
   'src/ai-chat/AIChatClient.ts': 'signalwire.ai_chat.client',
+  'src/ai-chat/ChatGateway.ts': 'signalwire.ai_chat.gateway',
+  'src/ai-chat/HandoffRouter.ts': 'signalwire.ai_chat.handoff',
   'src/AgentBase.ts': 'signalwire.core.agent_base',
   'src/AgentServer.ts': 'signalwire.agent_server',
   'src/AuthHandler.ts': 'signalwire.core.auth_handler',
@@ -89,6 +92,8 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   // not fire. The result was a spurious `SwmlRequestData` vs `dict<string,any>`
   // param-mismatch on every dynamic-SWML hook, each one carried as an omission.
   'src/PlatformContracts.generated.ts': 'signalwire.rest.namespaces.swml_webhooks_types_generated',
+  'src/capabilities.ts': 'signalwire.core.capabilities',
+  'src/PostPrompt.ts': 'signalwire.core.post_prompt',
   'src/WebhookMiddleware.ts': 'signalwire.core.security.webhook_middleware',
   'src/WebhookValidator.ts': 'signalwire.core.security.webhook_validator',
   'src/WebService.ts': 'signalwire.web.web_service',
@@ -351,6 +356,8 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
       'run',
       'serve',
       'set_dynamic_config_callback',
+      'add_per_call_config',
+      'mount',
       'on_request',
       'on_swml_request',
     ],
@@ -401,6 +408,12 @@ const SKIP_METHOD_NAMES = new Set([
 const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
   // Context.add_step — Python keyword-only step config (task/bullets/criteria/…).
   'signalwire.core.contexts.Context.add_step',
+  // AgentBase.mount — Python's prefix/name are keyword-only (`*, prefix, name`).
+  'signalwire.core.agent_base.AgentBase.mount',
+  // dialogue_turns — Python's roles/drop_echo are keyword-only.
+  'signalwire.core.post_prompt.dialogue_turns',
+  'signalwire.ai_chat.gateway.ChatGateway.prepare',
+  'signalwire.ai_chat.handoff.HandoffRouter.register',
   // relay Call per-verb convenience methods — Python keyword-only args + **kwargs.
   'signalwire.relay.call.Call.ai',
   'signalwire.relay.call.Call.ai_hold',

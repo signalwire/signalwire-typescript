@@ -6,7 +6,7 @@
  * Run: npx tsx examples/swml-service.ts
  */
 
-import { SWMLService } from '../src/index.js';
+import { SWMLService } from '@signalwire/sdk';
 
 export const agent = new SWMLService({
   name: 'ivr-menu',

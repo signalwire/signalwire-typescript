@@ -10,12 +10,15 @@ import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { cors } from 'hono/cors';
-import { readFile, stat, readdir } from 'node:fs/promises';
-import { join, extname, normalize, resolve, basename } from 'node:path';
+import { readFile, stat, readdir, realpath } from 'node:fs/promises';
+import { join, extname, normalize, relative, resolve, basename, sep } from 'node:path';
 import { existsSync, statSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
 import { getLogger } from './Logger.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import { SslConfig } from './SslConfig.js';
+import { SecurityConfig } from './SWMLService.js';
+import { corsOriginsFromEnv } from './SecurityUtils.js';
 import type { SslOptions } from './SslConfig.js';
 
 /** Common MIME types for static file serving. */
@@ -56,7 +59,13 @@ export interface WebServiceOptions {
   port?: number;
   /** Map of URL route prefixes to local directory paths. Default: {}. */
   directories?: Record<string, string>;
-  /** Basic auth credentials as [username, password]. Default: none. */
+  /**
+   * Basic auth credentials as [username, password]. Default: the config file's
+   * `security.auth.basic`, then `SWML_BASIC_AUTH_USER` / `SWML_BASIC_AUTH_PASSWORD`.
+   * Every route but `/health` requires them. Without a password from any of
+   * these (an empty one doesn't count), the service generates one that is
+   * never shown, so it refuses every request, and `start()` throws.
+   */
   basicAuth?: [string, string];
   /** Path to a JSON config file. Default: none. */
   configFile?: string;
@@ -65,7 +74,10 @@ export interface WebServiceOptions {
   /** Allowlist of file extensions (e.g. ['.html', '.css']). Default: all allowed. */
   allowedExtensions?: string[];
   /**
-   * Blocklist of file extensions or names.
+   * Blocklist of file extensions or names. An entry is also refused as the
+   * name of any directory on the path below the mount. Whatever this holds, a
+   * path with a component below the mount that starts with a dot, other than
+   * `.well-known`, is never served.
    * Default: ['.env', '.git', '.gitignore', '.key', '.pem', '.crt', '.pyc', '__pycache__', '.DS_Store', '.swp']
    */
   blockedExtensions?: string[];
@@ -87,6 +99,49 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#39;');
 }
 
+/** Whether `path` is `root` or inside it (both absolute, already resolved). */
+function isWithin(path: string, root: string): boolean {
+  return path === root || path.startsWith(root.endsWith(sep) ? root : root + sep);
+}
+
+/** The components of a path, split on either separator, without empty ones. */
+function pathParts(path: string): string[] {
+  return path.split(/[\\/]+/).filter(Boolean);
+}
+
+/**
+ * Decode a route parameter as Hono does: `decodeURIComponent` when it holds a
+ * `%`, and on a malformed sequence, each decodable run of escapes alone.
+ */
+function decodeParam(value: string): string {
+  if (!value.includes('%')) return value;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value.replace(/(?:%[0-9A-Fa-f]{2})+/g, (run) => {
+      try {
+        return decodeURIComponent(run);
+      } catch {
+        return run;
+      }
+    });
+  }
+}
+
+/** Route parameter holding the part of the path below the app's own root. */
+const TAIL_PARAM = 'webServicePath';
+
+/**
+ * The request's path with a trailing slash, as a redirect on this host. It's
+ * built from the path as the client sent it, still percent-encoded, so a
+ * directory named `my dir` keeps its encoding and `%2F` isn't decoded into a
+ * separator. Leading slashes are collapsed to one, so `//example.org` can't
+ * become a Location a browser reads as another host.
+ */
+function sameOriginRedirect(url: string): string {
+  return `/${new URL(url).pathname.replace(/^\/+/, '')}/`;
+}
+
 /** Format a file size in bytes to a human-readable string. */
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -101,8 +156,13 @@ function formatSize(bytes: number): string {
  * extension filtering, file size limits, HTTP Basic Auth, CORS, directory
  * browsing, and optional SSL/TLS.
  *
- * Useful when an agent or prefab needs to serve supporting assets — prompts, audio
- * files, images — from the same process without running a separate nginx / CDN.
+ * Useful when an agent or prefab needs to serve supporting assets (prompts, audio
+ * files, images) from the same process without running a separate nginx or CDN.
+ *
+ * Every route but `/health` requires HTTP Basic Authentication, and `start()`
+ * refuses to run until credentials are configured: the `basicAuth` option, the
+ * config file's `security.auth.basic`, or `SWML_BASIC_AUTH_USER` /
+ * `SWML_BASIC_AUTH_PASSWORD`.
  *
  * @example Serve a directory of audio files
  * ```ts
@@ -111,10 +171,11 @@ function formatSize(bytes: number): string {
  * const web = new WebService({
  *   port: 8080,
  *   directories: { '/audio': './public/audio' },
+ *   basicAuth: ['audio', process.env['AUDIO_PASSWORD'] ?? ''],
  *   allowedExtensions: ['.mp3', '.wav'],
  * });
  *
- * await web.serve();
+ * await web.start();
  * // GET http://host:8080/audio/greeting.mp3
  * ```
  */
@@ -135,7 +196,9 @@ export class WebService {
   readonly directories: Record<string, string>;
 
   private _app: Hono;
-  private _basicAuth: [string, string] | null;
+  private _basicAuth: [string, string];
+  /** Where the credentials came from: 'provided', 'environment', 'config file' or 'generated'. */
+  private _basicAuthSource: string;
   private _ssl: SslConfig;
   private _server: { close?: () => void } | null = null;
   private readonly log = getLogger('WebService');
@@ -162,10 +225,31 @@ export class WebService {
     // Load configuration from file first (if provided), then override with
     // explicit constructor parameters, mirroring the Python SDK's precedence.
     const fileConfig = this._loadConfig(options?.configFile);
+    const security = new SecurityConfig({ configFile: fileConfig.configPath });
 
     this.port = options?.port ?? fileConfig.port ?? 8002;
     this.directories = { ...(fileConfig.directories ?? {}), ...(options?.directories ?? {}) };
-    this._basicAuth = options?.basicAuth ?? null;
+    // Basic auth, as the Python reference resolves it: the basicAuth option,
+    // then the config file's security.auth.basic, then SWML_BASIC_AUTH_USER /
+    // SWML_BASIC_AUTH_PASSWORD (the user defaults to 'signalwire'). With none,
+    // a generated password that nothing shows: every request is refused, and
+    // start() throws rather than serve that way.
+    const configured = security.getBasicAuth();
+    if (options?.basicAuth?.[1]) {
+      this._basicAuth = options.basicAuth;
+      this._basicAuthSource = 'provided';
+    } else if (configured) {
+      this._basicAuth = configured;
+      this._basicAuthSource = security.basicAuthSource ?? 'environment';
+    } else {
+      this._basicAuth = ['signalwire', randomBytes(24).toString('base64url')];
+      this._basicAuthSource = 'generated';
+      this.log.warn(
+        'No basic-auth password configured: WebService refuses every request and start() ' +
+          'will throw. Set SWML_BASIC_AUTH_USER and SWML_BASIC_AUTH_PASSWORD, pass ' +
+          'basicAuth: [user, password], or set security.auth.basic in the config file.',
+      );
+    }
     this.enableDirectoryBrowsing =
       options?.enableDirectoryBrowsing ?? fileConfig.enableDirectoryBrowsing ?? false;
     this.allowedExtensions = options?.allowedExtensions ?? fileConfig.allowedExtensions ?? null;
@@ -184,7 +268,8 @@ export class WebService {
   // ── Public API ─────────────────────────────────────────────────────
 
   /**
-   * Add a new directory to serve at a URL route prefix.
+   * Add a new directory to serve at a URL route prefix. Works before or after
+   * the service starts; the route serves from the next request.
    * @param route - URL prefix (e.g. '/docs').
    * @param directory - Local directory path to serve.
    * @throws If the directory does not exist or is not a directory.
@@ -202,20 +287,18 @@ export class WebService {
     }
 
     this.directories[r] = directory;
-    this._mountSingleDirectory(r, directory);
+    this.log.info(`Serving static files from ${dirPath} at ${WebService._normalizeRoute(r)}`);
   }
 
   /**
-   * Remove a previously added directory route from the bookkeeping map.
-   *
-   * Note: Hono does not support dynamic route removal; a server restart
-   * is required for the route to fully stop responding.
+   * Stop serving a directory. The route stops responding at once, including
+   * on a running service.
    * @param route - The URL route prefix to remove.
    */
   removeDirectory(route: string): void {
-    const r = route.startsWith('/') ? route : `/${route}`;
-    if (r in this.directories) {
-      delete this.directories[r];
+    const r = WebService._normalizeRoute(route);
+    for (const key of Object.keys(this.directories)) {
+      if (WebService._normalizeRoute(key) === r) delete this.directories[key];
     }
   }
 
@@ -247,6 +330,10 @@ export class WebService {
    * When `SWAIG_CLI_MODE=true` is set in the environment, the call is a
    * no-op so config can be inspected without binding a port.
    *
+   * @throws If no basic-auth credentials are configured (the `basicAuth`
+   *   option, the config file's `security.auth.basic`, or
+   *   `SWML_BASIC_AUTH_USER` / `SWML_BASIC_AUTH_PASSWORD`).
+   *
    * @param host - Bind address. Defaults to `'0.0.0.0'`.
    * @param port - Port override. Defaults to `this.port`.
    * @param sslCert - Path to SSL certificate file (overrides `SslConfig`).
@@ -261,6 +348,15 @@ export class WebService {
   ): Promise<void> {
     // When loaded by the CLI tool, skip server startup.
     if (process.env['SWAIG_CLI_MODE'] === 'true') return;
+
+    if (this._basicAuthSource === 'generated') {
+      throw new Error(
+        'WebService needs basic-auth credentials: set SWML_BASIC_AUTH_USER and ' +
+          'SWML_BASIC_AUTH_PASSWORD, pass basicAuth: [user, password], or set ' +
+          'security.auth.basic in the config file. A generated password is never ' +
+          'shown, so every file request would be refused.',
+      );
+    }
 
     const h = host;
     const p = port ?? this.port;
@@ -277,7 +373,9 @@ export class WebService {
     this.log.info(`WebService starting on ${scheme}://${h}:${p}`);
     this.log.info(`Directories: ${Object.keys(this.directories).join(', ') || 'None'}`);
     this.log.info(`Directory Browsing: ${this.enableDirectoryBrowsing ? 'Enabled' : 'Disabled'}`);
-    this.log.info(`Basic Auth: ${this._basicAuth ? 'Enabled' : 'Disabled'}`);
+    this.log.info(
+      `Basic Auth: ${this._basicAuth[0]}:(credentials configured) (source: ${this._basicAuthSource})`,
+    );
     if (useHttps) {
       this.log.info('SSL: Enabled');
     }
@@ -318,6 +416,8 @@ export class WebService {
 
   /** Intermediate config shape returned by the file loader. */
   private _loadConfig(configFile?: string): {
+    /** Absolute path of the config file loaded, for the security settings. */
+    configPath?: string;
     port?: number;
     directories?: Record<string, string>;
     enableDirectoryBrowsing?: boolean;
@@ -328,18 +428,22 @@ export class WebService {
   } {
     const result: ReturnType<WebService['_loadConfig']> = {};
 
-    if (!configFile) {
-      // Search standard locations for a web-service config
-      const loader = ConfigLoader.search('web_service.json');
-      if (!loader) return result;
-      return this._extractServiceConfig(loader);
-    }
-
+    // Without configFile, search the standard locations for a web-service
+    // config. A file that can't be read or parsed is skipped with a warning,
+    // whether it was passed or found, as the Python reference's ConfigLoader
+    // logs the error and continues without it.
     try {
-      const loader = new ConfigLoader(configFile);
-      return this._extractServiceConfig(loader);
-    } catch {
-      this.log.warn(`Failed to load config file: ${configFile}`);
+      const loader = configFile
+        ? new ConfigLoader(configFile)
+        : ConfigLoader.search('web_service.json');
+      if (!loader) return result;
+      const extracted = this._extractServiceConfig(loader);
+      const configPath = loader.getConfigFile();
+      if (configPath) extracted.configPath = configPath;
+      return extracted;
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      this.log.warn(`Failed to load config file: ${configFile ?? 'web_service.json'}: ${reason}`);
       return result;
     }
   }
@@ -388,7 +492,7 @@ export class WebService {
     // CORS
     if (this.enableCors) {
       const corsOrigins = process.env['SWML_CORS_ORIGINS'];
-      const corsOrigin = corsOrigins ? corsOrigins.split(',').map((o: string) => o.trim()) : '*';
+      const corsOrigin = corsOriginsFromEnv(corsOrigins);
       const corsCredentials = corsOrigin !== '*';
       this._app.use('*', cors({ origin: corsOrigin, credentials: corsCredentials }));
     }
@@ -398,47 +502,67 @@ export class WebService {
       this._app.use('*', this._ssl.hstsMiddleware());
     }
 
-    // Basic auth (applied to all routes if configured)
-    if (this._basicAuth) {
-      const [user, pass] = this._basicAuth;
-      this._app.use('*', basicAuth({ username: user, password: pass }));
-    }
-  }
-
-  // ── Route setup ────────────────────────────────────────────────────
-
-  private _setupRoutes(): void {
-    // Health endpoint
+    // Health endpoint, which load balancers probe without credentials (as the
+    // Python reference and AgentBase do). It's registered before the auth
+    // middleware, so the handler itself is exempt: a path comparison would
+    // miss when a parent app mounts this one under a prefix.
     this._app.get('/health', (c) =>
       c.json({
         status: 'healthy',
         directories: Object.keys(this.directories),
         sslEnabled: this._ssl.isConfigured(),
-        authRequired: Boolean(this._basicAuth),
+        authRequired: true,
         directoryBrowsing: this.enableDirectoryBrowsing,
       }),
     );
 
+    // Basic auth on every route registered after this point
+    const [user, pass] = this._basicAuth;
+    this._app.use('*', basicAuth({ username: user, password: pass }));
+  }
+
+  // ── Route setup ────────────────────────────────────────────────────
+
+  private _setupRoutes(): void {
     // Root endpoint showing available directories
-    this._app.get('/', (c) => {
-      const dirEntries = Object.entries(this.directories);
+    // At this app's root; under a parent app's prefix, the path is the prefix
+    this._app.get('/', (c) => this._serveOverview(c, c.req.path.replace(/\/+$/, '')));
 
-      if (dirEntries.length === 0) {
-        return c.json({
-          service: 'SignalWire Web Service',
-          directories: [],
-        });
-      }
+    // Mounted directories: one handler that consults `directories` on each
+    // request, so mounts added or removed after the first request apply. The
+    // parameter captures the path below this app's root, which is how the
+    // prefix a parent app mounts this one under is found, however the
+    // parent's pattern is written. The wildcard route catches what the
+    // parameter can't match: `${prefix}/`, whose part below the root is
+    // empty, and on older Hono versions a part that starts with `/`.
+    this._app.get(`/:${TAIL_PARAM}{.+}`, (c) => this._serveMounted(c));
+    this._app.get('*', (c) => this._serveMounted(c));
+  }
 
-      const items = dirEntries
-        .map(
-          ([route, localPath]) =>
-            `<li><a href="${escapeHtml(route)}">${escapeHtml(route)}</a>` +
-            ` <span class="path">&rarr; ${escapeHtml(localPath)}</span></li>`,
-        )
-        .join('\n');
+  /**
+   * The page at `/` that links to each mounted directory. Its links carry the
+   * prefix a parent app mounts this one under.
+   */
+  private _serveOverview(c: Context, base: string): Response {
+    const dirEntries = Object.entries(this.directories);
 
-      const html = `<!DOCTYPE html>
+    if (dirEntries.length === 0) {
+      return c.json({
+        service: 'SignalWire Web Service',
+        directories: [],
+      });
+    }
+
+    const items = dirEntries
+      .map(
+        ([route, localPath]) =>
+          `<li><a href="${escapeHtml(base + WebService._normalizeRoute(route))}">` +
+          `${escapeHtml(route)}</a>` +
+          ` <span class="path">&rarr; ${escapeHtml(localPath)}</span></li>`,
+      )
+      .join('\n');
+
+    const html = `<!DOCTYPE html>
 <html>
 <head>
   <title>SignalWire Web Service</title>
@@ -460,12 +584,17 @@ export class WebService {
   </ul>
 </body>
 </html>`;
-      c.header('Content-Type', 'text/html');
-      return c.body(html);
-    });
+    c.header('Content-Type', 'text/html');
+    return c.body(html);
   }
 
   // ── Directory mounting ─────────────────────────────────────────────
+
+  /** Normalize a route prefix: leading slash, no trailing slash ('/' stays '/'). */
+  private static _normalizeRoute(route: string): string {
+    const withSlash = route.startsWith('/') ? route : `/${route}`;
+    return withSlash.replace(/\/+$/, '') || '/';
+  }
 
   private _mountDirectories(): void {
     for (const [route, dir] of Object.entries(this.directories)) {
@@ -474,86 +603,192 @@ export class WebService {
         this.log.warn(`Directory does not exist: ${dir}`);
         continue;
       }
-      this._mountSingleDirectory(route, dir);
+      this.log.info(`Serving static files from ${dirPath} at ${WebService._normalizeRoute(route)}`);
     }
   }
 
-  private _mountSingleDirectory(route: string, directory: string): void {
-    const baseDir = resolve(directory);
-    const routePrefix = route.replace(/\/+$/, '') || '/';
+  /**
+   * Find the mount serving a request path: the longest route prefix in
+   * `directories` that equals the path or is followed by `/` in it. Consulted
+   * on every request, so `addDirectory()` and `removeDirectory()` take effect
+   * at once.
+   */
+  private _findMount(path: string): { prefix: string; directory: string } | null {
+    let best: { prefix: string; directory: string } | null = null;
+    for (const [route, directory] of Object.entries(this.directories)) {
+      const prefix = WebService._normalizeRoute(route);
+      const matches = prefix === '/' ? true : path === prefix || path.startsWith(`${prefix}/`);
+      if (matches && (!best || prefix.length > best.prefix.length)) {
+        best = { prefix, directory };
+      }
+    }
+    return best;
+  }
 
-    this._app.get(`${routePrefix}/*`, async (c) => {
-      const requestedPath = c.req.path.slice(routePrefix.length);
+  /**
+   * Split the request path into the prefix a parent app mounts this one
+   * under with `route()` (Python's `root_path`; empty when it isn't mounted)
+   * and the path below it, which starts with `/`. The route parameter holds
+   * what this app's own route matched, decoded, so the prefix is the part of
+   * the path before the `/` whose remainder decodes to it. That holds however
+   * the parent's pattern is written (`/assets`, `/:tenant`,
+   * `/:tenant{[a-z]+}`), and puts the split at a path-segment boundary. The
+   * remainder keeps the path's own encoding, as `c.req.path` has it. Null if
+   * no split matches.
+   */
+  private static _splitBase(c: Context): { base: string; path: string } | null {
+    // Reached through the wildcard route, the part below the root is taken
+    // to be empty, so only `${prefix}/` splits; anything else is a 404.
+    const tail = c.req.param(TAIL_PARAM) ?? '';
+    const path = c.req.path;
+    for (let i = path.indexOf('/'); i !== -1; i = path.indexOf('/', i + 1)) {
+      if (decodeParam(path.slice(i + 1)) === tail) {
+        return { base: path.slice(0, i), path: path.slice(i) };
+      }
+    }
+    return null;
+  }
 
-      // Path traversal protection: reject any path containing ".."
-      if (requestedPath.includes('..')) {
+  /**
+   * Serve a GET request under a mounted directory, or 404 when no mount
+   * matches. Every check sees the path below the parent app's prefix.
+   */
+  private async _serveMounted(c: Context): Promise<Response> {
+    const split = WebService._splitBase(c);
+    if (!split) return c.notFound();
+    const { path } = split;
+    const mount = this._findMount(path);
+    // `${prefix}/` under a parent app reaches this route rather than `/`
+    if (!mount) return path === '/' ? this._serveOverview(c, split.base) : c.notFound();
+
+    const baseDir = resolve(mount.directory);
+    const requestedPath = mount.prefix === '/' ? path : path.slice(mount.prefix.length);
+
+    // Path traversal protection: reject any path containing "..", and any
+    // hidden or blocked component, whether the path exists or not.
+    if (requestedPath.includes('..') || !this._isPathAllowed(pathParts(requestedPath))) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    const normalizedPath = normalize(requestedPath);
+    const fullPath = resolve(join(baseDir, normalizedPath));
+
+    // Double-check the resolved path is within the base directory
+    if (!isWithin(fullPath, baseDir)) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    try {
+      // Symbolic links: the file actually read must be inside the mount's
+      // real root, so a link inside the mount can't serve a file outside it,
+      // and its path there passes the same component checks, so a link can't
+      // reach into a hidden or blocked directory either.
+      const realBase = await realpath(baseDir);
+      const realPath = await realpath(fullPath);
+      if (
+        !isWithin(realPath, realBase) ||
+        !this._isPathAllowed(pathParts(relative(realBase, realPath)))
+      ) {
         return c.json({ error: 'Forbidden' }, 403);
       }
 
-      const normalizedPath = normalize(requestedPath);
-      const fullPath = resolve(join(baseDir, normalizedPath));
+      const fileStat = await stat(fullPath);
 
-      // Double-check the resolved path is within the base directory
-      if (!fullPath.startsWith(baseDir)) {
-        return c.json({ error: 'Forbidden' }, 403);
-      }
-
-      try {
-        const fileStat = await stat(fullPath);
-
-        // Handle directory requests
-        if (fileStat.isDirectory()) {
-          if (!this.enableDirectoryBrowsing) {
-            // Try index.html fallback
-            const indexPath = join(fullPath, 'index.html');
-            try {
-              const idxStat = await stat(indexPath);
-              if (idxStat.isFile() && this._isFileAllowed(indexPath, idxStat.size)) {
-                return this._serveFile(c, indexPath);
-              }
-            } catch {
-              // No index.html found
+      // Handle directory requests
+      if (fileStat.isDirectory()) {
+        // Relative links in a listing or an index page need the slash
+        if (!c.req.path.endsWith('/')) {
+          return c.redirect(sameOriginRedirect(c.req.url), 307);
+        }
+        if (!this.enableDirectoryBrowsing) {
+          // Try index.html fallback
+          const indexPath = join(fullPath, 'index.html');
+          try {
+            const idxStat = await stat(indexPath);
+            const idxReal = await realpath(indexPath);
+            if (
+              isWithin(idxReal, realBase) &&
+              idxStat.isFile() &&
+              this._isServable(
+                relative(baseDir, indexPath),
+                relative(realBase, idxReal),
+                idxStat.size,
+              )
+            ) {
+              return this._serveFile(c, indexPath);
             }
-            return c.json({ error: 'Directory browsing disabled' }, 403);
+          } catch {
+            // No index.html found
           }
-          return this._serveDirectoryListing(c, fullPath, c.req.path);
+          return c.json({ error: 'Directory browsing disabled' }, 403);
         }
+        return this._serveDirectoryListing(c, fullPath, c.req.path, baseDir, realBase);
+      }
 
-        // Regular file
-        if (!fileStat.isFile()) {
-          return c.json({ error: 'Not found' }, 404);
-        }
-
-        if (!this._isFileAllowed(fullPath, fileStat.size)) {
-          return c.json({ error: 'File type not allowed' }, 403);
-        }
-
-        return this._serveFile(c, fullPath);
-      } catch {
+      // Regular file
+      if (!fileStat.isFile()) {
         return c.json({ error: 'Not found' }, 404);
       }
-    });
 
-    this.log.info(`Serving static files from ${baseDir} at ${routePrefix}/*`);
+      if (
+        !this._isServable(relative(baseDir, fullPath), relative(realBase, realPath), fileStat.size)
+      ) {
+        return c.json({ error: 'File type not allowed' }, 403);
+      }
+
+      return this._serveFile(c, fullPath);
+    } catch {
+      return c.json({ error: 'Not found' }, 404);
+    }
   }
 
   // ── File checks ────────────────────────────────────────────────────
 
-  private _isFileAllowed(fullPath: string, size: number): boolean {
+  /**
+   * Whether the components of a path below a mounted directory may be served.
+   * A component that starts with a dot is refused wherever it appears, so
+   * nothing under `.git` or `.ssh` is served and neither is a file such as
+   * `.env.production`. The exception is `.well-known`, the standard public
+   * location for ACME challenges and `security.txt`. Directory listings hide
+   * dot entries. A component equal to a blocked entry is refused too, so a
+   * blocked name covers a directory as well as a file.
+   */
+  private _isPathAllowed(parts: string[]): boolean {
+    const blocked = new Set(this.blockedExtensions);
+    return !parts.some(
+      (part) => (part.startsWith('.') && part !== '.well-known') || blocked.has(part),
+    );
+  }
+
+  /**
+   * Whether a file may be served. The path checks, size limit, blocklist and
+   * allowlist apply both to the path requested and to the file actually read
+   * (its canonical path), each relative to the mount, so a symbolic link such
+   * as `alias.txt -> .env` can't serve a blocked file under an allowed name.
+   */
+  private _isServable(requestedRel: string, realRel: string, size: number): boolean {
+    return this._isFileAllowed(requestedRel, size) && this._isFileAllowed(realRel, size);
+  }
+
+  /** Whether a file, by its path relative to the mount, may be served. */
+  private _isFileAllowed(relPath: string, size: number): boolean {
     // Check file size
     if (size > this.maxFileSize) return false;
 
-    const ext = extname(fullPath).toLowerCase();
-    const name = basename(fullPath);
+    // Hidden and blocked components anywhere below the mount
+    if (!this._isPathAllowed(pathParts(relPath))) return false;
+
+    const ext = extname(relPath).toLowerCase();
+    const name = basename(relPath);
 
     // Check blocked extensions and names
     for (const blocked of this.blockedExtensions) {
       if (blocked.startsWith('.')) {
-        // Check both as extension and as full name (for files like .env, .gitignore)
+        // As an extension (.key, .pem)
         if (ext === blocked || name === blocked) return false;
       } else {
         // Check as a file name or as a substring of the path
-        if (name === blocked || fullPath.includes(blocked)) return false;
+        if (name === blocked || relPath.includes(blocked)) return false;
       }
     }
 
@@ -583,12 +818,14 @@ export class WebService {
     c: Context,
     dirPath: string,
     urlPath: string,
+    baseDir: string,
+    realBase: string,
   ): Promise<Response> {
     const entries = await readdir(dirPath, { withFileTypes: true });
 
-    // Sort entries alphabetically
+    // Sort entries alphabetically, without hidden or blocked names
     const sorted = entries
-      .filter((e) => !e.name.startsWith('.'))
+      .filter((e) => !e.name.startsWith('.') && this._isPathAllowed([e.name]))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const items: string[] = [];
@@ -611,7 +848,14 @@ export class WebService {
         const entryPath = join(dirPath, entry.name);
         try {
           const entryStat = await stat(entryPath);
-          if (this._isFileAllowed(entryPath, entryStat.size)) {
+          const entryReal = await realpath(entryPath);
+          if (
+            this._isServable(
+              relative(baseDir, entryPath),
+              relative(realBase, entryReal),
+              entryStat.size,
+            )
+          ) {
             const safeName = escapeHtml(entry.name);
             const sizeStr = formatSize(entryStat.size);
             items.push(`<li><a href="${safeName}">${safeName}</a> (${sizeStr})</li>`);

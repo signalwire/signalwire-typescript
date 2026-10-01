@@ -156,7 +156,240 @@ describe('examples', () => {
         ai: { params: Record<string, unknown> };
       };
       expect(aiVerb).toBeDefined();
-      expect(aiVerb['ai']['params']['temperature']).toBe(0.2);
+      expect(aiVerb['ai']['params']['barge_match_string']).toBe('stop|cancel|hold on');
+    });
+
+    it('puts sampling settings on the prompt, not in params', async () => {
+      const agent = await loadExample('llm-params.ts');
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
+      const main = (swml['sections'] as Record<string, SwmlVerb[]>)['main'];
+      const ai = (main!.find((v) => v['ai']) as { ai: Record<string, Record<string, unknown>> })[
+        'ai'
+      ];
+      // temperature, top_p and confidence are AIPromptText keys in the SWML schema.
+      expect(ai['prompt']).toMatchObject({ temperature: 0.2, top_p: 0.9, confidence: 0.6 });
+      for (const key of ['temperature', 'top_p', 'confidence', 'barge_confidence']) {
+        expect(ai['params']).not.toHaveProperty(key);
+      }
+    });
+  });
+
+  describe('advanced-datamap.ts', () => {
+    /** Render the example and return its SWAIG functions keyed by name. */
+    async function renderFunctions(): Promise<Record<string, Record<string, unknown>>> {
+      const agent = await loadExample('advanced-datamap.ts');
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
+      const main = (swml['sections'] as Record<string, SwmlVerb[]>)['main'];
+      const ai = (main!.find((v) => v['ai']) as { ai: { SWAIG: { functions: unknown[] } } })['ai'];
+      const byName: Record<string, Record<string, unknown>> = {};
+      for (const fn of ai.SWAIG.functions as Record<string, unknown>[]) {
+        byName[fn['function'] as string] = fn;
+      }
+      return byName;
+    }
+
+    it('reads the foreach array by its key in the response, not a template', async () => {
+      const fns = await renderFunctions();
+      const dataMap = fns['get_news']!['data_map'] as {
+        webhooks: { foreach: { input_key: string } }[];
+      };
+      expect(dataMap.webhooks[0]!.foreach.input_key).toBe('articles');
+    });
+
+    it('matches case-insensitively with patterns JavaScript also accepts', async () => {
+      const fns = await renderFunctions();
+      for (const name of ['detect_greeting', 'check_status']) {
+        const dataMap = fns[name]!['data_map'] as {
+          expressions: { string: string; pattern: string }[];
+        };
+        for (const expr of dataMap.expressions) {
+          // The value is lowercased with lc:, so the pattern needs no (?i) modifier,
+          // which the swaig-test simulator's JavaScript RegExp rejects.
+          expect(expr.string.startsWith('${lc:')).toBe(true);
+          expect(() => new RegExp(expr.pattern)).not.toThrow();
+        }
+      }
+    });
+  });
+
+  describe('gather-info.ts', () => {
+    it('collects the intake answers with gather info steps', async () => {
+      const agent = await loadExample('gather-info.ts');
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
+      const main = (swml['sections'] as Record<string, SwmlVerb[]>)['main'];
+      const ai = (
+        main!.find((v) => v['ai']) as {
+          ai: { prompt: { contexts: Record<string, { steps: Record<string, unknown>[] }> } };
+        }
+      )['ai'];
+      const steps = ai.prompt.contexts['default']!.steps;
+      const gathers = steps
+        .map((s) => s['gather_info'] as { output_key?: string; questions: { key: string }[] })
+        .filter(Boolean);
+      expect(gathers.map((g) => g.output_key)).toEqual(['patient_demographics', 'visit_reason']);
+      expect(gathers.flatMap((g) => g.questions.map((q) => q.key))).toContain('full_name');
+      expect(agent.getRegisteredTools().map((t) => t.name)).toContain('submit_intake');
+    });
+  });
+
+  describe('mcp-gateway.ts', () => {
+    const MCP_ENV = [
+      'MCP_GATEWAY_URL',
+      'MCP_GATEWAY_AUTH_TOKEN',
+      'MCP_GATEWAY_AUTH_USER',
+      'MCP_GATEWAY_AUTH_PASSWORD',
+      'MCP_GATEWAY_SERVICES',
+      'SWML_ALLOW_PRIVATE_URLS',
+    ];
+    beforeEach(() => {
+      vi.resetModules();
+      for (const name of MCP_ENV) vi.stubEnv(name, undefined);
+    });
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('loads without a gateway configured and says how to configure one', async () => {
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        const agent = await loadExample('mcp-gateway.ts');
+        expect(agent.getRegisteredTools()).toEqual([]);
+        expect(errors.mock.calls.flat().join('\n')).toContain('MCP_GATEWAY_URL');
+      } finally {
+        errors.mockRestore();
+      }
+    });
+
+    it('registers the gateway tools when the environment points at a gateway', async () => {
+      const { createServer } = await import('node:http');
+      const server = createServer((req, res) => {
+        res.setHeader('Content-Type', 'application/json');
+        if (req.headers.authorization !== 'Bearer test-token') {
+          res.statusCode = 401;
+          res.end('{}');
+        } else if (req.url === '/health') {
+          res.end('{"status":"ok"}');
+        } else if (req.url === '/services/todo/tools') {
+          res.end(
+            JSON.stringify({
+              tools: [{ name: 'add_todo', description: 'Add a todo', inputSchema: {} }],
+            }),
+          );
+        } else {
+          res.statusCode = 404;
+          res.end('{}');
+        }
+      });
+      await new Promise<void>((done) => server.listen(0, '127.0.0.1', done));
+      try {
+        const { port } = server.address() as { port: number };
+        vi.stubEnv('MCP_GATEWAY_URL', `http://127.0.0.1:${port}`);
+        vi.stubEnv('MCP_GATEWAY_AUTH_TOKEN', 'test-token');
+        vi.stubEnv('MCP_GATEWAY_SERVICES', 'todo');
+        vi.stubEnv('SWML_ALLOW_PRIVATE_URLS', 'true');
+        const agent = await loadExample('mcp-gateway.ts');
+        expect(agent.getRegisteredTools().map((t) => t.name)).toContain('mcp_todo_add_todo');
+      } finally {
+        server.close();
+      }
+    });
+  });
+
+  describe('datasphere.ts', () => {
+    const DS_ENV = [
+      'DATASPHERE_DOCUMENT_ID',
+      'SIGNALWIRE_SPACE',
+      'SIGNALWIRE_PROJECT_ID',
+      'SIGNALWIRE_API_TOKEN',
+      'DATASPHERE_BASE_URL',
+    ];
+    beforeEach(() => {
+      vi.resetModules();
+      for (const name of DS_ENV) vi.stubEnv(name, undefined);
+    });
+    afterEach(() => {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    });
+
+    it('loads without DataSphere configured and says what to set', async () => {
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        const agent = await loadExample('datasphere.ts');
+        expect(agent.getRegisteredTools()).toEqual([]);
+        expect(errors.mock.calls.flat().join('\n')).toContain('DATASPHERE_DOCUMENT_ID');
+      } finally {
+        errors.mockRestore();
+      }
+    });
+
+    it('searches the configured document with the skill parameters count and distance', async () => {
+      vi.stubEnv('DATASPHERE_DOCUMENT_ID', 'doc-123');
+      vi.stubEnv('SIGNALWIRE_SPACE', 'example');
+      vi.stubEnv('SIGNALWIRE_PROJECT_ID', 'project');
+      vi.stubEnv('SIGNALWIRE_API_TOKEN', 'token');
+      const fetchMock = vi.fn(
+        async () =>
+          new Response(JSON.stringify({ chunks: [{ text: 'Opening hours are 9 to 5.' }] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+      const agent = (await loadExample('datasphere.ts')) as LoadedAgent & {
+        getTool(name: string): { execute(args: Record<string, unknown>): Promise<unknown> };
+      };
+      await agent.getTool('search_knowledge').execute({ query: 'opening hours' });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const init = (fetchMock.mock.calls[0] as unknown[])[1] as { body: string };
+      expect(JSON.parse(init.body)).toMatchObject({
+        document_id: 'doc-123',
+        count: 3,
+        distance: 4,
+      });
+    });
+  });
+
+  describe('datasphere-serverless-env.ts', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('renders the serverless DataMap search with count and distance from the environment', async () => {
+      vi.resetModules();
+      vi.stubEnv('SIGNALWIRE_SPACE', 'acme.signalwire.com');
+      vi.stubEnv('SIGNALWIRE_PROJECT_ID', 'project');
+      vi.stubEnv('SIGNALWIRE_API_TOKEN', 'token');
+      vi.stubEnv('DATASPHERE_DOCUMENT_ID', 'doc-123');
+      vi.stubEnv('DATASPHERE_COUNT', '2');
+      vi.stubEnv('DATASPHERE_DISTANCE', '5');
+      const agent = await loadExample('datasphere-serverless-env.ts');
+      const swml = JSON.parse(agent.renderSwml('test-call-id') as string) as Record<
+        string,
+        unknown
+      >;
+      const main = (swml['sections'] as Record<string, SwmlVerb[]>)['main'];
+      const ai = (main!.find((v) => v['ai']) as { ai: { SWAIG: { functions: unknown[] } } })['ai'];
+      const search = (ai.SWAIG.functions as Record<string, unknown>[]).find(
+        (f) => f['function'] === 'search_knowledge',
+      ) as { data_map: { webhooks: { url: string; params: Record<string, unknown> }[] } };
+      expect(search.data_map.webhooks[0]!.url).toBe(
+        'https://acme.signalwire.com/api/datasphere/documents/search',
+      );
+      expect(search.data_map.webhooks[0]!.params).toMatchObject({
+        document_id: 'doc-123',
+        count: 2,
+        distance: 5,
+      });
     });
   });
 
@@ -190,6 +423,19 @@ describe('examples', () => {
         unknown
       >;
       expect(swml).toHaveProperty('version');
+    });
+
+    it('exports the Lambda handler without starting a server', async () => {
+      vi.resetModules();
+      const sdk = await import('../src/index.js');
+      const serve = vi.spyOn(sdk.AgentBase.prototype, 'serve').mockResolvedValue(undefined);
+      try {
+        const mod = (await import('../examples/serverless-lambda.js')) as Record<string, unknown>;
+        expect(typeof mod['handler']).toBe('function');
+        expect(serve).not.toHaveBeenCalled();
+      } finally {
+        serve.mockRestore();
+      }
     });
   });
 
