@@ -838,8 +838,16 @@ function enumerateFile(file: string): FileSurface {
         // is just `string`), so skip them to match the reference's surfacing policy.
         // Union/enum aliases (`type CallDirection = 'inbound' | ...`) and aliases to
         // NAMED types are kept — those are real surface.
-        if (ts.isTypeAliasDeclaration(node) && isBareScalarAlias(node.type)) {
-          // skip — matches the reference surface (griffe drops scalar TypeAliases)
+        //
+        // And more generally EVERY type alias: the reference generator emits a
+        // non-object schema (union, enum, literal, scalar, open map) as a module-level
+        // `X: TypeAlias = "…"` — exactly where this port's generators emit `type X =`
+        // — and griffe records no TypeAlias as a class. Measured on the python
+        // reference: 456 TypeAliases across its generated type modules, 0 of them in
+        // python_surface.json. Surfacing the TS `type` aliases only manufactured
+        // port-side "additions" for names the reference also declares.
+        if (ts.isTypeAliasDeclaration(node)) {
+          // skip — the reference's generated TypeAliases are not surface either
         } else {
           collectTypeDefinition(node.name.text);
         }
