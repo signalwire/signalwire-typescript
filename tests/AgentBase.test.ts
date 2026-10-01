@@ -302,11 +302,10 @@ describe('AgentBase', () => {
       expect(new SchemaUtils().validateVerb('ai', ai)).toEqual({ valid: true, errors: [] });
     });
 
-    it('multilingual is the only key still riding the bypass', () => {
-      // Documents WHY the remaining opt-out exists: the reference emits a
-      // top-level `multilingual` (agent_base.py:1273) that the bundled
-      // `$defs/AIObject` — closed over 9 keys — does not declare. If a schema
-      // refresh ever adds it, this test flips and the bypass can be deleted.
+    it('multilingual validates (the bypass it once needed is gone)', () => {
+      // The reference emits a top-level `multilingual` (agent_base.py:1273). The
+      // engine-derived schema declares it, so renderSwml validates the ai verb
+      // with no opt-out at all.
       const agent = createAgent();
       agent.setPromptText('hello');
       agent.setMultilingual({ enable: true });
@@ -315,9 +314,7 @@ describe('AgentBase', () => {
       const ai = swml.sections.main.find((v: Record<string, unknown>) => 'ai' in v).ai;
       expect(ai.multilingual).toEqual({ enable: true });
 
-      const result = new SchemaUtils().validateVerb('ai', ai);
-      expect(result.valid).toBe(false);
-      expect(result.errors.join(' ')).toContain('multilingual');
+      expect(new SchemaUtils().validateVerb('ai', ai)).toEqual({ valid: true, errors: [] });
     });
   });
 

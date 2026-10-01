@@ -14,11 +14,18 @@
  * of string / array). Four of the five have object branches whose keys are
  * perfectly enumerable, and the shallow check accepted arbitrary keys for all four.
  *
- * The semantic: a config satisfying a union satisfies SOME branch, so the known
- * keys are the UNION of the object branches' keys. Non-object branches contribute
- * nothing — they constrain the config to not be an object at all, a different
- * question. `unset` has no object branch, so it correctly stays disengaged.
+ * The semantic is the #223 contract (porting-sdk docs/legacy-census/DISC-g-d21.md
+ * §1.4/§4): EXACTLY ONE closed object branch, else disengage. A verb body is a
+ * union of FORMS (object / string / number / array — swml_schema.c
+ * check_method_type_and_unknown_params); the non-object forms contribute no keys,
+ * so the one object form's keys are the known set. Several closed object branches
+ * would each close over a different key set, so the check disengages rather than
+ * accept a document mixing keys no single branch admits. `unset` has no object
+ * branch, so it correctly stays disengaged.
  */
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 import { SchemaUtils } from '../src/SchemaUtils';
 
@@ -40,14 +47,14 @@ const unionShapedVerbs: Array<{
   legit: Record<string, unknown>;
 }> = [
   { verb: 'sleep', wantKey: 'duration', wantCount: 1, legit: { duration: 5000 } },
-  { verb: 'play', wantKey: 'url', wantCount: 8, legit: { url: 'https://example.test/a.mp3' } },
+  { verb: 'play', wantKey: 'url', wantCount: 9, legit: { url: 'https://example.test/a.mp3' } },
   {
     verb: 'send_sms',
     wantKey: 'body',
-    wantCount: 6,
+    wantCount: 7,
     legit: { to_number: '+15551110000', from_number: '+15552220000', body: 'hi' },
   },
-  { verb: 'connect', wantKey: 'to', wantCount: 22, legit: { to: 'sip:alice@example.test' } },
+  { verb: 'connect', wantKey: 'to', wantCount: 31, legit: { to: 'sip:alice@example.test' } },
 ];
 
 describe('closed-key resolution over anyOf/oneOf verb configs', () => {
@@ -60,7 +67,7 @@ describe('closed-key resolution over anyOf/oneOf verb configs', () => {
       expect(
         known,
         `${verb}: closed-key check DISENGAGED on a union-shaped config; it must ` +
-          `resolve to the union of the object branches' keys`,
+          `resolve to its one closed object branch's keys`,
       ).not.toBeNull();
       expect(known!.has(wantKey), `${verb}: resolved key set is missing '${wantKey}'`).toBe(true);
       expect(known!.size).toBe(wantCount);
@@ -119,8 +126,10 @@ describe('closed-key resolution over anyOf/oneOf verb configs', () => {
   //   set   — an OPEN object (unevaluatedProperties:{} with no `not`, zero
   //           declared properties): a free-form variable bag by design.
   //   unset — a union with no object branch (string | array of string).
-  //   cond / label / return — array / string / untyped, not objects at all.
-  it.each(['set', 'unset', 'cond', 'label', 'return'])(
+  //   cond / return — array / untyped, not objects at all.
+  // (`label` gained an object form `{label}` in the engine-derived schema, so it
+  // now engages on that one closed branch.)
+  it.each(['set', 'unset', 'cond', 'return'])(
     'leaves %s disengaged rather than inventing a key set',
     (verb) => {
       expect(introspect(new SchemaUtils()).verbTopLevelPropertyNames(verb)).toBeNull();
@@ -134,6 +143,41 @@ describe('closed-key resolution over anyOf/oneOf verb configs', () => {
     expect(known).not.toBeNull();
     for (const want of ['prompt', 'params', 'SWAIG']) {
       expect(known!.has(want), `ai: resolved key set is missing '${want}'`).toBe(true);
+    }
+  });
+
+  // The contract's other half: a union with SEVERAL closed object branches
+  // disengages. No verb in the shipped artifact has one (each union body has one
+  // object form), so the shape is pinned with a fixture: the real bundled schema
+  // with `sleep`'s body replaced by two closed object arms over disjoint keys.
+  it('disengages on a union with two closed object branches', () => {
+    const repoRoot = fileURLToPath(new URL('..', import.meta.url));
+    const scratch = join(repoRoot, '.sw-tmp');
+    mkdirSync(scratch, { recursive: true });
+    const dir = mkdtempSync(join(scratch, 'swts_twoarm_'));
+    try {
+      const bundled = JSON.parse(
+        readFileSync(fileURLToPath(new URL('../src/schema.json', import.meta.url)), 'utf8'),
+      ) as { $defs: Record<string, { properties: Record<string, unknown> }> };
+      const closed = (key: string): Record<string, unknown> => ({
+        type: 'object',
+        properties: { [key]: { type: 'string' } },
+        unevaluatedProperties: { not: {} },
+      });
+      bundled.$defs['Sleep']!.properties['sleep'] = { anyOf: [closed('a'), closed('b')] };
+      const path = join(dir, 'schema.json');
+      writeFileSync(path, JSON.stringify(bundled));
+      const twoArm = introspect(new SchemaUtils({ schemaPath: path }));
+      expect(twoArm.verbTopLevelPropertyNames('sleep')).toBeNull();
+      // Control: the same fixture with ONE closed arm engages on exactly its keys
+      // (a separate file: a loaded schema is cached by path).
+      bundled.$defs['Sleep']!.properties['sleep'] = { anyOf: [closed('a'), { type: 'number' }] };
+      const onePath = join(dir, 'schema-one-arm.json');
+      writeFileSync(onePath, JSON.stringify(bundled));
+      const oneArm = introspect(new SchemaUtils({ schemaPath: onePath }));
+      expect([...(oneArm.verbTopLevelPropertyNames('sleep') ?? [])]).toEqual(['a']);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 });

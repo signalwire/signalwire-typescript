@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ dd5098be100b38ecd40a798eb37a22358a74ec6d",
+  "generated_from": "signalwire-typescript @ eab8b371b7a820e86fddf93163cdbc790ab9ba23",
   "typescript_version": "6.0.3",
   "note": "TS-native camelCase surface — used by audit_docs.py to verify doc/example references. NOT a substitute for port_surface.json (which is Python-translated for Layer B diffing).",
   "modules": {
@@ -428,6 +428,7 @@
           "addAction",
           "addActions",
           "addDynamicHints",
+          "changeVoice",
           "clearDynamicHints",
           "connect",
           "createPaymentAction",
@@ -900,12 +901,12 @@
         ],
         "VerbDefinition": [
           "definition",
+          "deprecated",
           "name",
           "schemaName"
         ],
         "SchemaUtils": [
           "clearCache",
-          "compileFailedVerbs",
           "fullValidationAvailable",
           "getCacheSize",
           "getVerbDescription",
@@ -915,7 +916,6 @@
           "getVerbRequiredProperties",
           "hasVerb",
           "loadSchema",
-          "precompileVerbValidators",
           "schemaPath",
           "validate",
           "validateVerb"
@@ -1431,14 +1431,18 @@
           "ai_sidecar",
           "amazon_bedrock",
           "answer",
+          "bind_digit",
           "build",
+          "clear_digit_bindings",
           "cond",
           "connect",
           "denoise",
           "detect_machine",
           "document",
+          "echo",
           "enter_queue",
           "execute",
+          "execute_rpc",
           "getSchemaUtils",
           "goto",
           "hangup",
@@ -1457,6 +1461,7 @@
           "request",
           "reset",
           "return",
+          "ring",
           "say",
           "send_digits",
           "send_fax",
@@ -1464,13 +1469,19 @@
           "service",
           "set",
           "setValidation",
+          "set_capabilities",
+          "set_meta",
           "sip_refer",
           "sleep",
           "stop_denoise",
           "stop_record_call",
+          "stop_stream",
           "stop_tap",
+          "stream",
           "switch",
           "tap",
+          "transcribe",
+          "transcribe_stop",
           "transfer",
           "unset",
           "user_event"
@@ -4688,40 +4699,6 @@
           "authorization",
           "ice_servers",
           "result"
-        ],
-        "VertoAnswerResult": [
-          "message"
-        ],
-        "VertoBroadcastResult": [
-          "code",
-          "message",
-          "sessid"
-        ],
-        "VertoByeResult": [
-          "callID",
-          "cause",
-          "causeCode",
-          "message"
-        ],
-        "VertoInfoResult": [
-          "message"
-        ],
-        "VertoInviteResult": [
-          "callID",
-          "memberID",
-          "message"
-        ],
-        "VertoModifyResult": [
-          "action",
-          "callID",
-          "holdState",
-          "message",
-          "sdp"
-        ],
-        "VertoSubscribeResult": [
-          "alreadySubscribedChannels",
-          "subscribedChannels",
-          "unauthorizedChannels"
         ],
         "RelayClientOptions": [
           "contexts",
@@ -12120,9 +12097,12 @@
         ],
         "TransferConfig": [
           "address",
+          "dest",
           "final",
           "from_addr",
           "message",
+          "meta",
+          "params",
           "post_process",
           "return_message",
           "url"
@@ -12328,15 +12308,6 @@
           "name",
           "value"
         ],
-        "Dial": [
-          "dial"
-        ],
-        "Eval": [
-          "eval"
-        ],
-        "If": [
-          "if"
-        ],
         "JsonSchemaUnion": [
           "additionalProperties",
           "allOf",
@@ -12387,6 +12358,654 @@
           "uniqueItems",
           "writeOnly"
         ],
+        "AiConfig": [
+          "SWAIG",
+          "agent",
+          "engine",
+          "global_data",
+          "hints",
+          "languages",
+          "multilingual",
+          "params",
+          "post_prompt",
+          "post_prompt_auth_password",
+          "post_prompt_auth_user",
+          "post_prompt_url",
+          "prompt",
+          "pronounce",
+          "voice"
+        ],
+        "AiSWAIGItem": [
+          "active",
+          "argument",
+          "data_map",
+          "description",
+          "fillers",
+          "function",
+          "meta_data",
+          "meta_data_token",
+          "parameters",
+          "purpose",
+          "skip_fillers",
+          "wait_file",
+          "wait_file_loops",
+          "wait_for_fillers",
+          "web_hook_auth_pass",
+          "web_hook_auth_password",
+          "web_hook_auth_user",
+          "web_hook_url"
+        ],
+        "AiSWAIGItemFillers": [
+          "auto",
+          "default"
+        ],
+        "AiSWAIG": [
+          "defaults",
+          "functions",
+          "hooks",
+          "includes",
+          "internal_fillers",
+          "mcp_servers",
+          "native_functions"
+        ],
+        "AiSWAIGDefaults": [
+          "meta_data",
+          "meta_data_token",
+          "web_hook_auth_pass",
+          "web_hook_auth_password",
+          "web_hook_auth_user",
+          "web_hook_url"
+        ],
+        "AiSWAIGFunctionsItem": [
+          "active",
+          "argument",
+          "data_map",
+          "description",
+          "fillers",
+          "function",
+          "meta_data",
+          "meta_data_token",
+          "parameters",
+          "purpose",
+          "skip_fillers",
+          "wait_file",
+          "wait_file_loops",
+          "wait_for_fillers",
+          "web_hook_auth_pass",
+          "web_hook_auth_password",
+          "web_hook_auth_user",
+          "web_hook_url"
+        ],
+        "AiSWAIGFunctionsItemFillers": [
+          "auto",
+          "default"
+        ],
+        "AiSWAIGHooksItem": [
+          "active",
+          "argument",
+          "data_map",
+          "description",
+          "fillers",
+          "function",
+          "meta_data",
+          "meta_data_token",
+          "parameters",
+          "purpose",
+          "skip_fillers",
+          "wait_file",
+          "wait_file_loops",
+          "wait_for_fillers",
+          "web_hook_auth_pass",
+          "web_hook_auth_password",
+          "web_hook_auth_user",
+          "web_hook_url"
+        ],
+        "AiSWAIGHooksItemFillers": [
+          "auto",
+          "default"
+        ],
+        "AiSWAIGIncludesItem": [
+          "auth_password",
+          "auth_user",
+          "functions",
+          "meta_data",
+          "url"
+        ],
+        "AiSWAIGInternalFillers": [
+          "adjust_response_latency",
+          "change_context",
+          "check_time",
+          "get_ideal_strategy",
+          "get_visual_input",
+          "next_step",
+          "pause_conversation",
+          "wait_for_user",
+          "wait_seconds"
+        ],
+        "AiSWAIGInternalFillersAdjustResponseLatency": [
+          "auto",
+          "default"
+        ],
+        "AiSWAIGInternalFillersChangeContext": [
+          "auto",
+          "default"
+        ],
+        "AiSWAIGInternalFillersCheckTime": [
+          "auto",
+          "default"
+        ],
+        "AiSWAIGInternalFillersGetIdealStrategy": [
+          "auto",
+          "default"
+        ],
+        "AiSWAIGInternalFillersGetVisualInput": [
+          "auto",
+          "default"
+        ],
+        "AiSWAIGInternalFillersNextStep": [
+          "auto",
+          "default"
+        ],
+        "AiSWAIGInternalFillersPauseConversation": [
+          "auto",
+          "default"
+        ],
+        "AiSWAIGInternalFillersWaitForUser": [
+          "auto",
+          "default"
+        ],
+        "AiSWAIGInternalFillersWaitSeconds": [
+          "auto",
+          "default"
+        ],
+        "AiSWAIGMcpServersItem": [
+          "headers",
+          "resource_vars",
+          "resources",
+          "url"
+        ],
+        "AiHintsItem": [
+          "hint",
+          "ignore_case",
+          "pattern",
+          "replace"
+        ],
+        "AiLanguagesItem": [
+          "auto_emotion",
+          "auto_speed",
+          "code",
+          "double_turn_fillers",
+          "engine",
+          "fillers",
+          "function_fillers",
+          "listen_language",
+          "model",
+          "name",
+          "params",
+          "pronounce",
+          "speech_fillers",
+          "turn_fillers",
+          "voice"
+        ],
+        "AiLanguagesItemParams": [
+          "emotion",
+          "pitch",
+          "similarity",
+          "speakingRate",
+          "speed",
+          "stability",
+          "streaming",
+          "temperature",
+          "vol"
+        ],
+        "AiMultilingual": [
+          "allowed",
+          "engine",
+          "fillers",
+          "function_fillers",
+          "languages",
+          "min_switch_words",
+          "model",
+          "provider",
+          "start_language",
+          "turn_fillers"
+        ],
+        "AiMultilingualFillers": [
+          "auto",
+          "default"
+        ],
+        "AiMultilingualFunctionFillers": [
+          "auto",
+          "default"
+        ],
+        "AiMultilingualTurnFillers": [
+          "default"
+        ],
+        "AiParams": [
+          "acknowledge_interruptions",
+          "acoustic_eot_gate_prob",
+          "acoustic_eot_trust_prob",
+          "ai_model",
+          "ai_name",
+          "ai_volume",
+          "app_name",
+          "asr_diarize",
+          "asr_params",
+          "asr_smart_format",
+          "asr_speaker_affinity",
+          "attention_escalate_prompt",
+          "attention_timeout",
+          "attention_timeout_prompt",
+          "auth_token",
+          "auto_correct",
+          "azure_stream_first",
+          "azure_tts_key",
+          "background_file",
+          "background_file_loops",
+          "background_file_volume",
+          "barge_functions",
+          "barge_match_string",
+          "barge_min_words",
+          "bill_all_tts",
+          "cache",
+          "call_uuid",
+          "cartesia_key",
+          "cartesia_model",
+          "cartesia_stream_first",
+          "confidence",
+          "conscience",
+          "conversation_id",
+          "conversation_sliding_window",
+          "convo",
+          "debug_webhook_level",
+          "debug_webhook_url",
+          "deepgram_key_override",
+          "deepgram_stream_first",
+          "deepgram_tts_key",
+          "deepgram_url_override",
+          "developer_prompt",
+          "digit_terminators",
+          "digit_timeout",
+          "direction",
+          "double_turn_filler_every_n",
+          "double_turn_filler_min_ms",
+          "double_turn_model",
+          "double_turn_prompt",
+          "double_turn_wait_ms",
+          "double_turns",
+          "eleven_labs_key",
+          "eleven_labs_model",
+          "eleven_labs_similarity",
+          "eleven_labs_stability",
+          "eleven_labs_stream_first",
+          "enable_barge",
+          "enable_inner_dialog",
+          "enable_pause",
+          "enable_text_normalization",
+          "enable_thinking",
+          "enable_turn_detection",
+          "enable_vision",
+          "end_of_speech_timeout",
+          "energy_level",
+          "escalate_after_ms",
+          "escalate_after_turns",
+          "event_webhook_url",
+          "ext",
+          "first_word_timeout",
+          "fish_key",
+          "fish_model",
+          "function_filler_sequence_gap_ms",
+          "function_wait_for_talking",
+          "functions_on_no_response",
+          "grok_key",
+          "groq_tts_key",
+          "hard_stop_prompt",
+          "hard_stop_time",
+          "hold_music",
+          "hold_on_process",
+          "inactivity_timeout",
+          "initial_sleep_ms",
+          "inner_dialog",
+          "inner_dialog_model",
+          "inner_dialog_prompt",
+          "inner_dialog_scorecard",
+          "input_poll_freq",
+          "interrupt_on_noise",
+          "interrupt_prompt",
+          "inworld_apikey",
+          "inworld_key",
+          "inworld_model",
+          "language",
+          "languages_enabled",
+          "lipsync_debug",
+          "llm_diarize_aware",
+          "local_tz",
+          "max_emotion",
+          "max_response_tokens",
+          "min_utterance_ms",
+          "minimax_key",
+          "minimax_model",
+          "mistral_key",
+          "mistral_model",
+          "model",
+          "openai_asr_engine",
+          "openai_azure",
+          "openai_gcloud_version",
+          "openai_stream_first",
+          "openai_tts_key",
+          "openai_tts_url",
+          "outbound_attention_timeout",
+          "pcm_channels",
+          "pcm_rate",
+          "persist_global_data",
+          "pom_format",
+          "provider",
+          "pvt_params",
+          "realtime",
+          "redact_prompt",
+          "rime_apikey",
+          "rime_key",
+          "rime_model",
+          "rime_stream_first",
+          "sample_rate",
+          "save_conversation",
+          "send_single_llm_response",
+          "similarity",
+          "smallest_key",
+          "smallest_model",
+          "speak_when_spoken_to",
+          "speaker",
+          "speech_event_timeout",
+          "speech_gen_quick_stops",
+          "speech_timeout",
+          "speechify_key",
+          "speechify_loudness_normalization",
+          "speechify_model",
+          "speechify_output_format",
+          "speechify_stream_first",
+          "speechify_text_normalization",
+          "speed",
+          "stability",
+          "start_paused",
+          "static_greeting",
+          "static_greeting_no_barge",
+          "stream_first",
+          "streaming",
+          "strict_mode",
+          "summary_mode",
+          "swaig_allow_settings",
+          "swaig_allow_swml",
+          "swaig_post_conversation",
+          "swaig_post_swml_vars",
+          "swaig_set_global_data",
+          "target_first_segment_ms",
+          "text_normalization_far_dir",
+          "thinking_model",
+          "tool_result_distill",
+          "transfer_summary",
+          "transparent_barge",
+          "transparent_barge_max_time",
+          "tts_number_format",
+          "turn_detection",
+          "turn_detection_min_length",
+          "turn_detection_timeout",
+          "turn_filler_every_n",
+          "turn_filler_min_ms",
+          "turn_filler_sources",
+          "url",
+          "utility_model",
+          "vad_config",
+          "video_fps",
+          "video_idle_file",
+          "video_listening_file",
+          "video_scale",
+          "video_talking_file",
+          "vision_model",
+          "voice_name",
+          "vol",
+          "wait_for_user",
+          "wake_prefix"
+        ],
+        "AiParamsConvoItem": [
+          "content",
+          "lang",
+          "role",
+          "tool_call_id",
+          "tool_calls"
+        ],
+        "AiParamsInnerDialog": [
+          "SWAIG"
+        ],
+        "AiParamsInnerDialogSWAIG": [
+          "defaults",
+          "functions"
+        ],
+        "AiParamsInnerDialogSWAIGDefaults": [
+          "web_hook_auth_pass",
+          "web_hook_auth_password",
+          "web_hook_auth_user",
+          "web_hook_url"
+        ],
+        "AiParamsInnerDialogScorecard": [
+          "dials",
+          "replace"
+        ],
+        "AiParamsRealtime": [
+          "input_transcription",
+          "local_vad",
+          "local_vad_frame_ms",
+          "local_vad_threshold",
+          "noise_reduction",
+          "packets_per_send",
+          "reasoning_effort",
+          "speed",
+          "temperature",
+          "tool_model",
+          "vad_eagerness",
+          "vad_prefix_padding_ms",
+          "vad_silence_duration_ms",
+          "vad_threshold",
+          "vad_type",
+          "voice"
+        ],
+        "AiParamsToolResultDistill": [
+          "enabled",
+          "min_chars",
+          "model",
+          "prompt"
+        ],
+        "AiPostPrompt": [
+          "frequency_penalty",
+          "max_completion_tokens",
+          "max_tokens",
+          "model",
+          "pom",
+          "presence_penalty",
+          "reasoning_effort",
+          "temperature",
+          "text",
+          "top_p",
+          "verbosity"
+        ],
+        "AiPostPromptPomItem": [
+          "body",
+          "bullets",
+          "numbered",
+          "numberedBullets",
+          "subsections",
+          "title"
+        ],
+        "AiPrompt": [
+          "contexts",
+          "frequency_penalty",
+          "max_completion_tokens",
+          "max_tokens",
+          "model",
+          "pom",
+          "presence_penalty",
+          "reasoning_effort",
+          "steps",
+          "temperature",
+          "text",
+          "top_p",
+          "verbosity"
+        ],
+        "AiPromptPomItem": [
+          "body",
+          "bullets",
+          "numbered",
+          "numberedBullets",
+          "subsections",
+          "title"
+        ],
+        "AiPronounceItem": [
+          "ignore_case",
+          "replace",
+          "with"
+        ],
+        "AiSidecarConfig": [
+          "SWAIG",
+          "action",
+          "customer_role",
+          "direction",
+          "global_data",
+          "hints",
+          "lang",
+          "model",
+          "params",
+          "permissions",
+          "prompt",
+          "url"
+        ],
+        "AiSidecarSWAIG": [
+          "defaults",
+          "functions",
+          "mcp_servers"
+        ],
+        "AiSidecarSWAIGDefaults": [
+          "web_hook_auth_pass",
+          "web_hook_auth_password",
+          "web_hook_auth_user",
+          "web_hook_url"
+        ],
+        "AiSidecarSWAIGFunctionsItem": [
+          "description",
+          "function",
+          "parameters",
+          "purpose",
+          "web_hook_auth_pass",
+          "web_hook_auth_password",
+          "web_hook_auth_user",
+          "web_hook_url"
+        ],
+        "AiSidecarParams": [
+          "act_on_channel",
+          "ai_summary",
+          "ai_summary_prompt",
+          "debug",
+          "debug_level",
+          "deepgram_key_override",
+          "deepgram_url_override",
+          "final_summary",
+          "idle_timeout_ms",
+          "live_events",
+          "max_history_tokens",
+          "max_iters_per_tick",
+          "min_interval_ms",
+          "speech_engine",
+          "speech_timeout",
+          "summary_model",
+          "transcribe_prompt",
+          "vad_silence_ms",
+          "vad_thresh",
+          "verbose_utterances"
+        ],
+        "AiSidecarPermissions": [
+          "swaig_allow_settings",
+          "swaig_allow_swml",
+          "swaig_set_global_data"
+        ],
+        "AiSidecarPrompt": [
+          "file"
+        ],
+        "AmazonBedrockConfig": [
+          "SWAIG",
+          "app_name",
+          "assistant_name",
+          "assistant_prompt",
+          "conversation_id",
+          "global_data",
+          "greeting_prompt",
+          "params",
+          "post_prompt",
+          "post_prompt_url",
+          "prompt",
+          "transcript_webhook_url"
+        ],
+        "AmazonBedrockSWAIG": [
+          "defaults",
+          "functions"
+        ],
+        "AmazonBedrockSWAIGDefaults": [
+          "web_hook_url"
+        ],
+        "AmazonBedrockSWAIGFunctionsItem": [
+          "data_map",
+          "description",
+          "function",
+          "meta_data",
+          "meta_data_token",
+          "parameters",
+          "web_hook_url"
+        ],
+        "AmazonBedrockGreetingPrompt": [
+          "role",
+          "text"
+        ],
+        "AmazonBedrockParams": [
+          "attention_timeout",
+          "compact_conversation_time",
+          "compact_strategy",
+          "hard_stop_prompt",
+          "hard_stop_time",
+          "inactivity_timeout",
+          "video_idle_file",
+          "video_listening_file",
+          "video_talking_file"
+        ],
+        "AmazonBedrockPostPrompt": [
+          "pom",
+          "text"
+        ],
+        "AmazonBedrockPostPromptPomItem": [
+          "body",
+          "bullets",
+          "numbered",
+          "numberedBullets",
+          "subsections",
+          "title"
+        ],
+        "AmazonBedrockPrompt": [
+          "pom",
+          "temperature",
+          "text",
+          "top_p",
+          "voice_id"
+        ],
+        "AmazonBedrockPromptPomItem": [
+          "body",
+          "bullets",
+          "numbered",
+          "numberedBullets",
+          "subsections",
+          "title"
+        ],
+        "AnswerConfig": [
+          "codecs",
+          "max_duration",
+          "password",
+          "username"
+        ],
         "BindDigitConfig": [
           "digits",
           "max_triggers",
@@ -12396,6 +13015,11 @@
         ],
         "ClearDigitBindingsConfig": [
           "realm"
+        ],
+        "CondItem": [
+          "else",
+          "then",
+          "when"
         ],
         "ConnectConfig": [
           "answer_on_bridge",
@@ -12430,33 +13054,322 @@
           "username",
           "webrtc_media"
         ],
-        "DialConfig": [
-          "answer_on_bridge",
-          "call_state_events",
-          "call_state_url",
-          "codecs",
-          "confirm",
-          "confirm_timeout",
-          "dest_swml",
-          "encryption",
-          "execute_after_queue",
-          "from",
-          "from_name",
-          "headers",
-          "max_duration",
-          "parallel",
-          "password",
-          "result",
-          "ringback",
-          "serial",
-          "serial_parallel",
-          "session_timeout",
+        "ConnectConfirm": [
+          "code",
+          "meta"
+        ],
+        "ConnectResultItem": [
+          "else",
+          "then",
+          "when"
+        ],
+        "ConnectResult": [
+          "case",
+          "default",
+          "variable"
+        ],
+        "ConnectResultDefault": [
+          "code",
+          "meta"
+        ],
+        "ConnectResultCaseValue": [
+          "code",
+          "meta"
+        ],
+        "ConnectDeviceConfirm": [
+          "code",
+          "meta"
+        ],
+        "DetectMachineConfig": [
+          "detect_message_end",
+          "detectors",
+          "end_silence_timeout",
+          "initial_timeout",
+          "machine_ready_timeout",
+          "machine_voice_threshold",
+          "machine_words_threshold",
           "status_url",
-          "stop_all_on_reject",
           "timeout",
+          "tone",
+          "wait"
+        ],
+        "EchoConfig": [
+          "timeout"
+        ],
+        "EnterQueueConfig": [
+          "execute_after_queue",
+          "queue_name",
+          "status_url",
+          "wait_time",
+          "wait_url",
+          "whisper_url"
+        ],
+        "ExecuteConfig": [
+          "dest",
+          "meta",
+          "on_return",
+          "params",
+          "result"
+        ],
+        "ExecuteOnReturn": [
+          "code",
+          "meta"
+        ],
+        "ExecuteResultItem": [
+          "else",
+          "then",
+          "when"
+        ],
+        "ExecuteResult": [
+          "case",
+          "default",
+          "variable"
+        ],
+        "ExecuteResultDefault": [
+          "code",
+          "meta"
+        ],
+        "ExecuteResultCaseValue": [
+          "code",
+          "meta"
+        ],
+        "ExecuteRpcConfig": [
+          "call_id",
+          "method",
+          "node_id",
+          "params"
+        ],
+        "GotoConfig": [
+          "label",
+          "max",
+          "when"
+        ],
+        "HangupConfig": [
+          "reason"
+        ],
+        "JoinConferenceConfig": [
+          "beep",
+          "coach",
+          "emit_call_quality",
+          "end_on_exit",
+          "max_participants",
+          "meta",
+          "min_participants",
+          "muted",
+          "name",
+          "record",
+          "recording_status_callback",
+          "recording_status_callback_event",
+          "recording_status_callback_event_type",
+          "recording_status_callback_method",
+          "region",
+          "start_on_enter",
+          "status_callback",
+          "status_callback_event",
+          "status_callback_event_type",
+          "status_callback_method",
+          "stream",
+          "trim",
+          "video",
+          "video_layout",
+          "video_preview",
+          "video_quality",
+          "wait_url"
+        ],
+        "JoinConferenceMeta": [
+          "private",
+          "public"
+        ],
+        "JoinRoomConfig": [
+          "name"
+        ],
+        "LabelConfig": [
+          "label"
+        ],
+        "LiveTranscribeConfig": [
+          "action",
+          "hints"
+        ],
+        "LiveTranscribeAction": [
+          "start",
+          "stop",
+          "summarize"
+        ],
+        "LiveTranscribeActionStart": [
+          "ai_summary",
+          "ai_summary_prompt",
+          "debug_level",
+          "deepgram_key_override",
+          "deepgram_url_override",
+          "direction",
+          "hints",
+          "lang",
+          "live_events",
+          "speech_engine",
+          "speech_timeout",
+          "vad_silence_ms",
+          "vad_thresh",
+          "verbose_utterances",
+          "webhook"
+        ],
+        "LiveTranscribeActionSummarize": [
+          "ai_model",
+          "prompt",
+          "summary_prompt",
+          "webhook"
+        ],
+        "LiveTranscribeHintsItem": [
+          "hint",
+          "ignore_case",
+          "pattern",
+          "replace"
+        ],
+        "LiveTranslateConfig": [
+          "action"
+        ],
+        "LiveTranslateAction": [
+          "inject",
+          "start",
+          "stop",
+          "summarize"
+        ],
+        "LiveTranslateActionInject": [
+          "direction",
+          "message"
+        ],
+        "LiveTranslateActionStart": [
+          "ai_summary",
+          "ai_summary_prompt",
+          "debug_level",
+          "deepgram_key_override",
+          "deepgram_url_override",
+          "direction",
+          "filter_from",
+          "filter_to",
+          "from_lang",
+          "from_voice",
+          "from_voice_params",
+          "live_events",
+          "mode",
+          "speech_engine",
+          "speech_timeout",
+          "to_lang",
+          "to_voice",
+          "to_voice_params",
+          "translation_model",
+          "translation_model_params",
+          "vad_silence_ms",
+          "vad_thresh",
+          "webhook"
+        ],
+        "LiveTranslateActionSummarize": [
+          "prompt",
+          "summary_prompt",
+          "webhook"
+        ],
+        "PayConfig": [
+          "bank_account_type",
+          "charge_amount",
+          "currency",
+          "description",
+          "input",
+          "language",
+          "max_attempts",
+          "min_postal_code_length",
+          "parameters",
+          "payment_connector_url",
+          "payment_method",
+          "postal_code",
+          "prompts",
+          "say_voice",
+          "security_code",
+          "status_url",
+          "timeout",
+          "token_type",
+          "valid_card_types",
+          "voice"
+        ],
+        "PlayConfig": [
+          "auto_answer",
+          "loop",
+          "say_gender",
+          "say_language",
+          "say_voice",
+          "status_url",
+          "url",
+          "urls",
+          "volume"
+        ],
+        "PromptConfig": [
+          "digit_timeout",
+          "initial_timeout",
+          "max_digits",
+          "play",
+          "say_gender",
+          "say_language",
+          "say_voice",
+          "speech_end_timeout",
+          "speech_engine",
+          "speech_hints",
+          "speech_language",
+          "speech_timeout",
+          "status_url",
+          "terminators",
+          "url",
+          "volume"
+        ],
+        "ReceiveFaxConfig": [
+          "status_url"
+        ],
+        "RecordConfig": [
+          "beep",
+          "direction",
+          "end_silence_timeout",
+          "format",
+          "initial_timeout",
+          "input_sensitivity",
+          "max_length",
+          "status_url",
+          "stereo",
+          "terminators"
+        ],
+        "RecordCallConfig": [
+          "beep",
+          "control_id",
+          "direction",
+          "end_silence_timeout",
+          "format",
+          "initial_timeout",
+          "input_sensitivity",
+          "max_length",
+          "status_url",
+          "stereo",
+          "terminators"
+        ],
+        "RequestConfig": [
+          "body",
+          "connect_timeout",
+          "headers",
+          "method",
+          "save_variables",
+          "timeout",
+          "url"
+        ],
+        "SipReferConfig": [
+          "password",
+          "status_url",
           "to",
-          "username",
-          "webrtc_media"
+          "to_uri",
+          "username"
+        ],
+        "SendDigitsConfig": [
+          "digits"
+        ],
+        "SendFaxConfig": [
+          "document",
+          "header_info",
+          "identity",
+          "status_url"
         ],
         "SendSmsConfig": [
           "body",
@@ -12466,6 +13379,63 @@
           "status_callback",
           "tags",
           "to_number"
+        ],
+        "SetCapabilitiesConfig": [
+          "capabilities"
+        ],
+        "SetMetaConfig": [
+          "private",
+          "public"
+        ],
+        "SleepConfig": [
+          "duration"
+        ],
+        "StopRecordCallConfig": [
+          "control_id"
+        ],
+        "StopStreamConfig": [
+          "control_id"
+        ],
+        "StopTapConfig": [
+          "control_id"
+        ],
+        "StreamConfig": [
+          "authorization_bearer_token",
+          "codec",
+          "control_id",
+          "custom_parameters",
+          "name",
+          "status_url",
+          "status_url_method",
+          "track",
+          "url"
+        ],
+        "SwitchConfig": [
+          "case",
+          "default",
+          "variable"
+        ],
+        "SwitchDefault": [
+          "code",
+          "meta"
+        ],
+        "SwitchCaseValue": [
+          "code",
+          "meta"
+        ],
+        "TapConfig": [
+          "codec",
+          "control_id",
+          "direction",
+          "rtp_ptime",
+          "status_url",
+          "uri"
+        ],
+        "TranscribeConfig": [
+          "status_url"
+        ],
+        "UserEventConfig": [
+          "event"
         ],
         "AgentOptions": [
           "agentId",

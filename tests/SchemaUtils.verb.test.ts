@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import Ajv2020 from 'ajv/dist/2020.js';
 import { SchemaUtils } from '../src/SchemaUtils.js';
 
 /**
@@ -31,10 +30,6 @@ function schemaDefKeyForVerb(schemaDoc: Record<string, unknown>, verbName: strin
   }
   throw new Error(`no $defs entry declares verb '${verbName}'`);
 }
-
-/** Ajv's ESM/CJS interop default, as SchemaUtils itself resolves it. */
-const AjvCtor = ((Ajv2020 as unknown as { default?: typeof Ajv2020 }).default ??
-  Ajv2020) as unknown as new (o: object) => object;
 
 /** A minimal VALID config for each verb that reaches the unbundled external $ref. */
 const legitConfigs: Record<string, unknown> = {
@@ -235,6 +230,11 @@ describe('SchemaUtils — verb extraction and validation', () => {
         const target = defs[schemaDefKeyForVerb(bundled, UNENRICHED_VERB)]!;
         const outer = target['properties'] as Record<string, Record<string, unknown>>;
         delete outer[UNENRICHED_VERB]!['description'];
+        // The body is a union of forms; the object form carries the verb's
+        // description too, so de-prose every arm.
+        for (const arm of (outer[UNENRICHED_VERB]!['anyOf'] as Record<string, unknown>[]) ?? []) {
+          delete arm['description'];
+        }
 
         writeFileSync(deprosedPath, JSON.stringify(bundled));
         deprosed = new SchemaUtils({ schemaPath: deprosedPath });
@@ -374,7 +374,7 @@ describe('SchemaUtils — verb extraction and validation', () => {
     // "free" before only because they threw immediately). Real callers compile
     // lazily and cache — one cold verb is ~330ms, warm is ~0.02ms.
     it('compiles a validator for EVERY verb in the schema', () => {
-      expect(schema.precompileVerbValidators()).toEqual({});
+      expect(schema._precompileVerbValidators()).toEqual({});
     }, 30_000);
 
     it('rejects an unknown key on connect (the reported case)', () => {
@@ -406,27 +406,34 @@ describe('SchemaUtils — verb extraction and validation', () => {
     // schema someday fails to compile for an unrelated reason, the caller must
     // be told validation did not happen rather than handed a false pass.
     it('reports a refusal, never `valid: true`, when a verb fails to compile', () => {
-      const su = new SchemaUtils();
-      su.getVerbNames();
-      // Reinstate the pre-fix condition: an Ajv instance with no placeholder
-      // registered for the unbundled external ref.
-      const internals = su as unknown as {
-        ajv: unknown;
-        verbValidators: Map<string, unknown>;
-        compileFailures: Map<string, string>;
-      };
-      internals.verbValidators.clear();
-      internals.compileFailures.clear();
-      internals.ajv = new AjvCtor({ allErrors: true, strict: false, logger: false });
+      // The bundled schema no longer carries an unbundled external ref, so pin
+      // the failure with a fixture: the real schema with connect's body pointed
+      // at a file that is not there (Ajv resolves refs eagerly, so this throws
+      // at compile time exactly as SWMLObject.json used to).
+      const repoRoot = fileURLToPath(new URL('..', import.meta.url));
+      const scratch = join(repoRoot, '.sw-tmp');
+      mkdirSync(scratch, { recursive: true });
+      const dir = mkdtempSync(join(scratch, 'swts_nocompile_'));
+      try {
+        const bundled = JSON.parse(
+          readFileSync(fileURLToPath(new URL('../src/schema.json', import.meta.url)), 'utf8'),
+        ) as { $defs: Record<string, { properties: Record<string, unknown> }> };
+        bundled.$defs['Connect']!.properties['connect'] = { $ref: 'NotBundled.json' };
+        const path = join(dir, 'schema.json');
+        writeFileSync(path, JSON.stringify(bundled));
+        const su = new SchemaUtils({ schemaPath: path });
 
-      const result = su.validateVerb('connect', {
-        to: 'sip:alice@example.com',
-        zzz_not_a_real_key: 1,
-      });
-      expect(result.valid).toBe(false);
-      expect(result.errors[0]).toContain('failed to compile');
-      expect(result.errors[0]).toContain('NOT validated');
-      expect(Object.keys(su.compileFailedVerbs)).toContain('connect');
+        const result = su.validateVerb('connect', {
+          to: 'sip:alice@example.com',
+          zzz_not_a_real_key: 1,
+        });
+        expect(result.valid).toBe(false);
+        expect(result.errors[0]).toContain('failed to compile');
+        expect(result.errors[0]).toContain('NOT validated');
+        expect(Object.keys(su._compileFailedVerbs)).toContain('connect');
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
     });
   });
 
@@ -485,13 +492,17 @@ describe('SchemaUtils — hangup.reason matches the engine value set', () => {
   // union or the marker is caught here rather than only through behaviour.
   it('the bundled schema publishes the six engine values and no widen marker', () => {
     const schema = su.loadSchema() as Record<string, unknown>;
-    const defs = schema['$defs'] as Record<string, Record<string, unknown>>;
-    const hangup = defs['Hangup']!['properties'] as Record<string, Record<string, unknown>>;
-    const reason = (hangup['hangup']!['properties'] as Record<string, Record<string, unknown>>)[
-      'reason'
-    ]!;
+    expect(schema['$defs']).toBeDefined();
+    // The hangup body is a union of forms; its config form is the object arm.
+    const reason = (
+      su.getVerbProperties('hangup')['properties'] as Record<string, Record<string, unknown>>
+    )['reason']!;
     expect(reason['x-sdk-widen']).toBeUndefined();
-    expect(reason['enum']).toEqual(ENGINE_REASONS);
+    // The value set is the string arm's enum (the other arm is a SWMLVar reference).
+    const enumArm = ((reason['anyOf'] as Record<string, unknown>[] | undefined) ?? [reason]).find(
+      (arm) => Array.isArray(arm['enum']),
+    );
+    expect(enumArm?.['enum']).toEqual(ENGINE_REASONS);
   });
 
   it('accepts every value the engine accepts', () => {
@@ -551,18 +562,21 @@ describe('SchemaUtils — verbs that embed SWML are fully validated', () => {
     expect(execute.errors[0]).toContain("unknown property 'destt'");
     expect(schema.validateVerb('connect', { to: '+15551234567' }).valid).toBe(true);
     expect(schema.validateVerb('connect', { to: '+15551234567', tooo: 1 }).valid).toBe(false);
-    expect(schema.validateVerb('amazon_bedrock', { prompt: { text: 'hi', zzz: 1 } }).valid).toBe(
+    expect(schema.validateVerb('amazon_bedrock', { prompt: { text: 'hi' }, zzz: 1 }).valid).toBe(
       false,
+    );
+    // The bedrock `prompt` object is OPEN in the engine-derived schema (the engine
+    // ignores an unlisted prompt key rather than rejecting it), so this passes.
+    expect(schema.validateVerb('amazon_bedrock', { prompt: { text: 'hi', zzz: 1 } }).valid).toBe(
+      true,
     );
   });
 
-  it('names the allowed values for a failed choice, not the other prompt form', () => {
-    const result = new SchemaUtils().validateVerb('amazon_bedrock', {
-      prompt: { text: 'hi', voice_id: 'inworld.Mark' },
-    });
-    expect(result.errors).toEqual([
-      "Schema validation error for 'amazon_bedrock': /amazon_bedrock/prompt/voice_id must be one of: tiffany, matthew, amy, lupe, carlos",
-    ]);
+  it('names the failing path and both arms for a value outside a closed set', () => {
+    const result = new SchemaUtils().validateVerb('hangup', { reason: 'bogus' });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain('/hangup/reason must be equal to one of the allowed values');
   });
 
   it('shares compiled validators between instances using the bundled schema', () => {

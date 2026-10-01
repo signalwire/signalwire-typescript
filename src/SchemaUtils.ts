@@ -56,6 +56,8 @@ export interface VerbDefinition {
   schemaName: string;
   /** The raw JSON Schema definition object for this verb. */
   definition: Record<string, unknown>;
+  /** Whether the schema marks the verb `deprecated` (not exposed as a method). */
+  deprecated?: boolean;
 }
 
 type AjvLike = { compile: (s: object) => ValidateFunction; addSchema: (s: object) => unknown };
@@ -118,6 +120,84 @@ function defsNeedingDocument(defs: Record<string, unknown>): Set<string> {
   return needs;
 }
 
+/** Keywords that can mark a property "evaluated" from outside `properties`. */
+const EVALUATING_APPLICATORS = [
+  'allOf',
+  'anyOf',
+  'oneOf',
+  'not',
+  'if',
+  'then',
+  'else',
+  '$ref',
+  '$dynamicRef',
+  'patternProperties',
+  'additionalProperties',
+];
+
+/**
+ * A copy of the schema Ajv evaluates the same way the spec does.
+ *
+ * Ajv 8 mis-tracks evaluated properties when an object combines
+ * `unevaluatedProperties` with a multi-entry `dependentSchemas` (measured on
+ * ajv 8.20.0 with the engine-derived `cond` item schema: `{when, then}` — both
+ * declared in that node's own `properties` — is reported as unevaluated, so a
+ * legitimate `cond` fails). Where the only property-evaluating keywords on such
+ * a node are its own `properties` plus `dependentSchemas` whose subschemas only
+ * constrain names already in `properties`, `unevaluatedProperties: X` is
+ * exactly `additionalProperties: X` — so that equivalent form is what Ajv gets.
+ * Any node outside that narrow shape is left untouched.
+ */
+function ajvCompatibleSchema<T>(node: T): T {
+  if (Array.isArray(node)) return node.map((n) => ajvCompatibleSchema(n)) as unknown as T;
+  if (!node || typeof node !== 'object') return node;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+    out[k] = ajvCompatibleSchema(v);
+  }
+  const props = out['properties'];
+  const deps = out['dependentSchemas'];
+  if (
+    'unevaluatedProperties' in out &&
+    deps &&
+    typeof deps === 'object' &&
+    props &&
+    typeof props === 'object' &&
+    !EVALUATING_APPLICATORS.some((k) => k in out)
+  ) {
+    const declared = new Set(Object.keys(props));
+    const onlyDeclared = Object.values(deps as Record<string, unknown>).every((d) => {
+      if (!d || typeof d !== 'object') return false;
+      const keys = Object.keys(d as Record<string, unknown>);
+      const dp = (d as Record<string, unknown>)['properties'];
+      return (
+        keys.every((k) => k === 'properties' || k === 'required') &&
+        (dp === undefined ||
+          (typeof dp === 'object' &&
+            dp !== null &&
+            Object.keys(dp).every((name) => declared.has(name))))
+      );
+    });
+    if (onlyDeclared) {
+      out['additionalProperties'] = out['unevaluatedProperties'];
+      delete out['unevaluatedProperties'];
+    }
+  }
+  return out as T;
+}
+
+/** The Ajv-compatible form of each loaded schema object, computed once. */
+const AJV_SCHEMA = new WeakMap<object, Record<string, unknown>>();
+
+function ajvSchemaFor(schema: Record<string, unknown>): Record<string, unknown> {
+  let s = AJV_SCHEMA.get(schema);
+  if (!s) {
+    s = ajvCompatibleSchema(schema);
+    AJV_SCHEMA.set(schema, s);
+  }
+  return s;
+}
+
 // Basic SWML structure expectations
 const REQUIRED_TOP_LEVEL = ['version', 'sections'];
 const VALID_VERSIONS = ['1.0.0'];
@@ -141,7 +221,7 @@ export class SchemaUtils {
   private verbValidators: Map<string, ValidateFunction | null> = new Map();
   private ajv: AjvLike | null | undefined = undefined;
   /** Verb names whose validator FAILED TO COMPILE (as opposed to verbs for which
-   *  no full validator is applicable). See {@link compileFailedVerbs}. */
+   *  no full validator is applicable). See {@link _compileFailedVerbs}. */
   private compileFailures: Map<string, string> = new Map();
 
   /**
@@ -234,10 +314,17 @@ export class SchemaUtils {
       if (propNames.length === 0) continue;
 
       const verbName = propNames[0]!; // length === 0 continues above
+      const verbProp = (verbDef['properties'] as Record<string, unknown>)[verbName];
       verbs.set(verbName, {
         name: verbName,
         schemaName,
         definition: verbDef,
+        // JSON Schema's `deprecated` annotation, on the wrapper or its verb property.
+        deprecated:
+          verbDef['deprecated'] === true ||
+          (typeof verbProp === 'object' &&
+            verbProp !== null &&
+            (verbProp as Record<string, unknown>)['deprecated'] === true),
       });
     }
 
@@ -266,7 +353,7 @@ export class SchemaUtils {
    * @returns A verb-name → compile-error map; empty when every compiled verb
    *   validator built successfully.
    */
-  get compileFailedVerbs(): Record<string, string> {
+  get _compileFailedVerbs(): Record<string, string> {
     return Object.fromEntries(this.compileFailures);
   }
 
@@ -279,17 +366,24 @@ export class SchemaUtils {
    *
    * @returns A verb-name → compile-error map; empty when all verbs compile.
    */
-  precompileVerbValidators(): Record<string, string> {
+  _precompileVerbValidators(): Record<string, string> {
     for (const verbName of this.verbs.keys()) this.getVerbValidator(verbName);
-    return this.compileFailedVerbs;
+    return this._compileFailedVerbs;
   }
 
   /**
-   * Get all verb names defined in the schema.
+   * Get the names of the verbs the SDK exposes as builder/service methods.
+   *
+   * A verb the schema marks `"deprecated": true` is left out: it is not SDK
+   * surface, so no `dial()`/`eval()`/`if()` method is installed for it. It stays
+   * known to validation ({@link hasVerb}, {@link validateVerb}), so a document
+   * that already carries it still validates.
    * @returns Array of verb names (e.g. ["answer", "ai", "hangup", ...]).
    */
   getVerbNames(): string[] {
-    return Array.from(this.verbs.keys());
+    return Array.from(this.verbs.values())
+      .filter((v) => !v.deprecated)
+      .map((v) => v.name);
   }
 
   /**
@@ -303,7 +397,25 @@ export class SchemaUtils {
     if (!verb) return {};
     const outerProps = verb.definition['properties'] as Record<string, unknown> | undefined;
     if (!outerProps || !outerProps[verbName]) return {};
-    return outerProps[verbName] as Record<string, unknown>;
+    const body = outerProps[verbName] as Record<string, unknown>;
+    // The engine-derived schema states a verb body as a union of FORMS (object,
+    // positional array, bare scalar). The config a caller writes is the object
+    // form, so when exactly one arm is an object schema, that arm is the verb's
+    // config schema (its `properties`/`required`/`description`).
+    const arms = (body['anyOf'] ?? body['oneOf']) as unknown;
+    if (Array.isArray(arms)) {
+      const defs = this.schema?.['$defs'] as Record<string, unknown> | undefined;
+      const objects = arms
+        .map((a) => {
+          const arm = a as Record<string, unknown>;
+          const ref = arm['$ref'];
+          return (typeof ref === 'string' ? defs?.[ref.split('/').pop()!] : arm) as
+            Record<string, unknown> | undefined;
+        })
+        .filter((a) => a?.['type'] === 'object' && typeof a['properties'] === 'object');
+      if (objects.length === 1) return objects[0]!;
+    }
+    return body;
   }
 
   /**
@@ -561,8 +673,9 @@ export class SchemaUtils {
     if (shared !== undefined) return shared;
     let built: ValidateFunction | null = null;
     const verb = this.verbs.get(verbName);
-    const defs = this.schema?.['$defs'] as Record<string, unknown> | undefined;
-    if (ajv && verb && defs) {
+    const ajvSchema = this.schema ? ajvSchemaFor(this.schema) : null;
+    const defs = ajvSchema?.['$defs'] as Record<string, unknown> | undefined;
+    if (ajv && verb && defs && ajvSchema) {
       try {
         // Compile the verb's own definition (which is `{ properties: { <verb>:
         // <config-schema> }, ... }`) with $defs present so cross-verb $refs
@@ -573,12 +686,12 @@ export class SchemaUtils {
           // Verbs that embed SWML compile against the document schema,
           // registered once and shared by every such verb.
           if (!shared.registered) {
-            ajv.addSchema(this.schema!);
+            ajv.addSchema(ajvSchema);
             shared.registered = true;
           }
           built = ajv.compile({ $ref: `${id}#/$defs/${verb.schemaName}` });
         } else {
-          built = ajv.compile({ $defs: defs, ...(verb.definition as object) });
+          built = ajv.compile({ $defs: defs, ...(defs[verb.schemaName] as object) });
         }
         this.compileFailures.delete(verbName);
       } catch (e) {
@@ -694,9 +807,10 @@ export class SchemaUtils {
 
   /**
    * Resolve the set of KNOWN top-level property names for a verb's config object,
-   * following a single `$ref` (e.g. AI -> AIObject) and UNIONING the branches of
-   * an `anyOf`/`oneOf` union. Returns `null` only when there is genuinely no
-   * enumerable closed key-set (so no shallow key check applies).
+   * following `$ref` (e.g. AI -> AIObject) and, for an `anyOf`/`oneOf` union, the
+   * ONE branch that is a closed object (the #223 contract: exactly-one-closed-arm,
+   * else disengage). Returns `null` when there is no single enumerable closed
+   * key-set (so no shallow key check applies).
    */
   private verbTopLevelPropertyNames(verbName: string): Set<string> | null {
     const verb = this.verbs.get(verbName);
@@ -713,18 +827,19 @@ export class SchemaUtils {
    * Three node shapes are handled, and the union case is the one that matters:
    *
    * - `$ref` — followed into `$defs` and resolved recursively (ai -> AIObject).
-   * - `anyOf`/`oneOf` — resolved BRANCH BY BRANCH and UNIONED. Without this the
-   *   resolver used to bail on the first `type !== 'object'` test, because a
-   *   union node carries no `type` of its own. That bail silently DISENGAGED the
-   *   closed-key check — the caller reads `null` as "nothing to enforce" and
-   *   answers valid for any key whatsoever. Five verbs in the shipped schema are
-   *   union-shaped (connect, play, send_sms, sleep, unset), so the check was
-   *   doing nothing for all of them. A union's known-key set is the union of its
-   *   object branches' keys: a config satisfying the union satisfies SOME branch,
-   *   so a key belonging to no branch belongs to no valid document. Non-object
-   *   branches (sleep's bare `integer`, SWMLVar) contribute no keys and are
-   *   skipped — they constrain the config to not be an object at all, a different
-   *   question from which keys an object config may carry.
+   * - `anyOf`/`oneOf` — resolved BRANCH BY BRANCH; engaged only when EXACTLY ONE
+   *   branch is a closed object, whose keys are then the known set (the #223
+   *   contract, porting-sdk docs/legacy-census/DISC-g-d21.md §1.4/§4). A verb
+   *   body is a union of FORMS — the engine admits an object, string, number or
+   *   array body (swml_schema.c `check_method_type_and_unknown_params`) — so the
+   *   non-object branches (a bare scalar, a positional array, SWMLVar) contribute
+   *   no keys and are skipped: they constrain the config to not be an object at
+   *   all. Several closed object branches would each close over a DIFFERENT key
+   *   set; a union of them would accept a document mixing keys no single branch
+   *   admits, so the shallow check disengages and the deep validator owns that
+   *   shape. Without union handling at all the resolver used to bail on the first
+   *   `type !== 'object'` test (a union node carries no `type`), which silently
+   *   disengaged the check for every union-shaped verb.
    * - a plain closed object — its own `properties`.
    *
    * `depth` bounds `$ref`/union following so a self-referential `$ref` cannot
@@ -744,20 +859,17 @@ export class SchemaUtils {
       return this.closedKeySet(defs?.[refName] as Record<string, unknown> | undefined, depth + 1);
     }
 
-    // A union node: resolve every branch and union the ones that yield a set.
+    // A union node: engaged only when exactly one branch is a closed object.
     const branches = (body['anyOf'] ?? body['oneOf']) as unknown;
     if (Array.isArray(branches)) {
-      const union = new Set<string>();
-      let found = false;
+      const closed: Set<string>[] = [];
       for (const b of branches) {
         const keys = this.closedKeySet(b as Record<string, unknown> | undefined, depth + 1);
-        if (!keys) continue;
-        found = true;
-        for (const k of keys) union.add(k);
+        if (keys) closed.push(keys);
       }
-      // No branch is a closed object (e.g. unset: string | array-of-string).
-      // There is no key-set to enforce; the deep validator owns this shape.
-      return found ? union : null;
+      // No closed branch (e.g. unset: string | array-of-string), or several:
+      // no single key-set to enforce — the deep validator owns this shape.
+      return closed.length === 1 ? closed[0]! : null;
     }
 
     if (body['type'] !== 'object') return null;

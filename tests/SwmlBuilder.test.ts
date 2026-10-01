@@ -329,16 +329,15 @@ describe('SwmlBuilder — verb auto-vivification', () => {
       expect((doc.sections.main[0]!.play as Record<string, unknown>).say_gender).toBe('male');
     });
 
-    it('rejects an off-spec gender at the call site, but the wire is unchanged', () => {
-      // The `(string & {})` arm is gone — an off-spec gender is now a COMPILE
-      // error at the call site. If the arm were still present, this
-      // `@ts-expect-error` would itself be an unused-directive error, failing the
-      // build. Types erase, so the value still reaches the wire verbatim: closing
-      // the type changes what the compiler accepts, not a single wire byte.
+    it('rejects an off-spec gender at the call site AND at render', () => {
+      // The `(string & {})` arm is gone — an off-spec gender is a COMPILE error at
+      // the call site. If the arm were still present, this `@ts-expect-error`
+      // would itself be an unused-directive error, failing the build. The
+      // engine-derived schema closes `say_gender` to the same value set, so a
+      // caller that bypasses the type (plain JS, a cast) is refused at render
+      // instead of sending a value the engine rejects.
       // @ts-expect-error — 'neutral' is not a TtsGender; the open arm was removed.
-      builder.say('hi', { gender: 'neutral' });
-      const doc = builder.build() as { sections: { main: Array<Record<string, unknown>> } };
-      expect((doc.sections.main[0]!.play as Record<string, unknown>).say_gender).toBe('neutral');
+      expect(() => builder.say('hi', { gender: 'neutral' })).toThrow(/say_gender/);
     });
 
     it("autocompletes 'male'/'female' and REJECTS an off-spec value at COMPILE time", () => {

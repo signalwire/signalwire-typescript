@@ -3055,34 +3055,11 @@ export class AgentBase extends SWMLService {
       }
     }
 
-    // This opt-out was audited key-by-key against the bundled schema (every key
-    // this method can emit was run through `validateVerb('ai', …)`). The blanket
-    // rationale it used to carry was mostly WRONG — `SWAIG.mcp_servers`,
-    // per-language `engine`/`model`/`fillers`, `hints`, `pronounce`, `params`,
-    // `global_data`, `post_prompt*` and both prompt forms all VALIDATE. Two keys
-    // it named as schema-unmodelled were in fact MISPLACED by this method and are
-    // now emitted where the schema and the reference put them: `contexts` moved
-    // into `prompt`, `debug_webhook_url`/`_level` into `params`.
-    //
-    // Exactly ONE key still requires the opt-out: `multilingual`. It is emitted at
-    // the ai top level by the reference (`agent_base.py:1273`
-    // `ai_config["multilingual"] = …`, via the documented `set_multilingual`
-    // Mode-B API), but `$defs/AIObject` is closed (`unevaluatedProperties:
-    // {"not": {}}`) over 9 keys and does not declare it — the string
-    // "multilingual" appears in `schema.json` only inside two description blobs.
-    // So the bundled schema is genuinely behind the server here, and validating
-    // would reject a shape the reference ships. Everything else is now covered by
-    // the schema, and `renderSwml` self-checks that below.
-    //
-    // The narrow scope is enforced, not merely asserted: when no `multilingual`
-    // is configured we take the VALIDATING path, so any future ai key that the
-    // schema rejects fails loudly instead of silently riding this bypass.
-    const needsSchemaBypass = Object.keys(this.multilingual).length > 0;
-    this.swmlBuilder.addVerb(
-      'ai',
-      aiConfig,
-      needsSchemaBypass ? { skipValidation: true } : undefined,
-    );
+    // Every key this method emits is declared by the bundled schema (including
+    // the top-level `multilingual`, which the engine-derived schema now models),
+    // so the ai verb always takes the VALIDATING path: a future ai key the schema
+    // rejects fails loudly instead of being sent.
+    this.swmlBuilder.addVerb('ai', aiConfig);
 
     // ── PHASE 5: Post-AI verbs ──
     for (const [verb, config] of this.postAiVerbs) {

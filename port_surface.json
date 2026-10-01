@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ dd5098be100b38ecd40a798eb37a22358a74ec6d",
+  "generated_from": "signalwire-typescript @ eab8b371b7a820e86fddf93163cdbc790ab9ba23",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -564,6 +564,7 @@
           "add_action",
           "add_actions",
           "add_dynamic_hints",
+          "change_voice",
           "clear_dynamic_hints",
           "connect",
           "create_payment_action",
@@ -1131,14 +1132,22 @@
         "AiSidecar": [],
         "AmazonBedrock": [],
         "Answer": [],
-        "BindDigit": [],
+        "BindDigit": [
+          "bind_digit"
+        ],
         "CallDeviceStream": [],
         "CallPayParameters": [],
         "CallPayPrompts": [],
         "CallPayPromptsActions": [],
-        "ClearDigitBindings": [],
-        "Cond": [],
-        "Connect": [],
+        "ClearDigitBindings": [
+          "clear_digit_bindings"
+        ],
+        "Cond": [
+          "cond"
+        ],
+        "Connect": [
+          "connect"
+        ],
         "ConnectDevice": [
           "headers"
         ],
@@ -1153,10 +1162,8 @@
         ],
         "Denoise": [],
         "DetectMachine": [],
-        "Dial": [],
         "Echo": [],
         "EnterQueue": [],
-        "Eval": [],
         "Execute": [],
         "ExecuteRpc": [],
         "Expression": [
@@ -1165,7 +1172,6 @@
         "Foreach": [],
         "Goto": [],
         "Hangup": [],
-        "If": [],
         "JoinConference": [],
         "JoinRoom": [],
         "JsonSchema": [
@@ -1203,7 +1209,9 @@
         ],
         "SendDigits": [],
         "SendFax": [],
-        "SendSMS": [],
+        "SendSMS": [
+          "send_sms"
+        ],
         "Set": [],
         "SetCapabilities": [],
         "SetMeta": [],
@@ -1227,16 +1235,211 @@
           "foreach",
           "output"
         ],
+        "AiConfig": [
+          "hints",
+          "languages",
+          "multilingual",
+          "params",
+          "post_prompt",
+          "prompt",
+          "pronounce"
+        ],
+        "AiSWAIGItem": [
+          "argument",
+          "data_map",
+          "fillers",
+          "parameters"
+        ],
+        "AiSWAIGItemFillers": [],
+        "AiSWAIG": [
+          "defaults",
+          "functions",
+          "hooks",
+          "includes",
+          "internal_fillers",
+          "mcp_servers"
+        ],
+        "AiSWAIGDefaults": [],
+        "AiSWAIGFunctionsItem": [
+          "argument",
+          "data_map",
+          "fillers",
+          "parameters"
+        ],
+        "AiSWAIGFunctionsItemFillers": [],
+        "AiSWAIGHooksItem": [
+          "argument",
+          "data_map",
+          "fillers",
+          "parameters"
+        ],
+        "AiSWAIGHooksItemFillers": [],
+        "AiSWAIGIncludesItem": [],
+        "AiSWAIGInternalFillers": [
+          "adjust_response_latency",
+          "change_context",
+          "check_time",
+          "get_ideal_strategy",
+          "get_visual_input",
+          "next_step",
+          "pause_conversation",
+          "wait_for_user",
+          "wait_seconds"
+        ],
+        "AiSWAIGInternalFillersAdjustResponseLatency": [],
+        "AiSWAIGInternalFillersChangeContext": [],
+        "AiSWAIGInternalFillersCheckTime": [],
+        "AiSWAIGInternalFillersGetIdealStrategy": [],
+        "AiSWAIGInternalFillersGetVisualInput": [],
+        "AiSWAIGInternalFillersNextStep": [],
+        "AiSWAIGInternalFillersPauseConversation": [],
+        "AiSWAIGInternalFillersWaitForUser": [],
+        "AiSWAIGInternalFillersWaitSeconds": [],
+        "AiSWAIGMcpServersItem": [],
+        "AiHintsItem": [],
+        "AiLanguagesItem": [
+          "params"
+        ],
+        "AiLanguagesItemParams": [],
+        "AiMultilingual": [],
+        "AiMultilingualFillers": [],
+        "AiMultilingualFunctionFillers": [],
+        "AiMultilingualTurnFillers": [],
+        "AiParams": [
+          "convo",
+          "inner_dialog",
+          "realtime"
+        ],
+        "AiParamsConvoItem": [],
+        "AiParamsInnerDialog": [
+          "SWAIG"
+        ],
+        "AiParamsInnerDialogSWAIG": [
+          "defaults"
+        ],
+        "AiParamsInnerDialogSWAIGDefaults": [],
+        "AiParamsInnerDialogScorecard": [],
+        "AiParamsRealtime": [],
+        "AiParamsToolResultDistill": [],
+        "AiPostPrompt": [
+          "pom"
+        ],
+        "AiPostPromptPomItem": [],
+        "AiPrompt": [
+          "pom",
+          "steps"
+        ],
+        "AiPromptPomItem": [],
+        "AiPronounceItem": [],
+        "AiSidecarConfig": [],
+        "AiSidecarSWAIG": [],
+        "AiSidecarSWAIGDefaults": [],
+        "AiSidecarSWAIGFunctionsItem": [],
+        "AiSidecarParams": [],
+        "AiSidecarPermissions": [],
+        "AiSidecarPrompt": [],
+        "AmazonBedrockConfig": [
+          "SWAIG",
+          "greeting_prompt",
+          "params",
+          "post_prompt",
+          "prompt"
+        ],
+        "AmazonBedrockSWAIG": [
+          "defaults",
+          "functions"
+        ],
+        "AmazonBedrockSWAIGDefaults": [],
+        "AmazonBedrockSWAIGFunctionsItem": [
+          "data_map",
+          "parameters"
+        ],
+        "AmazonBedrockGreetingPrompt": [],
+        "AmazonBedrockParams": [],
+        "AmazonBedrockPostPrompt": [
+          "pom"
+        ],
+        "AmazonBedrockPostPromptPomItem": [],
+        "AmazonBedrockPrompt": [
+          "pom"
+        ],
+        "AmazonBedrockPromptPomItem": [],
+        "AnswerConfig": [],
         "BindDigitConfig": [],
         "ClearDigitBindingsConfig": [],
+        "CondItem": [
+          "else",
+          "then"
+        ],
         "ConnectConfig": [
           "headers",
           "parallel",
           "serial",
           "serial_parallel"
         ],
-        "DialConfig": [],
-        "SendSmsConfig": []
+        "ConnectConfirm": [],
+        "ConnectResultItem": [
+          "else",
+          "then"
+        ],
+        "ConnectResult": [],
+        "ConnectResultDefault": [],
+        "ConnectResultCaseValue": [],
+        "ConnectDeviceConfirm": [],
+        "DetectMachineConfig": [],
+        "EchoConfig": [],
+        "EnterQueueConfig": [],
+        "ExecuteConfig": [],
+        "ExecuteOnReturn": [],
+        "ExecuteResultItem": [
+          "else",
+          "then"
+        ],
+        "ExecuteResult": [],
+        "ExecuteResultDefault": [],
+        "ExecuteResultCaseValue": [],
+        "ExecuteRpcConfig": [],
+        "GotoConfig": [],
+        "HangupConfig": [],
+        "JoinConferenceConfig": [],
+        "JoinConferenceMeta": [],
+        "JoinRoomConfig": [],
+        "LabelConfig": [],
+        "LiveTranscribeConfig": [],
+        "LiveTranscribeAction": [],
+        "LiveTranscribeActionStart": [],
+        "LiveTranscribeActionSummarize": [],
+        "LiveTranscribeHintsItem": [],
+        "LiveTranslateConfig": [],
+        "LiveTranslateAction": [],
+        "LiveTranslateActionInject": [],
+        "LiveTranslateActionStart": [],
+        "LiveTranslateActionSummarize": [],
+        "PayConfig": [],
+        "PlayConfig": [],
+        "PromptConfig": [],
+        "ReceiveFaxConfig": [],
+        "RecordConfig": [],
+        "RecordCallConfig": [],
+        "RequestConfig": [],
+        "SipReferConfig": [],
+        "SendDigitsConfig": [],
+        "SendFaxConfig": [],
+        "SendSmsConfig": [],
+        "SetCapabilitiesConfig": [],
+        "SetMetaConfig": [],
+        "SleepConfig": [],
+        "StopRecordCallConfig": [],
+        "StopStreamConfig": [],
+        "StopTapConfig": [],
+        "StreamConfig": [],
+        "SwitchConfig": [],
+        "SwitchDefault": [],
+        "SwitchCaseValue": [],
+        "TapConfig": [],
+        "TranscribeConfig": [],
+        "TransferConfig": [],
+        "UserEventConfig": []
       },
       "functions": []
     },
@@ -2020,16 +2223,7 @@
         "SignalwireDisconnectResult": [],
         "SignalwireExecuteResult": [],
         "SignalwirePingResult": [],
-        "SignalwireReauthenticateResult": [],
-        "VertoAnswerResult": [],
-        "VertoAttachResult": [],
-        "VertoBroadcastResult": [],
-        "VertoByeResult": [],
-        "VertoInfoResult": [],
-        "VertoInviteResult": [],
-        "VertoModifyResult": [],
-        "VertoPongResult": [],
-        "VertoSubscribeResult": []
+        "SignalwireReauthenticateResult": []
       },
       "functions": []
     },
@@ -3939,7 +4133,6 @@
         "SchemaUtils": [
           "__init__",
           "clear_cache",
-          "compile_failed_verbs",
           "full_validation_available",
           "get_all_verb_names",
           "get_cache_size",
@@ -3949,7 +4142,6 @@
           "get_verb_required_properties",
           "has_verb",
           "load_schema",
-          "precompile_verb_validators",
           "schema_path",
           "validate_document",
           "validate_verb"

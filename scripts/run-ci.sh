@@ -181,6 +181,15 @@ sched_gate SIGNATURES-FRESH res=surface desc="committed port_signatures.json mat
     -- python3 "$PORTING_SDK_DIR/scripts/suites/_signatures_fresh.py" \
         --port typescript --repo "$PORT_ROOT" --porting-sdk "$PORTING_SDK_DIR"
 
+# SCHEMA-BUNDLE: the bundled src/schema.json (what SwmlBuilder installs its verbs
+# from and the package ships) is byte-identical to porting-sdk's schema.json, which is
+# itself the api-reference-specs output (porting-sdk docs/SCHEMA_ROUND_TRIP.md). The
+# sha256 record beside the copy lets a fork PR without porting-sdk access check it too
+# (`shasum -a 256 -c src/schema.json.sha256`). Cheap, per-PR.
+sched_gate SCHEMA-BUNDLE desc="bundled schema.json == porting-sdk's == ARS output (record matches)" \
+    -- python3 "$PORTING_SDK_DIR/scripts/port_schema_bundle.py" check \
+       --port signalwire-typescript --port-root "$PORT_ROOT" --selftest
+
 # TYPE-EROSION: a port may not erase a type the reference DECLARES. compare_param treats
 # `any` on EITHER side as matching anything, so a port emitting `any` silently satisfies
 # every reference declaration — an unlimited opt-out. ConciergeAgent.hours_of_operation is

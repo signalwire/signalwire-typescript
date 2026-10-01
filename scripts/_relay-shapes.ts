@@ -43,6 +43,9 @@ export const COMBINED_RELAY = 'combined-specs/relay.yaml';
 
 export type Phase = 'params' | 'result';
 
+/** The stamp the spec carriage writes on every shape block it owns (`_CARRIED_BY`). */
+const CARRIED_BY = 'scripts/extract_relay_schemas.py';
+
 /** The two phases this reader serves, params first (the emit order). */
 export const PHASES: readonly Phase[] = ['params', 'result'] as const;
 
@@ -195,7 +198,12 @@ export function shapes(psdk: string, phase: Phase): Map<string, Schema> {
     const carrier = method[block];
     if (!isRecord(carrier)) continue;
     const node = carrier[shapeKey];
-    if (isRecord(node)) out.set(name, node);
+    // ONLY the switchblade-carried block. mod_infrastructure e28a3743 began
+    // publishing its OWN `response.result` on the 9 `verto.*` methods — the
+    // engine's JSON-RPC `result`, a different fact under the same key. The
+    // carriage stamps `extracted_by` on every block it writes, so that stamp, not
+    // the key, makes a node this reader's to serve (relay_protocol_shapes.py).
+    if (isRecord(node) && node.extracted_by === CARRIED_BY) out.set(name, node);
   }
 
   const unattachedBlock = doc[unattachedKey];

@@ -129,6 +129,223 @@ function swmlDeclaration(name: string, schema: Schema): string {
   return `${doc}export type ${tsName(name)} = ${tsType(schema, 0)};\n`;
 }
 
+// ---- schema.json transforms (mirrors generate_python_rest_types.py) ----------
+
+type SNode = Record<string, unknown>;
+const isNode = (v: unknown): v is SNode => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/**
+ * True when a SWML verb wrapper (a `SWMLMethod.anyOf` member) is marked
+ * `deprecated: true` — on the wrapper itself or on its verb property. Keyed on the
+ * schema's annotation only, never on a list of verb names: the schema is the
+ * authority on which verbs are retired (reference `swml_verb_is_deprecated`).
+ */
+export function swmlVerbIsDeprecated(wrapper: SNode): boolean {
+  if (wrapper.deprecated === true) return true;
+  const props = isNode(wrapper.properties) ? wrapper.properties : {};
+  return Object.values(props).some((v) => isNode(v) && v.deprecated === true);
+}
+
+/**
+ * `defs` without its deprecated verbs (owner ruling 2026-09-24: dial/eval/if stay
+ * deprecated and are not SDK surface): the wrapper leaves the `SWMLMethod` union
+ * and its wrapper `$def` is not emitted (reference `drop_deprecated_swml_verbs`).
+ */
+function dropDeprecatedSwmlVerbs(defs: Record<string, SNode>): Record<string, SNode> {
+  const swmlMethod = isNode(defs.SWMLMethod) ? defs.SWMLMethod : {};
+  const arms = Array.isArray(swmlMethod.anyOf) ? (swmlMethod.anyOf as SNode[]) : [];
+  const kept: SNode[] = [];
+  const dropped = new Set<string>();
+  for (const arm of arms) {
+    const wrapper = String(arm.$ref ?? '')
+      .split('/')
+      .pop()!;
+    const wdef = defs[wrapper];
+    if (isNode(wdef) && swmlVerbIsDeprecated(wdef)) {
+      dropped.add(wrapper);
+      continue;
+    }
+    kept.push(arm);
+  }
+  if (dropped.size === 0) return defs;
+  const out: Record<string, SNode> = {};
+  for (const [k, v] of Object.entries(defs)) if (!dropped.has(k)) out[k] = v;
+  out.SWMLMethod = { ...swmlMethod, anyOf: kept };
+  return out;
+}
+
+const PRESENCE_KEYS = new Set(['required', 'anyOf', 'oneOf', 'allOf']);
+
+/**
+ * True when every arm constrains only WHICH keys are present (`required` clauses
+ * combined by anyOf/oneOf/allOf) — schema.json's one-of rules. Such an `allOf`
+ * adds no key and no type, so it must not stop an object from being typed.
+ */
+function presenceOnly(arms: unknown): boolean {
+  if (!Array.isArray(arms) || arms.length === 0) return false;
+  for (const arm of arms) {
+    if (!isNode(arm) || Object.keys(arm).length === 0) return false;
+    if (!Object.keys(arm).every((k) => PRESENCE_KEYS.has(k))) return false;
+    const req = arm.required;
+    if (req !== undefined && !(Array.isArray(req) && req.every((r) => typeof r === 'string'))) {
+      return false;
+    }
+    for (const key of ['anyOf', 'oneOf', 'allOf']) {
+      if (key in arm && !presenceOnly(arm[key])) return false;
+    }
+  }
+  return true;
+}
+
+/** `node` minus a presence-only `allOf`; otherwise unchanged. */
+function withoutPresenceAllOf(node: SNode): SNode {
+  if (!presenceOnly(node.allOf)) return node;
+  const out: SNode = {};
+  for (const [k, v] of Object.entries(node)) if (k !== 'allOf') out[k] = v;
+  return out;
+}
+
+/** An inline object schema with named properties (reference `_is_inline_object`). */
+function isInlineObject(node: unknown): boolean {
+  if (!isNode(node)) return false;
+  const n = withoutPresenceAllOf(node);
+  return (
+    !('$ref' in n) &&
+    isNode(n.properties) &&
+    Object.keys(n.properties).length > 0 &&
+    (n.type === 'object' || n.type === undefined) &&
+    !(n.anyOf || n.oneOf || n.allOf)
+  );
+}
+
+/**
+ * Lift every inline property-bearing object into its own named `$def` and point a
+ * `$ref` at it, so each becomes a named type — the reference's
+ * `hoist_inline_objects`, name for name:
+ *   - a verb wrapper's verb object is `<Verb>Config`, its descendants `<Verb>…`;
+ *   - any other object is `<Parent><Key>`; an array element adds `Item`;
+ *   - a union with ONE object arm gives that arm the union's name; with several,
+ *     each takes `<Name><ArmTitle>` (or `<Name>Variant<i>`).
+ * A taken name gets a numeric suffix. Originals first, hoisted after, walk order.
+ */
+function hoistInlineObjects(
+  defs: Record<string, SNode>,
+  verbRoots: Map<string, string>,
+): Record<string, SNode> {
+  const taken = new Set(Object.keys(defs));
+  const hoisted = new Map<string, SNode>();
+  const nameOf = new Map<object, string>();
+  const claim = (name: string): string => {
+    let cand = name;
+    let n = 2;
+    while (taken.has(cand)) cand = `${name}${n++}`;
+    taken.add(cand);
+    return cand;
+  };
+  const walkChildren = (node: SNode, prefix: string): SNode => {
+    const out: SNode = { ...node };
+    if (isNode(node.properties)) {
+      const props: SNode = {};
+      for (const [k, v] of Object.entries(node.properties)) {
+        props[k] = visit(v, prefix + pascal(k), prefix + pascal(k));
+      }
+      out.properties = props;
+    }
+    if (isNode(node.items)) out.items = visit(node.items, prefix + 'Item', prefix + 'Item');
+    if (Array.isArray(node.prefixItems)) {
+      out.prefixItems = node.prefixItems.map((p: unknown, i: number) =>
+        visit(p, `${prefix}Item${i + 1}`, `${prefix}Item${i + 1}`),
+      );
+    }
+    if (isNode(node.additionalProperties)) {
+      out.additionalProperties = visit(
+        node.additionalProperties,
+        prefix + 'Value',
+        prefix + 'Value',
+      );
+    }
+    for (const key of ['anyOf', 'oneOf', 'allOf']) {
+      const arms = node[key];
+      if (!Array.isArray(arms)) continue;
+      const nObj = arms.filter((a) => isInlineObject(a)).length;
+      out[key] = arms.map((arm: unknown, i: number) => {
+        if (nObj > 1 && isInlineObject(arm)) {
+          const title = isNode(arm) && arm.title !== undefined ? String(arm.title) : '';
+          const suffix = pascal(title.replace(/[^A-Za-z0-9]+/g, ' '));
+          const armName = `${prefix}${suffix || `Variant${i + 1}`}`;
+          return visit(arm, armName, armName);
+        }
+        const own = nameOf.get(node);
+        if (own === undefined) throw new Error(`hoist: union at ${prefix} has no name`);
+        return visit(arm, own, prefix);
+      });
+    }
+    return out;
+  };
+  const visit = (node: unknown, name: string, prefix: string): unknown => {
+    if (!isNode(node)) return node;
+    if (isInlineObject(node)) {
+      const final = claim(name);
+      // A hoisted object's children are prefixed by its final name, except a verb
+      // root, whose children use the bare verb prefix (AiConfig -> AiParams).
+      const childPrefix = prefix !== name ? prefix : final;
+      hoisted.set(final, {}); // reserve walk order before descending
+      hoisted.set(final, walkChildren(withoutPresenceAllOf(node), childPrefix));
+      const ref: SNode = { $ref: `#/$defs/${final}` };
+      for (const keep of ['description', 'title', 'deprecated', 'x-api-state']) {
+        if (keep in node) ref[keep] = node[keep];
+      }
+      return ref;
+    }
+    nameOf.set(node, name);
+    return walkChildren(node, prefix);
+  };
+  const out: Record<string, SNode> = {};
+  for (const [defName, sch] of Object.entries(defs)) {
+    if (!isNode(sch)) {
+      out[defName] = sch;
+      continue;
+    }
+    const verb = verbRoots.get(defName);
+    if (verb !== undefined) {
+      const props: SNode = { ...(isNode(sch.properties) ? sch.properties : {}) };
+      const base = pascal(verb);
+      props[verb] = visit(props[verb], base + 'Config', base);
+      out[defName] = { ...sch, properties: props };
+    } else {
+      nameOf.set(sch, defName);
+      out[defName] = walkChildren(sch, defName);
+    }
+  }
+  for (const [k, v] of hoisted) out[k] = v;
+  return out;
+}
+
+/**
+ * The SWAIG response ENVELOPE types, declared ONCE by SwaigActions.generated.ts
+ * (from swaig-response.yaml). schema.json carries the same two shapes as $defs;
+ * this module imports them instead of declaring a second copy, and drops the
+ * objects hoisted out of them (reference `SWAIG_ENVELOPE_TYPES`).
+ */
+const SWAIG_ENVELOPE_TYPES = ['SwaigAction', 'SwaigResponse'] as const;
+
+/** The `$ref` of a verb body's config type: its own `$ref`, or its one object arm. */
+function verbConfigRef(defs: Record<string, SNode>, inner: SNode): string | null {
+  let ref = typeof inner.$ref === 'string' ? inner.$ref : null;
+  if (!ref && Array.isArray(inner.anyOf)) {
+    const objRefs = (inner.anyOf as unknown[])
+      .filter(
+        (a): a is SNode =>
+          isNode(a) &&
+          typeof a.$ref === 'string' &&
+          isInlineObject(defs[String(a.$ref).split('/').pop()!]),
+      )
+      .map((a) => String(a.$ref));
+    if (objRefs.length === 1) ref = objRefs[0]!;
+  }
+  return ref;
+}
+
 /**
  * Typed SWML verb CONFIG surface from porting-sdk/schema.json ($defs). Mirrors the
  * Python generator's `generate_swml_verbs`: emit one declaration per $defs schema
@@ -157,9 +374,24 @@ async function generateSwmlVerbs(
   handWritten: ReadonlySet<string>,
 ): Promise<number> {
   const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf-8')) as {
-    $defs?: Record<string, Schema>;
+    $defs?: Record<string, SNode>;
   };
-  const defs = schema.$defs ?? {};
+  // Deprecated verbs are not SDK surface (dropped before anything is emitted), and
+  // inline objects are lifted to named $defs so a verb config carried inline keeps a
+  // typed, named shape — both exactly as the reference generator does.
+  let rawDefs = dropDeprecatedSwmlVerbs(schema.$defs ?? {});
+  const verbRoots = new Map<string, string>();
+  const rootMethod = isNode(rawDefs.SWMLMethod) ? rawDefs.SWMLMethod : {};
+  for (const arm of (Array.isArray(rootMethod.anyOf) ? rootMethod.anyOf : []) as SNode[]) {
+    const wrapper = String(arm.$ref ?? '')
+      .split('/')
+      .pop()!;
+    const wdef = rawDefs[wrapper];
+    const wprops = isNode(wdef) && isNode(wdef.properties) ? Object.keys(wdef.properties) : [];
+    if (wprops.length) verbRoots.set(wrapper, wprops[0]!);
+  }
+  rawDefs = hoistInlineObjects(rawDefs, verbRoots);
+  const defs = rawDefs as Record<string, Schema>;
   // The shared resolveRef/flattenSchema/flattenUnion walk a pointer string against
   // the doc root generically, so `#/$defs/<Name>` resolves the same way `#/components
   // /schemas/<Name>` does — the `{ $defs }` root just needs to carry that key. The
@@ -167,8 +399,15 @@ async function generateSwmlVerbs(
   const doc = { $defs: defs } as unknown as OpenApiDoc;
 
   const decls: string[] = [];
-  // 1. One declaration per $defs schema (so every $ref resolves).
+  // 1. One declaration per $defs schema (so every $ref resolves) — except the SWAIG
+  //    envelope types (and the objects hoisted out of them), which SwaigActions
+  //    .generated.ts declares and this module imports.
+  const imported = SWAIG_ENVELOPE_TYPES.filter((n) => n in defs);
   for (const [name, sch] of Object.entries(defs)) {
+    const fromEnvelope = imported.some(
+      (n) => name === n || (name.startsWith(n) && /^[A-Z]/.test(name.slice(n.length))),
+    );
+    if (fromEnvelope) continue;
     if (sch && typeof sch === 'object') decls.push(swmlDeclaration(name, sch));
   }
 
@@ -184,7 +423,7 @@ async function generateSwmlVerbs(
     const verb = propNames[0];
     if (handWritten.has(verb)) continue;
     const inner = wdef.properties![verb];
-    if (inner.type === 'string' || inner.$ref) continue;
+    if (inner.type === 'string' || verbConfigRef(rawDefs, inner as SNode)) continue;
     const hasInlineProps = inner.type === 'object' && inner.properties;
     if (!inner.oneOf && !hasInlineProps) continue;
     const { props } = flattenUnion(doc, inner);
@@ -204,7 +443,12 @@ async function generateSwmlVerbs(
     `// shaped: every field optional and every named type carries a [key: string]:\n` +
     `// unknown tail so unmodeled server keys round-trip. Held to the same lint bar as\n` +
     `// hand-written source (no rule suppressions, no loose types).\n\n`;
-  const formatted = await formatTs(header + decls.join('\n'), outPath);
+  const body = decls.join('\n');
+  const used = imported.filter((n) => new RegExp(`\\b${n}\\b`).test(body));
+  const envelopeImport = used.length
+    ? `import type { ${used.join(', ')} } from './SwaigActions.generated.js';\n\n`
+    : '';
+  const formatted = await formatTs(header + envelopeImport + body, outPath);
   emitFile(outPath, formatted);
   return decls.length;
 }
@@ -459,6 +703,99 @@ function generateVerbConfig(
   return { configType: 'Record<string, unknown>', isOptional: true };
 }
 
+/** The transformed defs + the config types swml_verbs_generated.ts declares. */
+interface TypedSwmlDefs {
+  defs: Record<string, SNode>;
+  declared: Set<string>;
+}
+
+/**
+ * Apply the config-module transforms (deprecated verbs dropped, inline objects
+ * hoisted) and record which names that module declares — the `$defs` keys plus
+ * the flattened `<Verb>Config` of each non-hand-written oneOf/object verb.
+ */
+function typedSwmlDefs(raw: Record<string, SNode>): TypedSwmlDefs {
+  let defs = dropDeprecatedSwmlVerbs(raw);
+  const verbRoots = new Map<string, string>();
+  const root = isNode(defs.SWMLMethod) ? defs.SWMLMethod : {};
+  for (const arm of (Array.isArray(root.anyOf) ? root.anyOf : []) as SNode[]) {
+    const wrapper = String(arm.$ref ?? '')
+      .split('/')
+      .pop()!;
+    const wdef = defs[wrapper];
+    const wprops = isNode(wdef) && isNode(wdef.properties) ? Object.keys(wdef.properties) : [];
+    if (wprops.length) verbRoots.set(wrapper, wprops[0]!);
+  }
+  defs = hoistInlineObjects(defs, verbRoots);
+  return { defs, declared: new Set(Object.keys(defs).map(tsName)) };
+}
+
+/**
+ * The TS type of a verb method's `config` argument, from the verb body's forms
+ * in the transformed schema: the named config type for its object form, plus
+ * `string` / `number` / `boolean` / `unknown[]` for the scalar and positional
+ * forms the body also accepts. Returns null when no form is typable here (the
+ * caller falls back to the legacy mapping).
+ */
+function verbBodyForms(
+  typed: TypedSwmlDefs,
+  verb: string,
+  inner: SNode,
+): { type: string; imports: string[] } | null {
+  const parts: string[] = [];
+  const imports: string[] = [];
+  const add = (t: string): void => {
+    if (!parts.includes(t)) parts.push(t);
+  };
+  const addRef = (ref: string): void => {
+    const name = tsName(ref.split('/').pop()!);
+    if (!typed.declared.has(name)) return;
+    imports.push(name);
+    add(name);
+  };
+  const addScalar = (node: SNode): void => {
+    if (typeof node.$ref === 'string') return addRef(node.$ref);
+    // A shorthand arm states its base type as the first `allOf` member
+    // (`{allOf: [{type: string}, <constraints>]}`).
+    if (node.type === undefined && Array.isArray(node.allOf) && isNode(node.allOf[0])) {
+      return addScalar(node.allOf[0]);
+    }
+    switch (node.type) {
+      case 'string':
+        return add('string');
+      case 'integer':
+      case 'number':
+        return add('number');
+      case 'boolean':
+        return add('boolean');
+      case 'array':
+        return add('unknown[]');
+      case 'object':
+        return add('Record<string, unknown>');
+      default:
+        return undefined;
+    }
+  };
+  if (Array.isArray(inner.anyOf)) {
+    for (const arm of inner.anyOf as unknown[]) if (isNode(arm)) addScalar(arm);
+  } else if (inner.oneOf || (inner.type === 'object' && isNode(inner.properties))) {
+    const cfg = pascal(verb) + 'Config';
+    if (typed.declared.has(cfg)) {
+      imports.push(cfg);
+      add(cfg);
+    } else {
+      add('Record<string, unknown>');
+    }
+  } else {
+    addScalar(inner);
+  }
+  if (parts.length === 0) return null;
+  // A body whose only form is a bare variable reference (SWMLVar) keeps the open
+  // object form too, matching the pre-hoist signature's `Record<string, unknown>`.
+  if (parts.every((p) => p === 'SWMLVar')) add('Record<string, unknown>');
+  return { type: parts.join(' | '), imports };
+}
+
 /**
  * Emit the SwmlBuilder verb-method augmentation from `schemaPath` (src/schema.json).
  * Formatted through the repo prettier config so raw emit is formatter-clean.
@@ -469,6 +806,11 @@ async function generateVerbMethods(schemaPath: string, outPath: string): Promise
   };
   const defs = schema.$defs;
   const swmlMethod = defs['SWMLMethod'];
+  // The same transform the config-type module applies (deprecated verbs dropped,
+  // inline objects hoisted to named types), so a verb method can name the config
+  // type swml_verbs_generated.ts declares for its body.
+  const typed = typedSwmlDefs(defs as unknown as Record<string, SNode>);
+  const configImports = new Set<string>();
 
   if (!swmlMethod?.anyOf) {
     throw new Error('Schema missing $defs/SWMLMethod.anyOf');
@@ -489,9 +831,17 @@ async function generateVerbMethods(schemaPath: string, outPath: string): Promise
 
     const verbName = propNames[0]!; // length === 0 continues above
     const innerSchema = verbDef.properties[verbName];
+    // A deprecated verb is not SDK surface (owner ruling 2026-09-24): no method.
+    if (swmlVerbIsDeprecated(verbDef as unknown as SNode)) continue;
 
     // Get description
-    const desc = innerSchema.description ?? `Add the ${verbName} verb to the document.`;
+    // schema.json describes a union body by its engine check ("Body shape enforced
+    // by …"); the method's summary is the object form's own description.
+    const armDesc = (innerSchema.anyOf ?? []).find((a) => a.description)?.description;
+    const desc =
+      (innerSchema.description?.startsWith('Body shape enforced') ? armDesc : undefined) ??
+      innerSchema.description ??
+      `Add the ${verbName} verb to the document.`;
     const cleanDesc = desc.replace(/\n/g, ' ').replace(/\*\//g, '* /');
 
     // Special handling for sleep
@@ -518,8 +868,22 @@ async function generateVerbMethods(schemaPath: string, outPath: string): Promise
       continue;
     }
 
-    const { configType, isOptional } = generateVerbConfig(verbName, innerSchema);
-    const paramSig = isOptional ? `config?: ${configType}` : `config: ${configType}`;
+    const hoistedInner = (
+      isNode(typed.defs[schemaName]) && isNode(typed.defs[schemaName]!.properties)
+        ? (typed.defs[schemaName]!.properties as SNode)[verbName]
+        : undefined
+    ) as SNode | undefined;
+    const forms = hoistedInner ? verbBodyForms(typed, verbName, hoistedInner) : null;
+    let paramSig: string;
+    if (forms) {
+      for (const n of forms.imports) configImports.add(n);
+      // Every form is optional: the verb may be added with no body, and a config
+      // type's fields are all optional (open shape) — never narrower than before.
+      paramSig = `config?: ${forms.type}`;
+    } else {
+      const { configType, isOptional } = generateVerbConfig(verbName, innerSchema);
+      paramSig = isOptional ? `config?: ${configType}` : `config: ${configType}`;
+    }
 
     methods.push(`    /** ${cleanDesc} */`);
     methods.push(`    ${verbName}(${paramSig}): this;`);
@@ -533,6 +897,9 @@ async function generateVerbMethods(schemaPath: string, outPath: string): Promise
     )
     .join('\n\n');
 
+  const importLine = configImports.size
+    ? `import type { ${[...configImports].sort().join(', ')} } from './swml_verbs_generated.js';\n\n`
+    : '';
   const output = `/**
  * AUTO-GENERATED FILE — do not edit manually.
  * Generated by: npx tsx scripts/generate-swml-verbs.ts
@@ -541,7 +908,7 @@ async function generateVerbMethods(schemaPath: string, outPath: string): Promise
  * auto-installed on SwmlBuilder from schema.json.
  */
 
-${customInterfaces}
+${importLine}${customInterfaces}
 
 declare module './SwmlBuilder.js' {
   interface SwmlBuilder {
