@@ -122,7 +122,7 @@ describe('video wire (generated)', () => {
   });
 
   it('conferences_update success', async () => {
-    await client.video.conferences.update('x', { display_name: 'x' });
+    await client.video.conferences.update('x', {});
     const last = await mock.last();
     expect(last.method).toBe('PUT');
     expect(last.matched_route).toBe('video.update_video_conference');
@@ -130,9 +130,7 @@ describe('video wire (generated)', () => {
 
   it('conferences_update error', async () => {
     await mock.pushScenario('video.update_video_conference', 500, { error: 'x' });
-    await expect(client.video.conferences.update('x', { display_name: 'x' })).rejects.toThrow(
-      RestError,
-    );
+    await expect(client.video.conferences.update('x', {})).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -175,6 +173,20 @@ describe('video wire (generated)', () => {
   it('roomRecordings_delete error', async () => {
     await mock.pushScenario('video.delete_room_recording', 500, { error: 'x' });
     await expect(client.video.roomRecordings.delete('x')).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('roomRecordings_download success', async () => {
+    await client.video.roomRecordings.download('x');
+    const last = await mock.last();
+    expect(last.method).toBe('GET');
+    expect(last.matched_route).toBe('video.download_room_recording');
+  });
+
+  it('roomRecordings_download error', async () => {
+    await mock.pushScenario('video.download_room_recording', 500, { error: 'x' });
+    await expect(client.video.roomRecordings.download('x')).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -432,7 +444,7 @@ describe('video wire (generated)', () => {
   });
 
   it('streams_update success', async () => {
-    await client.video.streams.update('x', 'x');
+    await client.video.streams.update('x');
     const last = await mock.last();
     expect(last.method).toBe('PUT');
     expect(last.matched_route).toBe('video.update_stream');
@@ -440,7 +452,7 @@ describe('video wire (generated)', () => {
 
   it('streams_update error', async () => {
     await mock.pushScenario('video.update_stream', 500, { error: 'x' });
-    await expect(client.video.streams.update('x', 'x')).rejects.toThrow(RestError);
+    await expect(client.video.streams.update('x')).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });

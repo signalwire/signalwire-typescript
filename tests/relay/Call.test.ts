@@ -368,7 +368,10 @@ describe('Call', () => {
 
     it('tap returns TapAction', async () => {
       const call = makeCall();
-      const action = await call.tap({ type: 'audio' }, { type: 'rtp' });
+      const action = await call.tap(
+        { type: 'audio', params: { direction: 'both' } },
+        { type: 'rtp', params: { addr: '203.0.113.10', port: 1234 } },
+      );
       expect(action).toBeInstanceOf(TapAction);
     });
 

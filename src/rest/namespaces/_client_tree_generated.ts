@@ -1,4 +1,4 @@
-// AUTO-GENERATED from porting-sdk/rest-apis/*/openapi.yaml — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/rest-apis/*/openapi.enriched.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-rest-types.ts
 //
 // The SDK client object tree: one namespace container class per
@@ -11,6 +11,7 @@ import { Chat } from './chat.resources.generated.js';
 import { DatasphereDocuments } from './datasphere.resources.generated.js';
 import {
   AiAgents,
+  AliasAddresses,
   CallFlows,
   ConferenceRooms,
   CxmlApplications,
@@ -20,7 +21,9 @@ import {
   FabricTokens,
   FreeswitchConnectors,
   GenericResources,
+  PhoneNumberAddresses,
   RelayApplications,
+  SipAddresses,
   SipEndpoints,
   SipGateways,
   Subscribers,
@@ -29,7 +32,12 @@ import {
 } from './fabric.resources.generated.js';
 import { FaxLogs } from './fax.resources.generated.js';
 import { ConferenceLogs } from './logs.resources.generated.js';
-import { MessageLogs } from './message.resources.generated.js';
+import {
+  MessageLogs,
+  WhatsappBusinesses,
+  WhatsappNumbers,
+  WhatsappTemplates,
+} from './message.resources.generated.js';
 import { Messages } from './messages.resources.generated.js';
 import { ProjectTokens } from './project.resources.generated.js';
 import { Projects } from './projects.resources.generated.js';
@@ -51,6 +59,18 @@ import {
   SipProfile,
   VerifiedCallers,
 } from './relay-rest.resources.generated.js';
+import {
+  SpaceBalance,
+  SpaceBillingProfile,
+  SpaceBillingStatements,
+  SpaceGeographicPermissions,
+  SpaceLowBalanceSetting,
+  SpaceMembers,
+  SpacePaymentHistory,
+  SpacePaymentMethods,
+  SpaceSettings,
+  SpaceUsage,
+} from './space.resources.generated.js';
 import {
   VideoConferenceTokens,
   VideoConferences,
@@ -75,14 +95,17 @@ export class DatasphereNamespace {
 export class FabricNamespace {
   readonly addresses: FabricAddresses;
   readonly aiAgents: AiAgents;
+  readonly aliasAddresses: AliasAddresses;
   readonly callFlows: CallFlows;
   readonly conferenceRooms: ConferenceRooms;
   readonly cxmlApplications: CxmlApplications;
   readonly cxmlScripts: CxmlScripts;
   readonly cxmlWebhooks: CxmlWebhooks;
   readonly freeswitchConnectors: FreeswitchConnectors;
+  readonly phoneNumberAddresses: PhoneNumberAddresses;
   readonly relayApplications: RelayApplications;
   readonly resources: GenericResources;
+  readonly sipAddresses: SipAddresses;
   readonly sipEndpoints: SipEndpoints;
   readonly sipGateways: SipGateways;
   readonly subscribers: Subscribers;
@@ -93,14 +116,17 @@ export class FabricNamespace {
   constructor(http: HttpClient) {
     this.addresses = new FabricAddresses(http);
     this.aiAgents = new AiAgents(http);
+    this.aliasAddresses = new AliasAddresses(http);
     this.callFlows = new CallFlows(http);
     this.conferenceRooms = new ConferenceRooms(http);
     this.cxmlApplications = new CxmlApplications(http);
     this.cxmlScripts = new CxmlScripts(http);
     this.cxmlWebhooks = new CxmlWebhooks(http);
     this.freeswitchConnectors = new FreeswitchConnectors(http);
+    this.phoneNumberAddresses = new PhoneNumberAddresses(http);
     this.relayApplications = new RelayApplications(http);
     this.resources = new GenericResources(http);
+    this.sipAddresses = new SipAddresses(http);
     this.sipEndpoints = new SipEndpoints(http);
     this.sipGateways = new SipGateways(http);
     this.subscribers = new Subscribers(http);
@@ -149,6 +175,33 @@ export class RegistryNamespace {
   }
 }
 
+/** Generated `client.space` namespace container. */
+export class SpaceNamespace {
+  readonly balance: SpaceBalance;
+  readonly billingProfile: SpaceBillingProfile;
+  readonly billingStatements: SpaceBillingStatements;
+  readonly geographicPermissions: SpaceGeographicPermissions;
+  readonly lowBalanceSetting: SpaceLowBalanceSetting;
+  readonly members: SpaceMembers;
+  readonly paymentHistory: SpacePaymentHistory;
+  readonly paymentMethods: SpacePaymentMethods;
+  readonly settings: SpaceSettings;
+  readonly usage: SpaceUsage;
+
+  constructor(http: HttpClient) {
+    this.balance = new SpaceBalance(http);
+    this.billingProfile = new SpaceBillingProfile(http);
+    this.billingStatements = new SpaceBillingStatements(http);
+    this.geographicPermissions = new SpaceGeographicPermissions(http);
+    this.lowBalanceSetting = new SpaceLowBalanceSetting(http);
+    this.members = new SpaceMembers(http);
+    this.paymentHistory = new SpacePaymentHistory(http);
+    this.paymentMethods = new SpacePaymentMethods(http);
+    this.settings = new SpaceSettings(http);
+    this.usage = new SpaceUsage(http);
+  }
+}
+
 /** Generated `client.video` namespace container. */
 export class VideoNamespace {
   readonly conferences: VideoConferences;
@@ -170,11 +223,25 @@ export class VideoNamespace {
   }
 }
 
+/** Generated `client.whatsapp` namespace container. */
+export class WhatsappNamespace {
+  readonly businesses: WhatsappBusinesses;
+  readonly numbers: WhatsappNumbers;
+  readonly templates: WhatsappTemplates;
+
+  constructor(http: HttpClient) {
+    this.businesses = new WhatsappBusinesses(http);
+    this.numbers = new WhatsappNumbers(http);
+    this.templates = new WhatsappTemplates(http);
+  }
+}
+
 /**
  * Generated resource wiring for `RestClient` (flat resources + namespace
  * containers). The hand `RestClient` extends this and calls `_wireResources`
  * after constructing the HTTP layer; it keeps only the non-spec-derivable bits
- * (auth, HTTP construction).
+ * (auth, HTTP construction). `http` carries the project token, `patHttp` the
+ * Personal Access Token (the namespaces whose spec security requires it).
  */
 export class _GeneratedResourceTree {
   addresses!: Addresses;
@@ -198,9 +265,11 @@ export class _GeneratedResourceTree {
   logs!: LogsNamespace;
   project!: ProjectNamespace;
   registry!: RegistryNamespace;
+  space!: SpaceNamespace;
   video!: VideoNamespace;
+  whatsapp!: WhatsappNamespace;
 
-  protected _wireResources(http: HttpClient): void {
+  protected _wireResources(http: HttpClient, patHttp: HttpClient): void {
     this.addresses = new Addresses(http);
     this.calling = new Calling(http);
     this.chat = new Chat(http);
@@ -222,6 +291,8 @@ export class _GeneratedResourceTree {
     this.logs = new LogsNamespace(http);
     this.project = new ProjectNamespace(http);
     this.registry = new RegistryNamespace(http);
+    this.space = new SpaceNamespace(patHttp);
     this.video = new VideoNamespace(http);
+    this.whatsapp = new WhatsappNamespace(http);
   }
 }

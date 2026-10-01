@@ -88,10 +88,27 @@ describe('BedrockAgent prompt', () => {
     expect(result.errors).toEqual([]);
   });
 
-  it('fails schema validation with a voice Bedrock does not offer', () => {
+  it('passes schema validation with a voice outside the known list', () => {
+    // The engine-derived schema lists Bedrock's known voices but marks an
+    // unlisted voice_id as ignored, not rejected, so validation accepts it.
     const agent = new BedrockAgent({ voiceId: 'inworld.Mark' });
     agent.setPromptText('You are a helpful assistant.');
     const result = new SchemaUtils().validateVerb('amazon_bedrock', bedrockVerb(agent));
-    expect(result.errors[0]).toContain('voice_id must be one of');
+    expect(result).toEqual({ valid: true, errors: [] });
+  });
+});
+
+describe('BedrockAgent debug events', () => {
+  it('carries debug webhook config through into params', () => {
+    // The rewrite rebuilds the verb from a fixed key allowlist, so a key
+    // outside it is dropped. debug_webhook_url / debug_webhook_level are
+    // `params` members (not ai top-level keys), so they survive the rewrite.
+    const agent = makeAgent();
+    agent.enableDebugEvents(2);
+    const params = bedrockVerb(agent)['params'] as Record<string, unknown>;
+
+    expect(params['debug_webhook_url']).toBeDefined();
+    expect(params['debug_webhook_url']).toContain('/debug_events');
+    expect(params['debug_webhook_level']).toBe(2);
   });
 });

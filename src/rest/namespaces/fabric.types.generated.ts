@@ -1,14 +1,9 @@
-// AUTO-GENERATED from porting-sdk/rest-apis/fabric/openapi.yaml — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/rest-apis/fabric/openapi.enriched.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-rest-types.ts
 //
 // Held to the same lint bar as hand-written source (no rule suppressions, no
 // loose types). If the generator cannot emit a clean faithful type, fix the
 // generator rather than weaken the output.
-
-export interface AI {
-  /** Creates an AI agent that conducts voice conversations using automatic speech recognition (ASR), */
-  ai: AIObject;
-}
 
 export interface AIAddressPaginationResponse {
   /** Link of the current page */
@@ -24,27 +19,124 @@ export interface AIAddressPaginationResponse {
 /** An AI Agent configuration that extends the SWML AI object with additional API-specific properties. */
 export interface AIAgent {
   /** A key-value object for storing data that persists throughout the AI session. */
-  global_data?: Record<string, Record<string, unknown>>;
+  global_data?: Record<string, unknown>;
   /** Hints help the AI agent understand certain words or phrases better. Words that can commonly be misinterpreted can be added to the hints to help the AI speak more accurately. */
-  hints?: (string | Hint)[];
+  hints?: string[];
   /** An array of JSON objects defining supported languages in the conversation. */
-  languages?: Languages[];
+  languages?: AIAgentLanguage[];
   /** A JSON object containing parameters as key-value pairs. */
   params?: AIParams;
   /** The final set of instructions and configuration settings to send to the agent. */
-  post_prompt?: AIPostPrompt;
+  post_prompt?: AIAgentPostPrompt;
   /** The URL to which to send status callbacks and reports. Authentication can also be set in the url in the format of `username:password@url`. */
   post_prompt_url?: string;
   /** An array of JSON objects to clarify the AI's pronunciation of words or expressions. */
-  pronounce?: Pronounce[];
+  pronounce?: AIAgentPronounce[];
   /** Defines the AI agent's personality, goals, behaviors, and instructions for handling conversations. */
-  prompt: AIPrompt;
+  prompt: AIAgentPrompt;
   /** An array of JSON objects to create user-defined functions/endpoints that can be executed during the dialogue. */
-  SWAIG?: SWAIG;
+  SWAIG?: AIAgentSWAIG;
   /** Unique ID of an AI Agent. */
   agent_id: uuid;
   /** Name of the AI Agent. */
   name: string;
+  /** Multilingual configuration for the agent. */
+  multilingual?: {
+    allowed?: unknown[];
+    engine?: string;
+    fillers?:
+      | unknown[]
+      | {
+          default?: Record<string, unknown>;
+          auto?: Record<string, unknown>;
+        };
+    function_fillers?:
+      | unknown[]
+      | {
+          default?: Record<string, unknown>;
+          auto?: Record<string, unknown>;
+        };
+    languages?: unknown[];
+    min_switch_words?: number;
+    model?: string;
+    provider?: string;
+    start_language?: string;
+    turn_fillers?:
+      | unknown[]
+      | {
+          default?: Record<string, unknown>;
+        };
+  };
+}
+
+/** Without one of `code` / `listen_language`, `name` and `voice`, the element has no effect: it is accepted and ignored, not rejected. */
+export interface AIAgentLanguage {
+  auto_emotion?: boolean | string;
+  auto_speed?: boolean | string;
+  code?: unknown[] | string;
+  double_turn_fillers?: unknown[];
+  engine?: string;
+  fillers?: string[] | string;
+  function_fillers?: unknown[];
+  listen_language?: unknown[] | string;
+  model?: string;
+  name?: string;
+  params?: LanguageParams;
+  pronounce?: unknown[];
+  speech_fillers?: unknown[];
+  turn_fillers?: unknown[];
+  voice?: string;
+  /** Identifier of the language entry, assigned by the server when omitted. */
+  id?: string;
+  /** TTS provider of `voice`. Stored as sent, or inferred from `voice` when omitted. */
+  provider?: string;
+}
+
+export interface AIAgentSWAIG {
+  defaults?: SWAIGDefaults;
+  functions?: AIAgentSWAIGFunction[];
+  hooks?: {
+    description?: string;
+    active?: boolean | number | string;
+    argument?: FunctionParameters;
+    data_map?: DataMap;
+    fillers?: {
+      default?: Record<string, unknown>;
+      auto?: Record<string, unknown>;
+    };
+    function?: string;
+    meta_data?: Record<string, unknown>;
+    meta_data_token?: string;
+    parameters?: FunctionParameters;
+    purpose?: string;
+    skip_fillers?: boolean | string;
+    wait_file?: string;
+    wait_file_loops?: number | string;
+    wait_for_fillers?: boolean | string;
+    web_hook_auth_pass?: string;
+    web_hook_auth_password?: string;
+    web_hook_auth_user?: string;
+    web_hook_url?: string;
+  }[];
+  includes?: AIAgentSWAIGInclude[];
+  internal_fillers?: SWAIGInternalFiller;
+  mcp_servers?: {
+    headers?: Record<string, unknown>;
+    resource_vars?: Record<string, unknown>;
+    resources?: boolean | string;
+    url?: string;
+  }[];
+  native_functions?: SWAIGNativeFunction[];
+}
+
+/** Without `functions` and `url`, the element has no effect: it is accepted and ignored, not rejected. */
+export interface AIAgentSWAIGInclude {
+  /** Identifier of the include entry. */
+  id?: string;
+  /** Names of the remote functions to include. */
+  functions?: string[];
+  /** URL where the remote functions are defined. */
+  url?: string;
 }
 
 export interface AIAgentAddressListResponse {
@@ -54,29 +146,91 @@ export interface AIAgentAddressListResponse {
   links: AIAddressPaginationResponse;
 }
 
+export interface AIAgentVoice {
+  /** Identifier of the voice. */
+  id: string;
+  /** TTS provider of the voice. */
+  provider: string;
+  /** Language name. */
+  language: string;
+  /** Language code. */
+  language_code: string;
+  /** Voice string to use in an AI Agent language entry. */
+  voice: string;
+  /** Premium tier of the voice (0 for standard). */
+  premium: number;
+}
+
+export interface AIAgentConversationLogListResponse {
+  links: AIAddressPaginationResponse;
+  data: AIAgentConversationLog[];
+}
+
+export interface AIAgentConversationLog {
+  /** Unique ID of the conversation. */
+  id: string;
+  /** Number of the caller. */
+  caller_id_number: string | null;
+  /** Length of the AI session in seconds. */
+  duration_in_seconds: number;
+  /** The conversation log; empty once the conversation is redacted. */
+  messages: Record<string, unknown>[] | null;
+  /** When the conversation was redacted. */
+  redacted_at: string | null;
+}
+
 export interface AIAgentCreateRequest {
   /** A key-value object for storing data that persists throughout the AI session. */
-  global_data?: Record<string, Record<string, unknown>>;
+  global_data?: Record<string, unknown>;
   /** Hints help the AI agent understand certain words or phrases better. Words that can commonly be misinterpreted can be added to the hints to help the AI speak more accurately. */
-  hints?: (string | Hint)[];
+  hints?: string[];
   /** An array of JSON objects defining supported languages in the conversation. */
-  languages?: Languages[];
+  languages?: AIAgentLanguage[];
   /** A JSON object containing parameters as key-value pairs. */
   params?: AIParams;
   /** The final set of instructions and configuration settings to send to the agent. */
-  post_prompt?: AIPostPrompt;
+  post_prompt?: AIAgentPostPrompt;
   /** The URL to which to send status callbacks and reports. Authentication can also be set in the url in the format of `username:password@url`. */
   post_prompt_url?: string;
   /** An array of JSON objects to clarify the AI's pronunciation of words or expressions. */
-  pronounce?: Pronounce[];
+  pronounce?: AIAgentPronounce[];
   /** Defines the AI agent's personality, goals, behaviors, and instructions for handling conversations. */
-  prompt: AIPrompt;
+  prompt?: AIAgentPrompt;
   /** An array of JSON objects to create user-defined functions/endpoints that can be executed during the dialogue. */
-  SWAIG?: SWAIG;
-  /** Unique ID of an AI Agent. */
-  agent_id?: uuid;
+  SWAIG?: AIAgentSWAIG;
   /** Name of the AI Agent. */
   name: string;
+  /** The username for authenticating to the post-prompt URL. */
+  post_prompt_auth_user?: string;
+  /** The password for authenticating to the post-prompt URL. */
+  post_prompt_auth_password?: string;
+  /** Multilingual configuration for the agent. */
+  multilingual?: {
+    allowed?: unknown[];
+    engine?: string;
+    fillers?:
+      | unknown[]
+      | {
+          default?: Record<string, unknown>;
+          auto?: Record<string, unknown>;
+        };
+    function_fillers?:
+      | unknown[]
+      | {
+          default?: Record<string, unknown>;
+          auto?: Record<string, unknown>;
+        };
+    languages?: unknown[];
+    min_switch_words?: number;
+    model?: string;
+    provider?: string;
+    start_language?: string;
+    turn_fillers?:
+      | unknown[]
+      | {
+          default?: Record<string, unknown>;
+        };
+  };
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -122,27 +276,56 @@ export interface AIAgentResponse {
 
 export interface AIAgentUpdateRequest {
   /** A key-value object for storing data that persists throughout the AI session. */
-  global_data?: Record<string, Record<string, unknown>>;
+  global_data?: Record<string, unknown>;
   /** Hints help the AI agent understand certain words or phrases better. Words that can commonly be misinterpreted can be added to the hints to help the AI speak more accurately. */
-  hints?: (string | Hint)[];
+  hints?: string[];
   /** An array of JSON objects defining supported languages in the conversation. */
-  languages?: Languages[];
+  languages?: AIAgentLanguage[];
   /** A JSON object containing parameters as key-value pairs. */
   params?: AIParams;
   /** The final set of instructions and configuration settings to send to the agent. */
-  post_prompt?: AIPostPromptUpdate;
+  post_prompt?: AIAgentPostPrompt;
   /** The URL to which to send status callbacks and reports. Authentication can also be set in the url in the format of `username:password@url`. */
   post_prompt_url?: string;
   /** An array of JSON objects to clarify the AI's pronunciation of words or expressions. */
-  pronounce?: Pronounce[];
+  pronounce?: AIAgentPronounce[];
   /** Defines the AI agent's personality, goals, behaviors, and instructions for handling conversations. */
-  prompt?: AIPromptUpdate;
+  prompt?: AIAgentPrompt;
   /** An array of JSON objects to create user-defined functions/endpoints that can be executed during the dialogue. */
-  SWAIG?: SWAIGUpdate;
-  /** Unique ID of an AI Agent. */
-  agent_id?: uuid;
+  SWAIG?: AIAgentSWAIG;
   /** Name of the AI Agent. */
   name?: string;
+  /** The username for authenticating to the post-prompt URL. */
+  post_prompt_auth_user?: string;
+  /** The password for authenticating to the post-prompt URL. */
+  post_prompt_auth_password?: string;
+  /** Multilingual configuration for the agent. */
+  multilingual?: {
+    allowed?: unknown[];
+    engine?: string;
+    fillers?:
+      | unknown[]
+      | {
+          default?: Record<string, unknown>;
+          auto?: Record<string, unknown>;
+        };
+    function_fillers?:
+      | unknown[]
+      | {
+          default?: Record<string, unknown>;
+          auto?: Record<string, unknown>;
+        };
+    languages?: unknown[];
+    min_switch_words?: number;
+    model?: string;
+    provider?: string;
+    start_language?: string;
+    turn_fillers?:
+      | unknown[]
+      | {
+          default?: Record<string, unknown>;
+        };
+  };
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -151,673 +334,320 @@ export interface AIAgentUpdateStatusCode422 {
   errors: Types_StatusCodes_RestApiErrorItem[];
 }
 
-export interface AIObject {
-  /** A key-value object for storing data that persists throughout the AI session. */
-  global_data?: Record<string, Record<string, unknown>>;
-  /** Hints help the AI agent understand certain words or phrases better. Words that can commonly be misinterpreted can be added to the hints to help the AI speak more accurately. */
-  hints?: (string | Hint)[];
-  /** An array of JSON objects defining supported languages in the conversation. */
-  languages?: Languages[];
-  /** A JSON object containing parameters as key-value pairs. */
-  params?: AIParams;
-  /** The final set of instructions and configuration settings to send to the agent. */
-  post_prompt?: AIPostPrompt;
-  /** The URL to which to send status callbacks and reports. Authentication can also be set in the url in the format of `username:password@url`. */
-  post_prompt_url?: string;
-  /** An array of JSON objects to clarify the AI's pronunciation of words or expressions. */
-  pronounce?: Pronounce[];
-  /** Defines the AI agent's personality, goals, behaviors, and instructions for handling conversations. */
-  prompt: AIPrompt;
-  /** An array of JSON objects to create user-defined functions/endpoints that can be executed during the dialogue. */
-  SWAIG?: SWAIG;
-}
-
+/** An object of any necessary parameters for the API call. The key is the parameter name and the value is the parameter value. */
 export interface AIParams {
-  /** Instructs the agent to acknowledge crosstalk and confirm user input when the user speaks over the agent. */
-  acknowledge_interruptions?: boolean | SWMLVar;
-  /** The model to use for the AI. Allowed values are `gpt-4o-mini`, `gpt-4.1-mini`, and `gpt-4.1-nano`. */
-  ai_model?: 'gpt-4o-mini' | 'gpt-4.1-mini' | 'gpt-4.1-nano' | string;
-  /** Sets the name the AI agent responds to for wake/activation purposes. When using `enable_pause`, `start_paused`, or `speak_when_spoken_to`, the user must say this name to get the agent's attention. The name matching is case-insensitive. */
+  acknowledge_interruptions?: number | string | boolean;
+  acoustic_eot_gate_prob?: number | string;
+  acoustic_eot_trust_prob?: number | string;
+  ai_model?: string;
   ai_name?: string;
-  /** Adjust the volume of the AI. Allowed values from `-50` - `50`. **Default:** `0`. */
-  ai_volume?: number | SWMLVar;
-  /** A custom identifier for the AI application instance. This name is included in webhook payloads, allowing backend systems to identify which AI configuration made the request. */
+  ai_volume?: number | string;
   app_name?: string;
-  /** If true, enables smart formatting in ASR (Automatic Speech Recognition). */
-  asr_smart_format?: boolean | SWMLVar;
-  /** Amount of time, in ms, to wait before prompting the user to respond. Allowed values from `10,000` - `600,000`. Set to `0` to disable. **Default:** `5000` ms (note: user-configurable values must be `0` or within the `10,000` - `600,000` range). */
-  attention_timeout?: AttentionTimeout | 0 | SWMLVar;
-  /** A custom prompt that is fed into the AI when the attention_timeout is reached. */
+  asr_diarize?: boolean | number | string;
+  asr_params?: Record<string, unknown>;
+  asr_smart_format?: boolean | number | string;
+  asr_speaker_affinity?: boolean | number | string;
+  attention_escalate_prompt?: string;
+  attention_timeout?: AttentionTimeout | string;
   attention_timeout_prompt?: string;
-  /** If true, enables speaker diarization in ASR (Automatic Speech Recognition). */
-  asr_diarize?: boolean | SWMLVar;
-  /** If true, will force the AI Agent to only respond to the speaker who reesponds to the AI Agent first. */
-  asr_speaker_affinity?: boolean | SWMLVar;
-  /** URL of audio file to play in the background while AI plays in foreground. */
+  auth_token?: string;
+  auto_correct?: boolean | number | string;
+  azure_stream_first?: boolean | number | string;
+  azure_tts_key?: string;
   background_file?: string;
-  /** Maximum number of times to loop playing the background file. `undefined` means loop indefinitely. */
-  background_file_loops?: number | null | SWMLVar;
-  /** Defines background_file volume within a range of `-50` to `50`. **Default:** `0`. */
-  background_file_volume?: number | SWMLVar;
-  /** Controls the barge behavior. Allowed values are `"complete"`, `"partial"`, `"all"`, or boolean. */
-  enable_barge?: string | boolean | SWMLVar;
-  /** Enables the inner dialog feature, which runs a separate AI process in the background */
-  enable_inner_dialog?: boolean | SWMLVar;
-  /** Enables the pause/resume functionality for the AI agent. When enabled, a `pause_conversation` */
-  enable_pause?: boolean | SWMLVar;
-  /** Enables intelligent turn detection that monitors partial speech transcripts for sentence-ending */
-  enable_turn_detection?: boolean | SWMLVar;
-  /** Takes a string, including a regular expression, defining barge behavior. */
+  background_file_loops?: number | string;
+  background_file_volume?: number | string;
+  barge_functions?: boolean | number | string;
   barge_match_string?: string;
-  /** Defines the number of words that must be input before triggering barge behavior, in a range of `1-99`. */
-  barge_min_words?: number | SWMLVar;
-  /** If `true`, allows functions to be executed while the AI is being interrupted. **Default:** `true`. */
-  barge_functions?: boolean | SWMLVar;
-  /** Sets the prompt which binds the agent to its purpose. */
+  barge_min_words?: number | string;
+  bill_all_tts?: boolean | number | string;
+  cache?: boolean | number | string;
+  call_uuid?: string;
+  cartesia_key?: string;
+  cartesia_model?: string;
+  cartesia_stream_first?: boolean | number | string;
+  confidence?: number | string;
   conscience?: string;
-  /** Injects pre-existing conversation history into the AI session at startup. This allows you to seed the AI agent with context from a previous conversation or provide example interactions. */
-  convo?: ConversationMessage[];
-  /** Used by `check_for_input` and `save_conversation` to identify an individual conversation. */
   conversation_id?: string;
-  /** Sets the size of the sliding window for conversation history. This limits how much conversation history is sent to the AI model. */
-  conversation_sliding_window?: number | SWMLVar;
-  /** Enables debugging to the set URL. Allowed values from `0` - `2`. Default is `1` if url is set. */
-  debug_webhook_level?: number | SWMLVar;
-  /** Each interaction between the AI and end user is posted in real time to the established URL. */
+  conversation_sliding_window?: number | string;
+  convo?: ConversationMessage[];
+  debug_webhook_level?: number | string;
   debug_webhook_url?: string;
-  /** Enables debug mode for the AI session. When enabled, additional diagnostic information is logged including turn detection events, speech processing details, and internal state changes. */
-  debug?: boolean | number | SWMLVar;
-  /** Forces the direction of the call to the assistant. Valid values are `inbound` and `outbound`. */
-  direction?: Direction | SWMLVar;
-  /** DTMF digit, as a string, to signal the end of input (ex: '#') */
+  deepgram_key_override?: string;
+  deepgram_stream_first?: boolean | number | string;
+  deepgram_tts_key?: string;
+  deepgram_url_override?: string;
+  developer_prompt?: string;
   digit_terminators?: string;
-  /** Time, in ms, at the end of digit input to detect end of input. Allowed values from `0` - `30,000`. **Default:** `3000` ms. */
-  digit_timeout?: number | SWMLVar;
-  /** Amount of silence, in ms, at the end of an utterance to detect end of speech. Allowed values from `250` - `10,000`. **Default:** `700` ms. */
-  end_of_speech_timeout?: number | SWMLVar;
-  /** Enables thinking output for the AI Agent. */
-  enable_thinking?: boolean | SWMLVar;
-  /** Enables visual input processing for the AI Agent. */
-  enable_vision?: boolean | SWMLVar;
-  /** Amount of energy necessary for bot to hear you (in dB). Allowed values from `0.0` - `100.0`. **Default:** `52.0` dB. */
-  energy_level?: number | SWMLVar;
-  /** Amount of time, in ms, to wait for the first word after speech is detected. Allowed values from `0` - `10,000`. **Default:** `1000` ms. */
-  first_word_timeout?: number | SWMLVar;
-  /** If `true`, the AI will wait for any `filler` to finish playing before executing a function. */
-  function_wait_for_talking?: boolean | SWMLVar;
-  /** If `true`, functions can be executed when there is no user response after a timeout. **Default:** `false`. */
-  functions_on_no_response?: boolean | SWMLVar;
-  /** A final prompt that is fed into the AI when the `hard_stop_time` is reached. */
+  digit_timeout?: number | string;
+  direction?: Direction;
+  double_turn_filler_every_n?: number | string;
+  double_turn_filler_min_ms?: number | string;
+  double_turn_model?: string;
+  double_turn_prompt?: string;
+  double_turn_wait_ms?: number | string;
+  double_turns?: boolean | string;
+  eleven_labs_key?: string;
+  eleven_labs_model?: string;
+  eleven_labs_similarity?: number | string;
+  eleven_labs_stability?: number | string;
+  eleven_labs_stream_first?: boolean | number | string;
+  enable_barge?: string | boolean;
+  enable_inner_dialog?: boolean | string;
+  enable_pause?: boolean | string;
+  enable_text_normalization?: string;
+  enable_thinking?: boolean | string;
+  enable_turn_detection?: boolean | string;
+  enable_vision?: boolean | string;
+  end_of_speech_timeout?: number | string;
+  energy_level?: number | string;
+  escalate_after_ms?: number | string;
+  escalate_after_turns?: number | string;
+  event_webhook_url?: string;
+  ext?: string;
+  first_word_timeout?: number | string;
+  fish_key?: string;
+  fish_model?: string;
+  function_filler_sequence_gap_ms?: number | string;
+  function_wait_for_talking?: boolean | number | string;
+  functions_on_no_response?: boolean | number | string;
+  grok_key?: string;
+  groq_tts_key?: string;
   hard_stop_prompt?: string;
-  /** Specifies the maximum duration fopr the AI Agent to remain active before it exists the session. */
-  hard_stop_time?: string | SWMLVar;
-  /** A URL for the hold music to play, accepting WAV, mp3, and FreeSWITCH tone_stream. */
+  hard_stop_time?: string;
   hold_music?: string;
-  /** Enables hold music during SWAIG processing. */
-  hold_on_process?: boolean | SWMLVar;
-  /** Amount of time, in ms, to wait before exiting the app due to inactivity. Allowed values from `10,000` - `3,600,000`. **Default:** `600000` ms (10 minutes). */
-  inactivity_timeout?: number | SWMLVar;
-  /** Specifies the AI model to use for the inner dialog feature. Can be set to a different (often smaller/faster) model than the main conversation model. Only used when `enable_inner_dialog` is `true`. */
-  inner_dialog_model?: 'gpt-4o-mini' | 'gpt-4.1-mini' | 'gpt-4.1-nano' | string;
-  /** The system prompt that guides the inner dialog AI's behavior. This prompt shapes how the background AI */
+  hold_on_process?: boolean | number | string;
+  inactivity_timeout?: number | string;
+  initial_sleep_ms?: number | string;
+  inner_dialog?: {
+    SWAIG?: {
+      defaults?: {
+        web_hook_auth_pass?: string;
+        web_hook_auth_password?: string;
+        web_hook_auth_user?: string;
+        web_hook_url?: string;
+      };
+      functions?: unknown[];
+    };
+  };
+  inner_dialog_model?: string;
+  /** The default applies only when `enable_inner_dialog` / `inner_dialog_scorecard` enables it; otherwise the value stays unset. */
   inner_dialog_prompt?: string;
-  /** When enabled, synchronizes the inner dialog with the main conversation flow. */
-  inner_dialog_synced?: boolean | SWMLVar;
-  /** Amount of time, in ms, to wait before starting the conversation. Allowed values from `0` - `300,000`. */
-  initial_sleep_ms?: number | SWMLVar;
-  /** Check for input function with check_for_input. */
-  input_poll_freq?: number | SWMLVar;
-  /** When enabled, barges agent upon any sound interruption longer than 1 second. */
-  interrupt_on_noise?: boolean | SWMLVar;
-  /** Provide a prompt for the agent to handle crosstalk. */
+  inner_dialog_scorecard?:
+    | boolean
+    | {
+        dials?: unknown[];
+        replace?: boolean | string;
+      };
+  input_poll_freq?: number | string;
+  interrupt_on_noise?: number | string | boolean;
   interrupt_prompt?: string;
-  /** @deprecated Allows multilingualism when `true`. */
-  languages_enabled?: boolean | SWMLVar;
-  /** The local timezone setting for the AI. Value should use `IANA TZ ID` */
+  inworld_apikey?: string;
+  inworld_key?: string;
+  inworld_model?: string;
+  language?: string;
+  /** @deprecated */
+  languages_enabled?: boolean | number | string;
+  lipsync_debug?: boolean | number | string;
+  llm_diarize_aware?: boolean | number | string;
   local_tz?: string;
-  /** If true, the AI Agent will be involved with the diarization process. */
-  llm_diarize_aware?: boolean | SWMLVar;
-  /** Sets the maximum emotion intensity for the AI voice. Allowed values from `1` - `30`. **Default:** `30`. */
-  max_emotion?: number | SWMLVar;
-  /** Sets the maximum number of tokens the AI model can generate in a single response. Lower values produce shorter responses and reduce latency. */
-  max_response_tokens?: number | SWMLVar;
-  /** The ASR (Automatic Speech Recognition) engine to use. Common values include `nova-2` and `nova-3`. */
+  max_emotion?: number | string;
+  max_response_tokens?: number | string;
+  min_utterance_ms?: number | string;
+  minimax_key?: string;
+  minimax_model?: string;
+  mistral_key?: string;
+  mistral_model?: string;
+  model?: string;
   openai_asr_engine?: string;
-  /** Sets a time duration for the outbound call recipient to respond to the AI agent before timeout, in a range from `10000` to `600000`. **Default:** `120000` ms (2 minutes). */
-  outbound_attention_timeout?: number | SWMLVar;
-  /** When enabled, the `global_data` object is automatically saved to a channel variable */
-  persist_global_data?: boolean | SWMLVar;
-  /** Specifies the output format for structured prompts when using the `pom` array in prompt definitions. Valid values are `markdown` or `xml`. */
-  pom_format?: 'markdown' | 'xml';
-  /** Send a summary of the conversation after the call ends. */
-  save_conversation?: boolean | SWMLVar;
-  /** Amount of time, in ms, to wait for a speech event. Allowed values from `0` - `10,000`. **Default:** `1400` ms. */
-  speech_event_timeout?: number | SWMLVar;
-  /** Number of quick stops to generate for speech. Allowed values from `0` - `10`. **Default:** `3`. */
-  speech_gen_quick_stops?: number | SWMLVar;
-  /** Overall speech timeout, in ms. Allowed values from `0` - `600,000`. **Default:** `60000` ms. */
-  speech_timeout?: number | SWMLVar;
-  /** When enabled, the AI agent remains silent until directly addressed by name (using `ai_name`). */
-  speak_when_spoken_to?: boolean | SWMLVar;
-  /** When enabled, the AI agent starts in a paused state and will not respond until the user */
-  start_paused?: boolean | SWMLVar;
-  /** The static greeting to play when the call is answered. This will always play at the beginning of the call. */
+  openai_azure?: boolean | number | string;
+  openai_gcloud_version?: string;
+  openai_stream_first?: boolean | number | string;
+  openai_tts_key?: string;
+  openai_tts_url?: string;
+  outbound_attention_timeout?: number | string;
+  pcm_channels?: number | string;
+  pcm_rate?: number | string;
+  persist_global_data?: boolean | string;
+  pom_format?: string;
+  provider?: string;
+  pvt_params?: string;
+  realtime?: {
+    input_transcription?: string;
+    local_vad?: boolean | string;
+    local_vad_frame_ms?: number | string;
+    local_vad_threshold?: number | string;
+    noise_reduction?: string;
+    packets_per_send?: number | string;
+    reasoning_effort?: string;
+    speed?: number | string;
+    temperature?: number | string;
+    tool_model?: string;
+    vad_eagerness?: string;
+    vad_prefix_padding_ms?: number | string;
+    vad_silence_duration_ms?: number | string;
+    vad_threshold?: number | string;
+    vad_type?: string;
+    voice?: string;
+  };
+  redact_prompt?: string;
+  rime_apikey?: string;
+  rime_key?: string;
+  rime_model?: string;
+  rime_stream_first?: boolean | number | string;
+  sample_rate?: number | string;
+  save_conversation?: boolean | number | string;
+  send_single_llm_response?: boolean | number | string;
+  similarity?: number | string;
+  smallest_key?: string;
+  smallest_model?: string;
+  speak_when_spoken_to?: boolean | string;
+  speaker?: string;
+  speech_event_timeout?: number | string;
+  speech_gen_quick_stops?: number | string;
+  speech_timeout?: number | string;
+  speechify_key?: string;
+  speechify_loudness_normalization?: boolean | number | string;
+  speechify_model?: string;
+  speechify_output_format?: string;
+  speechify_stream_first?: boolean | number | string;
+  speechify_text_normalization?: boolean | number | string;
+  speed?: number | string;
+  stability?: number | string;
+  start_paused?: boolean | string;
   static_greeting?: string;
-  /** If `true`, the static greeting will not be interrupted by the user if they speak over the greeting. If `false`, the static greeting can be interrupted by the user if they speak over the greeting. */
-  static_greeting_no_barge?: boolean | SWMLVar;
-  /** Defines the mode for summary generation. Allowed values are `"string"` and `"original"`. */
-  summary_mode?: 'string' | 'original' | SWMLVar;
-  /** Allows tweaking any of the indicated settings, such as `barge_match_string`, using the returned SWML from the SWAIG function. **Default:** `true`. */
-  swaig_allow_settings?: boolean | SWMLVar;
-  /** Allows your SWAIG to return SWML to be executed. **Default:** `true`. */
-  swaig_allow_swml?: boolean | SWMLVar;
-  /** Post entire conversation to any SWAIG call. */
-  swaig_post_conversation?: boolean | SWMLVar;
-  /** Allows SWAIG to set global data that persists across calls. **Default:** `true`. */
-  swaig_set_global_data?: boolean | SWMLVar;
-  /** Controls whether SWML variables are included in SWAIG function webhook payloads. */
-  swaig_post_swml_vars?: boolean | string[] | SWMLVar;
-  /** The model to use for the AI's thinking capabilities. Allowed values are `gpt-4o-mini`, `gpt-4.1-mini`, and `gpt-4.1-nano`. */
-  thinking_model?: 'gpt-4o-mini' | 'gpt-4.1-mini' | 'gpt-4.1-nano' | string;
-  /** When enabled, the AI will not respond to the user's input when the user is speaking over the agent. */
-  transparent_barge?: boolean | SWMLVar;
-  /** Maximum time, in ms, for transparent barge mode. Allowed values from `0` - `60,000`. **Default:** `3000` ms. */
-  transparent_barge_max_time?: number | SWMLVar;
-  /** Pass a summary of a conversation from one AI agent to another. For example, transfer a call summary between support agents in two departments. */
-  transfer_summary?: boolean | SWMLVar;
-  /** Time in milliseconds to wait after detecting a potential end-of-turn before finalizing speech recognition. */
-  turn_detection_timeout?: number | SWMLVar;
-  /** The format for the AI agent to reference phone numbers. */
-  tts_number_format?: 'international' | 'national';
-  /** URL of a video file to play when AI is listening to the user speak. Only works for calls that support video. */
-  video_listening_file?: string;
-  /** URL of a video file to play when AI is idle. Only works for calls that support video. */
-  video_idle_file?: string;
-  /** URL of a video file to play when AI is talking. Only works for calls that support video. */
-  video_talking_file?: string;
-  /** The model to use for the AI's vision capabilities. Allowed values are `gpt-4o-mini`, `gpt-4.1-mini`, and `gpt-4.1-nano`. */
-  vision_model?: 'gpt-4o-mini' | 'gpt-4.1-mini' | 'gpt-4.1-nano' | string;
-  /** Configures Silero Voice Activity Detection (VAD) settings. Format: `"threshold"` or `"threshold:frame_ms"`. */
+  static_greeting_no_barge?: boolean | number | string;
+  stream_first?: boolean | number | string;
+  streaming?: boolean | number | string;
+  strict_mode?: string;
+  summary_mode?: string;
+  swaig_allow_settings?: boolean | number | string;
+  swaig_allow_swml?: boolean | number | string;
+  swaig_post_conversation?: boolean | number | string;
+  swaig_post_swml_vars?: string[] | boolean | string;
+  swaig_set_global_data?: boolean | number | string;
+  target_first_segment_ms?: number | string;
+  text_normalization_far_dir?: string;
+  thinking_model?: string;
+  tool_result_distill?:
+    | boolean
+    | {
+        enabled?: boolean | string;
+        min_chars?: number;
+        model?: string;
+        prompt?: string;
+      };
+  transfer_summary?: boolean | number | string;
+  transparent_barge?: boolean | number | string;
+  transparent_barge_max_time?: number | string;
+  tts_number_format?: string;
+  turn_detection?: boolean | string;
+  turn_detection_min_length?: number | string;
+  turn_detection_timeout?: number | string;
+  turn_filler_every_n?: number | string;
+  turn_filler_min_ms?: number | string;
+  turn_filler_sources?: string;
+  url?: string;
+  utility_model?: string;
   vad_config?: string;
-  /** When false, AI agent will initialize dialogue after call is setup. When true, agent will wait for the user to speak first. */
-  wait_for_user?: boolean | SWMLVar;
-  /** Specifies an additional prefix that must be spoken along with the agent's name (`ai_name`) */
+  video_fps?: number | string;
+  video_idle_file?: string;
+  video_listening_file?: string;
+  video_scale?: string;
+  video_talking_file?: string;
+  vision_model?: string;
+  voice_name?: string;
+  vol?: number | string;
+  wait_for_user?: boolean | number | string;
   wake_prefix?: string;
-  /** The stability slider determines how stable the voice is and the randomness between each generation. Lowering this slider introduces a broader emotional range for the voice. */
-  eleven_labs_stability?: number | SWMLVar;
-  /** The similarity slider dictates how closely the AI should adhere to the original voice when attempting to replicate it. The higher the similarity, the closer the AI will sound to the original voice. */
-  eleven_labs_similarity?: number | SWMLVar;
-  [key: string]:
-    | Record<string, unknown>
-    | boolean
-    | SWMLVar
-    | 'gpt-4o-mini'
-    | 'gpt-4.1-mini'
-    | 'gpt-4.1-nano'
+}
+
+export interface Action {
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
     | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
     | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
     | number
-    | SWMLVar
-    | AttentionTimeout
-    | 0
-    | SWMLVar
-    | number
-    | null
-    | SWMLVar
     | string
-    | boolean
-    | SWMLVar
-    | ConversationMessage[]
-    | boolean
-    | number
-    | SWMLVar
-    | Direction
-    | SWMLVar
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
     | string
-    | SWMLVar
-    | 'markdown'
-    | 'xml'
-    | 'string'
-    | 'original'
-    | SWMLVar
-    | boolean
-    | string[]
-    | SWMLVar
-    | 'international'
-    | 'national'
-    | undefined;
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
-
-export type AIPostPrompt = AIPostPromptText | AIPostPromptPom;
-
-export interface AIPostPromptPom {
-  /** Limits the amount of tokens that the AI agent may generate when creating its response */
-  max_tokens?: number;
-  /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  temperature?: number | SWMLVar;
-  /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  top_p?: number | SWMLVar;
-  /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-  confidence?: number | SWMLVar;
-  /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-  presence_penalty?: number | SWMLVar;
-  /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-  frequency_penalty?: number | SWMLVar;
-  /** The instructions to send to the agent. */
-  pom: POM[];
-}
-
-export interface AIPostPromptPomUpdate {
-  /** Limits the amount of tokens that the AI agent may generate when creating its response */
-  max_tokens?: number;
-  /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  temperature?: number | SWMLVar;
-  /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  top_p?: number | SWMLVar;
-  /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-  confidence?: number | SWMLVar;
-  /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-  presence_penalty?: number | SWMLVar;
-  /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-  frequency_penalty?: number | SWMLVar;
-  /** The instructions to send to the agent. */
-  pom?: POM[];
-}
-
-export interface AIPostPromptText {
-  /** Limits the amount of tokens that the AI agent may generate when creating its response */
-  max_tokens?: number;
-  /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  temperature?: number | SWMLVar;
-  /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  top_p?: number | SWMLVar;
-  /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-  confidence?: number | SWMLVar;
-  /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-  presence_penalty?: number | SWMLVar;
-  /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-  frequency_penalty?: number | SWMLVar;
-  /** The instructions to send to the agent. */
-  text: string;
-}
-
-export interface AIPostPromptTextUpdate {
-  /** Limits the amount of tokens that the AI agent may generate when creating its response */
-  max_tokens?: number;
-  /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  temperature?: number | SWMLVar;
-  /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  top_p?: number | SWMLVar;
-  /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-  confidence?: number | SWMLVar;
-  /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-  presence_penalty?: number | SWMLVar;
-  /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-  frequency_penalty?: number | SWMLVar;
-  /** The instructions to send to the agent. */
-  text?: string;
-}
-
-export type AIPostPromptUpdate = AIPostPromptTextUpdate | AIPostPromptPomUpdate;
-
-export type AIPrompt = AIPromptText | AIPromptPom;
-
-export interface AIPromptPom {
-  /** Limits the amount of tokens that the AI agent may generate when creating its response */
-  max_tokens?: number;
-  /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  temperature?: number | SWMLVar;
-  /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  top_p?: number | SWMLVar;
-  /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-  confidence?: number | SWMLVar;
-  /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-  presence_penalty?: number | SWMLVar;
-  /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-  frequency_penalty?: number | SWMLVar;
-  /** Prompt Object Model (POM) is a structured data format for composing, organizing, and rendering prompt instructions for AI agents. */
-  pom: POM[];
-  /** An object that defines the context steps for the AI. The context steps are used to define the flow of the conversation. */
-  contexts?: Contexts;
-}
-
-export interface AIPromptPomUpdate {
-  /** Limits the amount of tokens that the AI agent may generate when creating its response */
-  max_tokens?: number;
-  /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  temperature?: number | SWMLVar;
-  /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  top_p?: number | SWMLVar;
-  /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-  confidence?: number | SWMLVar;
-  /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-  presence_penalty?: number | SWMLVar;
-  /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-  frequency_penalty?: number | SWMLVar;
-  /** Prompt Object Model (POM) is a structured data format for composing, organizing, and rendering prompt instructions for AI agents. */
-  pom?: POM[];
-  /** An object that defines the context steps for the AI. The context steps are used to define the flow of the conversation. */
-  contexts?: ContextsUpdate;
-}
-
-export interface AIPromptText {
-  /** Limits the amount of tokens that the AI agent may generate when creating its response */
-  max_tokens?: number;
-  /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  temperature?: number | SWMLVar;
-  /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  top_p?: number | SWMLVar;
-  /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-  confidence?: number | SWMLVar;
-  /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-  presence_penalty?: number | SWMLVar;
-  /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-  frequency_penalty?: number | SWMLVar;
-  /** The instructions to send to the agent. */
-  text: string;
-  /** An object that defines the context steps for the AI. The context steps are used to define the flow of the conversation. */
-  contexts?: Contexts;
-}
-
-export interface AIPromptTextUpdate {
-  /** Limits the amount of tokens that the AI agent may generate when creating its response */
-  max_tokens?: number;
-  /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  temperature?: number | SWMLVar;
-  /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  top_p?: number | SWMLVar;
-  /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-  confidence?: number | SWMLVar;
-  /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-  presence_penalty?: number | SWMLVar;
-  /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-  frequency_penalty?: number | SWMLVar;
-  /** The instructions to send to the agent. */
-  text?: string;
-  /** An object that defines the context steps for the AI. The context steps are used to define the flow of the conversation. */
-  contexts?: ContextsUpdate;
-}
-
-export type AIPromptUpdate = AIPromptTextUpdate | AIPromptPomUpdate;
-
-export type Action =
-  | SWMLAction
-  | ChangeContextAction
-  | ChangeStepAction
-  | ContextSwitchAction
-  | HangupAction
-  | HoldAction
-  | PlaybackBGAction
-  | SayAction
-  | SetGlobalDataAction
-  | SetMetaDataAction
-  | StopAction
-  | StopPlaybackBGAction
-  | ToggleFunctionsAction
-  | UnsetGlobalDataAction
-  | UnsetMetaDataAction
-  | UserInputAction;
 
 export type AddressChannel = AudioChannel | MessagingChannel | VideoChannel;
-
-export interface AllOfProperty {
-  /** An array of schemas where all of the schemas must be valid. */
-  allOf: SchemaType[];
-}
-
-export interface AmazonBedrock {
-  /** Creates a new Bedrock AI Agent */
-  amazon_bedrock: AmazonBedrockObject;
-}
-
-export interface AmazonBedrockObject {
-  /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script */
-  global_data?: Record<string, Record<string, unknown>>;
-  /** A JSON object containing parameters as key-value pairs. */
-  params?: BedrockParams;
-  /** The final set of instructions and configuration settings to send to the agent. */
-  post_prompt?: BedrockPostPrompt;
-  /** The URL to which to send status callbacks and reports. Authentication can also be set in the url in the format of `username:password@url`. */
-  post_prompt_url?: string;
-  /** Establishes the initial set of instructions and settings to configure the agent. */
-  prompt: BedrockPrompt;
-  /** An array of JSON objects to create user-defined functions/endpoints that can be executed during the dialogue. */
-  SWAIG?: BedrockSWAIG;
-}
-
-export interface Answer {
-  /** Answer incoming call and set an optional maximum duration. */
-  answer: {
-    /** Maximum duration in seconds for the call. Defaults to `14400` seconds (4 hours). */
-    max_duration?: number | SWMLVar;
-    /** Comma-separated string of codecs to offer. Valid codecs are: PCMU, PCMA, G722, G729, AMR-WB, OPUS, VP8, H264. */
-    codecs?: string;
-    /** Username to use for SIP authentication. */
-    username?: string;
-    /** Password to use for SIP authentication. */
-    password?: string;
-  };
-}
-
-export interface AnyOfProperty {
-  /** An array of schemas where at least one of the schemas must be valid. */
-  anyOf: SchemaType[];
-}
-
-/** Base interface for all property types */
-export interface ArrayProperty {
-  /** A description of the property. */
-  description?: string;
-  /** Whether the property can be null. */
-  nullable?: boolean | SWMLVar;
-  /** The type of parameter(s) the AI is passing to the function. */
-  type: 'array';
-  /** The default array value */
-  default?: Record<string, unknown>[];
-  /** Schema for array items */
-  items: SchemaType;
-}
 
 export type AttentionTimeout = number;
 
 export interface AudioChannel {
   /** Audio Channel of Fabric Address */
   audio: string;
-}
-
-export interface BedrockParams {
-  /** Amount of time, in ms, to wait before prompting the user to respond. Allowed values from `10,000` - `600,000`. Set to `0` to disable. **Default:** `5000` ms (note: user-configurable values must be `0` or within the `10,000` - `600,000` range). */
-  attention_timeout?: AttentionTimeout | 0 | SWMLVar;
-  /** Specifies the maximum duration fopr the AI Agent to remain active before it exists the session. */
-  hard_stop_time?: string | SWMLVar;
-  /** Amount of time, in ms, to wait before exiting the app due to inactivity. Allowed values from `10,000` - `3,600,000`. **Default:** `600000` ms (10 minutes). */
-  inactivity_timeout?: number | SWMLVar;
-  /** URL of a video file to play when AI is listening to the user speak. Only works for calls that support video. */
-  video_listening_file?: string;
-  /** URL of a video file to play when AI is idle. Only works for calls that support video. */
-  video_idle_file?: string;
-  /** URL of a video file to play when AI is talking. Only works for calls that support video. */
-  video_talking_file?: string;
-  /** A final prompt that is fed into the AI when the `hard_stop_time` is reached. */
-  hard_stop_prompt?: string;
-  [key: string]:
-    | Record<string, unknown>
-    | AttentionTimeout
-    | 0
-    | SWMLVar
-    | string
-    | SWMLVar
-    | number
-    | SWMLVar
-    | string
-    | undefined;
-}
-
-export type BedrockPostPrompt =
-  | {
-      /** Limits the amount of tokens that the AI agent may generate when creating its response */
-      max_tokens?: number;
-      /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      temperature?: number | SWMLVar;
-      /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      top_p?: number | SWMLVar;
-      /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-      confidence?: number | SWMLVar;
-      /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-      presence_penalty?: number | SWMLVar;
-      /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-      frequency_penalty?: number | SWMLVar;
-      /** The instructions to send to the agent. */
-      text: string;
-    }
-  | {
-      /** Limits the amount of tokens that the AI agent may generate when creating its response */
-      max_tokens?: number;
-      /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      temperature?: number | SWMLVar;
-      /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      top_p?: number | SWMLVar;
-      /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-      confidence?: number | SWMLVar;
-      /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-      presence_penalty?: number | SWMLVar;
-      /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-      frequency_penalty?: number | SWMLVar;
-      /** The instructions to send to the agent. */
-      pom: POM[];
-    };
-
-export type BedrockPrompt =
-  | {
-      voice_id?: 'tiffany' | 'matthew' | 'amy' | 'lupe' | 'carlos';
-      /** Limits the amount of tokens that the AI agent may generate when creating its response */
-      max_tokens?: number;
-      /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      temperature?: number | SWMLVar;
-      /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      top_p?: number | SWMLVar;
-      /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-      confidence?: number | SWMLVar;
-      /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-      presence_penalty?: number | SWMLVar;
-      /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-      frequency_penalty?: number | SWMLVar;
-      /** The instructions to send to the agent. */
-      text: string;
-    }
-  | {
-      voice_id?: 'tiffany' | 'matthew' | 'amy' | 'lupe' | 'carlos';
-      /** Limits the amount of tokens that the AI agent may generate when creating its response */
-      max_tokens?: number;
-      /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      temperature?: number | SWMLVar;
-      /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      top_p?: number | SWMLVar;
-      /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-      confidence?: number | SWMLVar;
-      /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-      presence_penalty?: number | SWMLVar;
-      /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-      frequency_penalty?: number | SWMLVar;
-      /** The instructions to send to the agent. */
-      pom: POM[];
-    };
-
-export interface BedrockSWAIG {
-  /** An array of JSON objects to define functions that can be executed during the interaction with the Bedrock AI. Default is not set. */
-  functions?: BedrockSWAIGFunction[];
-  /** Default settings for all SWAIG functions. If `defaults` is not set, settings may be set in each function object. Default is not set. */
-  defaults?: SWAIGDefaults;
-  /** Prebuilt functions the AI agent is able to call from this list of available native functions */
-  native_functions?: SWAIGNativeFunction[];
-  /** An array of objects to include remote function signatures. */
-  includes?: SWAIGIncludes[];
-}
-
-export type BedrockSWAIGFunction =
-  | {
-      /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-      description: string;
-      /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-      parameters?: FunctionParameters;
-      /** Whether the function is active. **Default:** `true`. */
-      active?: boolean | SWMLVar;
-      /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-      meta_data?: Record<string, Record<string, unknown>>;
-      /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-      meta_data_token?: string;
-      /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
-      data_map?: DataMap;
-      /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-      web_hook_url?: string;
-      /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation. */
-      function: string;
-    }
-  | {
-      /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-      description: string;
-      /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-      parameters?: FunctionParameters;
-      /** Whether the function is active. **Default:** `true`. */
-      active?: boolean | SWMLVar;
-      /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-      meta_data?: Record<string, Record<string, unknown>>;
-      /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-      meta_data_token?: string;
-      /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
-      data_map?: DataMap;
-      /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-      web_hook_url?: string;
-      /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation. For the start_hook function, the function name is 'start_hook'. */
-      function: 'startup_hook';
-    }
-  | {
-      /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-      description: string;
-      /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-      parameters?: FunctionParameters;
-      /** Whether the function is active. **Default:** `true`. */
-      active?: boolean | SWMLVar;
-      /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-      meta_data?: Record<string, Record<string, unknown>>;
-      /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-      meta_data_token?: string;
-      /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
-      data_map?: DataMap;
-      /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-      web_hook_url?: string;
-      /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation. For the stop_hook function, the function name is 'stop_hook'. */
-      function: 'hangup_hook';
-    }
-  | {
-      /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-      description: string;
-      /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-      parameters?: FunctionParameters;
-      /** Whether the function is active. **Default:** `true`. */
-      active?: boolean | SWMLVar;
-      /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-      meta_data?: Record<string, Record<string, unknown>>;
-      /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-      meta_data_token?: string;
-      /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
-      data_map?: DataMap;
-      /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-      web_hook_url?: string;
-      /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation.. For the summarize_conversation function, the function name is 'summarize_conversation'. */
-      function: 'summarize_conversation';
-    };
-
-/** Base interface for all property types */
-export interface BooleanProperty {
-  /** A description of the property. */
-  description?: string;
-  /** Whether the property can be null. */
-  nullable?: boolean | SWMLVar;
-  /** The type of parameter(s) the AI is passing to the function. */
-  type: 'boolean';
-  /** The default boolean value */
-  default?: boolean | SWMLVar;
 }
 
 export interface CXMLScript {
@@ -832,9 +662,9 @@ export interface CXMLScript {
   /** The URL where the cXML script can be accessed */
   request_url: string;
   /** The script type the cXML Script is used for */
-  script_type: 'calling' | 'messaging';
+  script_type: 'calling' | 'faxing' | 'messaging';
   /** Display name of the cXML Script Fabric Resource */
-  display_name: string;
+  name: string;
   /** The url that will send status updates for the cXML Script */
   status_callback_url?: string | null;
   /** HTTP method for status callback URL */
@@ -860,14 +690,16 @@ export interface CXMLScriptAddressPaginationResponse {
 }
 
 export interface CXMLScriptCreateRequest {
-  /** Display name of the cXML Script */
-  display_name: string;
   /** The cXML script contents */
   contents: string;
   /** URL to send status callbacks to */
   status_callback_url?: string;
   /** HTTP method to use for status callbacks */
   status_callback_method?: 'GET' | 'POST';
+  /** The name of the cXML script. */
+  name: string;
+  /** What the cXML script is used for. */
+  script_type?: 'calling' | 'faxing' | 'messaging';
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -888,8 +720,8 @@ export interface CXMLScriptResponse {
   id: uuid;
   /** Unique ID of the Project. */
   project_id: uuid;
-  /** Display name of the cXML Script Fabric Resource */
-  name: string;
+  /** Display name of the cXML Script Fabric Resource. */
+  display_name: string;
   /** Type of the Fabric Resource */
   type: 'cxml_script';
   /** Date and time when the resource was created. */
@@ -901,14 +733,16 @@ export interface CXMLScriptResponse {
 }
 
 export interface CXMLScriptUpdateRequest {
-  /** Display name of the cXML Script */
-  display_name?: string;
   /** The cXML script contents */
   contents?: string;
   /** URL to send status callbacks to */
   status_callback_url?: string;
   /** HTTP method to use for status callbacks */
   status_callback_method?: 'GET' | 'POST';
+  /** The name of the cXML script. */
+  name?: string;
+  /** What the cXML script is used for. */
+  script_type?: 'calling' | 'faxing' | 'messaging';
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -923,7 +757,7 @@ export interface CXMLWebhook {
   /** Name of the CXML Webhook. */
   name: string;
   /** Used for of the CXML Webhook. */
-  used_for: UsedForType;
+  used_for: CxmlWebhookUsedForType;
   /** Primary request url of the CXML Webhook. */
   primary_request_url: string;
   /** Primary request method of the CXML Webhook. */
@@ -958,7 +792,7 @@ export interface CXMLWebhookCreateRequest {
   /** Name of the CXML Webhook. */
   name?: string;
   /** Used for of the CXML Webhook. */
-  used_for?: UsedForType;
+  used_for?: CxmlWebhookUsedForType;
   /** Primary request url of the CXML Webhook. */
   primary_request_url: string;
   /** Primary request method of the CXML Webhook. */
@@ -1018,7 +852,7 @@ export interface CXMLWebhookUpdateRequest {
   /** Name of the CXML Webhook. */
   name?: string;
   /** Used for of the CXML Webhook. */
-  used_for?: UsedForType;
+  used_for?: CxmlWebhookUsedForType;
   /** Primary request url of the CXML Webhook. */
   primary_request_url?: string;
   /** Primary request method of the CXML Webhook. */
@@ -1045,9 +879,9 @@ export interface CallFlow {
   /** The name of the Call Flow */
   title: string;
   /** Call flow data as JSON string */
-  flow_data?: string;
+  flow_data?: Record<string, unknown>;
   /** A SWML document. For more information on SWML, please go to the [SWML docs](/swml) */
-  relayml?: string;
+  relayml?: Record<string, unknown>;
   /** The current revision of the call flow. Every update must increase this number. */
   document_version?: number;
 }
@@ -1073,6 +907,10 @@ export interface CallFlowAddressPaginationResponse {
 export interface CallFlowCreateRequest {
   /** The name of the Call Flow */
   title: string;
+  /** The call flow's flow data, as a JSON object or a JSON string. */
+  flow_data?: Record<string, unknown> | string;
+  /** The call flow's SWML document, as a JSON object or a JSON string. */
+  relayml?: Record<string, unknown> | string;
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -1109,7 +947,11 @@ export interface CallFlowUpdateRequest {
   /** The name of the Call Flow */
   title?: string;
   /** The current revision of the call flow. Every update must increase this number. */
-  document_version?: number;
+  document_version: number;
+  /** The call flow's flow data, as a JSON object or a JSON string. */
+  flow_data?: Record<string, unknown> | string;
+  /** The call flow's SWML document, as a JSON object or a JSON string. */
+  relayml?: Record<string, unknown> | string;
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -1121,16 +963,16 @@ export interface CallFlowUpdateStatusCode422 {
 export interface CallFlowVersion {
   /** The unique identifier of the version. */
   id: uuid;
-  /** The version number. */
-  version: string;
+  /** The document version this snapshot was taken at. */
+  document_version: number;
   /** The creation timestamp. */
   created_at: string;
   /** The last update timestamp. */
   updated_at: string;
   /** Call Flow data structure */
-  flow_data?: string;
-  /** SWML document for this version */
-  relayml?: string;
+  flow_data?: Record<string, unknown>;
+  /** The calling SWML document this version snapshots. Uses [calling SWML methods](/docs/swml/reference/calling). */
+  relayml?: Record<string, unknown>;
 }
 
 export interface CallFlowVersionDeployByDocumentVersion {
@@ -1156,9 +998,9 @@ export interface CallFlowVersionDeployResponse {
   /** The document version. */
   document_version: number;
   /** Call Flow data structure */
-  flow_data?: string;
-  /** SWML document for this version */
-  relayml?: string;
+  flow_data?: Record<string, unknown>;
+  /** The calling SWML document deployed by this version. Uses [calling SWML methods](/docs/swml/reference/calling). */
+  relayml?: Record<string, unknown>;
 }
 
 export interface CallFlowVersionListResponse {
@@ -1180,18 +1022,6 @@ export interface CallFlowVersionsPaginationResponse {
 
 export type CallHandlerType = 'default' | 'passthrough' | 'block-pstn' | 'resource';
 
-export type CallStatus = 'created' | 'ringing' | 'answered' | 'ended';
-
-export interface ChangeContextAction {
-  /** The name of the context to switch to. The context must be defined in the AI's prompt.contexts configuration. */
-  change_context: string;
-}
-
-export interface ChangeStepAction {
-  /** The name of the step to switch to. The step must be defined in the current context's steps array. */
-  change_step: string;
-}
-
 export type Ciphers =
   | 'AEAD_AES_256_GCM_8'
   | 'AES_256_CM_HMAC_SHA1_80'
@@ -1201,34 +1031,13 @@ export type Ciphers =
 
 export type Codecs = 'PCMU' | 'PCMA' | 'G722' | 'G729' | 'OPUS' | 'VP8' | 'H264';
 
-export interface Cond {
-  /** Execute a sequence of instructions depending on the value of a JavaScript condition. */
-  cond: CondParams[];
-}
-
-export interface CondElse {
-  /** Sequence of SWML methods to execute when none of the other conditions evaluate to true. */
-  else: SWMLMethod[];
-}
-
-export type CondParams = CondReg | CondElse;
-
-export interface CondReg {
-  /** The JavaScript condition to act on. */
-  when: string;
-  /** Sequence of SWML methods to execute when the condition evaluates to true. */
-  then: SWMLMethod[];
-  /** Sequence of SWML methods to execute when none of the other conditions evaluate to true. */
-  else?: SWMLMethod[];
-}
-
 export interface ConferenceRoom {
   /** The unique id of the Conference Room */
   id: uuid;
   /** The name of the Conference Room */
   name: string;
   /** The descrption of the Conference Room */
-  description: string;
+  description: string | null;
   /** Display name of the Conference Room */
   display_name: string;
   /** Maximum number of members allowed in the conference room */
@@ -1307,7 +1116,7 @@ export interface ConferenceRoomCreateRequest {
   /** Starts recording when the conference starts. */
   record_on_start?: boolean;
   /** Enables live video room previews for the conference. */
-  enable_room_previews: boolean;
+  enable_room_previews?: boolean;
   /** Metadata of the conference. */
   meta?: Record<string, Record<string, unknown>>;
   /** Syncs the participants audio and video. */
@@ -1351,12 +1160,8 @@ export interface ConferenceRoomResponse {
 }
 
 export interface ConferenceRoomUpdateRequest {
-  /** The name of the Conference Room */
-  name?: string;
   /** Display name of the Conference Room */
   display_name?: string;
-  /** The descrption of the Conference Room */
-  description?: string;
   /** The time users are allowed to start joining the conference. Joining before this time will result in failure to join the conference. */
   join_from?: string;
   /** The time users are allowed to until the conference is locked. Attempting to join the conference after the set time will result in failure to join the conference. */
@@ -1374,17 +1179,11 @@ export interface ConferenceRoomUpdateRequest {
   /** Starts recording when the conference starts. */
   record_on_start?: boolean;
   /** Enables live video room previews for the conference. */
-  enable_room_previews: boolean;
+  enable_room_previews?: boolean;
   /** Metadata of the conference. */
   meta?: Record<string, Record<string, unknown>>;
   /** Syncs the participants audio and video. */
-  sync_audio_video: boolean;
-  /** Plays a tone when a participant joins or leaves the conference. */
-  tone_on_entry_and_exit?: boolean;
-  /** Turns the conference video off when the participant joins the room if `true`. */
-  room_join_video_off?: boolean;
-  /** Turns the participants video off when the participant joins the room if `true`. */
-  user_join_video_off?: boolean;
+  sync_audio_video?: boolean;
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -1393,350 +1192,17 @@ export interface ConferenceRoomUpdateStatusCode422 {
   errors: Types_StatusCodes_RestApiErrorItem[];
 }
 
-export interface Connect {
-  /** Connect to a phone number, SIP URI, Call Fabric resource, queue, or WebSocket stream. */
-  connect:
-    ConnectDeviceSingle | ConnectDeviceSerial | ConnectDeviceParallel | ConnectDeviceSerialParallel;
-}
+export type Contexts = Record<string, Context>;
 
-export interface ConnectDeviceParallel {
-  /** The caller ID to use when dialing the number. */
-  from?: string;
-  /** Custom SIP headers to add to INVITE. It Has no effect on calls to phone numbers. */
-  headers?: ConnectHeaders[];
-  /** Comma-separated string of codecs to offer. */
-  codecs?: string;
-  /** If true, WebRTC media is offered to the SIP endpoint. */
-  webrtc_media?: boolean | SWMLVar;
-  /** Time, in seconds, to set the SIP `Session-Expires` header in INVITE. */
-  session_timeout?: number | SWMLVar;
-  /** Array of URIs to play as ringback tone. If not specified, plays audio from the provider. */
-  ringback?: string[];
-  /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
-  result?: ConnectSwitch | CondParams[];
-  /** Time, in seconds, to wait for the call to be answered. */
-  timeout?: number | SWMLVar;
-  /** Maximum duration, in seconds, allowed for the call. */
-  max_duration?: number | SWMLVar;
-  /** Delay answer until the B-leg answers. */
-  answer_on_bridge?: boolean | SWMLVar;
-  /** Confirmation to execute when the call is connected. Can be either: */
-  confirm?: string | ValidConfirmMethods[];
-  /** The amount of time, in seconds, to wait for the `confirm` URL to return a response */
-  confirm_timeout?: number | SWMLVar;
-  /** SIP username to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  username?: string;
-  /** SIP password to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  password?: string;
-  /** Encryption setting to use. **Possible values:** `mandatory`, `optional`, `forbidden` */
-  encryption?: 'mandatory' | 'optional' | 'forbidden';
-  /** Webhook URL to send call status change notifications to. Authentication can also be set in the URL in the format of `username:password@url`. */
-  call_state_url?: string;
-  /** SWML to execute after the bridge completes. This defines what should happen after the call is connected and the bridge ends. */
-  transfer_after_bridge?: string | SWMLVar;
-  /** An array of call state event names to be notified about. */
-  call_state_events?: CallStatus[];
-  /** HTTP or HTTPS URL to deliver connect status events. */
-  status_url?: string;
-  /** Array of destinations to dial simultaneously. */
-  parallel: ConnectDeviceSingle[];
-}
-
-export interface ConnectDeviceSerial {
-  /** The caller ID to use when dialing the number. */
-  from?: string;
-  /** Custom SIP headers to add to INVITE. It Has no effect on calls to phone numbers. */
-  headers?: ConnectHeaders[];
-  /** Comma-separated string of codecs to offer. */
-  codecs?: string;
-  /** If true, WebRTC media is offered to the SIP endpoint. */
-  webrtc_media?: boolean | SWMLVar;
-  /** Time, in seconds, to set the SIP `Session-Expires` header in INVITE. */
-  session_timeout?: number | SWMLVar;
-  /** Array of URIs to play as ringback tone. If not specified, plays audio from the provider. */
-  ringback?: string[];
-  /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
-  result?: ConnectSwitch | CondParams[];
-  /** Time, in seconds, to wait for the call to be answered. */
-  timeout?: number | SWMLVar;
-  /** Maximum duration, in seconds, allowed for the call. */
-  max_duration?: number | SWMLVar;
-  /** Delay answer until the B-leg answers. */
-  answer_on_bridge?: boolean | SWMLVar;
-  /** Confirmation to execute when the call is connected. Can be either: */
-  confirm?: string | ValidConfirmMethods[];
-  /** The amount of time, in seconds, to wait for the `confirm` URL to return a response */
-  confirm_timeout?: number | SWMLVar;
-  /** SIP username to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  username?: string;
-  /** SIP password to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  password?: string;
-  /** Encryption setting to use. **Possible values:** `mandatory`, `optional`, `forbidden` */
-  encryption?: 'mandatory' | 'optional' | 'forbidden';
-  /** Webhook URL to send call status change notifications to. Authentication can also be set in the URL in the format of `username:password@url`. */
-  call_state_url?: string;
-  /** SWML to execute after the bridge completes. This defines what should happen after the call is connected and the bridge ends. */
-  transfer_after_bridge?: string | SWMLVar;
-  /** An array of call state event names to be notified about. */
-  call_state_events?: CallStatus[];
-  /** HTTP or HTTPS URL to deliver connect status events. */
-  status_url?: string;
-  serial: ConnectDeviceSingle[];
-}
-
-export interface ConnectDeviceSerialParallel {
-  /** The caller ID to use when dialing the number. */
-  from?: string;
-  /** Custom SIP headers to add to INVITE. It Has no effect on calls to phone numbers. */
-  headers?: ConnectHeaders[];
-  /** Comma-separated string of codecs to offer. */
-  codecs?: string;
-  /** If true, WebRTC media is offered to the SIP endpoint. */
-  webrtc_media?: boolean | SWMLVar;
-  /** Time, in seconds, to set the SIP `Session-Expires` header in INVITE. */
-  session_timeout?: number | SWMLVar;
-  /** Array of URIs to play as ringback tone. If not specified, plays audio from the provider. */
-  ringback?: string[];
-  /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
-  result?: ConnectSwitch | CondParams[];
-  /** Time, in seconds, to wait for the call to be answered. */
-  timeout?: number | SWMLVar;
-  /** Maximum duration, in seconds, allowed for the call. */
-  max_duration?: number | SWMLVar;
-  /** Delay answer until the B-leg answers. */
-  answer_on_bridge?: boolean | SWMLVar;
-  /** Confirmation to execute when the call is connected. Can be either: */
-  confirm?: string | ValidConfirmMethods[];
-  /** The amount of time, in seconds, to wait for the `confirm` URL to return a response */
-  confirm_timeout?: number | SWMLVar;
-  /** SIP username to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  username?: string;
-  /** SIP password to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  password?: string;
-  /** Encryption setting to use. **Possible values:** `mandatory`, `optional`, `forbidden` */
-  encryption?: 'mandatory' | 'optional' | 'forbidden';
-  /** Webhook URL to send call status change notifications to. Authentication can also be set in the URL in the format of `username:password@url`. */
-  call_state_url?: string;
-  /** SWML to execute after the bridge completes. This defines what should happen after the call is connected and the bridge ends. */
-  transfer_after_bridge?: string | SWMLVar;
-  /** An array of call state event names to be notified about. */
-  call_state_events?: CallStatus[];
-  /** HTTP or HTTPS URL to deliver connect status events. */
-  status_url?: string;
-  /** Array of arrays. */
-  serial_parallel: ConnectDeviceSingle[][];
-}
-
-export interface ConnectDeviceSingle {
-  /** The caller ID to use when dialing the number. */
-  from?: string;
-  /** Custom SIP headers to add to INVITE. It Has no effect on calls to phone numbers. */
-  headers?: ConnectHeaders[];
-  /** Comma-separated string of codecs to offer. */
-  codecs?: string;
-  /** If true, WebRTC media is offered to the SIP endpoint. */
-  webrtc_media?: boolean | SWMLVar;
-  /** Time, in seconds, to set the SIP `Session-Expires` header in INVITE. */
-  session_timeout?: number | SWMLVar;
-  /** Array of URIs to play as ringback tone. If not specified, plays audio from the provider. */
-  ringback?: string[];
-  /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
-  result?: ConnectSwitch | CondParams[];
-  /** Time, in seconds, to wait for the call to be answered. */
-  timeout?: number | SWMLVar;
-  /** Maximum duration, in seconds, allowed for the call. */
-  max_duration?: number | SWMLVar;
-  /** Delay answer until the B-leg answers. */
-  answer_on_bridge?: boolean | SWMLVar;
-  /** Confirmation to execute when the call is connected. Can be either: */
-  confirm?: string | ValidConfirmMethods[];
-  /** The amount of time, in seconds, to wait for the `confirm` URL to return a response */
-  confirm_timeout?: number | SWMLVar;
-  /** SIP username to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  username?: string;
-  /** SIP password to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  password?: string;
-  /** Encryption setting to use. **Possible values:** `mandatory`, `optional`, `forbidden` */
-  encryption?: 'mandatory' | 'optional' | 'forbidden';
-  /** Webhook URL to send call status change notifications to. Authentication can also be set in the URL in the format of `username:password@url`. */
-  call_state_url?: string;
-  /** SWML to execute after the bridge completes. This defines what should happen after the call is connected and the bridge ends. */
-  transfer_after_bridge?: string | SWMLVar;
-  /** An array of call state event names to be notified about. */
-  call_state_events?: CallStatus[];
-  /** HTTP or HTTPS URL to deliver connect status events. */
-  status_url?: string;
-  /** Destination to dial. Can be: */
-  to: string;
-  /** Stream name identifier. Only applies to stream destinations. */
-  name?: string;
-  /** Audio codec for the stream. Supported values: `PCMU`, `PCMA`, `G722`, `L16`. */
-  codec?: string;
-  /** Enable realtime mode for bidirectional audio. */
-  realtime?: boolean | SWMLVar;
-  /** HTTP method for the stream status webhook. */
-  status_url_method?: 'GET' | 'POST';
-  /** Bearer token sent as an `Authorization` header during the WebSocket handshake. Only applies to stream destinations. */
-  authorization_bearer_token?: string;
-  /** Custom key-value pairs sent in the WebSocket start message. Only applies to stream destinations. */
-  custom_parameters?: Record<string, string>;
-}
-
-export interface ConnectHeaders {
-  /** The name of the header. */
-  name: string;
-  /** The value of the header. */
-  value: string;
-}
-
-export interface ConnectSwitch {
-  /** Name of the variable whose value needs to be compared. If not provided, it will check the `connect_result` variable. */
-  variable?: string;
-  /** Object of values mapped to array of instructions to execute */
-  case: Record<string, SWMLMethod[]>;
-  /** Array of instructions to execute if no cases match */
-  default?: SWMLMethod[];
-}
-
-export interface ConstProperty {
-  /** A constant value that can be passed to the function. */
-  const: Record<string, unknown>;
-}
-
-export interface ContextPOMSteps {
-  /** The name of the step. The name must be unique within the context. The name is used for referencing the step in the context. */
-  name: string;
-  /** The criteria that must be met for the AI to proceed to the next step. */
-  step_criteria?: string;
-  /** An array of strings, where each string is the name of a SWAIG.function that can be executed from this step. */
-  functions?: string[];
-  /** An array of context names that the AI can transition to from this step. This must be a valid `contexts.name` that is present in your `contexts` object. */
-  valid_contexts?: string[];
-  /** A boolean value, if set to `true`, will skip the user's turn to respond in the conversation and proceed to the next step. **Default:** `false`. */
-  skip_user_turn?: boolean | SWMLVar;
-  /** A boolean value that determines if the step is the last in the context. If `true`, the context ends after this step. Cannot be used along with the `valid_steps` parameter. **Default:** `false`. */
-  end?: boolean;
-  /** An array of valid steps that the conversation can proceed to from this step. */
-  valid_steps?: string[];
-  /** An array of objects that define the POM for the step. POM is the Post-Prompt Object Model, which is used to define the flow of the conversation. */
-  pom: POM[];
-}
-
-export type ContextSteps = ContextPOMSteps | ContextTextSteps;
-
-export interface ContextSwitchAction {
-  /** A JSON object containing the context to switch to. Default is not set. */
-  context_switch: {
-    /** The instructions to send to the agent. Default is not set. */
-    system_prompt: string;
-    /** Whether to consolidate the context. Default is `false`. */
-    consolidate?: boolean | SWMLVar;
-    /** A string serving as simulated user input for the AI Agent. */
-    user_prompt?: string;
-  };
-}
-
-export interface ContextTextSteps {
-  /** The name of the step. The name must be unique within the context. The name is used for referencing the step in the context. */
-  name: string;
-  /** The criteria that must be met for the AI to proceed to the next step. */
-  step_criteria?: string;
-  /** An array of strings, where each string is the name of a SWAIG.function that can be executed from this step. */
-  functions?: string[];
-  /** An array of context names that the AI can transition to from this step. This must be a valid `contexts.name` that is present in your `contexts` object. */
-  valid_contexts?: string[];
-  /** A boolean value, if set to `true`, will skip the user's turn to respond in the conversation and proceed to the next step. **Default:** `false`. */
-  skip_user_turn?: boolean | SWMLVar;
-  /** A boolean value that determines if the step is the last in the context. If `true`, the context ends after this step. Cannot be used along with the `valid_steps` parameter. **Default:** `false`. */
-  end?: boolean;
-  /** An array of valid steps that the conversation can proceed to from this step. */
-  valid_steps?: string[];
-  /** The prompt or instructions given to the AI at this step. */
-  text: string;
-}
-
-export interface Contexts {
-  /** The default context to use at the beginning of the conversation. Additional context steps can be defined as any other key in the object. */
-  default: ContextsObject;
-  [key: string]: ContextsObject;
-}
-
-export type ContextsObject = ContextsPOMObject | ContextsTextObject;
-
-export type ContextsObjectUpdate = ContextsPOMObjectUpdate | ContextsTextObjectUpdate;
-
-export interface ContextsPOMObject {
-  /** An array of step objects that define the conversation flow for this context. Steps execute sequentially unless otherwise specified. */
-  steps: ContextSteps[];
-  /** When `true`, resets conversation history to only the system prompt when entering this context. Useful for focused tasks that shouldn't be influenced by previous conversation. **Default:** `false`. */
-  isolated?: boolean;
-  /** Language-specific filler phrases played when transitioning into this context. Helps provide smooth context switches. */
-  enter_fillers?: FunctionFillers[];
-  /** Language-specific filler phrases played when leaving this context. Ensures natural transitions out of specialized modes. */
-  exit_fillers?: FunctionFillers[];
-  /** An array of objects that define the POM for the context. POM is the Post-Prompt Object Model, which is used to define the flow of the conversation. */
-  pom?: POM[];
-}
-
-export interface ContextsPOMObjectUpdate {
-  /** An array of step objects that define the conversation flow for this context. Steps execute sequentially unless otherwise specified. */
-  steps?: ContextSteps[];
-  /** When `true`, resets conversation history to only the system prompt when entering this context. Useful for focused tasks that shouldn't be influenced by previous conversation. **Default:** `false`. */
-  isolated?: boolean;
-  /** Language-specific filler phrases played when transitioning into this context. Helps provide smooth context switches. */
-  enter_fillers?: FunctionFillers[];
-  /** Language-specific filler phrases played when leaving this context. Ensures natural transitions out of specialized modes. */
-  exit_fillers?: FunctionFillers[];
-  /** An array of objects that define the POM for the context. POM is the Post-Prompt Object Model, which is used to define the flow of the conversation. */
-  pom?: POM[];
-}
-
-export interface ContextsTextObject {
-  /** An array of step objects that define the conversation flow for this context. Steps execute sequentially unless otherwise specified. */
-  steps: ContextSteps[];
-  /** When `true`, resets conversation history to only the system prompt when entering this context. Useful for focused tasks that shouldn't be influenced by previous conversation. **Default:** `false`. */
-  isolated?: boolean;
-  /** Language-specific filler phrases played when transitioning into this context. Helps provide smooth context switches. */
-  enter_fillers?: FunctionFillers[];
-  /** Language-specific filler phrases played when leaving this context. Ensures natural transitions out of specialized modes. */
-  exit_fillers?: FunctionFillers[];
-  /** The text to send to the agent. */
-  text?: string;
-}
-
-export interface ContextsTextObjectUpdate {
-  /** An array of step objects that define the conversation flow for this context. Steps execute sequentially unless otherwise specified. */
-  steps?: ContextSteps[];
-  /** When `true`, resets conversation history to only the system prompt when entering this context. Useful for focused tasks that shouldn't be influenced by previous conversation. **Default:** `false`. */
-  isolated?: boolean;
-  /** Language-specific filler phrases played when transitioning into this context. Helps provide smooth context switches. */
-  enter_fillers?: FunctionFillers[];
-  /** Language-specific filler phrases played when leaving this context. Ensures natural transitions out of specialized modes. */
-  exit_fillers?: FunctionFillers[];
-  /** The text to send to the agent. */
-  text?: string;
-}
-
-export interface ContextsUpdate {
-  /** The default context to use at the beginning of the conversation. Additional context steps can be defined as any other key in the object. */
-  default?: ContextsObjectUpdate;
-  [key: string]: ContextsObjectUpdate | undefined;
-}
-
-/** A message object representing a single turn in the conversation history. */
 export interface ConversationMessage {
-  /** The role of the message sender. */
-  role: ConversationRole;
-  /** The text content of the message. */
-  content: string;
-  /** Optional language code for the message (e.g., 'en', 'es', 'fr'). */
+  content?: string;
   lang?: string;
+  role?: ConversationRole;
+  tool_call_id?: string;
+  tool_calls?: unknown[];
 }
 
-export type ConversationRole = 'user' | 'assistant' | 'system';
-
-/** Custom translation filter with a prompt prefix. Use `prompt:` followed by your custom instructions (e.g., `prompt:Use formal business language`). */
-export type CustomTranslationFilter = string;
+export type ConversationRole = string;
 
 export interface CxmlApplication {
   /** Unique ID of the cXML Application. */
@@ -1748,27 +1214,33 @@ export interface CxmlApplication {
   /** URL to handle incoming calls */
   voice_url: string | null;
   /** HTTP method for voice URL */
-  voice_method: 'GET' | 'POST';
+  voice_method: 'GET' | 'POST' | null;
   /** Fallback URL for voice errors */
   voice_fallback_url: string | null;
   /** HTTP method for voice fallback URL */
-  voice_fallback_method: 'GET' | 'POST';
+  voice_fallback_method: 'GET' | 'POST' | null;
   /** URL to receive status callbacks */
   status_callback: string | null;
   /** HTTP method for status callbacks */
-  status_callback_method: 'GET' | 'POST';
+  status_callback_method: 'GET' | 'POST' | null;
   /** URL to handle incoming messages */
   sms_url: string | null;
   /** HTTP method for SMS URL */
-  sms_method: 'GET' | 'POST';
+  sms_method: 'GET' | 'POST' | null;
   /** Fallback URL for SMS errors */
   sms_fallback_url: string | null;
   /** HTTP method for SMS fallback URL */
-  sms_fallback_method: 'GET' | 'POST';
+  sms_fallback_method: 'GET' | 'POST' | null;
   /** URL to receive SMS status callbacks */
   sms_status_callback: string | null;
   /** HTTP method for SMS status callbacks */
-  sms_status_callback_method: 'GET' | 'POST';
+  sms_status_callback_method: 'GET' | 'POST' | null;
+  /** The message status callback URL (the same value as sms_status_callback). */
+  message_status_callback?: string | null;
+  /** The cXML API version. */
+  api_version?: string;
+  /** The cXML application's LaML API path. */
+  uri?: string;
 }
 
 export interface CxmlApplicationAddressListResponse {
@@ -1825,34 +1297,32 @@ export interface CxmlApplicationResponse {
 }
 
 export interface CxmlApplicationUpdateRequest {
-  /** Display name of the cXML Application */
-  display_name?: string;
-  /** Project ID for the cXML Application */
-  account_sid?: uuid;
-  /** URL to handle incoming calls */
-  voice_url?: string;
-  /** HTTP method for voice URL */
-  voice_method?: 'GET' | 'POST';
-  /** Fallback URL for voice errors */
-  voice_fallback_url?: string;
-  /** HTTP method for voice fallback URL */
-  voice_fallback_method?: 'GET' | 'POST';
-  /** URL to receive status callbacks */
-  status_callback?: string;
-  /** HTTP method for status callbacks */
-  status_callback_method?: 'GET' | 'POST';
-  /** URL to handle incoming messages */
-  sms_url?: string;
-  /** HTTP method for SMS URL */
-  sms_method?: 'GET' | 'POST';
-  /** Fallback URL for SMS errors */
-  sms_fallback_url?: string;
-  /** HTTP method for SMS fallback URL */
-  sms_fallback_method?: 'GET' | 'POST';
-  /** URL to receive SMS status callbacks */
-  sms_status_callback?: string;
-  /** HTTP method for SMS status callbacks */
-  sms_status_callback_method?: 'GET' | 'POST';
+  /** The name of the cXML application. */
+  name?: string;
+  /** The request URL for calls. */
+  call_request_url?: string;
+  /** The HTTP method for the call request URL. */
+  call_request_method?: 'GET' | 'POST';
+  /** The fallback URL for calls. */
+  call_fallback_url?: string;
+  /** The HTTP method for the call fallback URL. */
+  call_fallback_method?: 'GET' | 'POST';
+  /** The status callback URL for calls. */
+  call_status_url?: string;
+  /** The HTTP method for the call status callback URL. */
+  call_status_method?: 'GET' | 'POST';
+  /** The request URL for messages. */
+  message_request_url?: string;
+  /** The HTTP method for the message request URL. */
+  message_request_method?: 'GET' | 'POST';
+  /** The fallback URL for messages. */
+  message_fallback_url?: string;
+  /** The HTTP method for the message fallback URL. */
+  message_fallback_method?: 'GET' | 'POST';
+  /** The status callback URL for messages. */
+  message_status_url?: string;
+  /** The HTTP method for the message status callback URL. */
+  message_status_method?: 'GET' | 'POST';
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -1862,45 +1332,10 @@ export interface CxmlApplicationUpdateStatusCode422 {
 }
 
 export interface DataMap {
-  /** An object that contains a response and a list of actions to be performed upon a SWAIG function call. */
+  contexts?: unknown[] | boolean | null | number | Record<string, unknown> | string;
+  expressions?: Expression[] | Expression;
   output?: Output;
-  /** An array of objects that have pattern matching logic to process the user's input data. A user can define multiple expressions to match against the user's input data. */
-  expressions?: Expression[];
-  /** An array of objects that define external API calls. */
-  webhooks?: Webhook[];
-}
-
-export interface Denoise {
-  /** Start noise reduction. You can stop it at any time using `stop_denoise`. */
-  denoise: Record<string, unknown>;
-}
-
-export interface DetectMachine {
-  /** A detection method that combines AMD (Answering Machine Detection) and fax detection. */
-  detect_machine: {
-    /** If `true`, stops detection on beep / end of voicemail greeting. Default `false`. */
-    detect_message_end?: boolean | SWMLVar;
-    /** Comma-separated string of detectors to enable. Valid values: `amd`, `fax`. */
-    detectors?: string;
-    /** How long to wait for voice to finish. Default `1.0`. */
-    end_silence_timeout?: number | SWMLVar;
-    /** How long to wait for initial voice before giving up. Default `4.5`. */
-    initial_timeout?: number | SWMLVar;
-    /** How long to wait for voice to finish before firing READY event. Default is `end_silence_timeout`. */
-    machine_ready_timeout?: number | SWMLVar;
-    /** The number of seconds of ongoing voice activity required to classify as MACHINE. Default `1.25`. */
-    machine_voice_threshold?: number | SWMLVar;
-    /** The minimum number of words that must be detected in a single utterance before classifying the call as MACHINE. Default `6`. */
-    machine_words_threshold?: number | SWMLVar;
-    /** The http(s) URL to deliver detector events to. */
-    status_url?: string;
-    /** The max time to run detector. Default `30.0` seconds. */
-    timeout?: number | SWMLVar;
-    /** The tone to detect, will only receive remote side tone. Default `CED`. */
-    tone?: 'CED' | 'CNG';
-    /** If false, the detector will run asynchronously and status_url must be set. */
-    wait?: boolean | SWMLVar;
-  };
+  webhooks?: Webhook[] | Webhook;
 }
 
 export interface DialogFlowPaginationResponse {
@@ -1920,7 +1355,7 @@ export interface DialogflowAgent {
   /** Whether to enable the 'say' feature */
   say_enabled?: boolean;
   /** Default message to say */
-  say?: string;
+  say?: string | null;
   /** Voice to use for speech */
   voice?: string;
   /** Display name of the Dialogflow Agent */
@@ -1981,7 +1416,199 @@ export interface DialogflowAgentUpdateRequest {
   /** Default message to say */
   say?: string;
   /** Voice to use for speech */
-  voice?: string;
+  voice?:
+    | 'ar-XA-Standard-A'
+    | 'ar-XA-Standard-B'
+    | 'ar-XA-Standard-C'
+    | 'ar-XA-Wavenet-A'
+    | 'ar-XA-Wavenet-B'
+    | 'ar-XA-Wavenet-C'
+    | 'cs-CZ-Standard-A'
+    | 'cs-CZ-Wavenet-A'
+    | 'da-DK-Standard-A'
+    | 'da-DK-Wavenet-A'
+    | 'nl-NL-Standard-A'
+    | 'nl-NL-Standard-B'
+    | 'nl-NL-Standard-C'
+    | 'nl-NL-Standard-D'
+    | 'nl-NL-Standard-E'
+    | 'nl-NL-Wavenet-A'
+    | 'nl-NL-Wavenet-B'
+    | 'nl-NL-Wavenet-C'
+    | 'nl-NL-Wavenet-D'
+    | 'nl-NL-Wavenet-E'
+    | 'en-AU-Standard-A'
+    | 'en-AU-Standard-B'
+    | 'en-AU-Standard-C'
+    | 'en-AU-Standard-D'
+    | 'en-AU-Wavenet-A'
+    | 'en-AU-Wavenet-B'
+    | 'en-AU-Wavenet-C'
+    | 'en-AU-Wavenet-D'
+    | 'en-IN-Standard-A'
+    | 'en-IN-Standard-B'
+    | 'en-IN-Standard-C'
+    | 'en-IN-Wavenet-A'
+    | 'en-IN-Wavenet-B'
+    | 'en-IN-Wavenet-C'
+    | 'en-GB-Standard-A'
+    | 'en-GB-Standard-B'
+    | 'en-GB-Standard-C'
+    | 'en-GB-Standard-D'
+    | 'en-GB-Wavenet-A'
+    | 'en-GB-Wavenet-B'
+    | 'en-GB-Wavenet-C'
+    | 'en-GB-Wavenet-D'
+    | 'en-US-Standard-B'
+    | 'en-US-Standard-C'
+    | 'en-US-Standard-D'
+    | 'en-US-Standard-E'
+    | 'en-US-Standard-F'
+    | 'en-US-Standard-G'
+    | 'en-US-Standard-H'
+    | 'en-US-Standard-I'
+    | 'en-US-Standard-J'
+    | 'en-US-Wavenet-A'
+    | 'en-US-Wavenet-B'
+    | 'en-US-Wavenet-C'
+    | 'en-US-Wavenet-D'
+    | 'en-US-Wavenet-E'
+    | 'en-US-Wavenet-F'
+    | 'fil-PH-Standard-A'
+    | 'fil-PH-Wavenet-A'
+    | 'fi-FI-Standard-A'
+    | 'fi-FI-Wavenet-A'
+    | 'fr-CA-Standard-A'
+    | 'fr-CA-Standard-B'
+    | 'fr-CA-Standard-C'
+    | 'fr-CA-Standard-D'
+    | 'fr-CA-Wavenet-A'
+    | 'fr-CA-Wavenet-B'
+    | 'fr-CA-Wavenet-C'
+    | 'fr-CA-Wavenet-D'
+    | 'fr-FR-Standard-A'
+    | 'fr-FR-Standard-B'
+    | 'fr-FR-Standard-C'
+    | 'fr-FR-Standard-D'
+    | 'fr-FR-Wavenet-A'
+    | 'fr-FR-Wavenet-B'
+    | 'fr-FR-Wavenet-C'
+    | 'fr-FR-Wavenet-D'
+    | 'de-DE-Standard-A'
+    | 'de-DE-Standard-B'
+    | 'de-DE-Wavenet-A'
+    | 'de-DE-Wavenet-B'
+    | 'de-DE-Wavenet-C'
+    | 'de-DE-Wavenet-D'
+    | 'el-GR-Standard-A'
+    | 'el-GR-Wavenet-A'
+    | 'hi-IN-Standard-A'
+    | 'hi-IN-Standard-B'
+    | 'hi-IN-Standard-C'
+    | 'hi-IN-Wavenet-A'
+    | 'hi-IN-Wavenet-B'
+    | 'hi-IN-Wavenet-C'
+    | 'hu-HU-Standard-A'
+    | 'hu-HU-Wavenet-A'
+    | 'id-ID-Standard-A'
+    | 'id-ID-Standard-B'
+    | 'id-ID-Standard-C'
+    | 'id-ID-Wavenet-A'
+    | 'id-ID-Wavenet-B'
+    | 'id-ID-Wavenet-C'
+    | 'it-IT-Standard-A'
+    | 'it-IT-Standard-B'
+    | 'it-IT-Standard-C'
+    | 'it-IT-Standard-D'
+    | 'it-IT-Wavenet-A'
+    | 'it-IT-Wavenet-B'
+    | 'it-IT-Wavenet-C'
+    | 'it-IT-Wavenet-D'
+    | 'ja-JP-Standard-A'
+    | 'ja-JP-Standard-B'
+    | 'ja-JP-Standard-C'
+    | 'ja-JP-Standard-D'
+    | 'ja-JP-Wavenet-A'
+    | 'ja-JP-Wavenet-B'
+    | 'ja-JP-Wavenet-C'
+    | 'ja-JP-Wavenet-D'
+    | 'ko-KR-Standard-A'
+    | 'ko-KR-Standard-B'
+    | 'ko-KR-Standard-C'
+    | 'ko-KR-Standard-D'
+    | 'ko-KR-Wavenet-A'
+    | 'ko-KR-Wavenet-B'
+    | 'ko-KR-Wavenet-C'
+    | 'ko-KR-Wavenet-D'
+    | 'cmn-CN-Standard-A'
+    | 'cmn-CN-Standard-B'
+    | 'cmn-CN-Standard-C'
+    | 'cmn-CN-Wavenet-A'
+    | 'cmn-CN-Wavenet-B'
+    | 'cmn-CN-Wavenet-C'
+    | 'nb-NO-Standard-A'
+    | 'nb-NO-Standard-B'
+    | 'nb-NO-Standard-C'
+    | 'nb-NO-Standard-D'
+    | 'nb-NO-Wavenet-A'
+    | 'nb-NO-Wavenet-B'
+    | 'nb-NO-Wavenet-C'
+    | 'nb-NO-Wavenet-D'
+    | 'nb-no-Standard-E'
+    | 'nb-no-Wavenet-E'
+    | 'pl-PL-Standard-A'
+    | 'pl-PL-Standard-B'
+    | 'pl-PL-Standard-C'
+    | 'pl-PL-Standard-D'
+    | 'pl-PL-Standard-E'
+    | 'pl-PL-Wavenet-A'
+    | 'pl-PL-Wavenet-B'
+    | 'pl-PL-Wavenet-C'
+    | 'pl-PL-Wavenet-D'
+    | 'pl-PL-Wavenet-E'
+    | 'pt-BR-Standard-A'
+    | 'pt-BR-Wavenet-A'
+    | 'pt-PT-Standard-A'
+    | 'pt-PT-Standard-B'
+    | 'pt-PT-Standard-C'
+    | 'pt-PT-Standard-D'
+    | 'pt-PT-Wavenet-A'
+    | 'pt-PT-Wavenet-B'
+    | 'pt-PT-Wavenet-C'
+    | 'pt-PT-Wavenet-D'
+    | 'ru-RU-Standard-A'
+    | 'ru-RU-Standard-B'
+    | 'ru-RU-Standard-C'
+    | 'ru-RU-Standard-D'
+    | 'ru-RU-Wavenet-A'
+    | 'ru-RU-Wavenet-B'
+    | 'ru-RU-Wavenet-C'
+    | 'ru-RU-Wavenet-D'
+    | 'sk-SK-Standard-A'
+    | 'sk-SK-Wavenet-A'
+    | 'es-ES-Standard-A'
+    | 'sv-SE-Standard-A'
+    | 'sv-SE-Wavenet-A'
+    | 'tr-TR-Standard-A'
+    | 'tr-TR-Standard-B'
+    | 'tr-TR-Standard-C'
+    | 'tr-TR-Standard-D'
+    | 'tr-TR-Standard-E'
+    | 'tr-TR-Wavenet-A'
+    | 'tr-TR-Wavenet-B'
+    | 'tr-TR-Wavenet-C'
+    | 'tr-TR-Wavenet-D'
+    | 'tr-TR-Wavenet-E'
+    | 'uk-UA-Standard-A'
+    | 'uk-UA-Wavenet-A'
+    | 'vi-VN-Standard-A'
+    | 'vi-VN-Standard-B'
+    | 'vi-VN-Standard-C'
+    | 'vi-VN-Standard-D'
+    | 'vi-VN-Wavenet-A'
+    | 'vi-VN-Wavenet-B'
+    | 'vi-VN-Wavenet-C'
+    | 'vi-VN-Wavenet-D';
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -1990,7 +1617,7 @@ export interface DialogflowAgentUpdateStatusCode422 {
   errors: Types_StatusCodes_RestApiErrorItem[];
 }
 
-export type Direction = 'inbound' | 'outbound';
+export type Direction = string;
 
 /** DisplayTypes */
 export type DisplayTypes = 'app' | 'room' | 'call' | 'subscriber';
@@ -2006,6 +1633,7 @@ export interface DomainApplicationCreateStatusCode422 {
   errors: Types_StatusCodes_RestApiErrorItem[];
 }
 
+/** Response containing a single domain application. */
 export interface DomainApplicationResponse {
   /** Unique ID of the Fabric Address. */
   id: uuid;
@@ -2016,15 +1644,15 @@ export interface DomainApplicationResponse {
   /** Cover url of the Fabric Address. */
   cover_url: string;
   /** Preview url of the Fabric Address. */
-  preview_url: string;
+  preview_url: string | null;
   /** Locks the Fabric Address. This is used to prevent the Fabric Address from accepting calls. */
   locked: boolean;
   /** Channels of the Fabric Address. */
-  channels: AddressChannel;
-  /** Fabric Address Creation Date. */
-  created_at: string;
-  /** The display type of a fabric address pointing to an application. */
-  type: 'app';
+  channels: AudioChannel;
+  /** The display type of the fabric address. */
+  type: 'app' | 'call' | 'room';
+  /** The ID of the resource the address was assigned to. */
+  resource_id?: string;
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -2045,56 +1673,15 @@ export interface EmbedsTokensResponse {
 
 export type Encryption = 'required' | 'optional' | 'default';
 
-export interface EnterQueue {
-  /** Place the current call in a named queue where it will wait to be connected to an available agent or resource. */
-  enter_queue: EnterQueueObject;
-}
+export type SipGatewayEncryption = 'required' | 'optional' | 'forbidden';
 
-export interface EnterQueueObject {
-  /** Name of the queue to enter. If a queue with this name does not exist, it will be automatically created. */
-  queue_name: string;
-  /** SWML to execute after the bridge completes. This defines what should happen after the call is connected to an agent and the bridge ends. */
-  transfer_after_bridge: string | SWMLVar;
-  /** HTTP or HTTPS URL to deliver queue status events. Default not set */
-  status_url?: string;
-  /** URL for media to play while waiting in the queue. Default hold music will be played if not set */
-  wait_url?: string | SWMLVar;
-  /** Maximum time in seconds to wait in the queue before timeout. Default `3600` */
-  wait_time?: number | SWMLVar;
-}
-
-export interface Execute {
-  /** Execute a specified section or URL as a subroutine, and upon completion, return to the current document. */
-  execute: {
-    /** Specifies what to execute. The value can be one of: */
-    dest: string;
-    /** Named parameters to send to section or URL */
-    params?: Record<string, Record<string, unknown>>;
-    /** User-defined metadata, ignored by SignalWire */
-    meta?: Record<string, Record<string, unknown>>;
-    /** The list of SWML instructions to be executed when the executed section or URL returns */
-    on_return?: SWMLMethod[];
-    /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
-    result?: ExecuteSwitch | CondParams[];
-  };
-}
-
-export interface ExecuteSwitch {
-  /** Name of the variable whose value needs to be compared. If not provided, it will check the `return_value` variable. */
-  variable?: string;
-  /** Object of values mapped to array of instructions to execute */
-  case: Record<string, SWMLMethod[]>;
-  /** Array of instructions to execute if no cases match */
-  default?: SWMLMethod[];
-}
-
+/** Without one of `expr` / `string` and `output`, a Expression has no effect: it is accepted and ignored, not rejected. */
 export interface Expression {
-  /** The actual input or value from the user or system. */
-  string: string;
-  /** A regular expression pattern to validate or match the string. */
-  pattern: string;
-  /** An object that contains a response and a list of actions to be performed upon a expression match. */
-  output: Output;
+  pattern?: string;
+  expr?: string;
+  'nomatch-output'?: Output;
+  output?: Output;
+  string?: string;
 }
 
 export interface FabricAddress {
@@ -2107,14 +1694,14 @@ export interface FabricAddress {
   /** Cover url of the Fabric Address. */
   cover_url: string;
   /** Preview url of the Fabric Address. */
-  preview_url: string;
+  preview_url: string | null;
   /** Locks the Fabric Address. This is used to prevent the Fabric Address from accepting calls. */
   locked: boolean;
   /** Channels of the Fabric Address. */
   channels: AddressChannel;
-  /** Fabric Address Creation Date. */
-  created_at: string;
   type: DisplayTypes;
+  /** The ID of the resource the address was assigned to. */
+  resource_id: string;
 }
 
 export interface FabricAddressApp {
@@ -2127,15 +1714,14 @@ export interface FabricAddressApp {
   /** Cover url of the Fabric Address. */
   cover_url: string;
   /** Preview url of the Fabric Address. */
-  preview_url: string;
+  preview_url: string | null;
   /** Locks the Fabric Address. This is used to prevent the Fabric Address from accepting calls. */
   locked: boolean;
   /** Channels of the Fabric Address. */
   channels: AddressChannel;
-  /** Fabric Address Creation Date. */
-  created_at: string;
-  /** The display type of a fabric address pointing to an application. */
-  type: 'app';
+  type: DisplayTypes;
+  /** The ID of the resource the address was assigned to. */
+  resource_id: string;
 }
 
 export interface FabricAddressCall {
@@ -2148,17 +1734,17 @@ export interface FabricAddressCall {
   /** Cover url of the Fabric Address. */
   cover_url: string;
   /** Preview url of the Fabric Address. */
-  preview_url: string;
+  preview_url: string | null;
   /** Locks the Fabric Address. This is used to prevent the Fabric Address from accepting calls. */
   locked: boolean;
   /** Channels of the Fabric Address. */
   channels: AddressChannel;
-  /** Fabric Address Creation Date. */
-  created_at: string;
-  /** The display type of a fabric address pointing to call. */
-  type: 'call';
+  type: DisplayTypes;
+  /** The ID of the resource the address was assigned to. */
+  resource_id: string;
 }
 
+/** Pagination links for the response. */
 export interface FabricAddressPaginationResponse {
   /** Link of the current page */
   self: string;
@@ -2180,15 +1766,14 @@ export interface FabricAddressRoom {
   /** Cover url of the Fabric Address. */
   cover_url: string;
   /** Preview url of the Fabric Address. */
-  preview_url: string;
+  preview_url: string | null;
   /** Locks the Fabric Address. This is used to prevent the Fabric Address from accepting calls. */
   locked: boolean;
   /** Channels of the Fabric Address. */
   channels: AddressChannel;
-  /** Fabric Address Creation Date. */
-  created_at: string;
-  /** The display type of a fabric address pointing to a Conference Room. */
-  type: 'room';
+  type: DisplayTypes;
+  /** The ID of the resource the address was assigned to. */
+  resource_id: string;
 }
 
 export interface FabricAddressSubscriber {
@@ -2201,22 +1786,27 @@ export interface FabricAddressSubscriber {
   /** Cover url of the Fabric Address. */
   cover_url: string;
   /** Preview url of the Fabric Address. */
-  preview_url: string;
+  preview_url: string | null;
   /** Locks the Fabric Address. This is used to prevent the Fabric Address from accepting calls. */
   locked: boolean;
   /** Channels of the Fabric Address. */
   channels: AddressChannel;
-  /** Fabric Address Creation Date. */
-  created_at: string;
-  /** The display type of a fabric address pointing to a Subscriber. */
-  type: 'subscriber';
+  /** The display type of a fabric address pointing to a [Subscriber](/docs/platform/subscribers). */
+  type: DisplayTypes;
+  /** The ID of the resource the address was assigned to. */
+  resource_id: string;
 }
 
-export interface FabricAddressesResponse {
-  /** An array of objects containing a list of Resource Addresses */
-  data: FabricAddress[];
-  /** Object containing pagination links */
+/** A Fabric Address, shaped by its kind. */
+export type FabricAddressItem = AliasAddress | SipAddress | PhoneNumberAddress;
+
+/** A page of Fabric Addresses. */
+export interface FabricAddressListResponse {
+  /** The addresses on this page. */
+  data: FabricAddressItem[];
   links: FabricAddressPaginationResponse;
+  /** The number of addresses on this page. */
+  items_count: number;
 }
 
 export interface FreeswitchConectorPaginationResponse {
@@ -2285,7 +1875,7 @@ export interface FreeswitchConnectorResponse {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the FreeSWITCH Connector Fabric Resource */
-  display_name: string;
+  display_name: string | null;
   /** Type of the Fabric Resource */
   type: 'freeswitch_connector';
   /** Date and time when the resource was created. */
@@ -2311,471 +1901,69 @@ export interface FreeswitchConnectorUpdateStatusCode422 {
   errors: Types_StatusCodes_RestApiErrorItem[];
 }
 
-/** Supported language codes */
-export type FunctionFillers =
-  | {
-      /** Default language set by the user */
-      default: string[];
-    }
-  | {
-      /** Bulgarian */
-      bg: string[];
-    }
-  | {
-      /** Catalan */
-      ca: string[];
-    }
-  | {
-      /** Chinese (Simplified) */
-      zh: string[];
-    }
-  | {
-      /** Chinese (Simplified, China) */
-      'zh-CN': string[];
-    }
-  | {
-      /** Chinese (Simplified Han) */
-      'zh-Hans': string[];
-    }
-  | {
-      /** Chinese (Traditional, Taiwan) */
-      'zh-TW': string[];
-    }
-  | {
-      /** Chinese (Traditional Han) */
-      'zh-Hant': string[];
-    }
-  | {
-      /** Chinese (Traditional, Hong Kong) */
-      'zh-HK': string[];
-    }
-  | {
-      /** Czech */
-      cs: string[];
-    }
-  | {
-      /** Danish */
-      da: string[];
-    }
-  | {
-      /** Danish (Denmark) */
-      'da-DK': string[];
-    }
-  | {
-      /** Dutch */
-      nl: string[];
-    }
-  | {
-      /** English */
-      en: string[];
-    }
-  | {
-      /** English (United States) */
-      'en-US': string[];
-    }
-  | {
-      /** English (United Kingdom) */
-      'en-GB': string[];
-    }
-  | {
-      /** English (New Zealand) */
-      'en-NZ': string[];
-    }
-  | {
-      /** English (India) */
-      'en-IN': string[];
-    }
-  | {
-      /** English (Australia) */
-      'en-AU': string[];
-    }
-  | {
-      /** Estonian */
-      et: string[];
-    }
-  | {
-      /** Finnish */
-      fi: string[];
-    }
-  | {
-      /** Flemish (Belgian Dutch) */
-      'nl-BE': string[];
-    }
-  | {
-      /** French */
-      fr: string[];
-    }
-  | {
-      /** French (Canada) */
-      'fr-CA': string[];
-    }
-  | {
-      /** German */
-      de: string[];
-    }
-  | {
-      /** German (Switzerland) */
-      'de-CH': string[];
-    }
-  | {
-      /** Greek */
-      el: string[];
-    }
-  | {
-      /** Hindi */
-      hi: string[];
-    }
-  | {
-      /** Hungarian */
-      hu: string[];
-    }
-  | {
-      /** Indonesian */
-      id: string[];
-    }
-  | {
-      /** Italian */
-      it: string[];
-    }
-  | {
-      /** Japanese */
-      ja: string[];
-    }
-  | {
-      /** Korean */
-      ko: string[];
-    }
-  | {
-      /** Korean (South Korea) */
-      'ko-KR': string[];
-    }
-  | {
-      /** Latvian */
-      lv: string[];
-    }
-  | {
-      /** Lithuanian */
-      lt: string[];
-    }
-  | {
-      /** Malay */
-      ms: string[];
-    }
-  | {
-      /** Multilingual (Spanish + English) */
-      multi: string[];
-    }
-  | {
-      /** Norwegian */
-      no: string[];
-    }
-  | {
-      /** Polish */
-      pl: string[];
-    }
-  | {
-      /** Portuguese */
-      pt: string[];
-    }
-  | {
-      /** Portuguese (Brazil) */
-      'pt-BR': string[];
-    }
-  | {
-      /** Portuguese (Portugal) */
-      'pt-PT': string[];
-    }
-  | {
-      /** Romanian */
-      ro: string[];
-    }
-  | {
-      /** Russian */
-      ru: string[];
-    }
-  | {
-      /** Slovak */
-      sk: string[];
-    }
-  | {
-      /** Spanish */
-      es: string[];
-    }
-  | {
-      /** Spanish (Latin America) */
-      'es-419': string[];
-    }
-  | {
-      /** Swedish */
-      sv: string[];
-    }
-  | {
-      /** Swedish (Sweden) */
-      'sv-SE': string[];
-    }
-  | {
-      /** Thai */
-      th: string[];
-    }
-  | {
-      /** Thai (Thailand) */
-      'th-TH': string[];
-    }
-  | {
-      /** Turkish */
-      tr: string[];
-    }
-  | {
-      /** Ukrainian */
-      uk: string[];
-    }
-  | {
-      /** Vietnamese */
-      vi: string[];
-    };
-
-/** Supported language codes */
-export type FunctionFillersUpdate =
-  | {
-      /** Default language set by the user */
-      default?: string[];
-    }
-  | {
-      /** Bulgarian */
-      bg?: string[];
-    }
-  | {
-      /** Catalan */
-      ca?: string[];
-    }
-  | {
-      /** Chinese (Simplified) */
-      zh?: string[];
-    }
-  | {
-      /** Chinese (Simplified, China) */
-      'zh-CN'?: string[];
-    }
-  | {
-      /** Chinese (Simplified Han) */
-      'zh-Hans'?: string[];
-    }
-  | {
-      /** Chinese (Traditional, Taiwan) */
-      'zh-TW'?: string[];
-    }
-  | {
-      /** Chinese (Traditional Han) */
-      'zh-Hant'?: string[];
-    }
-  | {
-      /** Chinese (Traditional, Hong Kong) */
-      'zh-HK'?: string[];
-    }
-  | {
-      /** Czech */
-      cs?: string[];
-    }
-  | {
-      /** Danish */
-      da?: string[];
-    }
-  | {
-      /** Danish (Denmark) */
-      'da-DK'?: string[];
-    }
-  | {
-      /** Dutch */
-      nl?: string[];
-    }
-  | {
-      /** English */
-      en?: string[];
-    }
-  | {
-      /** English (United States) */
-      'en-US'?: string[];
-    }
-  | {
-      /** English (United Kingdom) */
-      'en-GB'?: string[];
-    }
-  | {
-      /** English (New Zealand) */
-      'en-NZ'?: string[];
-    }
-  | {
-      /** English (India) */
-      'en-IN'?: string[];
-    }
-  | {
-      /** English (Australia) */
-      'en-AU'?: string[];
-    }
-  | {
-      /** Estonian */
-      et?: string[];
-    }
-  | {
-      /** Finnish */
-      fi?: string[];
-    }
-  | {
-      /** Flemish (Belgian Dutch) */
-      'nl-BE'?: string[];
-    }
-  | {
-      /** French */
-      fr?: string[];
-    }
-  | {
-      /** French (Canada) */
-      'fr-CA'?: string[];
-    }
-  | {
-      /** German */
-      de?: string[];
-    }
-  | {
-      /** German (Switzerland) */
-      'de-CH'?: string[];
-    }
-  | {
-      /** Greek */
-      el?: string[];
-    }
-  | {
-      /** Hindi */
-      hi?: string[];
-    }
-  | {
-      /** Hungarian */
-      hu?: string[];
-    }
-  | {
-      /** Indonesian */
-      id?: string[];
-    }
-  | {
-      /** Italian */
-      it?: string[];
-    }
-  | {
-      /** Japanese */
-      ja?: string[];
-    }
-  | {
-      /** Korean */
-      ko?: string[];
-    }
-  | {
-      /** Korean (South Korea) */
-      'ko-KR'?: string[];
-    }
-  | {
-      /** Latvian */
-      lv?: string[];
-    }
-  | {
-      /** Lithuanian */
-      lt?: string[];
-    }
-  | {
-      /** Malay */
-      ms?: string[];
-    }
-  | {
-      /** Multilingual (Spanish + English) */
-      multi?: string[];
-    }
-  | {
-      /** Norwegian */
-      no?: string[];
-    }
-  | {
-      /** Polish */
-      pl?: string[];
-    }
-  | {
-      /** Portuguese */
-      pt?: string[];
-    }
-  | {
-      /** Portuguese (Brazil) */
-      'pt-BR'?: string[];
-    }
-  | {
-      /** Portuguese (Portugal) */
-      'pt-PT'?: string[];
-    }
-  | {
-      /** Romanian */
-      ro?: string[];
-    }
-  | {
-      /** Russian */
-      ru?: string[];
-    }
-  | {
-      /** Slovak */
-      sk?: string[];
-    }
-  | {
-      /** Spanish */
-      es?: string[];
-    }
-  | {
-      /** Spanish (Latin America) */
-      'es-419'?: string[];
-    }
-  | {
-      /** Swedish */
-      sv?: string[];
-    }
-  | {
-      /** Swedish (Sweden) */
-      'sv-SE'?: string[];
-    }
-  | {
-      /** Thai */
-      th?: string[];
-    }
-  | {
-      /** Thai (Thailand) */
-      'th-TH'?: string[];
-    }
-  | {
-      /** Turkish */
-      tr?: string[];
-    }
-  | {
-      /** Ukrainian */
-      uk?: string[];
-    }
-  | {
-      /** Vietnamese */
-      vi?: string[];
-    };
-
-export interface FunctionParameters {
-  /** The type of argument the AI is passing to the function. Possible values are 'string' and 'object'. */
-  type: 'object';
-  /** An object containing the property definitions that are passed to the function. */
-  properties: Record<string, SchemaType>;
-  /** An array of required property names from the `properties` object. */
-  required?: string[];
+export interface FunctionFillers {
+  default?: Record<string, unknown>;
+  auto?: Record<string, unknown>;
 }
 
-export interface Goto {
-  /** Jump to a label within the current section, optionally based on a condition. */
-  goto: {
-    /** Mark any point of the SWML section with a label so that goto can jump to it. */
-    label: string;
-    /** A JavaScript condition that determines whether to perform the jump. If the condition evaluates to true, the jump is executed. If omitted, the jump is unconditional. */
-    when?: string;
-    /** The maximum number of times to perform the jump. Must be a number between 1 and 100. Default `100`. */
-    max?: number | SWMLVar;
-  };
+/** A JSON Schema (draft 2020-12) that may also carry `example`, `nullable`, `propertyOrdering`: the value is forwarded verbatim to whichever model API the session resolves to, and those receivers do not accept one vocabulary, so a schema here must be able to express their UNION (vocabulary_union). The engine does not inspect it. */
+export interface FunctionParameters {
+  title?: string;
+  description?: string;
+  type?:
+    | 'array'
+    | 'boolean'
+    | 'integer'
+    | 'null'
+    | 'number'
+    | 'object'
+    | 'string'
+    | ('array' | 'boolean' | 'integer' | 'null' | 'number' | 'object' | 'string')[];
+  const?: Record<string, unknown>;
+  enum?: unknown[];
+  format?: string;
+  pattern?: string;
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  minItems?: number;
+  maxItems?: number;
+  minProperties?: number;
+  maxProperties?: number;
+  default?: Record<string, unknown>;
+  examples?: unknown[];
+  deprecated?: boolean;
+  nullable?: boolean;
+  properties?: Record<string, FunctionParameters | boolean>;
+  required?: string[];
+  prefixItems?: (FunctionParameters | boolean)[];
+  items?: FunctionParameters | boolean;
+  propertyNames?: FunctionParameters | boolean;
+  additionalProperties?: FunctionParameters | boolean;
+  unevaluatedProperties?: FunctionParameters | boolean;
+  oneOf?: (FunctionParameters | boolean)[];
+  anyOf?: (FunctionParameters | boolean)[];
+  allOf?: (FunctionParameters | boolean)[];
+  not?: FunctionParameters | boolean;
+  contains?: FunctionParameters | boolean;
+  dependentRequired?: Record<string, string[]>;
+  dependentSchemas?: Record<string, FunctionParameters | boolean>;
+  else?: FunctionParameters | boolean;
+  example?: Record<string, unknown>;
+  if?: FunctionParameters | boolean;
+  maxContains?: number;
+  minContains?: number;
+  multipleOf?: number;
+  patternProperties?: Record<string, FunctionParameters | boolean>;
+  propertyOrdering?: string[];
+  readOnly?: boolean;
+  then?: FunctionParameters | boolean;
+  unevaluatedItems?: FunctionParameters | boolean;
+  uniqueItems?: boolean;
+  writeOnly?: boolean;
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -2784,222 +1972,16 @@ export interface GuestTokenCreateStatusCode422 {
   errors: Types_StatusCodes_RestApiErrorItem[];
 }
 
-export interface HangUpHookSWAIGFunction {
-  /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-  description: string;
-  /** The purpose field has been deprecated and is replaced by the `description` field. */
-  purpose?: string;
-  /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-  parameters?: FunctionParameters;
-  /** A JSON object defining the fillers that should be played when calling a `swaig function`. This helps the AI break silence between responses. The filler is played asynchronously during the function call. */
-  fillers?: FunctionFillers;
-  /** The argument field has been deprecated and is replaced by the `parameters` field.  */
-  argument?: FunctionParameters;
-  /** Whether the function is active. **Default:** `true`. */
-  active?: boolean | SWMLVar;
-  /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-  meta_data?: Record<string, Record<string, unknown>>;
-  /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-  meta_data_token?: string;
-  /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
-  data_map?: DataMap;
-  /** Skips the top-level fillers specified in `ai.languages` (which includes `speech_fillers` and `function_fillers`). */
-  skip_fillers?: boolean | SWMLVar;
-  /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-  web_hook_url?: string;
-  /** A file to play while the function is running. `wait_file_loops` can specify the amount of times that files should continously play. Default is not set. */
-  wait_file?: string;
-  /** The number of times to loop playing the file. Default is not set. */
-  wait_file_loops?: number | string;
-  /** Whether to wait for fillers to finish playing before continuing with the function. **Default:** `false`. */
-  wait_for_fillers?: boolean | SWMLVar;
-  /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation. For the stop_hook function, the function name is 'stop_hook'. */
-  function: 'hangup_hook';
-}
-
-export interface Hangup {
-  /** End the call with an optional reason. */
-  hangup: {
-    /** The reason for hanging up the call. */
-    reason?: 'hangup' | 'busy' | 'decline';
-  };
-}
-
-export interface HangupAction {
-  /** Whether to hang up the call. When set to `true`, the call will be terminated after the AI agent finishes speaking. */
-  hangup: boolean | SWMLVar;
-}
-
-export interface Hint {
-  /** The hint to match. This will match the string exactly as provided */
-  hint: string;
-  /** A regular expression to match the hint against. This will ensure that the hint has a valid matching pattern before being replaced. */
-  pattern: string;
-  /** The text to replace the hint with. This will replace the portion of the hint that matches the pattern. */
-  replace: string;
-  /** If true, the hint will be matched in a case-insensitive manner. **Default:** `false`. */
-  ignore_case?: boolean | SWMLVar;
-}
-
-export interface HoldAction {
-  /** Places the caller on hold while playing hold music (configured via params.hold_music). */
-  hold:
-    | number
-    | SWMLVar
-    | {
-        /** The duration to hold the caller in seconds. Can be a number or an object with timeout property. */
-        timeout?: number | SWMLVar;
-      };
-}
-
-export interface InjectAction {
-  /** Injects a message into the conversation to be translated and spoken to the specified party. */
-  inject: {
-    /** The message to be injected */
-    message: string;
-    /** The direction of the message. */
-    direction: TranslateDirection;
-  };
-}
-
-/** Base interface for all property types */
-export interface IntegerProperty {
-  /** A description of the property. */
-  description?: string;
-  /** Whether the property can be null. */
-  nullable?: boolean | SWMLVar;
-  /** The type of parameter(s) the AI is passing to the function. */
-  type: 'integer';
-  /** An array of integers that are the possible values */
-  enum?: number[];
-  /** The default integer value */
-  default?: number | SWMLVar;
-}
-
-/** The request contains invalid parameters. See errors for details. */
-export interface InviteTokenCreateStatusCode422 {
-  /** List of validation errors. */
-  errors: Types_StatusCodes_RestApiErrorItem[];
-}
-
-export interface JoinConference {
-  /** Join an ad-hoc audio conference started on either the SignalWire or Compatibility API. */
-  join_conference: JoinConferenceObject;
-}
-
-export interface JoinConferenceObject {
-  /** Name of conference */
-  name: string;
-  /** Whether to join the conference in a muted state. If set to `true`, the participant will be muted upon joining. Default `false`. */
-  muted?: boolean | SWMLVar;
-  /** Sets the behavior of the beep sound when joining or leaving the conference. Default `"true"`. */
-  beep?: 'true' | 'false' | 'onEnter' | 'onExit';
-  /** Starts the conference when the main participant joins. This means the start action will not wait on more participants to join before starting. Default `true`. */
-  start_on_enter?: boolean | SWMLVar;
-  /** Ends the conference when the main participant leaves. This means the end action will not wait on more participants to leave before ending. Default `false`. */
-  end_on_exit?: boolean | SWMLVar;
-  /** A URL that will play media when the conference is put on hold. Default hold music will be played if not set */
-  wait_url?: string | SWMLVar;
-  /** The maximum number of participants allowed in the conference. If the limit is reached, new participants will not be able to join. Default `100000`. */
-  max_participants?: number | SWMLVar;
-  /** Enables or disables recording of the conference. Default `"do-not-record"`. */
-  record?: 'do-not-record' | 'record-from-start';
-  /** Specifies the geographical region where the conference will be hosted. Default not set */
-  region?: string;
-  /** If set to `trim-silence`, it will remove silence from the start of the recording. If set to `do-not-trim`, it will keep the silence. Default `"trim-silence"`. */
-  trim?: 'trim-silence' | 'do-not-trim';
-  /** Coach accepts a call SID of a call that is currently connected to an in-progress conference. */
-  coach?: string;
-  /** The events to listen for and send to the status callback URL. Default not set */
-  status_callback_event?:
-    'start' | 'end' | 'join' | 'leave' | 'mute' | 'hold' | 'modify' | 'speaker' | 'announcement';
-  /** The URL to which status events will be sent. This URL must be publicly accessible and able to handle HTTP requests. Default not set */
-  status_callback?: string;
-  /** The HTTP method to use when sending status events to the status callback URL. Default `"POST"`. */
-  status_callback_method?: 'GET' | 'POST';
-  /** The URL to which recording status events will be sent. This URL must be publicly accessible and able to handle HTTP requests. Default not set */
-  recording_status_callback?: string;
-  /** The HTTP method to use when sending recording status events to the recording status callback URL. Default `"POST"`. */
-  recording_status_callback_method?: 'GET' | 'POST';
-  /** The events to listen for and send to the recording status callback URL. Default not set */
-  recording_status_callback_event?: 'in-progress' | 'completed' | 'absent';
-  /** Allows the user to specify a custom action to be executed when the conference result is returned (typically when it has ended).  */
-  result?:
-    | {
-        /** Name of the variable whose value needs to be compared. */
-        variable: string;
-        /** Object of key-mapped values to array of SWML methods to execute. */
-        case: Record<string, SWMLMethod[]>;
-        /** Array of SWML methods to execute if no cases match. */
-        default?: SWMLMethod[];
-      }
-    | CondParams[];
-}
-
-export interface JoinRoom {
-  /** Join a RELAY room. If the room doesn't exist, it creates a new room. */
-  join_room: {
-    /** Name of the room to join. Allowed characters: A-Z, a-z, 0-9, underscore, and hyphen. */
-    name: string;
-  };
-}
-
-export interface Label {
-  /** Mark any point of the SWML section with a label so that goto can jump to it. */
-  label: string;
-}
-
 export interface LanguageParams {
-  /** The stability slider determines how stable the voice is and the randomness between each generation. Lowering this slider introduces a broader emotional range for the voice. IMPORTANT: Only works with ElevenLabs TTS engine. */
-  stability?: number | SWMLVar;
-  /** The similarity slider dictates how closely the AI should adhere to the original voice when attempting to replicate it. The higher the similarity, the closer the AI will sound to the original voice. IMPORTANT: Only works with ElevenLabs TTS engine. */
-  similarity?: number | SWMLVar;
-}
-
-export type Languages = LanguagesWithSoloFillers | LanguagesWithFillers;
-
-export interface LanguagesWithFillers {
-  /** Name of the language (e.g., 'French', 'English'). This value is used in the system prompt to instruct the LLM what language is being spoken. */
-  name: string;
-  /** The language code for ASR (Automatic Speech Recognition) purposes. By default, SignalWire uses Deepgram's */
-  code: string;
-  /** Voice to use for the language. String format: `<engine id>.<voice id>`. */
-  voice: string;
-  /** The model to use for the specified TTS engine. For example, 'arcana'. */
-  model?: string;
-  /** Enables emotion detection for the set TTS engine. This allows the AI to express emotions when speaking. */
-  emotion?: 'auto';
-  /** The speed to use for the specified TTS engine. This allows the AI to speak at a different speed at different points in the conversation. */
-  speed?: 'auto';
-  /** The engine to use for the language. For example, 'elevenlabs'. */
-  engine?: string;
-  /** TTS engine-specific parameters for this language. */
-  params?: LanguageParams;
-  /** An array of strings to be used as fillers in the conversation when calling a `swaig function`. This helps the AI break silence between responses. The filler is played asynchronously during the function call. */
-  function_fillers?: string[];
-  /** An array of strings to be used as fillers in the conversation. This helps the AI break silence between responses. */
-  speech_fillers?: string[];
-}
-
-export interface LanguagesWithSoloFillers {
-  /** Name of the language (e.g., 'French', 'English'). This value is used in the system prompt to instruct the LLM what language is being spoken. */
-  name: string;
-  /** The language code for ASR (Automatic Speech Recognition) purposes. By default, SignalWire uses Deepgram's */
-  code: string;
-  /** Voice to use for the language. String format: `<engine id>.<voice id>`. */
-  voice: string;
-  /** The model to use for the specified TTS engine. For example, 'arcana'. */
-  model?: string;
-  /** Enables emotion detection for the set TTS engine. This allows the AI to express emotions when speaking. */
-  emotion?: 'auto';
-  /** The speed to use for the specified TTS engine. This allows the AI to speak at a different speed at different points in the conversation. */
-  speed?: 'auto';
-  /** The engine to use for the language. For example, 'elevenlabs'. */
-  engine?: string;
-  /** TTS engine-specific parameters for this language. */
-  params?: LanguageParams;
-  /** An array of strings to be used as fillers in the conversation. This will be used for both speech and function fillers if provided. */
-  fillers?: string[];
+  emotion?: string;
+  pitch?: number | string;
+  similarity?: number | string;
+  speakingRate?: number | string;
+  speed?: number | string;
+  stability?: number | string;
+  streaming?: boolean | string;
+  temperature?: number | string;
+  vol?: number | string;
 }
 
 export type Layout =
@@ -3017,155 +1999,30 @@ export type Layout =
   | '8x8'
   | '10x10';
 
-export interface LiveTranscribe {
-  /** Start live transcription of the call. The transcription will be sent to the specified webhook URL. */
-  live_transcribe: {
-    /** The action to perform during live transcription. */
-    action: TranscribeAction;
-  };
-}
-
-export interface LiveTranslate {
-  /** Start live translation of the call. The translation will be sent to the specified webhook URL. */
-  live_translate: {
-    /** The action to perform during live translation. */
-    action: TranslateAction;
-  };
-}
-
 export interface MessagingChannel {
   /** Messaging Channel of Fabric Address */
   messaging: string;
 }
 
-export interface NullProperty {
-  /** The type of parameter(s) the AI is passing to the function. */
-  type: 'null';
-  /** A description of the property. */
-  description: string;
-}
-
-/** Base interface for all property types */
-export interface NumberProperty {
-  /** A description of the property. */
-  description?: string;
-  /** Whether the property can be null. */
-  nullable?: boolean | SWMLVar;
-  /** The type of parameter(s) the AI is passing to the function. */
-  type: 'number';
-  /** An array of integers that are the possible values */
-  enum?: number[] | SWMLVar[];
-  /** The default integer value */
-  default?: number | SWMLVar;
-}
-
-/** Base interface for all property types */
-export interface ObjectProperty {
-  /** A description of the property. */
-  description?: string;
-  /** Whether the property can be null. */
-  nullable?: boolean | SWMLVar;
-  /** The type of parameter(s) the AI is passing to the function. */
-  type: 'object';
-  /** The default object value */
-  default?: Record<string, Record<string, unknown>>;
-  /** Nested properties */
-  properties?: Record<string, SchemaType>;
-  /** Required property names */
-  required?: string[];
-}
-
-export interface OneOfProperty {
-  /** An array of schemas where exactly one of the schemas must be valid. */
-  oneOf: SchemaType[];
-}
-
 export interface Output {
-  /** A static response text or message returned to the AI agent's context. */
-  response: string;
-  /** A list of actions to be performed upon matching. */
-  action?: Action[];
+  action?: Action | Action[];
+  post_process?: boolean;
+  response?:
+    | string
+    | {
+        tool_prompt?: string;
+        tool_result?: string;
+      };
 }
 
-/** Regular section that requires either body or bullets. */
-export type POM = PomSectionBodyContent | PomSectionBulletsContent;
-
-export interface Pay {
-  /** Enables secure payment processing during voice calls. When implemented, it manages the entire payment flow */
-  pay: {
-    /** The URL to make POST requests with all the gathered payment details. */
-    payment_connector_url: string;
-    /** The amount to charge against payment method passed in the request. `Float` value with no currency prefix passed as string. */
-    charge_amount?: string;
-    /** Uses the ISO 4217 currency code of the charge amount. */
-    currency?: string;
-    /** Custom description of the payment provided in the request. */
-    description?: string;
-    /** The method of how to collect the payment details. Currently only `dtmf` mode is supported. */
-    input?: 'dtmf';
-    /** Language to use for prompts being played to the caller by the `pay` method. */
-    language?: string;
-    /** Number of times the `pay` method will retry to collect payment details. */
-    max_attempts?: number | SWMLVar;
-    /** The minimum length of the postal code the user must enter. */
-    min_postal_code_length?: number | SWMLVar;
-    /** Array of parameter objects to pass to your payment processor. The parameters are user-defined key-value pairs. */
-    parameters?: PayParameters[];
-    /** Indicates the payment method which is going to be used in this payment request. Currently only `credit-card` is supported. */
-    payment_method?: 'credit-card';
-    /** Takes `true`, `false` or real postalcode (if it's known beforehand) to let pay method know whether to prompt for postal code. Default is `true`. */
-    postal_code?: boolean | string;
-    /** Array of prompt objects for customizing the audio prompts during different stages of the payment process. */
-    prompts?: PayPrompts[];
-    /** Takes true or false to let pay method know whether to prompt for security code. */
-    security_code?: boolean | SWMLVar;
-    /** The URL to send requests for each status change during the payment process. */
-    status_url?: string;
-    /** Limit in seconds that pay method waits for the caller to press another digit before moving on to validate the digits captured. */
-    timeout?: number | SWMLVar;
-    /** Whether the payment is a one off payment or re-occurring. */
-    token_type?: 'one-time' | 'reusable';
-    /** List of payment cards allowed to use in the requested payment process separated by space. */
-    valid_card_types?: string;
-    /** Text-to-speech voice to use. Please refer to https://signalwire.com/docs/voice/getting-started/voice-and-languages for more information. */
-    voice?: string;
-  };
-}
-
-export interface PayParameters {
-  /** The identifier for your custom parameter. This will be the key in the parameters object. */
-  name: string;
-  /** The value associated with the parameter. This will be the value in the parameters object. */
-  value: string;
-}
-
-export type PayPromptAction = PayPromptSayAction | PayPromptPlayAction;
-
-export interface PayPromptPlayAction {
-  /** When the action `type` is `Say`, this value is the text to be spoken; when the type is `Play`, it should be a URL to the audio file. */
-  type: 'Play';
-  /** The URL of the audio file to play */
-  phrase: string;
-}
-
-export interface PayPromptSayAction {
-  /** When the action `type` is `Say`, this value is the text to be spoken; when the type is `Play`, it should be a URL to the audio file. */
-  type: 'Say';
-  /** The phrase to speak */
-  phrase: string;
-}
-
-export interface PayPrompts {
-  /** Array of action objects to execute for this prompt. These actions can either play an audio file or speak a phrase. */
-  actions: PayPromptAction[];
-  /** The payment step this prompt is for. See Payment Steps for a list of available steps. */
-  for: string;
-  /** Specifies which payment attempt(s) this prompt applies to. The value increments when a payment fails. */
-  attempts?: string;
-  /** Space-seperated list of card types that are allowed to be used for this prompt. */
-  card_type?: string;
-  /** Space-separated list of error types this prompt applies to. */
-  error_type?: string;
+/** Without one of `body` / `bullets` / `subsections`, the element has no effect: it is accepted and ignored, not rejected. */
+export interface POM {
+  title?: string;
+  body?: string;
+  bullets?: unknown[];
+  numbered?: boolean;
+  numberedBullets?: boolean;
+  subsections?: unknown[];
 }
 
 export interface PhoneRouteAssignRequest {
@@ -3191,204 +2048,23 @@ export interface PhoneRouteResponse {
   /** Cover url of the Fabric Address. */
   cover_url: string;
   /** Preview url of the Fabric Address. */
-  preview_url: string;
+  preview_url: string | null;
   /** Locks the Fabric Address. This is used to prevent the Fabric Address from accepting calls. */
   locked: boolean;
   /** Channels of the Fabric Address. */
-  channels: AddressChannel;
-  /** Fabric Address Creation Date. */
-  created_at: string;
-  /** The display type of a fabric address pointing to an application. */
-  type: 'app';
-}
-
-export interface Play {
-  /** Play file(s), ringtones, speech or silence. */
-  play: PlayWithURL | PlayWithURLS;
-}
-
-/** Play with a single URL */
-export interface PlayWithURL {
-  /** If `true`, the call will automatically answer as the sound is playing. If `false`, you will start playing the audio during early media. Default `true`. */
-  auto_answer?: boolean | SWMLVar;
-  /** Volume level for the audio file. */
-  volume?: number | SWMLVar;
-  /** The voice to use for the text to speech. */
-  say_voice?: string;
-  /** The language to use for the text to speech. */
-  say_language?: string;
-  /** Gender to use for the text to speech. */
-  say_gender?: string;
-  /** http or https URL to deliver play status events */
-  status_url?: string;
-  /** URL to play. */
-  url: play_url | SWMLVar;
-}
-
-export interface PlayWithURLS {
-  /** If `true`, the call will automatically answer as the sound is playing. If `false`, you will start playing the audio during early media. Default `true`. */
-  auto_answer?: boolean | SWMLVar;
-  /** Volume level for the audio file. */
-  volume?: number | SWMLVar;
-  /** The voice to use for the text to speech. */
-  say_voice?: string;
-  /** The language to use for the text to speech. */
-  say_language?: string;
-  /** Gender to use for the text to speech. */
-  say_gender?: string;
-  /** http or https URL to deliver play status events */
-  status_url?: string;
-  /** Array of URLs to play. */
-  urls: play_url[] | SWMLVar[];
-}
-
-export interface PlaybackBGAction {
-  /** A JSON object containing the audio file to play. */
-  playback_bg: {
-    /** URL or filepath of the audio file to play. */
-    file: string;
-    /** Whether to wait for the audio file to finish playing before continuing. Default is `false`. */
-    wait?: boolean | SWMLVar;
-  };
-}
-
-/** Content model with body text and optional bullets */
-export interface PomSectionBodyContent {
-  /** Title for the section */
-  title?: string;
-  /** Optional array of nested subsections */
-  subsections?: POM[];
-  /** Whether to number the section */
-  numbered?: boolean | SWMLVar;
-  /** Whether to number the bullets */
-  numberedBullets?: boolean | SWMLVar;
-  /** Body text for the section */
-  body: string;
-  /** Optional array of bullet points */
-  bullets?: string[];
-}
-
-/** Content model with bullets and optional body */
-export interface PomSectionBulletsContent {
-  /** Title for the section */
-  title?: string;
-  /** Optional array of nested subsections */
-  subsections?: POM[];
-  /** Whether to number the section */
-  numbered?: boolean | SWMLVar;
-  /** Whether to number the bullets */
-  numberedBullets?: boolean | SWMLVar;
-  /** Body text for the section (optional) */
-  body?: string;
-  /** Array of bullet points */
-  bullets: string[];
-}
-
-export interface Prompt {
-  /** Play a prompt and wait for input. The input can be received either as digits from the keypad, */
-  prompt: {
-    /** URL or array of URLs to play. */
-    play: play_url | play_url[] | SWMLVar | SWMLVar[];
-    /** Volume level for the audio file. */
-    volume?: number;
-    /** The voice to use for the text to speech. */
-    say_voice?: string;
-    /** The language to use for the text to speech. */
-    say_language?: string;
-    /** The gender to use for the text to speech. */
-    say_gender?: string;
-    /** Number of digits to collect. */
-    max_digits?: number | SWMLVar;
-    /** Digits that terminate digit collection. */
-    terminators?: string;
-    /** Time in seconds to wait for next digit. */
-    digit_timeout?: number | SWMLVar;
-    /** Time in seconds to wait for start of input. */
-    initial_timeout?: number | SWMLVar;
-    /** Max time in seconds to wait for speech result. */
-    speech_timeout?: number | SWMLVar;
-    /** Time in seconds to wait for end of speech utterance. */
-    speech_end_timeout?: number | SWMLVar;
-    /** Language to detect speech in. */
-    speech_language?: string;
-    /** Expected words or phrases to help the speech recognition. */
-    speech_hints?: string[] | SWMLVar[];
-    /** The engine that is selected for speech recognition. The engine must support the specified language. */
-    speech_engine?: string;
-    /** http or https URL to deliver prompt status events */
-    status_url?: string;
-  };
-}
-
-export interface Pronounce {
-  /** The expression to replace. */
-  replace: string;
-  /** The phonetic spelling of the expression. */
-  with: string;
-  /** Whether the pronunciation replacement should ignore case. **Default:** `true`. */
-  ignore_case?: boolean | SWMLVar;
-}
-
-export interface ReceiveFax {
-  /** Receive a fax being delivered to this call. */
-  receive_fax: {
-    /** http or https URL to deliver receive_fax status events */
-    status_url?: string;
-  };
-}
-
-export interface Record_ {
-  /** Record the call audio in the foreground, pausing further SWML execution until recording ends. */
-  record: {
-    /** If true, record in stereo. */
-    stereo?: boolean | SWMLVar;
-    /** The format to record in. Can be `wav`, `mp3`, or `mp4`. */
-    format?: 'wav' | 'mp3' | 'mp4';
-    /** Direction of the audio to record: "speak" for what party says, "listen" for what party hears. */
-    direction?: 'speak' | 'listen';
-    /** String of digits that will stop the recording when pressed. Default is `"#"`. */
-    terminators?: string;
-    /** Play a beep before recording. */
-    beep?: boolean | SWMLVar;
-    /** How sensitive the recording voice activity detector is to background noise. */
-    input_sensitivity?: number | SWMLVar;
-    /** Time in seconds to wait for the start of speech. */
-    initial_timeout?: number | SWMLVar;
-    /** Time in seconds to wait in silence before ending the recording. */
-    end_silence_timeout?: number | SWMLVar;
-    /** Maximum length of the recording in seconds. */
-    max_length?: number | SWMLVar;
-    /** URL to send recording status events to. */
-    status_url?: string;
-  };
-}
-
-export interface RecordCall {
-  /** Record call in the background. */
-  record_call: {
-    /** Identifier for this recording, to use with `stop_call_record`. */
-    control_id?: string;
-    /** If `true`, record in stereo. */
-    stereo?: boolean | SWMLVar;
-    /** The format to record in. It can be `wav`, `mp3`, or `mp4`. */
-    format?: 'wav' | 'mp3' | 'mp4';
-    /** Direction of the audio to record: "speak" for what party says, "listen" for what party hears, "both" for what the party hears and says. */
-    direction?: 'speak' | 'listen' | 'both';
-    /** String of digits that will stop the recording when pressed. Default is `""` (empty). */
-    terminators?: string;
-    /** Play a beep before recording. */
-    beep?: boolean | SWMLVar;
-    /** How sensitive the recording voice activity detector is to background noise. */
-    input_sensitivity?: number | SWMLVar;
-    /** Time in seconds to wait for the start of speech. */
-    initial_timeout?: number | SWMLVar;
-    /** Time in seconds to wait in silence before ending the recording. */
-    end_silence_timeout?: number | SWMLVar;
-    /** Maximum length of the recording in seconds. */
-    max_length?: number | SWMLVar;
-    /** http or https URL to deliver record_call status events */
-    status_url?: string;
-  };
+  channels:
+    | {
+        /** Audio Channel of Fabric Address */
+        audio: string;
+      }
+    | {
+        /** Messaging Channel of Fabric Address */
+        messaging: string;
+      };
+  /** The display type of the fabric address. */
+  type: 'app' | 'call' | 'room';
+  /** The ID of the resource the address was assigned to. */
+  resource_id?: string;
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -3454,7 +2130,7 @@ export interface RelayApplicationResponse {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the Relay Application Fabric Resource */
-  display_name: string;
+  display_name: string | null;
   /** Type of the Fabric Resource */
   type: 'relay_application';
   /** Date and time when the resource was created. */
@@ -3478,26 +2154,6 @@ export interface RelayApplicationUpdateRequest {
 export interface RelayApplicationUpdateStatusCode422 {
   /** List of validation errors. */
   errors: Types_StatusCodes_RestApiErrorItem[];
-}
-
-export interface Request {
-  /** Send a GET, POST, PUT, or DELETE request to a remote URL. */
-  request: {
-    /** URL to send the HTTPS request to. Authentication can also be set in the URL in the format of username:password@url. */
-    url: string;
-    /** The HTTP method to be used for the request. Can be `GET`, `POST`, `PUT`, or `DELETE`. */
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
-    /** Object containing HTTP headers to set. Valid header values are Accept, Authorization, Content-Type, Range, and custom X- headers. */
-    headers?: Record<string, Record<string, unknown>>;
-    /** Request body. Content-Type header should be explicitly set, but if not set, the most likely type */
-    body?: string | Record<string, Record<string, unknown>>;
-    /** Maximum time in seconds to wait for a response. */
-    timeout?: number | SWMLVar;
-    /** Maximum time in seconds to wait for a connection. */
-    connect_timeout?: number | SWMLVar;
-    /** Store parsed JSON response as variables. */
-    save_variables?: boolean | SWMLVar;
-  };
 }
 
 export interface ResourceAddressListResponse {
@@ -3558,7 +2214,7 @@ export interface ResourceResponseAI {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the Resource */
-  display_name: string;
+  display_name: string | null;
   /** Date and time when the resource was created. */
   created_at: string;
   /** Date and time when the resource was updated. */
@@ -3575,7 +2231,7 @@ export interface ResourceResponseCXMLApplication {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the Resource */
-  display_name: string;
+  display_name: string | null;
   /** Date and time when the resource was created. */
   created_at: string;
   /** Date and time when the resource was updated. */
@@ -3592,7 +2248,7 @@ export interface ResourceResponseCXMLScript {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the Resource */
-  display_name: string;
+  display_name: string | null;
   /** Date and time when the resource was created. */
   created_at: string;
   /** Date and time when the resource was updated. */
@@ -3609,7 +2265,7 @@ export interface ResourceResponseCXMLWebhook {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the Resource */
-  display_name: string;
+  display_name: string | null;
   /** Date and time when the resource was created. */
   created_at: string;
   /** Date and time when the resource was updated. */
@@ -3626,7 +2282,7 @@ export interface ResourceResponseCallFlow {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the Resource */
-  display_name: string;
+  display_name: string | null;
   /** Date and time when the resource was created. */
   created_at: string;
   /** Date and time when the resource was updated. */
@@ -3643,13 +2299,13 @@ export interface ResourceResponseConferenceRoom {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the Resource */
-  display_name: string;
+  display_name: string | null;
   /** Date and time when the resource was created. */
   created_at: string;
   /** Date and time when the resource was updated. */
   updated_at: string;
   /** The type of Resource */
-  type: 'swml_script';
+  type: 'video_room';
   /** An object containing the response data of the Conference Room */
   conference_room: ConferenceRoom;
 }
@@ -3660,7 +2316,7 @@ export interface ResourceResponseDialogFlowAgent {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the Resource */
-  display_name: string;
+  display_name: string | null;
   /** Date and time when the resource was created. */
   created_at: string;
   /** Date and time when the resource was updated. */
@@ -3677,7 +2333,7 @@ export interface ResourceResponseFSConnector {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the Resource */
-  display_name: string;
+  display_name: string | null;
   /** Date and time when the resource was created. */
   created_at: string;
   /** Date and time when the resource was updated. */
@@ -3694,7 +2350,7 @@ export interface ResourceResponseRelayApp {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the Resource */
-  display_name: string;
+  display_name: string | null;
   /** Date and time when the resource was created. */
   created_at: string;
   /** Date and time when the resource was updated. */
@@ -3711,7 +2367,7 @@ export interface ResourceResponseSWMLScript {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the Resource */
-  display_name: string;
+  display_name: string | null;
   /** Date and time when the resource was created. */
   created_at: string;
   /** Date and time when the resource was updated. */
@@ -3728,7 +2384,7 @@ export interface ResourceResponseSWMLWebhook {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the Resource */
-  display_name: string;
+  display_name: string | null;
   /** Date and time when the resource was created. */
   created_at: string;
   /** Date and time when the resource was updated. */
@@ -3745,7 +2401,7 @@ export interface ResourceResponseSipEndpoint {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the Resource */
-  display_name: string;
+  display_name: string | null;
   /** Date and time when the resource was created. */
   created_at: string;
   /** Date and time when the resource was updated. */
@@ -3762,7 +2418,7 @@ export interface ResourceResponseSipGateway {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the Resource */
-  display_name: string;
+  display_name: string | null;
   /** Date and time when the resource was created. */
   created_at: string;
   /** Date and time when the resource was updated. */
@@ -3779,14 +2435,14 @@ export interface ResourceResponseSubscriber {
   /** Unique ID of the Project. */
   project_id: uuid;
   /** Display name of the Resource */
-  display_name: string;
+  display_name: string | null;
   /** Date and time when the resource was created. */
   created_at: string;
   /** Date and time when the resource was updated. */
   updated_at: string;
   /** The type of Resource */
   type: 'subscriber';
-  /** An object containing the response data of the Subscriber */
+  /** An object containing the response data of the [Subscriber](/docs/platform/subscribers). */
   subscriber: Subscriber;
 }
 
@@ -3801,21 +2457,6 @@ export interface ResourceSipEndpointCreateStatusCode422 {
   errors: Types_StatusCodes_RestApiErrorItem[];
 }
 
-export interface ResourceSipEndpointResponse {
-  /** The unique identifier of the SIP endpoint. */
-  id: uuid;
-  /** The name for the SIP endpoint. */
-  name: string;
-  /** The Resource type */
-  type: 'call';
-  /** The cover URL for the SIP endpoint. */
-  cover_url: string | null;
-  /** The preview URL for the SIP endpoint. */
-  preview_url: string | null;
-  /** An object containing the resource addresses with the specified comunication channels */
-  channels: AddressChannel;
-}
-
 /** The request contains invalid parameters. See errors for details. */
 export interface ResourceSipEndpointUpdateStatusCode422 {
   /** List of validation errors. */
@@ -3828,193 +2469,55 @@ export interface ResourceSubSipEndpointCreateStatusCode422 {
   errors: Types_StatusCodes_RestApiErrorItem[];
 }
 
-export interface Return {
-  /** Return a value from an execute call or exit the script. The value can be any type. */
-  return: Record<string, unknown>;
-}
-
-export interface SIPRefer {
-  /** Send SIP REFER to a SIP call. */
-  sip_refer: {
-    /** The SIP URI to send the REFER to. */
-    to_uri: string;
-    /** The HTTP or HTTPS URL to send status callback events to. */
-    status_url?: string;
-    /** Username to use for SIP authentication. */
-    username?: string;
-    /** Password to use for SIP authentication. */
-    password?: string;
-  };
-}
-
-export interface SMSWithBody {
-  /** Phone number to send SMS message to in E.164 format. */
-  to_number: string;
-  /** Phone number the SMS message will be sent from in E.164 format. */
-  from_number: string;
-  /** Region of the world to originate the message from. Chosen based on account preferences or device location if not specified. */
-  region?: string;
-  /** Array of tags to associate with the message to facilitate log searches. */
-  tags?: string[];
-  /** Required if `media` is not present. The body of the SMS message. */
-  body: string;
-}
-
-export interface SMSWithMedia {
-  /** Phone number to send SMS message to in E.164 format. */
-  to_number: string;
-  /** Phone number the SMS message will be sent from in E.164 format. */
-  from_number: string;
-  /** Region of the world to originate the message from. Chosen based on account preferences or device location if not specified. */
-  region?: string;
-  /** Array of tags to associate with the message to facilitate log searches. */
-  tags?: string[];
-  /** Required if `body` is not present. Array of media URLs to include in the message. */
-  media: string[];
-  /** Optional if `media` is present. The body of the SMS message. */
-  body?: string;
-}
-
-export interface SWAIG {
-  /** Default settings for all SWAIG functions. If `defaults` is not set, settings may be set in each function object. Default is not set. */
-  defaults?: SWAIGDefaults;
-  /** Prebuilt functions the AI agent is able to call from this list of available native functions */
-  native_functions?: SWAIGNativeFunction[];
-  /** An array of objects to include remote function signatures. */
-  includes?: SWAIGIncludes[];
-  /** An array of JSON objects to define functions that can be executed during the interaction with the AI. Default is not set. */
-  functions?: SWAIGFunction[];
-  /** An object containing filler phrases for internal SWAIG functions. These fillers are played while utilizing internal functions. */
-  internal_fillers?: SWAIGInternalFiller;
-}
-
 export interface SWAIGDefaults {
-  /** Default URL to send status callbacks and reports to. Authentication can also be set in the url in the format of `username:password@url.` */
+  meta_data?: Record<string, unknown>;
+  meta_data_token?: string;
+  web_hook_auth_pass?: string;
+  web_hook_auth_password?: string;
+  web_hook_auth_user?: string;
   web_hook_url?: string;
 }
 
-export type SWAIGFunction =
-  | UserSWAIGFunction
-  | StartUpHookSWAIGFunction
-  | HangUpHookSWAIGFunction
-  | SummarizeConversationSWAIGFunction;
-
-export interface SWAIGIncludes {
-  /** Remote functions to fetch and include in your AI application. */
-  functions: string[];
-  /** URL to fetch remote functions and include in your AI application. Authentication can also be set in the url in the format of `username:password@url`. */
-  url: string;
-  /** User-defined metadata to pass with the remote function request. */
-  meta_data?: Record<string, Record<string, unknown>>;
-}
-
 export interface SWAIGInternalFiller {
-  /** Filler phrases played when the AI Agent is hanging up the call. */
-  hangup?: FunctionFillers;
-  /** Filler phrases played when the AI Agent is checking the time. */
-  check_time?: FunctionFillers;
-  /** Filler phrases played when the AI Agent is waiting for user input. */
-  wait_for_user?: FunctionFillers;
-  /** Filler phrases played during deliberate pauses or wait periods. */
-  wait_seconds?: FunctionFillers;
-  /** Filler phrases played when the AI Agent is adjusting response timing. */
-  adjust_response_latency?: FunctionFillers;
-  /** Filler phrases played when transitioning between conversation steps when utilizing `prompt.contexts`. */
-  next_step?: FunctionFillers;
-  /** Filler phrases played when switching between conversation contexts when utilizing `prompt.contexts`. */
-  change_context?: FunctionFillers;
-  /** Filler phrases played when the AI Agent is processing visual input. This function is enabled when `enable_vision` is set to `true` in `ai.params`. */
-  get_visual_input?: FunctionFillers;
-  /** Filler phrases played when the AI Agent is thinking or considering options. This is utilized when `enable_thinking` is set to `true` in `ai.params`. */
-  get_ideal_strategy?: FunctionFillers;
+  adjust_response_latency?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  change_context?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  check_time?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  get_ideal_strategy?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  get_visual_input?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  next_step?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  pause_conversation?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  wait_for_user?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  wait_seconds?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
 }
 
-export interface SWAIGInternalFillerUpdate {
-  /** Filler phrases played when the AI Agent is hanging up the call. */
-  hangup?: FunctionFillersUpdate;
-  /** Filler phrases played when the AI Agent is checking the time. */
-  check_time?: FunctionFillersUpdate;
-  /** Filler phrases played when the AI Agent is waiting for user input. */
-  wait_for_user?: FunctionFillersUpdate;
-  /** Filler phrases played during deliberate pauses or wait periods. */
-  wait_seconds?: FunctionFillersUpdate;
-  /** Filler phrases played when the AI Agent is adjusting response timing. */
-  adjust_response_latency?: FunctionFillersUpdate;
-  /** Filler phrases played when transitioning between conversation steps when utilizing `prompt.contexts`. */
-  next_step?: FunctionFillersUpdate;
-  /** Filler phrases played when switching between conversation contexts when utilizing `prompt.contexts`. */
-  change_context?: FunctionFillersUpdate;
-  /** Filler phrases played when the AI Agent is processing visual input. This function is enabled when `enable_vision` is set to `true` in `ai.params`. */
-  get_visual_input?: FunctionFillersUpdate;
-  /** Filler phrases played when the AI Agent is thinking or considering options. This is utilized when `enable_thinking` is set to `true` in `ai.params`. */
-  get_ideal_strategy?: FunctionFillersUpdate;
-}
-
-export type SWAIGNativeFunction =
-  'check_time' | 'wait_seconds' | 'wait_for_user' | 'adjust_response_latency';
-
-export interface SWAIGUpdate {
-  /** Default settings for all SWAIG functions. If `defaults` is not set, settings may be set in each function object. Default is not set. */
-  defaults?: SWAIGDefaults;
-  /** Prebuilt functions the AI agent is able to call from this list of available native functions */
-  native_functions?: SWAIGNativeFunction[];
-  /** An array of objects to include remote function signatures. */
-  includes?: SWAIGIncludes[];
-  /** An array of JSON objects to define functions that can be executed during the interaction with the AI. Default is not set. */
-  functions?: SWAIGFunction[];
-  /** An object containing filler phrases for internal SWAIG functions. These fillers are played while utilizing internal functions. */
-  internal_fillers?: SWAIGInternalFillerUpdate;
-}
-
-export interface SWMLAction {
-  /** A SWML object to be executed. */
-  SWML: SWMLObject;
-}
-
-export type SWMLMethod =
-  | Answer
-  | AI
-  | AmazonBedrock
-  | Cond
-  | Connect
-  | Denoise
-  | EnterQueue
-  | Execute
-  | Goto
-  | Label
-  | LiveTranscribe
-  | LiveTranslate
-  | Hangup
-  | JoinRoom
-  | JoinConference
-  | Play
-  | Prompt
-  | ReceiveFax
-  | Record_
-  | RecordCall
-  | Request
-  | Return
-  | SendDigits
-  | SendFax
-  | SendSMS
-  | Set_
-  | Sleep
-  | SIPRefer
-  | StopDenoise
-  | StopRecordCall
-  | StopTap
-  | Switch
-  | Tap
-  | Transfer
-  | Unset
-  | Pay
-  | DetectMachine
-  | UserEvent;
-
-export interface SWMLObject {
-  version?: '1.0.0';
-  sections: Section;
-}
+export type SWAIGNativeFunction = string;
 
 export interface SWMLScriptAddressListResponse {
   /** An array of objects that contain a list of SWML Script Addresses */
@@ -4034,21 +2537,18 @@ export interface SWMLScriptAddressPaginationResponse {
   prev?: string;
 }
 
-/** A SWML variable reference for dynamic value substitution at runtime. */
-export type SWMLVar = string;
-
 export interface SWMLWebhook {
   /** Unique ID of the SWML Webhook. */
   id: uuid;
   /** Name of the SWML Webhook. */
   name: string;
-  /** Used for of the SWML Webhook. */
-  used_for: 'calling';
-  /** Primary request url of the SWML Webhook. */
+  /** Indicates whether this SWML Webhook handles inbound calls or inbound messages. Determines the payload SignalWire POSTs to `primary_request_url`. */
+  used_for: 'calling' | 'messaging';
+  /** Primary URL SignalWire fetches the SWML document from when the webhook fires. The webhook payload depends on `used_for`: for `calling`, see the [SWML inbound call webhook](/docs/apis/rest/webhooks/inbound-call-webhook); for `messaging`, see the [SWML inbound message webhook](/docs/apis/rest/webhooks/inbound-message-webhook). */
   primary_request_url: string;
   /** Primary request method of the SWML Webhook. */
   primary_request_method: 'GET' | 'POST';
-  /** Fallback request url of the SWML Webhook. */
+  /** Fallback URL SignalWire fetches the SWML document from if the primary URL fails. Receives the same payload as `primary_request_url` — see the [SWML inbound call webhook](/docs/apis/rest/webhooks/inbound-call-webhook) or [SWML inbound message webhook](/docs/apis/rest/webhooks/inbound-message-webhook) depending on `used_for`. */
   fallback_request_url: string | null;
   /** Fallback request method of the SWML Webhook. */
   fallback_request_method: 'GET' | 'POST';
@@ -4079,13 +2579,13 @@ export interface SWMLWebhookAddressPaginationResponse {
 export interface SWMLWebhookCreateRequest {
   /** Name of the SWML Webhook. */
   name?: string;
-  /** Used for of the SWML Webhook. */
-  used_for?: 'calling';
-  /** Primary request url of the SWML Webhook. */
+  /** Indicates whether this SWML Webhook handles inbound calls or inbound messages. Determines the payload SignalWire POSTs to `primary_request_url`. */
+  used_for?: 'calling' | 'messaging';
+  /** Primary URL SignalWire fetches the SWML document from when the webhook fires. The webhook payload depends on `used_for`: for `calling`, see the [SWML inbound call webhook](/docs/apis/rest/webhooks/inbound-call-webhook); for `messaging`, see the [SWML inbound message webhook](/docs/apis/rest/webhooks/inbound-message-webhook). */
   primary_request_url: string;
   /** Primary request method of the SWML Webhook. */
   primary_request_method?: 'GET' | 'POST';
-  /** Fallback request url of the SWML Webhook. */
+  /** Fallback URL SignalWire fetches the SWML document from if the primary URL fails. Receives the same payload as `primary_request_url` — see the [SWML inbound call webhook](/docs/apis/rest/webhooks/inbound-call-webhook) or [SWML inbound message webhook](/docs/apis/rest/webhooks/inbound-message-webhook) depending on `used_for`. */
   fallback_request_url?: string;
   /** Fallback request method of the SWML Webhook. */
   fallback_request_method?: 'GET' | 'POST';
@@ -4133,13 +2633,13 @@ export interface SWMLWebhookResponse {
 export interface SWMLWebhookUpdateRequest {
   /** Name of the SWML Webhook. */
   name?: string;
-  /** Used for of the SWML Webhook. */
-  used_for?: 'calling';
-  /** Primary request url of the SWML Webhook. */
+  /** Indicates whether this SWML Webhook handles inbound calls or inbound messages. Determines the payload SignalWire POSTs to `primary_request_url`. */
+  used_for?: 'calling' | 'messaging';
+  /** Primary URL SignalWire fetches the SWML document from when the webhook fires. The webhook payload depends on `used_for`: for `calling`, see the [SWML inbound call webhook](/docs/apis/rest/webhooks/inbound-call-webhook); for `messaging`, see the [SWML inbound message webhook](/docs/apis/rest/webhooks/inbound-message-webhook). */
   primary_request_url?: string;
   /** Primary request method of the SWML Webhook. */
   primary_request_method?: 'GET' | 'POST';
-  /** Fallback request url of the SWML Webhook. */
+  /** Fallback URL SignalWire fetches the SWML document from if the primary URL fails. Receives the same payload as `primary_request_url` — see the [SWML inbound call webhook](/docs/apis/rest/webhooks/inbound-call-webhook) or [SWML inbound message webhook](/docs/apis/rest/webhooks/inbound-message-webhook) depending on `used_for`. */
   fallback_request_url?: string;
   /** Fallback request method of the SWML Webhook. */
   fallback_request_method?: 'GET' | 'POST';
@@ -4149,78 +2649,14 @@ export interface SWMLWebhookUpdateRequest {
   status_callback_method?: 'GET' | 'POST';
 }
 
-export interface SayAction {
-  /** A message to be spoken by the AI agent. */
-  say: string;
-}
-
-export type SchemaType =
-  | StringProperty
-  | IntegerProperty
-  | NumberProperty
-  | BooleanProperty
-  | ArrayProperty
-  | ObjectProperty
-  | NullProperty
-  | OneOfProperty
-  | AllOfProperty
-  | AnyOfProperty
-  | ConstProperty;
-
-export interface Section {
-  main: SWMLMethod[];
-  [key: string]: SWMLMethod[];
-}
-
-export interface SendDigits {
-  /** Send digit presses as DTMF tones. */
-  send_digits: {
-    /** The digits to send. Valid values are 0123456789*#ABCDWw. Character W is a 1 second delay, and w is a 500ms delay. */
-    digits: string;
-  };
-}
-
-export interface SendFax {
-  /** Send a fax. */
-  send_fax: {
-    /** URL to the PDF document to fax. */
-    document: string;
-    /** Header text to include on the fax. */
-    header_info?: string;
-    /** Station identity to report. */
-    identity?: string;
-    /** http or https URL to deliver send_fax status events */
-    status_url?: string;
-  };
-}
-
-export interface SendSMS {
-  /** Send an outbound SMS or MMS message to a PSTN phone number. */
-  send_sms: SMSWithBody | SMSWithMedia;
-}
-
-export interface Set_ {
-  /** Set script variables to the specified values. */
-  set: Record<string, Record<string, unknown>>;
-}
-
-export interface SetGlobalDataAction {
-  /** A JSON object containing any global data, as a key-value map. This action sets the data in the `global_data` to be globally referenced. */
-  set_global_data: Record<string, Record<string, unknown>>;
-}
-
-export interface SetMetaDataAction {
-  /** A JSON object containing any metadata, as a key-value map. This action sets the data in the `meta_data` to be referenced locally in the function. */
-  set_meta_data: Record<string, Record<string, unknown>>;
-}
-
+/** SIP endpoint model. */
 export interface SipEndpoint {
   /** The id of the Sip Endpoint */
   id: uuid;
   /** The username of the Sip Endpoint */
   username: string;
   /** The caller ID that will showup when dialing from this Sip Endpoint */
-  caller_id: string;
+  caller_id: string | null;
   /** The Sip username that will show up on the calle's side. Overrides the username. */
   send_as: string;
   /** Ciphers that can be enabled for calls on this Sip Endpoint. */
@@ -4228,9 +2664,23 @@ export interface SipEndpoint {
   /** Codecs that can be enabled for calls on this Sip Endpoint. */
   codecs: Codecs[];
   /** The set encryption type on the Sip Endpoint. */
-  encryption: Encryption;
+  encryption: 'required' | 'optional';
   /** Specify how the SIP endpoint will handle outbound calls. */
-  call_handler: CallHandlerType;
+  call_handler:
+    | 'default'
+    | 'passthrough'
+    | 'block-pstn'
+    | 'laml_webhook'
+    | 'laml_application'
+    | 'dialogflow'
+    | 'relay_context'
+    | 'relay_application'
+    | 'relay_connector'
+    | 'video_room'
+    | 'ai_agent'
+    | 'relay_script'
+    | 'call_flow'
+    | null;
   /** If `call_handler` is set to `resource`, this field expects the id of the set resouce. Will be `null` otherwise. */
   calling_handler_resource_id: uuid | null;
 }
@@ -4254,24 +2704,24 @@ export interface SipEndpointAddressPaginationResponse {
 }
 
 export interface SipEndpointCreateRequest {
-  /** The id of the Sip Endpoint */
-  id?: uuid;
   /** The username of the Sip Endpoint */
   username: string;
   /** The caller ID that will showup when dialing from this Sip Endpoint */
-  caller_id: string;
+  caller_id?: string;
   /** The Sip username that will show up on the calle's side. Overrides the username. */
-  send_as: string;
+  send_as?: string;
   /** Ciphers that can be enabled for calls on this Sip Endpoint. */
-  ciphers: Ciphers[];
+  ciphers?: Ciphers[];
   /** Codecs that can be enabled for calls on this Sip Endpoint. */
-  codecs: Codecs[];
+  codecs?: Codecs[];
   /** The set encryption type on the Sip Endpoint. */
-  encryption: Encryption;
+  encryption?: Encryption;
   /** Specify how the SIP endpoint will handle outbound calls. */
-  call_handler: CallHandlerType;
+  call_handler?: CallHandlerType;
   /** If `call_handler` is set to `resource`, this field expects the id of the set resouce. Will be `null` otherwise. */
-  calling_handler_resource_id: uuid | null;
+  calling_handler_resource_id?: uuid | null;
+  /** The SIP endpoint's password. */
+  password: string;
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -4280,6 +2730,7 @@ export interface SipEndpointCreateStatusCode422 {
   errors: Types_StatusCodes_RestApiErrorItem[];
 }
 
+/** Response containing a list of SIP endpoints. */
 export interface SipEndpointListResponse {
   /** An array of objects that contain a list of SIP Endpoint data */
   data: SipEndpointResponse[];
@@ -4288,18 +2739,18 @@ export interface SipEndpointListResponse {
 }
 
 export interface SipEndpointPaginationResponse {
-  /** Link to the current page */
+  /** Link to the current page. */
   self: string;
-  /** Link to the first page */
+  /** Link to the first page. */
   first: string;
-  /** Link to the next page */
+  /** Link to the next page. Only present when there are more results. */
   next?: string;
-  /** Link to the previous page */
+  /** Link to the previous page. Only present when not on the first page. */
   prev?: string;
 }
 
 export interface SipEndpointResponse {
-  /** Unique ID of the SIP Endpoint. */
+  /** The unique identifier of the SIP endpoint. */
   id: uuid;
   /** Unique ID of the Project. */
   project_id: uuid;
@@ -4331,7 +2782,9 @@ export interface SipEndpointUpdateRequest {
   /** Specify how the SIP endpoint will handle outbound calls. */
   call_handler?: CallHandlerType;
   /** If `call_handler` is set to `resource`, this field will contain the id of the set resouce. Will be `null` otherwise. */
-  calling_handler_resource_id: uuid | null;
+  calling_handler_resource_id?: uuid | null;
+  /** The SIP endpoint's password. */
+  password?: string;
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -4352,7 +2805,7 @@ export interface SipGateway {
   /** List of supported codecs. */
   codecs: Codecs[];
   /** Specifies the encryption requirement. */
-  encryption: Encryption;
+  encryption: SipGatewayEncryption;
 }
 
 export interface SipGatewayAddressListResponse {
@@ -4403,7 +2856,7 @@ export interface SipGatewayRequest {
   /** External SIP URI. */
   uri: string;
   /** Specifies the encryption requirement for the SIP connection. */
-  encryption: Encryption;
+  encryption: SipGatewayEncryption;
   /** List of supported SIP ciphers. */
   ciphers: Ciphers[];
   /** List of supported codecs for media transmission. */
@@ -4412,15 +2865,15 @@ export interface SipGatewayRequest {
 
 export interface SipGatewayRequestUpdate {
   /** Display name for the SIP Gateway. */
-  name?: string;
+  name: string;
   /** External SIP URI. */
-  uri?: string;
+  uri: string;
   /** Specifies the encryption requirement for the SIP connection. */
-  encryption?: Encryption;
+  encryption: SipGatewayEncryption;
   /** List of supported SIP ciphers. */
-  ciphers?: Ciphers[];
+  ciphers: Ciphers[];
   /** List of supported codecs for media transmission. */
-  codecs?: Codecs[];
+  codecs: Codecs[];
 }
 
 export interface SipGatewayResponse {
@@ -4440,152 +2893,6 @@ export interface SipGatewayResponse {
   sip_gateway: SipGateway;
 }
 
-export interface Sleep {
-  /** Pause execution for a specified duration. */
-  sleep:
-    | {
-        /** The amount of time to sleep in milliseconds. */
-        duration: number | SWMLVar;
-      }
-    | number
-    | SWMLVar;
-}
-
-/** Speech recognition engine options. */
-export type SpeechEngine = 'deepgram' | 'google';
-
-export interface StartAction {
-  /** Starts live translation of the call. The translation will be sent to the specified URL. */
-  start: {
-    /** The webhook URL to be called. */
-    webhook?: string;
-    /** The language to translate from. */
-    from_lang: string;
-    /** The language to translate to. */
-    to_lang: string;
-    /** The TTS voice you want to use for the source language. */
-    from_voice?: string;
-    /** The TTS voice you want to use for the target language. */
-    to_voice?: string;
-    /** Translation filter for the source language direction. */
-    filter_from?: TranslationFilterPreset | CustomTranslationFilter;
-    /** Translation filter for the target language direction. */
-    filter_to?: TranslationFilterPreset | CustomTranslationFilter;
-    /** Whether to enable live events. */
-    live_events?: boolean | SWMLVar;
-    /** Whether to enable AI summarization. */
-    ai_summary?: boolean | SWMLVar;
-    /** The timeout for speech recognition in milliseconds. */
-    speech_timeout?: number | SWMLVar;
-    /** Voice activity detection silence time in milliseconds. Default depends on speech engine: `300` for Deepgram, `500` for Google. */
-    vad_silence_ms?: number | SWMLVar;
-    /** Voice activity detection threshold (0-1800). */
-    vad_thresh?: number | SWMLVar;
-    /** Debug level for logging (0-2). */
-    debug_level?: number | SWMLVar;
-    /** The direction of the call that should be translated. */
-    direction: TranslateDirection[];
-    /** The speech engine to use for speech recognition. */
-    speech_engine?: SpeechEngine;
-    /** The AI prompt that instructs how to summarize the conversation when `ai_summary` is enabled. */
-    ai_summary_prompt?: string;
-  };
-}
-
-export interface StartUpHookSWAIGFunction {
-  /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-  description: string;
-  /** The purpose field has been deprecated and is replaced by the `description` field. */
-  purpose?: string;
-  /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-  parameters?: FunctionParameters;
-  /** A JSON object defining the fillers that should be played when calling a `swaig function`. This helps the AI break silence between responses. The filler is played asynchronously during the function call. */
-  fillers?: FunctionFillers;
-  /** The argument field has been deprecated and is replaced by the `parameters` field.  */
-  argument?: FunctionParameters;
-  /** Whether the function is active. **Default:** `true`. */
-  active?: boolean | SWMLVar;
-  /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-  meta_data?: Record<string, Record<string, unknown>>;
-  /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-  meta_data_token?: string;
-  /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
-  data_map?: DataMap;
-  /** Skips the top-level fillers specified in `ai.languages` (which includes `speech_fillers` and `function_fillers`). */
-  skip_fillers?: boolean | SWMLVar;
-  /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-  web_hook_url?: string;
-  /** A file to play while the function is running. `wait_file_loops` can specify the amount of times that files should continously play. Default is not set. */
-  wait_file?: string;
-  /** The number of times to loop playing the file. Default is not set. */
-  wait_file_loops?: number | string;
-  /** Whether to wait for fillers to finish playing before continuing with the function. **Default:** `false`. */
-  wait_for_fillers?: boolean | SWMLVar;
-  /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation. For the start_hook function, the function name is 'start_hook'. */
-  function: 'startup_hook';
-}
-
-export interface StopAction {
-  /** Whether to stop the conversation. */
-  stop: boolean | SWMLVar;
-}
-
-export interface StopDenoise {
-  /** Stop noise reduction that was started with denoise. */
-  stop_denoise: Record<string, unknown>;
-}
-
-export interface StopPlaybackBGAction {
-  /** Whether to stop the background audio file. */
-  stop_playback_bg: boolean | SWMLVar;
-}
-
-export interface StopRecordCall {
-  /** Stop an active background recording. */
-  stop_record_call: {
-    /** Identifier for the recording to stop. */
-    control_id?: string;
-  };
-}
-
-export interface StopTap {
-  /** Stop an active tap stream. */
-  stop_tap: {
-    /** ID of the tap to stop. */
-    control_id?: string;
-  };
-}
-
-export type StringFormat =
-  | 'date_time'
-  | 'time'
-  | 'date'
-  | 'duration'
-  | 'email'
-  | 'hostname'
-  | 'ipv4'
-  | 'ipv6'
-  | 'uri'
-  | 'uuid';
-
-/** Base interface for all property types */
-export interface StringProperty {
-  /** A description of the property. */
-  description?: string;
-  /** Whether the property can be null. */
-  nullable?: boolean | SWMLVar;
-  /** The type of parameter(s) the AI is passing to the function. */
-  type: 'string';
-  /** An array of strings that are the possible values */
-  enum?: string[];
-  /** The default string value */
-  default?: string;
-  /** Regular expression pattern */
-  pattern?: string;
-  /** String format (email, date-time, etc.) */
-  format?: StringFormat;
-}
-
 export interface Subscriber {
   /** Unique ID of the Subscriber. */
   id: uuid;
@@ -4599,14 +2906,12 @@ export interface Subscriber {
   display_name: string;
   /** Job title of the Subscriber. */
   job_title: string;
-  /** Timezone of the Subscriber. */
-  timezone: string;
   /** Country of the Subscriber. */
   country: string;
-  /** Region of the Subscriber. */
-  region: string;
   /** Company name of the Subscriber. */
   company_name: string;
+  /** The subscriber's time zone. */
+  time_zone?: string;
 }
 
 export interface SubscriberAddressPaginationResponse {
@@ -4635,9 +2940,29 @@ export interface SubscriberCreateStatusCode422 {
 
 export interface SubscriberGuestTokenCreateRequest {
   /** List of up to 10 UUIDs representing the allowed Fabric addresses. */
-  allowed_addresses: uuid[];
+  allowed_addresses?: uuid[];
   /** A unixtime (the number of seconds since 1970-01-01 00:00:00) at which the token should no longer be valid. Defaults to 'two hours from now' */
   expire_at?: number;
+  /** The channel for the guest token. */
+  ch?: string;
+  /** The region for the guest token. */
+  region?: string;
+  /** The guest's email address. */
+  email?: string;
+  /** The guest's first name. */
+  first_name?: string;
+  /** The guest's last name. */
+  last_name?: string;
+  /** The guest's display name. */
+  display_name?: string;
+  /** The guest's job title. */
+  job_title?: string;
+  /** The guest's time zone. Defaults to GMT. */
+  time_zone?: string;
+  /** The guest's country. */
+  country?: string;
+  /** The guest's company name. */
+  company_name?: string;
 }
 
 export interface SubscriberGuestTokenCreateResponse {
@@ -4645,18 +2970,14 @@ export interface SubscriberGuestTokenCreateResponse {
   token: jwt;
   /** Refresh Token */
   refresh_token: jwt;
-}
-
-export interface SubscriberInviteTokenCreateRequest {
-  /** Unique ID of a Subscriber Address */
-  address_id: uuid;
-  /** A unixtime (the number of seconds since 1970-01-01 00:00:00) at which the token should no longer be valid. Defaults to 'two hours from now' */
-  expires_at?: number;
-}
-
-export interface SubscriberInviteTokenCreateResponse {
-  /** Invite Token */
-  token: jwt;
+  /** URI of the guest's Fabric Address. */
+  address_uri: string;
+  /** When the guest token expires. */
+  expires_at: string;
+  /** Seconds until the guest token expires. */
+  expires_in: number;
+  /** When the guest token was issued. */
+  issued_at: string;
 }
 
 export interface SubscriberListResponse {
@@ -4702,14 +3023,33 @@ export interface SubscriberRequest {
   display_name?: string;
   /** Job title of the Subscriber. */
   job_title?: string;
-  /** Timezone of the Subscriber. */
-  timezone?: string;
   /** Country of the Subscriber. */
   country?: string;
-  /** Region of the Subscriber. */
-  region?: string;
   /** Company name of the Subscriber. */
   company_name?: string;
+  /** The subscriber's time zone. Defaults to GMT on create. */
+  time_zone?: string;
+}
+
+export interface SubscriberUpdateRequest {
+  /** Password of the Subscriber. Defaults to a secure random password if not provided. */
+  password?: string;
+  /** Email of the Subscriber. */
+  email?: string;
+  /** First name of the Subscriber. */
+  first_name?: string;
+  /** Last name of the Subscriber. */
+  last_name?: string;
+  /** Display name of the Subscriber. */
+  display_name?: string;
+  /** Job title of the Subscriber. */
+  job_title?: string;
+  /** Country of the Subscriber. */
+  country?: string;
+  /** Company name of the Subscriber. */
+  company_name?: string;
+  /** The subscriber's time zone. Defaults to GMT on create. */
+  time_zone?: string;
 }
 
 export interface SubscriberResponse {
@@ -4735,7 +3075,7 @@ export interface SubscriberSIPEndpoint {
   /** Username of the Sip Endpoint. */
   username: string;
   /** Caller ID of the Sip Endpoint. */
-  caller_id: string;
+  caller_id: string | null;
   /** Purchased or verified number */
   send_as: string;
   /** Ciphers of the Sip Endpoint. */
@@ -4743,7 +3083,7 @@ export interface SubscriberSIPEndpoint {
   /** Codecs of the Sip Endpoint. */
   codecs: Codecs[];
   /** Encryption requirement of the Sip Endpoint. */
-  encryption: Encryption;
+  encryption: 'required' | 'optional' | null;
 }
 
 export interface SubscriberSipEndpointListResponse {
@@ -4797,6 +3137,8 @@ export interface SubscriberSipEndpointRequestUpdate {
 }
 
 export interface SubscriberTokenRequest {
+  /** Connection host written into the token's `ch` header. Defaults to the project's regional host. */
+  ch?: string;
   /** A string that uniquely identifies the subscriber. Often it's an email, but can be any other string. */
   reference: string;
   /** A unixtime (the number of seconds since 1970-01-01 00:00:00) at which the token should no longer be valid. Defaults to 'two hours from now' */
@@ -4821,6 +3163,10 @@ export interface SubscriberTokenRequest {
   region?: string;
   /** Set or update the company name of the subscriber. */
   company_name?: string;
+  /** Space-separated token scopes. The only accepted scope is `sat:refresh`, which lets the client refresh its own token; without a `fingerprint` such a token is capped at 60 seconds. */
+  scope?: 'sat:refresh';
+  /** A 43-character base64url key thumbprint that binds the token to one client (the token's `cnf.jkt` claim). */
+  fingerprint?: string;
 }
 
 export interface SubscriberTokenResponse {
@@ -4844,86 +3190,34 @@ export interface SubscriberUpdateStatusCode422 {
   errors: Types_StatusCodes_RestApiErrorItem[];
 }
 
-export interface SummarizeAction {
-  /** Summarizes the conversation as an object, allowing you to specify the webhook url and prompt for the summary. */
-  summarize: {
-    /** The webhook URL to be called. */
-    webhook?: string;
-    /** The AI prompt that instructs how to summarize the conversation. */
-    prompt?: string;
-  };
-}
-
-export type SummarizeActionUnion = SummarizeAction | 'summarize';
-
-/** An internal reserved function that generates a summary of the conversation and sends any specified properties to the configured webhook after the conversation has ended. */
-export interface SummarizeConversationSWAIGFunction {
-  /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-  description: string;
-  /** The purpose field has been deprecated and is replaced by the `description` field. */
-  purpose?: string;
-  /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-  parameters?: FunctionParameters;
-  /** A JSON object defining the fillers that should be played when calling a `swaig function`. This helps the AI break silence between responses. The filler is played asynchronously during the function call. */
-  fillers?: FunctionFillers;
-  /** The argument field has been deprecated and is replaced by the `parameters` field.  */
-  argument?: FunctionParameters;
-  /** Whether the function is active. **Default:** `true`. */
-  active?: boolean | SWMLVar;
-  /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-  meta_data?: Record<string, Record<string, unknown>>;
-  /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-  meta_data_token?: string;
-  /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
-  data_map?: DataMap;
-  /** Skips the top-level fillers specified in `ai.languages` (which includes `speech_fillers` and `function_fillers`). */
-  skip_fillers?: boolean | SWMLVar;
-  /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-  web_hook_url?: string;
-  /** A file to play while the function is running. `wait_file_loops` can specify the amount of times that files should continously play. Default is not set. */
-  wait_file?: string;
-  /** The number of times to loop playing the file. Default is not set. */
-  wait_file_loops?: number | string;
-  /** Whether to wait for fillers to finish playing before continuing with the function. **Default:** `false`. */
-  wait_for_fillers?: boolean | SWMLVar;
-  /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation.. For the summarize_conversation function, the function name is 'summarize_conversation'. */
-  function: 'summarize_conversation';
-}
-
-export interface Switch {
-  /** Execute different instructions based on a variable's value. */
-  switch: {
-    /** Name of the variable whose value needs to be compared. */
-    variable: string;
-    /** Object of key-mapped values to array of SWML methods to execute. */
-    case: Record<string, SWMLMethod[]>;
-    /** Array of SWML methods to execute if no cases match. */
-    default?: SWMLMethod[];
-  };
-}
-
+/** A SWML Script — either a [Calling Script](#schema/CallingSwmlScript) for inbound or */
 export interface SwmlScript {
   /** Unique ID of a SWML Script. */
   id: uuid;
   /** The SWML script contents */
-  contents: string;
+  contents: Record<string, unknown>;
   /** The url where the SWML script is hosted at. */
   request_url: string;
   /** The displayed name of the SWML scipt */
   display_name: string;
   /** URL to send status callbacks to */
-  status_callback_url?: string;
+  status_callback_url?: string | null;
   /** HTTP method to use for status callbacks */
   status_callback_method?: 'POST';
+  /** What the SWML script is used for. */
+  script_type?: 'calling' | 'messaging';
 }
 
+/** Body shape for creating a SWML Script. Choose a [Calling Script](#schema/CallingSwmlScriptCreateRequest) for inbound or outbound calls or a [Messaging Script](#schema/MessagingSwmlScriptCreateRequest) for inbound SMS or MMS messages. `script_type` is optional and defaults to `"calling"` when omitted — set it explicitly to `"messaging"` to create a Messaging Script. The script kind determines whether the script can be assigned as a call handler or a message handler on a phone number. */
 export interface SwmlScriptCreateRequest {
   /** Display name of the SWML Script */
   name: string;
   /** The contents of the SWML script. */
-  contents: string;
+  contents: string | Record<string, unknown>;
   /** URL to send status callbacks to */
   status_callback_url?: string;
+  /** What the SWML script is used for. */
+  script_type?: 'calling' | 'messaging';
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -4967,13 +3261,16 @@ export interface SwmlScriptResponse {
   swml_script: SwmlScript;
 }
 
+/** Body shape for updating an existing SWML Script. All fields are optional — include only what you want to change. Choose a [Calling Script](#schema/CallingSwmlScriptUpdateRequest) for inbound or outbound calls or a [Messaging Script](#schema/MessagingSwmlScriptUpdateRequest) for inbound SMS or MMS messages. */
 export interface SwmlScriptUpdateRequest {
-  /** Display name of the SWML Script */
-  display_name?: string;
   /** The contents of the SWML script. */
-  contents?: string;
+  contents?: string | Record<string, unknown>;
   /** URL to send status callbacks to */
   status_callback_url?: string;
+  /** The name of the SWML script. */
+  name?: string;
+  /** What the SWML script is used for. */
+  script_type?: 'calling' | 'messaging';
 }
 
 /** The request contains invalid parameters. See errors for details. */
@@ -4993,97 +3290,6 @@ export interface SwmlWebhookUpdateStatusCode422 {
   /** List of validation errors. */
   errors: Types_StatusCodes_RestApiErrorItem[];
 }
-
-export interface Tap {
-  /** Start background call tap. Media is streamed over Websocket or RTP to customer controlled URI. */
-  tap: {
-    /** Destination of the tap media stream: rtp://IP:port, ws://example.com, or wss://example.com. */
-    uri: string;
-    /** Identifier for this tap to use with `stop_tap`. */
-    control_id?: string;
-    /** Direction of the audio to tap: */
-    direction?: 'speak' | 'listen' | 'both';
-    /** Codec to use for the tap media stream. */
-    codec?: 'PCMU' | 'PCMA';
-    /** If `uri` is a `rtp://` this will set the packetization time of the media in milliseconds. */
-    rtp_ptime?: number | SWMLVar;
-    /** http or https URL to deliver tap status events */
-    status_url?: string;
-  };
-}
-
-export interface ToggleFunctionsAction {
-  /** Whether to toggle the functions on or off. */
-  toggle_functions: {
-    /** Whether to activate or deactivate the functions. Default is `true` */
-    active: boolean | SWMLVar;
-    /** The function names to toggle. */
-    function: string | string[];
-  }[];
-}
-
-export type TranscribeAction = TranscribeStartAction | 'stop' | TranscribeSummarizeActionUnion;
-
-export type TranscribeDirection = 'remote-caller' | 'local-caller';
-
-export interface TranscribeStartAction {
-  /** Starts live transcription of the call. The transcription will be sent to the specified URL. */
-  start: {
-    /** Enables AI summarization of the transcription. The summary will be sent to the specified URL at the end of the conversation. */
-    ai_summary?: boolean | SWMLVar;
-    /** The webhook URL the transcription will be sent to. */
-    webhook?: string;
-    /** The language to transcribe. */
-    lang: string;
-    /** Whether to enable live events. */
-    live_events?: boolean | SWMLVar;
-    /** The timeout for speech recognition in milliseconds. */
-    speech_timeout?: number | SWMLVar;
-    /** Voice activity detection silence time in milliseconds. Default depends on speech engine: `300` for Deepgram, `500` for Google. */
-    vad_silence_ms?: number | SWMLVar;
-    /** Voice activity detection threshold (0-1800). */
-    vad_thresh?: number | SWMLVar;
-    /** Debug level for logging (0-2). */
-    debug_level?: number | SWMLVar;
-    /** The direction of the call that should be transcribed. */
-    direction: TranscribeDirection[];
-    /** The speech engine to use for speech recognition. */
-    speech_engine?: SpeechEngine;
-    /** The AI prompt that instructs how to summarize the conversation when `ai_summary` is enabled. */
-    ai_summary_prompt?: string;
-  };
-}
-
-export interface TranscribeSummarizeAction {
-  /** Summarizes the conversation as an object, allowing you to specify the webhook url and prompt for the summary. */
-  summarize: {
-    /** The webhook URL to be called. */
-    webhook?: string;
-    /** The prompt for summarization. */
-    prompt?: string;
-  };
-}
-
-export type TranscribeSummarizeActionUnion = TranscribeSummarizeAction | 'summarize';
-
-export interface Transfer {
-  /** Transfer the execution of the script to a different SWML section, URL, or Relay application. */
-  transfer: {
-    /** Specifies where to transfer to. The value can be one of: */
-    dest: string;
-    /** Named parameters to send to transfer destination. */
-    params?: Record<string, Record<string, unknown>>;
-    /** User data, ignored by SignalWire. */
-    meta?: Record<string, Record<string, unknown>>;
-  };
-}
-
-export type TranslateAction = StartAction | 'stop' | SummarizeActionUnion | InjectAction;
-
-export type TranslateDirection = 'remote-caller' | 'local-caller';
-
-/** Preset translation filter values that adjust the tone or style of translated speech. */
-export type TranslationFilterPreset = 'polite' | 'rude' | 'professional' | 'shakespeare' | 'gen-z';
 
 /** Details about a specific error. */
 export interface Types_StatusCodes_RestApiErrorItem {
@@ -5125,132 +3331,504 @@ export interface Types_StatusCodes_StatusCode500 {
   error: 'Internal Server Error';
 }
 
-export interface Unset {
-  /** Unset specified variables. The variables may have been set using the set method */
-  unset: string | string[];
-}
-
-export interface UnsetGlobalDataAction {
-  /** The key of the global data to unset from the `global_data`. You can also reset the `global_data` by passing in a new object. */
-  unset_global_data: string | Record<string, unknown>;
-}
-
-export interface UnsetMetaDataAction {
-  /** The key of the local data to unset from the `meta_data`. You can also reset the `meta_data` by passing in a new object. */
-  unset_meta_data: string | Record<string, unknown>;
-}
+/** Sets the handler to handle incoming `calls`, `messages` or `faxes`. */
+export type CxmlWebhookUsedForType = 'calling' | 'messaging' | 'faxing';
 
 /** Sets the handler to handle incoming `calls` or `messages`. */
 export type UsedForType = 'calling' | 'messaging';
-
-export interface UserEvent {
-  /** Allows the user to set and send events to the connected client on the call. */
-  user_event: {
-    event: Record<string, Record<string, unknown>>;
-  };
-}
-
-export interface UserInputAction {
-  /** Used to inject text into the users queue as if they input the data themselves. */
-  user_input: string;
-}
-
-export interface UserSWAIGFunction {
-  /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-  description: string;
-  /** The purpose field has been deprecated and is replaced by the `description` field. */
-  purpose?: string;
-  /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-  parameters?: FunctionParameters;
-  /** A JSON object defining the fillers that should be played when calling a `swaig function`. This helps the AI break silence between responses. The filler is played asynchronously during the function call. */
-  fillers?: FunctionFillers;
-  /** The argument field has been deprecated and is replaced by the `parameters` field.  */
-  argument?: FunctionParameters;
-  /** Whether the function is active. **Default:** `true`. */
-  active?: boolean | SWMLVar;
-  /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-  meta_data?: Record<string, Record<string, unknown>>;
-  /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-  meta_data_token?: string;
-  /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
-  data_map?: DataMap;
-  /** Skips the top-level fillers specified in `ai.languages` (which includes `speech_fillers` and `function_fillers`). */
-  skip_fillers?: boolean | SWMLVar;
-  /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-  web_hook_url?: string;
-  /** A file to play while the function is running. `wait_file_loops` can specify the amount of times that files should continously play. Default is not set. */
-  wait_file?: string;
-  /** The number of times to loop playing the file. Default is not set. */
-  wait_file_loops?: number | string;
-  /** Whether to wait for fillers to finish playing before continuing with the function. **Default:** `false`. */
-  wait_for_fillers?: boolean | SWMLVar;
-  /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation. */
-  function: string;
-}
-
-export type ValidConfirmMethods =
-  | Cond
-  | Set_
-  | Unset
-  | Hangup
-  | Play
-  | Prompt
-  | Record_
-  | RecordCall
-  | StopRecordCall
-  | Tap
-  | StopTap
-  | SendDigits
-  | SendSMS
-  | Denoise
-  | StopDenoise;
 
 export interface VideoChannel {
   /** Video Channel of Fabric Address */
   video: string;
 }
 
+/** Without one of `expressions` / `output` and `url`, a Webhook has no effect: it is accepted and ignored, not rejected. */
 export interface Webhook {
-  /** A list of expressions to be evaluated upon matching. */
-  expressions?: Expression[];
-  /** A string or array of strings that represent the keys to be used for error handling. This will match the key(s) in the response from the API call. */
-  error_keys?: string | string[];
-  /** The endpoint for the external service or API. */
-  url: string;
-  /** Iterates over an array of objects and processes a output based on each element in the array. Works similarly to JavaScript's forEach method. */
-  foreach?: {
-    /** The key to be used to access the current element in the array. */
-    input_key: string;
-    /** The key that can be referenced in the output of the `foreach` iteration. The values that are stored from `append` will be stored in this key. */
-    output_key: string;
-    /** The max amount of elements that are iterated over in the array. This will start at the beginning of the array. */
-    max?: number | SWMLVar;
-    /** The values to append to the output_key. */
-    append: string;
-  };
-  /** Any necessary headers for the API call. */
-  headers?: Record<string, Record<string, unknown>>;
-  /** The HTTP method (GET, POST, etc.) for the API call. */
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-  /** A boolean to determine if the input arguments should be passed as parameters. */
-  input_args_as_params?: boolean | SWMLVar;
-  /** An object of any necessary parameters for the API call. The key is the parameter name and the value is the parameter value. */
-  params?: Record<string, Record<string, unknown>>;
-  /** A string or array of strings that represent the `arguments` that are required to make the webhook request. */
-  require_args?: string | string[];
-  /** An object that contains a response and a list of actions to be performed upon completion of the webhook request. */
+  error_keys?: unknown[] | string;
+  expressions?: Expression[] | Expression;
+  foreach?: Foreach;
+  form_param?: string;
+  headers?: Record<string, unknown>;
+  input_args_as_params?: boolean;
+  method?: string;
   output?: Output;
+  params?: unknown[] | boolean | null | number | Record<string, unknown> | string;
+  require_args?: unknown[] | string;
+  url?: string;
 }
 
 export type jwt = string;
 
-export type play_url = string;
-
 /** Universal Unique Identifier. */
 export type uuid = string;
 
-export type ListSipEndpointsResponse = SipEndpointListResponse[];
+export interface AliasAddress {
+  /** Unique identifier for the alias address. */
+  id: uuid;
+  /** The object type. Always `alias`. */
+  type: 'alias';
+  /** ID of the resource that handles calls and messages to this alias. */
+  resource_id: uuid | null;
+  /** URL-safe name for the alias. Used to build its address. */
+  name: string;
+  /** Human-friendly label for the alias. Defaults to `name`. */
+  display_name: string;
+  /** Display type derived from the handler resource. Returned for reference only and cannot be set. */
+  display_type: string | null;
+  /** Channels enabled on this alias. */
+  channels: ('audio' | 'messaging' | 'video')[];
+  /** Codecs enabled for calls to this alias. Empty when none are set. */
+  codecs:
+    | (
+        | 'OPUS'
+        | 'OPUS@48000H@20I'
+        | 'OPUS@24000H@20I'
+        | 'OPUS@16000H@20I'
+        | 'OPUS@8000H@20I'
+        | 'G722'
+        | 'PCMU'
+        | 'PCMA'
+        | 'G729'
+        | 'VP8'
+        | 'H264'
+      )[]
+    | null;
+  /** Access context the alias lives in. */
+  context: string;
+  /** The resource address this alias resolves to, in the form `/<context>/<name>`. */
+  uri: string;
+  /** Date and time when the alias address was created. */
+  created_at: string;
+  /** Date and time when the alias address was last updated. */
+  updated_at: string;
+}
 
-export type ListSubscriberAddressesResponse = SubscriberAddressesResponse[];
+export interface AliasAddressCreateRequest {
+  /** URL-safe name for the alias — lowercase letters and numbers, with underscores or dashes in place of spaces. Dashes can't start or end the name or appear twice in a row. Must be unique within its context and is used to build the alias's address. */
+  name: string;
+  /** Human-friendly label for the alias. Defaults to `name`. */
+  display_name?: string;
+  /** ID of the resource that handles calls and messages to this alias. Must reference a resource in your project. Cannot be changed after creation: to point an alias at a different resource, delete it and create a new one. */
+  resource_id: uuid;
+  /** Channels to enable on the alias. At least one is required. Defaults to all three. */
+  channels?: ('audio' | 'messaging' | 'video')[];
+  /** Codecs to enable for calls to the alias. Defaults to none. */
+  codecs?: (
+    | 'OPUS'
+    | 'OPUS@48000H@20I'
+    | 'OPUS@24000H@20I'
+    | 'OPUS@16000H@20I'
+    | 'OPUS@8000H@20I'
+    | 'G722'
+    | 'PCMU'
+    | 'PCMA'
+    | 'G729'
+    | 'VP8'
+    | 'H264'
+  )[];
+  /** Access context to create the alias in. Defaults to `public`. */
+  context?: 'private' | 'public';
+}
 
-export type ListSwmlScriptsResponse = SwmlScriptListResponse[];
+export interface AliasAddressUpdateRequest {
+  /** URL-safe name for the alias — lowercase letters and numbers, with underscores or dashes in place of spaces. Dashes can't start or end the name or appear twice in a row. Must be unique within its context. Keeps the current value when omitted. */
+  name?: string;
+  /** Human-friendly label for the alias. */
+  display_name?: string;
+  /** Channels to enable on the alias. At least one is required. */
+  channels?: ('audio' | 'messaging' | 'video')[];
+  /** Codecs to enable for calls to the alias. */
+  codecs?: (
+    | 'OPUS'
+    | 'OPUS@48000H@20I'
+    | 'OPUS@24000H@20I'
+    | 'OPUS@16000H@20I'
+    | 'OPUS@8000H@20I'
+    | 'G722'
+    | 'PCMU'
+    | 'PCMA'
+    | 'G729'
+    | 'VP8'
+    | 'H264'
+  )[];
+  /** Access context to move the alias to. Only changed when supplied; otherwise the alias stays in its current context. */
+  context?: 'private' | 'public';
+}
+
+export interface SipAddress {
+  /** Unique identifier for the SIP address. */
+  id: uuid;
+  /** The object type. Always `sip`. */
+  type: 'sip';
+  /** ID of the resource this address belongs to. */
+  resource_id: uuid | null;
+  /** URL-safe name for the SIP address. Used to build its SIP URI. */
+  name: string;
+  /** Human-friendly label for the SIP address. Defaults to `name`. */
+  display_name: string;
+  /** The Domain this address is grouped under — for example, `public` for your project's default Domain. */
+  context: string;
+  /** Full SIP URI for this address. */
+  uri: string;
+  /** SIP username used to reach this address. `*` accepts any username. */
+  user: string | null;
+  /** SRTP encryption requirement for calls to this address. */
+  encryption: 'required' | 'optional' | 'forbidden';
+  /** Enabled codecs for calls to this address. */
+  codecs: (
+    | 'OPUS'
+    | 'OPUS@48000H@20I'
+    | 'OPUS@24000H@20I'
+    | 'OPUS@16000H@20I'
+    | 'OPUS@8000H@20I'
+    | 'G722'
+    | 'PCMU'
+    | 'PCMA'
+    | 'G729'
+    | 'VP8'
+    | 'H264'
+  )[];
+  /** Enabled SRTP ciphers for calls to this address. */
+  ciphers: (
+    | 'AEAD_AES_256_GCM_8'
+    | 'AES_256_CM_HMAC_SHA1_80'
+    | 'AES_CM_128_HMAC_SHA1_80'
+    | 'AES_256_CM_HMAC_SHA1_32'
+    | 'AES_CM_128_HMAC_SHA1_32'
+  )[];
+  /** Whether IP authentication is enforced for this address. */
+  ip_auth_enabled: boolean | null;
+  /** Whitelisted IP/CIDR entries used when `ip_auth_enabled` is `true`. */
+  ip_auth: string[] | null;
+  /** ID of the resource that handles inbound calls to this address. */
+  calling_handler_resource_id: uuid | null;
+  /** Date and time when the SIP address was created. */
+  created_at: string;
+  /** Date and time when the SIP address was last updated. */
+  updated_at: string;
+}
+
+export interface SipAddressCreateRequest {
+  /** URL-safe name for the SIP address — lowercase letters, numbers, and hyphens only (no spaces or other special characters). Must be unique within the project and is used to build the address's SIP URI. */
+  name: string;
+  /** SIP username used to reach this address (no spaces). Defaults to `*`, which accepts any username. Together with the address's Domain, must be unique across your SignalWire account. */
+  user?: string;
+  /** ID of the Domain this address should be grouped under. Must exist in your project. Defaults to your project's default Domain. */
+  context_id?: uuid;
+  /** ID of the resource that handles inbound calls to this address. Must reference a resource in the caller's project. */
+  calling_handler_resource_id: uuid;
+  /** Whether to enforce IP authentication for this address. */
+  ip_auth_enabled?: boolean;
+  /** Whitelisted IP/CIDR entries. Required (at least one) when `ip_auth_enabled` is `true`. Maximum 256 entries. */
+  ip_auth?: string[];
+  /** Non-empty subset of enabled codecs. */
+  codecs?: (
+    | 'OPUS'
+    | 'OPUS@48000H@20I'
+    | 'OPUS@24000H@20I'
+    | 'OPUS@16000H@20I'
+    | 'OPUS@8000H@20I'
+    | 'G722'
+    | 'PCMU'
+    | 'PCMA'
+    | 'G729'
+    | 'VP8'
+    | 'H264'
+  )[];
+  /** Non-empty subset of enabled SRTP ciphers. */
+  ciphers?: (
+    | 'AEAD_AES_256_GCM_8'
+    | 'AES_256_CM_HMAC_SHA1_80'
+    | 'AES_CM_128_HMAC_SHA1_80'
+    | 'AES_256_CM_HMAC_SHA1_32'
+    | 'AES_CM_128_HMAC_SHA1_32'
+  )[];
+  /** SRTP encryption requirement for calls to this address. */
+  encryption?: 'required' | 'optional' | 'forbidden';
+  /** Write-only SIP registration password. Never returned in any response. */
+  password?: string;
+}
+
+export interface SipAddressUpdateRequest {
+  /** URL-safe name for the SIP address — lowercase letters, numbers, and hyphens only (no spaces or other special characters). Must be unique within the project. Defaults to the current value when omitted. */
+  name?: string;
+  /** SIP username used to reach this address (no spaces). Together with the address's Domain, must be unique across your SignalWire account. */
+  user?: string;
+  /** ID of the Domain this address should be grouped under. Must exist in your project. Defaults to the address's current Domain when omitted. */
+  context_id?: uuid;
+  /** Whether to enforce IP authentication for this address. */
+  ip_auth_enabled?: boolean;
+  /** Whitelisted IP/CIDR entries. Required (at least one) when `ip_auth_enabled` is `true`. Maximum 256 entries. */
+  ip_auth?: string[];
+  /** Non-empty subset of enabled codecs. */
+  codecs?: (
+    | 'OPUS'
+    | 'OPUS@48000H@20I'
+    | 'OPUS@24000H@20I'
+    | 'OPUS@16000H@20I'
+    | 'OPUS@8000H@20I'
+    | 'G722'
+    | 'PCMU'
+    | 'PCMA'
+    | 'G729'
+    | 'VP8'
+    | 'H264'
+  )[];
+  /** Non-empty subset of enabled SRTP ciphers. */
+  ciphers?: (
+    | 'AEAD_AES_256_GCM_8'
+    | 'AES_256_CM_HMAC_SHA1_80'
+    | 'AES_CM_128_HMAC_SHA1_80'
+    | 'AES_256_CM_HMAC_SHA1_32'
+    | 'AES_CM_128_HMAC_SHA1_32'
+  )[];
+  /** SRTP encryption requirement for calls to this address. */
+  encryption?: 'required' | 'optional' | 'forbidden';
+  /** Write-only SIP registration password. Never returned in any response. */
+  password?: string;
+}
+
+export interface PhoneNumberAddress {
+  /** Unique identifier for the phone number address. */
+  id: uuid;
+  /** The object type. Always `phone`. */
+  type: 'phone';
+  /** The channel this address represents: `calling` for inbound calls or `messaging` for inbound messages. A phone number has one address per channel. */
+  handler_type: 'calling' | 'messaging';
+  /** ID of the resource that handles this channel. `null` when no resource is assigned. */
+  resource_id: uuid | null;
+  /** Name of the phone number address. */
+  name: string;
+  /** The phone number in E.164 format. */
+  phone_number: string | null;
+  /** ID of the phone number this address belongs to. */
+  phone_number_id: uuid;
+  /** Date and time when the phone number address was created. */
+  created_at: string;
+  /** Date and time when the phone number address was last updated. */
+  updated_at: string;
+}
+
+export interface PhoneNumberAddressCreateRequest {
+  /** ID of a phone number your project owns. Provide this or `number`. */
+  phone_number_id?: uuid;
+  /** A phone number your project owns, in E.164 format. Other common formats are accepted and normalized to E.164. Provide this or `phone_number_id`. */
+  number?: string;
+  /** ID of the resource that should handle the channel. Must be a resource in your project of a type that can handle the chosen channel — for example, only messaging-capable resources can handle `messaging`. */
+  resource_id: uuid;
+  /** The channel to link the resource to: `calling` for inbound calls or `messaging` for inbound messages. The channel must not already have a resource assigned. */
+  handler_type: 'calling' | 'messaging';
+}
+
+export interface PhoneNumberAddressUpdateRequest {
+  /** New name for the phone number address — lowercase letters, numbers, underscores, and hyphens only (no spaces or other special characters), up to 256 characters. Also renames the phone number. Defaults to the current value when omitted. */
+  name?: string;
+  /** ID of the resource that should handle the channel from now on. Must be a resource in your project of a type that can handle the address's channel. Defaults to the current value when omitted. */
+  resource_id?: uuid;
+}
+
+export interface AliasAddressListResponse {
+  /** Pagination links for the response. */
+  links: FabricAddressPaginationResponse;
+  /** The number of alias addresses in this page of results. */
+  items_count: number;
+  /** An array of alias address objects. */
+  data: AliasAddress[];
+}
+
+export interface SipAddressListResponse {
+  /** Pagination links for the response. */
+  links: FabricAddressPaginationResponse;
+  /** The number of SIP addresses in this page of results. */
+  items_count: number;
+  /** An array of SIP address objects. */
+  data: SipAddress[];
+}
+
+export interface PhoneNumberAddressListResponse {
+  /** Pagination links for the response. */
+  links: FabricAddressPaginationResponse;
+  /** The number of phone number addresses in this page of results. */
+  items_count: number;
+  /** An array of phone number address objects. */
+  data: PhoneNumberAddress[];
+}
+
+export interface WhatsappNumberAssignRequest {
+  /** The SignalWire ID of the WhatsApp number, as returned by [List WhatsApp numbers](/docs/apis/rest/whatsapp/list-whatsapp-numbers). */
+  whatsapp_number_id: uuid;
+  /** Whether the Resource handles the number's `calling` or `messaging` traffic. */
+  handler: UsedForType;
+}
+
+/** The Address created for the WhatsApp number on the Resource. Its `type` is `app` for most handlers, `room` for a Video Room, and `call` for a Resource that connects the call to a SIP endpoint or connector. */
+export interface WhatsappNumberAddressResponse {
+  id: uuid;
+  resource_id: uuid | null;
+  name: string;
+  display_name: string;
+  type: 'app' | 'call' | 'room';
+  cover_url: string | null;
+  preview_url: string | null;
+  locked: boolean;
+  channels:
+    | {
+        audio: string;
+      }
+    | {
+        messaging: string;
+      };
+}
+
+export interface Step {
+  end?: boolean | string;
+  functions?: unknown[];
+  gather_info?: Record<string, unknown>;
+  history?: string;
+  name?: string;
+  pom?: PromptPomSection[];
+  reset?: Record<string, unknown>;
+  skip_to_next_step?: boolean | string;
+  skip_user_turn?: boolean | string;
+  step_criteria?: string;
+  text?: string;
+  valid_contexts?: string[];
+  valid_steps?: string[];
+}
+
+/** Without one of `body` / `bullets` / `subsections`, the object has no effect: it is accepted and ignored, not rejected. */
+export interface PromptPomSection {
+  title?: string;
+  body?: string;
+  bullets?: string[];
+  numbered?: boolean;
+  numberedBullets?: boolean;
+  subsections?: PromptPomSection[];
+  [key: string]: unknown;
+}
+
+/** Without `append`, `input_key` and `output_key`, a Foreach has no effect: it is accepted and ignored, not rejected. */
+export interface Foreach {
+  append?: string;
+  input_key?: string;
+  max?: number | string;
+  output_key?: string;
+}
+
+export interface Context {
+  consolidate?: boolean | string;
+  enter_fillers?: Record<string, unknown>;
+  exit_fillers?: Record<string, unknown>;
+  full_reset?: boolean | string;
+  history?: string;
+  initial_step?: string;
+  isolated?: boolean | string;
+  pom?: PromptPomSection[];
+  post_prompt?: Record<string, unknown>;
+  prompt?: string;
+  reset?: unknown[] | boolean | null | number | Record<string, unknown> | string;
+  steps?: Step[];
+  system_prompt?: string;
+  user_prompt?: string;
+  valid_contexts?: unknown[];
+  valid_steps?: unknown[];
+}
+
+/** Defines the AI agent's personality, goals, behaviors, and instructions for handling conversations. */
+export interface AIAgentPrompt {
+  contexts?: Contexts;
+  frequency_penalty?: number | string;
+  max_completion_tokens?: number;
+  max_tokens?: number;
+  model?: string;
+  pom?: {
+    title?: string;
+    body?: string;
+    bullets?: unknown[];
+    numbered?: boolean;
+    numberedBullets?: boolean;
+    subsections?: unknown[];
+  }[];
+  presence_penalty?: number | string;
+  reasoning_effort?: string;
+  steps?: Step[];
+  temperature?: number | string;
+  text?: string;
+  top_p?: number | string;
+  verbosity?: string;
+}
+
+/** The final set of instructions and configuration settings to send to the agent. */
+export interface AIAgentPostPrompt {
+  frequency_penalty?: number | string;
+  max_completion_tokens?: number;
+  max_tokens?: number;
+  model?: string;
+  pom?: POM[];
+  presence_penalty?: number | string;
+  reasoning_effort?: string;
+  temperature?: number | string;
+  text?: string;
+  top_p?: number | string;
+  verbosity?: string;
+}
+
+/** Without one of `data_map` / `web_hook_url`, one of `description` / `purpose` and `function`, the element has no effect: it is accepted and ignored, not rejected. */
+export interface AIAgentSWAIGFunction {
+  description?: string;
+  /** A `false` is dropped before storage (blank values are removed), so the function stays active; remove the function to disable it. */
+  active?: boolean | number | string;
+  /** The function's arguments as a JSON Schema object. prime-rails rebuilds it before storing, keeping only `type`, `description`, `enum` and `default` of each property and the `required` list; any other keyword is dropped. */
+  argument?: {
+    type?: 'object';
+    properties?: Record<
+      string,
+      {
+        type?: string;
+        description?: string;
+        enum?: unknown[] | string;
+        default?: Record<string, unknown>;
+      }
+    >;
+    required?: string[];
+  };
+  data_map?: DataMap;
+  fillers?: FunctionFillers;
+  function?: string;
+  meta_data?: Record<string, unknown>;
+  meta_data_token?: string;
+  parameters?: FunctionParameters;
+  purpose?: string;
+  skip_fillers?: boolean | string;
+  wait_file?: string;
+  wait_file_loops?: number | string;
+  wait_for_fillers?: boolean | string;
+  web_hook_auth_pass?: string;
+  web_hook_auth_password?: string;
+  web_hook_auth_user?: string;
+  web_hook_url?: string;
+  /** Identifier of the function entry. */
+  id?: string;
+  /** Request-only alternative to `argument`, a list of arguments; stored as `argument`. Sending both is rejected. */
+  arguments?: {
+    name?: string;
+    description?: string;
+    required?: 'true' | 'false';
+    enum?: unknown[] | string;
+    default?: Record<string, unknown>;
+    type?: string;
+  }[];
+}
+
+/** Without `replace` and `with`, the element has no effect: it is accepted and ignored, not rejected. */
+export interface AIAgentPronounce {
+  /** Identifier of the pronunciation entry. */
+  id?: string;
+  replace?: string;
+  with?: string;
+  /** Request-only spelling of `with`; stored and returned as `with`. */
+  replace_with?: string;
+  ignore_case?: boolean | number | string;
+}
+
+export type ListAiAgentVoicesResponse = AIAgentVoice[];

@@ -92,11 +92,10 @@ const JOKE_TYPES = ['jokes', 'dadjokes'] as const;
  * Tells random jokes from a curated built-in collection.
  *
  * Tier 1 built-in skill with no external dependencies. The SWAIG tool
- * *interface* matches the Python reference (`get_joke` tool, required `type`
- * parameter with enum `jokes` / `dadjokes`); the implementation differs by
- * design — Python calls the API-Ninjas joke API, this SDK serves from a
- * built-in offline collection (so it needs no API key). `dadjokes` returns a
- * dad joke; `jokes` returns a general/programming joke.
+ * *interface* is a `get_joke` tool with a required `type` parameter, enum
+ * `jokes` / `dadjokes`. Jokes are served from a built-in OFFLINE collection —
+ * no joke API is called and no API key is needed. `dadjokes` returns a dad
+ * joke; `jokes` returns a general/programming joke.
  *
  * @example
  * ```ts
@@ -125,17 +124,17 @@ export class JokeSkill extends SkillBase {
   }
 
   /**
-   * Signal to the agent prompt that the joke skill is active. Matches the
-   * Python SDK: `get_global_data` returns `{"joke_skill_enabled": true}`.
+   * Signal to the agent prompt that the joke skill is active: returns
+   * `{"joke_skill_enabled": true}`.
    */
   override getGlobalData(): Record<string, unknown> {
     return { joke_skill_enabled: true };
   }
 
   /**
-   * @returns A single `get_joke` tool (configurable name). The interface
-   *   matches Python (`joke/skill.py:68-77`): a required `type` parameter with
-   *   enum `jokes` / `dadjokes`. Served from the offline collection.
+   * @returns A single `get_joke` tool (configurable name), taking a required
+   *   `type` parameter with enum `jokes` / `dadjokes`. Served from the offline
+   *   collection.
    */
   getTools(): SkillToolDefinition[] {
     const toolName = this.getConfig<string>('tool_name', 'get_joke');

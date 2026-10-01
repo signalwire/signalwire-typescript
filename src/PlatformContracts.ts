@@ -1,25 +1,16 @@
 /**
- * Platform contract types — the dynamic-SWML request body the backend POSTs to a
- * SWML request handler, and the error body the Compatibility REST API returns.
+ * Platform contract types — the request body the SignalWire engine POSTs to a
+ * dynamic-SWML request handler.
  *
- * These are generated from the SignalWire SWML webhook contract (a faithful
- * transcription of the documented SWML request/response shapes and the
- * Compatibility REST error body).
- * This file is a thin barrel re-exporting the generated types so every consumer
- * keeps a stable `./PlatformContracts.js` import path; regenerate via
- * `npx tsx scripts/generate-rest-types.ts`. Do not hand-edit the shapes here —
- * edit the spec and regenerate.
+ * Generated from the SWML webhook request contract, which is derived from the
+ * SignalWire engine's own request builder.
+ * `SwmlRequestCall` is the union of the call object's per-device-type variants
+ * (phone / sip / webrtc / other). This file is a thin barrel re-exporting the
+ * generated types so every consumer keeps a stable `./PlatformContracts.js` import
+ * path; regenerate via `npx tsx scripts/generate-swml-verbs.ts`. Do not hand-edit
+ * the shapes here.
  *
- * NOTE: the SWAIG payloads (function-request + post-prompt) are NOT re-exported
- * here — they now come from the AUTHORITATIVE mod_openai engine specs via
- * `./SwaigContracts.js` (SwaigRequest / PostPrompt), matching the Python
- * reference. The swml-webhooks spec's own SwaigRequestData / PostPromptData* are
- * the superseded non-authoritative derivatives (see SwaigContracts.generated.ts);
- * they remain in PlatformContracts.generated.ts only until the SWAIG schemas are
- * dropped from the shared swml-webhooks spec (a coupled cross-port spec change).
+ * NOTE: the SWAIG payloads (function-request + post-prompt) come from the
+ * mod_openai engine specs via `./SwaigContracts.js` (SwaigRequest / PostPrompt).
  */
-export type {
-  SwmlRequestData,
-  SwmlRequestCall,
-  SignalWireErrorBody,
-} from './PlatformContracts.generated.js';
+export type { SwmlRequestData, SwmlRequestCall } from './PlatformContracts.generated.js';

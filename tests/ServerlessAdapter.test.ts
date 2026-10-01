@@ -104,6 +104,80 @@ describe('ServerlessAdapter', () => {
     expect(response.statusCode).toBe(200);
   });
 
+  // The SWAIG `__token` rides the QUERY STRING, and AWS HTTP API v2 may deliver
+  // the query as the raw `rawQueryString` with NO parsed `queryStringParameters`.
+  // Reading only the parsed mapping dropped the query on that shape, so a
+  // genuinely-credentialed call arrived looking untokened and the secure-tool
+  // check refused it. These three pin the full contract: a real token is accepted
+  // through EITHER carry, and a forged one is still refused through the raw carry
+  // (so the fix cannot regress into accepting anything that merely shows up).
+  const secureAgent = () => {
+    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+    agent.defineTool({
+      name: 'say_hello',
+      description: 'greet',
+      parameters: {},
+      handler: () => new FunctionResult('hello there'),
+    });
+    return agent;
+  };
+  const swaigBody = '{"function":"say_hello","argument":{"parsed":[{}]},"call_id":"c1"}';
+  const authHeader = 'Basic ' + Buffer.from('u:p').toString('base64');
+  const ranHandler = (response: { body?: unknown }) => {
+    const body = typeof response.body === 'string' ? response.body : JSON.stringify(response.body);
+    return body.includes('hello there');
+  };
+
+  it('carries a valid __token via the parsed queryStringParameters mapping', async () => {
+    const agent = secureAgent();
+    const token = agent.createToolToken('say_hello', 'c1');
+    const response = await agent.runServerless(
+      {
+        rawPath: '/swaig',
+        httpMethod: 'POST',
+        headers: { authorization: authHeader, 'content-type': 'application/json' },
+        queryStringParameters: { __token: token },
+        body: swaigBody,
+      } as never,
+      undefined,
+      'lambda',
+    );
+    expect(ranHandler(response as { body?: unknown })).toBe(true);
+  });
+
+  it('carries a valid __token via rawQueryString when no parsed mapping is present', async () => {
+    const agent = secureAgent();
+    const token = agent.createToolToken('say_hello', 'c1');
+    const response = await agent.runServerless(
+      {
+        rawPath: '/swaig',
+        httpMethod: 'POST',
+        headers: { authorization: authHeader, 'content-type': 'application/json' },
+        rawQueryString: `__token=${token}`,
+        body: swaigBody,
+      } as never,
+      undefined,
+      'lambda',
+    );
+    expect(ranHandler(response as { body?: unknown })).toBe(true);
+  });
+
+  it('still refuses a FORGED token carried via rawQueryString', async () => {
+    const agent = secureAgent();
+    const response = await agent.runServerless(
+      {
+        rawPath: '/swaig',
+        httpMethod: 'POST',
+        headers: { authorization: authHeader, 'content-type': 'application/json' },
+        rawQueryString: '__token=forged-not-real',
+        body: swaigBody,
+      } as never,
+      undefined,
+      'lambda',
+    );
+    expect(ranHandler(response as { body?: unknown })).toBe(false);
+  });
+
   it('generateUrl produces Lambda URL', () => {
     const adapter = new ServerlessAdapter('lambda');
     const url = adapter.generateUrl({ region: 'us-west-2', apiId: 'abc123', stage: 'dev' });

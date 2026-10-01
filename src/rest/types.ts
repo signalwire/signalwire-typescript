@@ -12,6 +12,12 @@ export interface ClientOptions {
   token?: string;
   /** SignalWire space host (e.g. "example.signalwire.com"). Falls back to SIGNALWIRE_SPACE env var. */
   host?: string;
+  /**
+   * A user's Personal Access Token (`pat_...`), which authenticates `client.space`
+   * (the Space Administration API) — HTTP Basic with an empty username. Falls back
+   * to the SIGNALWIRE_PERSONAL_ACCESS_TOKEN env var.
+   */
+  personalAccessToken?: string;
   /** Custom fetch implementation for testing. */
   fetchImpl?: typeof globalThis.fetch;
   /**
@@ -27,12 +33,11 @@ export interface HttpClientOptions {
   /**
    * Base URL (e.g. "https://example.signalwire.com").
    * Either `baseUrl` or `host` must be provided. If both are given, `host` takes precedence
-   * (matching the Python SDK convention where `host` is the canonical parameter).
+   * — `host` is the canonical parameter.
    */
   baseUrl?: string;
   /**
-   * Bare hostname (e.g. "example.signalwire.com"). `https://` is prepended automatically,
-   * matching the Python SDK's `HttpClient(project, token, host)` convention.
+   * Bare hostname (e.g. "example.signalwire.com"). `https://` is prepended automatically.
    */
   host?: string;
   /** Project ID for Basic Auth username. */

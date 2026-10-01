@@ -1,7 +1,7 @@
 /**
  * DataSphere Skill - Searches SignalWire DataSphere for knowledge base content.
  *
- * Tier 3 built-in skill matching the Python SDK. All credentials (`space_name`,
+ * Tier 3 built-in skill. All credentials (`space_name`,
  * `project_id`, `token`) and `document_id` are supplied via skill params. Env
  * var fallbacks (`SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`, `SIGNALWIRE_SPACE`)
  * are honored when the corresponding param is not set.
@@ -162,9 +162,8 @@ export class DataSphereSkill extends SkillBase {
   }
 
   /**
-   * Instance key for the SkillManager. Defaults to `datasphere_search_knowledge`,
-   * matching the Python SDK default. When `tool_name` is set, uses
-   * `datasphere_<tool_name>`.
+   * Instance key for the SkillManager. Defaults to `datasphere_search_knowledge`.
+   * When `tool_name` is set, uses `datasphere_<tool_name>`.
    */
   override getInstanceKey(): string {
     const toolName = this.getConfig<string>('tool_name', 'search_knowledge');
@@ -172,9 +171,9 @@ export class DataSphereSkill extends SkillBase {
   }
 
   /**
-   * Global data injected into the agent's SWML context. Matches Python's
-   * `get_global_data()` so downstream consumers can detect DataSphere
-   * availability, the configured `document_id`, and the knowledge provider.
+   * Global data injected into the agent's SWML context, so downstream consumers
+   * can detect DataSphere availability, the configured `document_id`, and the
+   * knowledge provider.
    */
   override getGlobalData(): Record<string, unknown> {
     return {
@@ -187,9 +186,8 @@ export class DataSphereSkill extends SkillBase {
   /**
    * Validate required credentials before the skill becomes active.
    *
-   * Mirrors Python skills/datasphere/skill.py:120-128: `setup()` returns false
-   * when any of `space_name`, `project_id`, `token`, or `document_id` is
-   * missing from either config or env. Fails closed so SkillManager refuses
+   * Returns false when any of `space_name`, `project_id`, `token`, or
+   * `document_id` is missing from both config and env. Fails closed so SkillManager refuses
    * to register a skill that would break at call time.
    */
   override async setup(): Promise<boolean> {
@@ -214,7 +212,7 @@ export class DataSphereSkill extends SkillBase {
     return true;
   }
 
-  /** Resolve the tool name (defaults to `search_knowledge`, matching Python SDK). */
+  /** Resolve the tool name (defaults to `search_knowledge`). */
   private getToolName(): string {
     return this.getConfig<string>('tool_name', 'search_knowledge');
   }

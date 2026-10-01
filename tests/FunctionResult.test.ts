@@ -108,6 +108,12 @@ describe('FunctionResult', () => {
     expect(acts[3]).toEqual({ stop_playback_bg: true });
   });
 
+  it('changeVoice emits the change_voice action with the voice spec', () => {
+    const acts = new FunctionResult('ok').changeVoice('elevenlabs.rachel').toDict()
+      .action as Record<string, unknown>[];
+    expect(acts).toEqual([{ change_voice: 'elevenlabs.rachel' }]);
+  });
+
   it('speech hints', () => {
     const r = new FunctionResult('ok')
       .addDynamicHints(['word1', { pattern: 'w', replace: 'W' }])

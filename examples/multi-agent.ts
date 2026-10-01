@@ -74,7 +74,9 @@ sales.defineTool({
 });
 
 // --- Server ---
-const server = new AgentServer({ port: 3000 });
+// Fall back to the PORT env var (used by CI / the EXAMPLES-RUN harness) and
+// finally to 3000 for local interactive use.
+const server = new AgentServer({ port: parseInt(process.env['PORT'] ?? '3000', 10) });
 server.register(support);
 server.register(sales);
 server.run();

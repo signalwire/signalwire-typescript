@@ -94,7 +94,7 @@ describe('projects wire (generated)', () => {
   });
 
   it('projects_update success', async () => {
-    await client.projects.update('x', { name: 'x' });
+    await client.projects.update('x', {});
     const last = await mock.last();
     expect(last.method).toBe('PATCH');
     expect(last.matched_route).toBe('projects.update_project');
@@ -102,7 +102,7 @@ describe('projects wire (generated)', () => {
 
   it('projects_update error', async () => {
     await mock.pushScenario('projects.update_project', 500, { error: 'x' });
-    await expect(client.projects.update('x', { name: 'x' })).rejects.toThrow(RestError);
+    await expect(client.projects.update('x', {})).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });

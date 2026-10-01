@@ -364,7 +364,8 @@ renderSwml(callId?, modifications?)
   |              and contexts, if contexts are defined
   |      post_prompt, post_prompt_url
   |      SWAIG, hints, languages, multilingual, pronounce, params, global_data
-  |      debug_webhook_url, debug_webhook_level, if debug events are on
+  |      params also carries debug_webhook_url and debug_webhook_level,
+  |        if debug events are on
   |      modifications from onSwmlRequest: global_data merged, other keys replaced
   |-- PHASE 5: post-AI verbs (addPostAiVerb)
   |
@@ -843,4 +844,4 @@ agent.setPostPromptUrl('https://custom-endpoint.example.com/post_prompt');
 agent.enableDebugEvents(2);
 ```
 
-The SWML then has `debug_webhook_url` (the agent's `/debug_events`) and `debug_webhook_level` in the `ai` verb. Each `POST /debug_events` calls `onDebugEvent()`.
+The SWML then has `debug_webhook_url` (the agent's `/debug_events`) and `debug_webhook_level` in the `ai` verb's `params`. Each `POST /debug_events` calls `onDebugEvent()`.

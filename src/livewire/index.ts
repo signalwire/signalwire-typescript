@@ -1098,7 +1098,7 @@ export class ServerOptions {
  *   cli.runApp(server);
  */
 export class AgentServer {
-  /** Optional prewarm hook, called before the entry function. Mirrors Python's `setup_fnc`. */
+  /** Optional prewarm hook, called before the entry function. */
   setupFnc?: (proc: JobProcess) => void;
 
   /** @internal Registered entrypoint function. */

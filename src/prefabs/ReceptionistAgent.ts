@@ -2,9 +2,7 @@
  * ReceptionistAgent - Prefab agent that greets callers, collects basic info,
  * and transfers them to the appropriate department.
  *
- * Ported from the Python SDK `signalwire.prefabs.receptionist.ReceptionistAgent`.
- * Preserves TS-specific enhancements (`companyName`, visitor check-in) as
- * additive features.
+ * Supports a configurable `companyName` and optional visitor check-in.
  */
 
 import { AgentBase } from '../AgentBase.js';
@@ -231,9 +229,8 @@ export class ReceptionistAgent extends AgentBase {
   // ── Tool registration ─────────────────────────────────────────────────
 
   /**
-   * Register the `collect_caller_info` and `transfer_call` SWAIG tools
-   * (matching the Python SDK). When `checkInEnabled` is `true`, also registers the
-   * TS-specific `check_in_visitor` tool.
+   * Register the `collect_caller_info` and `transfer_call` SWAIG tools.
+   * When `checkInEnabled` is `true`, also registers the `check_in_visitor` tool.
    */
   protected override defineTools(): void {
     // Tool: collect_caller_info (Python parity)
@@ -372,9 +369,8 @@ export class ReceptionistAgent extends AgentBase {
   // ── Lifecycle hooks ───────────────────────────────────────────────────
 
   /**
-   * Python-style receptionist summary hook; subclasses may override to
-   * persist the summary. Mirrors Python `on_summary` (receptionist.py lines
-   * 278-287), which does nothing.
+   * Receptionist summary hook; subclasses may override to persist the
+   * summary. By default it stores nothing.
    *
    * The summary marks the end of the call, so this drops the call's check-in
    * state. A subclass that overrides this hook should call

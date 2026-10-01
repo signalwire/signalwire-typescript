@@ -471,6 +471,24 @@ export class FunctionResult {
     return this.addAction('stop_playback_bg', true);
   }
 
+  /**
+   * Change the agent's voice for the rest of the call.
+   *
+   * The voice is an `engine.voice:model` spec — the same form a language's voice
+   * takes in the SWML `languages` list (e.g. `"elevenlabs.rachel"`); the
+   * `engine.` prefix and the `:model` suffix are optional. It replaces the voice
+   * of the language currently in use, and switching to a voice on a different
+   * TTS engine is allowed. The platform applies it at the next speech batch
+   * boundary (never mid-utterance), and it then persists for that language for
+   * the rest of the call. If the new voice cannot be opened, the platform falls
+   * back to its fallback voice. An empty spec is ignored.
+   * @param voice - Voice spec in `engine.voice:model` form.
+   * @returns This instance for chaining.
+   */
+  changeVoice(voice: string): this {
+    return this.addAction('change_voice', voice);
+  }
+
   // ── Speech ──────────────────────────────────────────────────────────
 
   /**

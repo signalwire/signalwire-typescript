@@ -52,32 +52,32 @@ describe('FabricNamespace', () => {
   });
 
   describe('Call Flows', () => {
-    it('uses singular call_flow for addresses', async () => {
+    it('uses plural call_flows for addresses', async () => {
       const { fabric, getRequests } = setup();
       await fabric.callFlows.listAddresses('cf1');
-      expect(getRequests()[0]!.url).toContain('/api/fabric/resources/call_flow/cf1/addresses');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/resources/call_flows/cf1/addresses');
     });
 
     it('lists versions', async () => {
       const { fabric, getRequests } = setup();
       await fabric.callFlows.listVersions('cf1');
-      expect(getRequests()[0]!.url).toContain('/api/fabric/resources/call_flow/cf1/versions');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/resources/call_flows/cf1/versions');
     });
 
     it('deploys a version', async () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { version: 2 } }]);
       await fabric.callFlows.deployVersion('cf1', { document_version: 2 });
       expect(getRequests()[0]!.method).toBe('POST');
-      expect(getRequests()[0]!.url).toContain('/api/fabric/resources/call_flow/cf1/versions');
+      expect(getRequests()[0]!.url).toContain('/api/fabric/resources/call_flows/cf1/versions');
     });
   });
 
   describe('Conference Rooms', () => {
-    it('uses singular conference_room for addresses', async () => {
+    it('uses plural conference_rooms for addresses', async () => {
       const { fabric, getRequests } = setup();
       await fabric.conferenceRooms.listAddresses('cr1');
       expect(getRequests()[0]!.url).toContain(
-        '/api/fabric/resources/conference_room/cr1/addresses',
+        '/api/fabric/resources/conference_rooms/cr1/addresses',
       );
     });
   });
@@ -241,12 +241,6 @@ describe('FabricNamespace', () => {
       const { fabric, getRequests } = setup([{ status: 200, body: { token: 'xxx' } }]);
       await fabric.tokens.refreshSubscriberToken('old');
       expect(getRequests()[0]!.url).toContain('/api/fabric/subscribers/tokens/refresh');
-    });
-
-    it('creates invite token', async () => {
-      const { fabric, getRequests } = setup([{ status: 200, body: {} }]);
-      await fabric.tokens.createInviteToken('addr-1');
-      expect(getRequests()[0]!.url).toContain('/api/fabric/subscriber/invites');
     });
 
     it('creates guest token', async () => {

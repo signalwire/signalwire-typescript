@@ -1,4 +1,4 @@
-// AUTO-GENERATED from porting-sdk/rest-apis/voice/openapi.yaml — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/rest-apis/voice/openapi.enriched.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-rest-types.ts
 //
 // Held to the same lint bar as hand-written source (no rule suppressions, no
@@ -102,7 +102,7 @@ export interface LogListResponse {
   /** Pagination links */
   links: LogPaginationResponse;
   /** Array of voice log entries */
-  data: VoiceLog[];
+  data: VoiceLogListItem[];
 }
 
 /** Pagination links for voice log list responses */
@@ -117,7 +117,7 @@ export interface LogPaginationResponse {
   prev?: string;
 }
 
-/** Voice log for Compatibility and Relay call types. Returned when `type` is `laml_call`, `relay_pstn_call`, `relay_sip_call`, or `relay_webrtc_call`. */
+/** Voice log for cXML and Relay call types. Returned when `type` is `laml_call`, `relay_pstn_call`, `relay_sip_call`, or `relay_webrtc_call`. */
 export interface RelayVoiceLog {
   /** A unique identifier for the log. */
   id: uuid;
@@ -149,6 +149,44 @@ export interface RelayVoiceLog {
   billing_ms: number | null;
   /** Parent log identifier for related call entries. */
   parent_id: string | null;
+  /** Inbound audio MOS (mean opinion score), as a decimal string. cXML (`laml_call`) calls only. */
+  audio_in_mos?: string | null;
+  /** Minimum inbound audio jitter variance. cXML (`laml_call`) calls only. */
+  audio_in_jitter_min?: number | string | null;
+  /** Maximum inbound audio jitter variance. cXML (`laml_call`) calls only. */
+  audio_in_jitter_max?: number | string | null;
+  /** Minimum outbound audio jitter. cXML (`laml_call`) calls only. */
+  audio_out_jitter_min?: number | string | null;
+  /** Maximum outbound audio jitter. cXML (`laml_call`) calls only. */
+  audio_out_jitter_max?: number | string | null;
+  /** Average outbound audio jitter. cXML (`laml_call`) calls only. */
+  audio_out_jitter_avg?: number | string | null;
+  /** Average audio round-trip time. cXML (`laml_call`) calls only. */
+  audio_rtt_avg?: number | string | null;
+  /** Minimum audio round-trip time. cXML (`laml_call`) calls only. */
+  audio_rtt_min?: number | string | null;
+  /** Maximum audio round-trip time. cXML (`laml_call`) calls only. */
+  audio_rtt_max?: number | string | null;
+  /** Inbound audio media packet count. cXML (`laml_call`) calls only. */
+  audio_in_media_packet_count?: number | string | null;
+  /** Outbound audio packet count. cXML (`laml_call`) calls only. */
+  audio_out_packet_count?: number | string | null;
+  /** Outbound audio media packet count. cXML (`laml_call`) calls only. */
+  audio_out_media_packet_count?: number | string | null;
+  /** Outbound audio packets lost. cXML (`laml_call`) calls only. */
+  audio_out_lost?: number | string | null;
+  /** Inbound audio mean packet interval (average ptime). cXML (`laml_call`) calls only. */
+  audio_in_mean_interval?: number | string | null;
+  /** Inbound DTMF packet count. cXML (`laml_call`) calls only. */
+  audio_in_dtmf_packet_count?: number | string | null;
+  /** Outbound DTMF packet count. cXML (`laml_call`) calls only. */
+  audio_out_dtmf_packet_count?: number | string | null;
+  /** Inbound skipped packet count. cXML (`laml_call`) calls only. */
+  audio_in_skip_packet_count?: number | string | null;
+  /** Inbound flushed packet count. cXML (`laml_call`) calls only. */
+  audio_in_flush_packet_count?: number | string | null;
+  /** Largest inbound jitter buffer size. cXML (`laml_call`) calls only. */
+  audio_in_largest_jb_size?: number | string | null;
 }
 
 export type RelayVoiceType =
@@ -231,6 +269,10 @@ export type VoiceDirection = 'inbound' | 'outbound' | 'outbound-api' | 'outbound
 /** A voice log entry. The specific fields present depend on the `type` value. Discarded logs return only `id`, `discarded_at`, and `created_at`. */
 export type VoiceLog =
   RelayVoiceLog | VideoRoomVoiceLog | DialogflowVoiceLog | FabricVoiceLog | DiscardedVoiceLog;
+
+/** A voice log entry in a list. The specific fields present depend on the `type` value. */
+export type VoiceLogListItem =
+  RelayVoiceLog | VideoRoomVoiceLog | DialogflowVoiceLog | FabricVoiceLog;
 
 export type VoiceLogStatus =
   | 'queued'

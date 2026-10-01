@@ -1,9 +1,27 @@
-import type { SignalWireErrorBody } from '../PlatformContracts.js';
+import type { Types_StatusCodes_StatusCode422 } from './namespaces/voice.types.generated.js';
+import type { Types_StatusCodes_ValidationError } from './namespaces/relay-rest.types.generated.js';
+
+/**
+ * A non-2xx response body: the raw text when it is not JSON, otherwise the parsed
+ * JSON value. The REST specs declare three error shapes — `{error: '<reason
+ * phrase>'}` (400/401/403/404/500), `{errors: RestApiErrorItem[]}` (422), and
+ * relay-rest's `{errors: SpaceApiErrorItem[]}` — but the body is not validated
+ * against them, so any other JSON value the server sends is kept as-is.
+ */
+type RestErrorBody =
+  | string
+  | Types_StatusCodes_StatusCode422
+  | Types_StatusCodes_ValidationError
+  | { error: string }
+  | { [key: string]: unknown }
+  | unknown[]
+  | number
+  | boolean
+  | null;
 
 /**
  * Header names SignalWire (and common proxies) use for the platform request id,
- * in preference order. Matched case-insensitively. Mirrors the python reference
- * `SignalWireRestError._REQUEST_ID_HEADERS`.
+ * in preference order. Matched case-insensitively.
  */
 const REQUEST_ID_HEADERS = [
   'x-request-id',
@@ -32,9 +50,8 @@ function extractRequestId(headers: Record<string, string> | null): string | null
 /**
  * Custom error class for REST API errors.
  *
- * `body` may be a parsed JSON object (when the server returned valid JSON)
- * or a plain string (when JSON parsing failed), matching the Python SDK's
- * `SignalWireRestError` behavior.
+ * `body` is the parsed JSON value (when the server returned valid JSON)
+ * or a plain string (when JSON parsing failed).
  */
 export class RestError extends Error {
   /**
@@ -48,11 +65,12 @@ export class RestError extends Error {
    */
   readonly statusCode: number | null;
   /**
-   * Parsed response body. An object when the server returned valid JSON,
-   * otherwise the raw response text as a string. For a transport failure it is
+   * Parsed response body: the parsed JSON value when the server returned JSON
+   * (normally one of the REST specs' `{errors: [...]}` envelopes), otherwise the
+   * raw response text as a string. For a transport failure it is
    * the underlying transport error message.
    */
-  readonly body: string | SignalWireErrorBody;
+  readonly body: RestErrorBody;
   /** Fully-qualified URL that produced the error. */
   readonly url: string;
   /** HTTP method that produced the error (`GET`, `POST`, etc.). */
@@ -60,22 +78,22 @@ export class RestError extends Error {
   /**
    * Response header map captured from the failed HTTP response, or `null` for a
    * transport failure that produced no response. Client-side observability with
-   * no wire-contract change — mirrors the python reference `SignalWireRestError.headers`.
+   * no wire-contract change.
    */
   readonly headers: Record<string, string> | null;
   /**
    * The platform request id pulled from {@link headers} (`x-request-id` /
    * `x-signalwire-request-id` / `request-id` / `x-amzn-requestid`, case-insensitive,
    * in that precedence), or `null` if absent. Log/correlate a failure against
-   * SignalWire's own request id — mirrors the python reference `request_id`.
+   * SignalWire's own request id.
    */
   readonly requestId: string | null;
 
   /**
    * @param statusCode - HTTP status code returned by the server, or `null` for
    *   a transport-level failure that never reached a response.
-   * @param body - Response body — an object if JSON-parseable, otherwise the
-   *   raw response text.
+   * @param body - Response body — the parsed JSON value if the server returned
+   *   JSON, otherwise the raw response text.
    * @param url - Fully-qualified URL that produced the error.
    * @param method - HTTP method that produced the error. Defaults to `"GET"`.
    * @param headers - Response header map (for request-id extraction), or `null`
@@ -83,7 +101,7 @@ export class RestError extends Error {
    */
   constructor(
     statusCode: number | null,
-    body: string | SignalWireErrorBody,
+    body: RestErrorBody,
     url: string,
     method: string = 'GET',
     headers: Record<string, string> | null = null,
@@ -128,7 +146,7 @@ export class RestTransportError extends RestError {
   }
 }
 
-/** Alias matching the Python SDK class name. */
+/** Alias under the fully-qualified SignalWire class name. */
 export { RestError as SignalWireRestError };
-/** Alias matching the Python SDK class name. */
+/** Alias under the fully-qualified SignalWire class name. */
 export { RestTransportError as SignalWireRestTransportError };

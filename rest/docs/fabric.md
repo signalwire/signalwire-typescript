@@ -113,7 +113,7 @@ cXML applications support list, get, update and delete. The class has no `create
 ```typescript
 const apps = await client.fabric.cxmlApplications.list();
 const app = await client.fabric.cxmlApplications.get('app-uuid');
-await client.fabric.cxmlApplications.update('app-uuid', { voice_url: 'https://example.com/voice' });
+await client.fabric.cxmlApplications.update('app-uuid', { call_request_url: 'https://example.com/voice' });
 await client.fabric.cxmlApplications.delete('app-uuid');
 ```
 
@@ -181,11 +181,6 @@ const guestToken = await client.fabric.tokens.createGuestToken(
   ['address-uuid-1', 'address-uuid-2'],
   { expire_at: 1767225599 },
 );
-
-// Subscriber invite token; `address_id` is positional
-const inviteToken = await client.fabric.tokens.createInviteToken('address-uuid', {
-  expires_at: 1767225599,
-});
 
 // Click-to-call embed token; the source token is positional
 const embedToken = await client.fabric.tokens.createEmbedToken('embed-source-token');

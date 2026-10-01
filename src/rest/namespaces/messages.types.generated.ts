@@ -1,4 +1,4 @@
-// AUTO-GENERATED from porting-sdk/rest-apis/messages/openapi.yaml — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/rest-apis/messages/openapi.enriched.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-rest-types.ts
 //
 // Held to the same lint bar as hand-written source (no rule suppressions, no
@@ -12,7 +12,45 @@ export interface CreateMessageRequest {
   /** Source phone number. Must be a purchased SignalWire phone number on the project in E.164 format, or a shortcode (5-6 digits). Verified caller IDs are not permitted. */
   from: string;
   /** Message body text. Required if `media` is not provided. Subject to provider-specific character limits. */
-  body?: string;
+  body?:
+    | string
+    | {
+        /** Media ID (image, audio, document, video, sticker). Exactly one of `id` or `link` is required. */
+        id?: string;
+        /** HTTP(S) media URL (image, audio, document, video, sticker). Exactly one of `id` or `link` is required. */
+        link?: string;
+        /** Media caption. Allowed for image, document and video; rejected for audio and sticker. */
+        caption?: string;
+        /** Document filename (document messages). */
+        filename?: string;
+        /** Latitude, -90 to 90 (location messages). */
+        latitude?: number | string;
+        /** Longitude, -180 to 180 (location messages). */
+        longitude?: number | string;
+        /** Location name (location messages, required). */
+        name?: string;
+        /** Location address (location messages, required). */
+        address?: string;
+        /** ID of the message being reacted to (reaction messages, required). */
+        message_id?: string;
+        /** Reaction emoji (reaction messages, required). */
+        emoji?: string;
+        /** Interactive message type (interactive messages, required). */
+        type?: string;
+        /** Interactive message action (interactive messages, required). */
+        action?: Record<string, unknown>;
+        /** Interactive message body (interactive messages). */
+        body?: Record<string, unknown>;
+        /** Interactive message header (interactive messages). */
+        header?: Record<string, unknown>;
+        /** Interactive message footer (interactive messages). */
+        footer?: Record<string, unknown>;
+      }
+    | {
+        name: {
+          formatted_name: string;
+        };
+      }[];
   /** Array of HTTP or HTTPS URLs for media attachments. Presence of media makes the message MMS. Maximum 8 items. */
   media?: string[];
   /** Force the message to be sent as MMS even when no media attachments are provided. */
@@ -21,12 +59,36 @@ export interface CreateMessageRequest {
   status_callback?: string;
   /** Your own key/value string pairs to attach to the message — for example, an order or case number you want to recognize later. When you also set `status_callback`, SignalWire includes these pairs as a `custom_variables` object in every status callback it sends to that URL, so you can match each callback to a record in your own system. If you don't set `status_callback`, there is nowhere for the variables to be delivered. */
   custom_variables?: Record<string, string>;
+  /** WhatsApp content message type. Required when `from` is a WhatsApp number and `template_id` is not set. */
+  message_type?:
+    | 'whatsapp_media_text'
+    | 'whatsapp_media_contacts'
+    | 'whatsapp_media_audio'
+    | 'whatsapp_media_document'
+    | 'whatsapp_media_image'
+    | 'whatsapp_media_sticker'
+    | 'whatsapp_media_video'
+    | 'whatsapp_media_reaction'
+    | 'whatsapp_media_location'
+    | 'whatsapp_interactive_cta'
+    | 'whatsapp_interactive_flow'
+    | 'whatsapp_interactive_list'
+    | 'whatsapp_interactive_location_request_message'
+    | 'whatsapp_interactive_reply_button';
+  /** ID of an approved WhatsApp message template (the template's WhatsApp ID or its SignalWire ID). Required when `from` is a WhatsApp number and `message_type` is not set; `body` must then be omitted. */
+  template_id?: string;
+  /** Values for the template header — an object for a named-parameter template, an array for a positional one, or an HTTP(S) URL for a document header. */
+  header_template_parameters?: Record<string, unknown> | unknown[] | string;
+  /** Values for the template body — an object for a named-parameter template, an array for a positional one. */
+  body_template_parameters?: Record<string, unknown> | unknown[];
+  /** Values for the template's buttons, one per button (positional templates only). */
+  button_template_parameters?: string[];
 }
 
 /** Request body for redacting the body of a previously sent message. Only `body` may be updated, and it must be an empty string. */
 export interface UpdateMessageRequest {
   /** Must be an empty string (`""`) to redact the message. Any non-empty value is rejected with `body_must_be_empty`. This is the only field that can be updated. */
-  body: string;
+  body?: string;
 }
 
 /** A message record. Returned by the create and update endpoints. */
@@ -60,15 +122,15 @@ export interface Message {
   message_uri: string;
 }
 
-/** Delivery state of a message. */
+/** Delivery state of the message. */
 export type MessageStatus =
-  'queued' | 'initiated' | 'sent' | 'delivered' | 'undelivered' | 'failed' | 'read';
+  'queued' | 'initiated' | 'sent' | 'delivered' | 'undelivered' | 'failed' | 'read' | 'received';
 
-/** The direction of a message. */
+/** The direction of the message. */
 export type MessageDirection = 'inbound' | 'outbound';
 
 /** The kind of message. */
-export type MessageKind = 'sms' | 'mms';
+export type MessageKind = 'sms' | 'mms' | 'whatsapp';
 
 /** The request contains invalid parameters. See errors for details. */
 export interface MessagesCreateStatusCode422 {

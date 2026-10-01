@@ -10,8 +10,7 @@
  *
  *   - The union gives editor autocompletion for the built-in names.
  *   - The `string & {}` arm accepts any other string, so custom / third-party
- *     skill names work, as with the Python SDK (whose `add_skill` /
- *     `has_skill` take a bare `str`). It also means a typo in a call
+ *     skill names work. It also means a typo in a call
  *     (`addSkillByName('datetiem')`) still compiles: `addSkillByName` then
  *     rejects at runtime because the name isn't registered. To have the
  *     compiler check a built-in name, type the value as `SkillName`.
@@ -53,9 +52,8 @@ export type SkillName =
 
 /**
  * A skill-name parameter: one of the typed built-in {@link SkillName} values
- * (autocompleted) or any other string (custom / third-party skills, and
- * consistency with Python's bare `str`). Because any string is accepted, a
- * misspelled built-in name isn't a compile error here.
+ * (autocompleted) or any other string (custom / third-party skills). Because
+ * any string is accepted, a misspelled built-in name isn't a compile error here.
  *
  * The `(string & {})` arm preserves string literal autocompletion for the
  * union members while still widening to accept arbitrary strings; it is purely

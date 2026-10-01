@@ -692,7 +692,7 @@ setPostPromptLlmParams(params: Record<string, unknown>): this
 
 #### `enableDebugEvents(level?)`
 
-Emit `debug_webhook_url` (this agent's `/debug_events` endpoint) and `debug_webhook_level` (default `1`) on the AI verb.
+Emit `debug_webhook_url` (this agent's `/debug_events` endpoint) and `debug_webhook_level` (default `1`) in the AI verb's `params`.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
@@ -3215,7 +3215,7 @@ interface LanguageConfig
 |----------|------|-------------|
 | `name` | `string` | Language name, such as `"English"` |
 | `code` | `string` | Language code, such as `"en-US"` |
-| `voice` | `string` | Voice identifier (optional) |
+| `voice` | `string` | Voice identifier (required): a plain name such as `"en-US-Neural2-F"`, or the combined `"engine.voice:model"` form, split into the `voice`, `engine` and `model` keys unless `engine` or `model` is given |
 | `engine` | `string` | TTS engine (optional) |
 | `model` | `string` | TTS model (optional) |
 | `speechFillers` | `string[]` | Phrases that fill a pause in speech, emitted as `speech_fillers` (optional) |

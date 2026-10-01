@@ -43,9 +43,10 @@ describe('BedrockAgent render warnings', () => {
     const warn = spyWarn(agent);
     const verb = bedrockVerb(agent.renderSwml());
     expect(Object.keys(verb).sort()).toEqual(['SWAIG', 'global_data', 'params', 'prompt']);
+    // Debug events ride inside `params`, which amazon_bedrock carries, so they
+    // are not among the left-out features.
+    expect((verb['params'] as Record<string, unknown>)['debug_webhook_url']).toBeDefined();
     expect(leftOut(warn).sort()).toEqual([
-      "BedrockAgent: the amazon_bedrock verb has no debug_webhook_level, so it's left out of the SWML",
-      "BedrockAgent: the amazon_bedrock verb has no debug_webhook_url, so it's left out of the SWML",
       "BedrockAgent: the amazon_bedrock verb has no hints, so the agent's speech hints (addHint(), addHints(), addPatternHint() and skills' hints) are left out of the SWML",
       "BedrockAgent: the amazon_bedrock verb has no languages, so the agent's languages (addLanguage()) are left out of the SWML",
       "BedrockAgent: the amazon_bedrock verb has no multilingual, so the agent's multilingual settings (setMultilingual()) are left out of the SWML",

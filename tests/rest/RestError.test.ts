@@ -1,5 +1,4 @@
 import { RestError, SignalWireRestError } from '../../src/rest/RestError.js';
-import type { SignalWireErrorBody } from '../../src/PlatformContracts.js';
 
 describe('RestError', () => {
   it('formats error message from status, body, url, method', () => {
@@ -30,16 +29,21 @@ describe('RestError', () => {
     expect(err.message).toBe('GET /api/test returned 500: Server Error');
   });
 
-  it('accepts an object body and stringifies it in the message', () => {
-    // RestError.body is typed `string | SignalWireErrorBody`, but at runtime the
-    // HttpClient passes whatever arbitrary JSON the server returned (it casts
-    // `JSON.parse(text) as SignalWireErrorBody`). This test verifies object-body
-    // stringification with an arbitrary error shape; cast to the param type.
-    const bodyObj = { errors: ['invalid field'] } as unknown as SignalWireErrorBody;
+  it('accepts a REST error envelope body and stringifies it in the message', () => {
+    const bodyObj = {
+      errors: [
+        {
+          type: 'validation_error',
+          code: 'missing_required_parameter',
+          message: 'Name is required',
+          attribute: 'name',
+          url: 'https://developer.signalwire.com/rest/overview/error-codes',
+        },
+      ],
+    };
     const err = new RestError(422, bodyObj, '/api/test', 'POST');
     expect(err.body).toEqual(bodyObj);
-    expect(typeof err.body).toBe('object');
-    expect(err.message).toBe('POST /api/test returned 422: {"errors":["invalid field"]}');
+    expect(err.message).toBe(`POST /api/test returned 422: ${JSON.stringify(bodyObj)}`);
   });
 
   it('preserves string body as-is', () => {

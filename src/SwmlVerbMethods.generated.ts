@@ -6,6 +6,48 @@
  * auto-installed on SwmlBuilder from schema.json.
  */
 
+import type {
+  AiSidecarConfig,
+  AmazonBedrockConfig,
+  AnswerConfig,
+  BindDigitConfig,
+  ClearDigitBindingsConfig,
+  ConnectConfig,
+  DetectMachineConfig,
+  EchoConfig,
+  EnterQueueConfig,
+  ExecuteConfig,
+  ExecuteRpcConfig,
+  GotoConfig,
+  HangupConfig,
+  JoinConferenceConfig,
+  JoinRoomConfig,
+  LabelConfig,
+  LiveTranscribeConfig,
+  LiveTranslateConfig,
+  PayConfig,
+  PromptConfig,
+  ReceiveFaxConfig,
+  RecordCallConfig,
+  RecordConfig,
+  RequestConfig,
+  SendDigitsConfig,
+  SendFaxConfig,
+  SendSmsConfig,
+  SetCapabilitiesConfig,
+  SetMetaConfig,
+  SipReferConfig,
+  StopRecordCallConfig,
+  StopStreamConfig,
+  StopTapConfig,
+  StreamConfig,
+  SwitchConfig,
+  TapConfig,
+  TranscribeConfig,
+  TransferConfig,
+  UserEventConfig,
+} from './swml_verbs_generated.js';
+
 export interface AiVerbConfig {
   /** Text prompt for the AI agent (mutually exclusive with prompt when using POM). */
   prompt?: string | Array<Record<string, unknown>>;
@@ -38,296 +80,106 @@ export interface PlayVerbConfig {
 
 declare module './SwmlBuilder.js' {
   interface SwmlBuilder {
-    /** Answer incoming call and set an optional maximum duration. */
-    answer(config?: {
-      /** Maximum duration in seconds for the call. Defaults to `14400` seconds (4 hours). */
-      max_duration?: number; /** Comma-separated string of codecs to offer. Valid codecs are: PCMU, PCMA, G722, G729, AMR-WB, OPUS, VP8, H264. */
-      codecs?: string; /** Username to use for SIP authentication. */
-      username?: string; /** Password to use for SIP authentication. */
-      password?: string;
-    }): this;
     /** Creates an AI agent that conducts voice conversations using automatic speech recognition (ASR), large language models (LLMs), and text-to-speech (TTS) synthesis. The agent processes caller speech in real-time, generates contextually appropriate responses, and can execute custom functions to interact with external systems through SignalWire AI Gateway (SWAIG). */
     ai(config?: AiVerbConfig): this;
+    /** Start ai_sidecar mode — live_transcribe with an LLM/SWAIG/MCP loop on top. Without `lang`, the operation has no effect: it is accepted and ignored, not rejected. */
+    ai_sidecar(config?: AiSidecarConfig | unknown[] | number | string): this;
     /** Creates a new Bedrock AI Agent */
-    amazon_bedrock(config?: unknown): this;
-    /** Execute a sequence of instructions depending on the value of a JavaScript condition. */
-    cond(config?: Record<string, unknown>): this;
+    amazon_bedrock(config?: AmazonBedrockConfig | unknown[] | number | string): this;
+    /** Answer incoming call and set an optional maximum duration. */
+    answer(config?: AnswerConfig | unknown[] | number | string): this;
+    /** Bind DTMF digit actions. */
+    bind_digit(config?: BindDigitConfig): this;
+    /** Clear all digit bindings. */
+    clear_digit_bindings(config?: ClearDigitBindingsConfig): this;
+    /** Body shape enforced by is_valid_cond_method, swml_schema.c:1271. */
+    cond(config?: unknown[]): this;
     /** Dial a SIP URI or phone number. */
-    connect(config: Record<string, unknown>): this;
+    connect(config?: ConnectConfig): this;
     /** Start noise reduction. You can stop it at any time using `stop_denoise`. */
-    denoise(config?: Record<string, unknown>): this;
+    denoise(config?: Record<string, unknown> | unknown[] | number | string): this;
+    /** A detection method that combines AMD (Answering Machine Detection) and fax detection. Detect whether the user on the other end of the call is a machine (fax, voicemail, etc.) or a human. The detection result(s) will be sent to the specified status_url as a POST request and will also be saved in the detect_result variable. */
+    detect_machine(config?: DetectMachineConfig | unknown[] | number | string): this;
+    /** Echo audio back to the caller. */
+    echo(config?: EchoConfig | unknown[] | number | string): this;
     /** Place the current call in a named queue where it will wait to be connected to an available agent or resource. While waiting, callers will hear music or custom audio. When an agent connects to the queue (using the connect method), the caller and agent are bridged together. After the bridge completes, execution continues with the SWML script specified in transfer_after_bridge. */
-    enter_queue(config?: unknown): this;
+    enter_queue(config?: EnterQueueConfig | unknown[] | number | string): this;
     /** Execute a specified section or URL as a subroutine, and upon completion, return to the current document. Use the return statement to pass any return values or objects back to the current document. */
-    execute(config: {
-      /** Specifies what to execute. The value can be one of: - `<section_name>` - section in the current document to execute - A URL (http or https) that returns a SWML document - Sends HTTP POST - An inline SWML document (as a JSON string) */
-      dest: string; /** Named parameters to send to section or URL */
-      params?: Record<string, unknown>; /** User-defined metadata, ignored by SignalWire */
-      meta?: Record<
-        string,
-        unknown
-      >; /** The list of SWML instructions to be executed when the executed section or URL returns */
-      on_return?: unknown[]; /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. Will use the switch method when the return_value is an object, and will use the cond method when the return_value is an array. */
-      result?: unknown[];
-    }): this;
-    /** Jump to a label within the current section, optionally based on a condition. The goto method will only navigate to a label within the same section. */
-    goto(config: {
-      /** Mark any point of the SWML section with a label so that goto can jump to it. */
-      label: string; /** A JavaScript condition that determines whether to perform the jump. If the condition evaluates to true, the jump is executed. If omitted, the jump is unconditional. */
-      when?: string; /** The maximum number of times to perform the jump. Must be a number between 1 and 100. Default `100`. */
-      max?: number;
-    }): this;
-    /** Mark any point of the SWML section with a label so that goto can jump to it. */
-    label(value: string): this;
-    /** Start live transcription of the call. The transcription will be sent to the specified webhook URL. */
-    live_transcribe(config: {
-      /** The action to perform during live transcription. */
-      action: unknown;
-    }): this;
-    /** Start ai_sidecar mode — live_transcribe with an LLM/SWAIG/MCP loop on top. */
-    ai_sidecar(config: {
-      /** Operator prompt — POM object, plain string, or {file: path}. */
-      prompt: Record<string, unknown>; /** BCP-47 conversation language. Required. */
-      lang: string; /** LLM model for sidecar tick + close-time summaries. */
-      model?: string; /** Both legs are required for sidecar mode. */
-      direction?: string[]; /** Which leg is the customer (turn-end trigger source). */
-      customer_role?: string; /** Webhook URL for transcribe events AND sidecar events. */
-      url?: string; /** SWAIG functions and MCP servers. */
-      SWAIG?: unknown; /** SWAIG permission overrides — pass-through to mod_openai. */
-      permissions?: Record<string, unknown>; /** Initial sidecar global_data. */
-      global_data?: Record<
-        string,
-        unknown
-      >; /** Speech-recognition hints biasing ASR toward specific terms. */
-      hints?: string[]; /** Tunable knobs (idle_timeout_ms, ai_summary, etc.) — pass-through to mod_openai which validates them strictly. New tunables only land here. */
-      params?: Record<string, unknown>; /** Reserved for future runtime sub-actions. */
-      action?: unknown;
-    }): this;
-    /** Start live translation of the call. The translation will be sent to the specified webhook URL. */
-    live_translate(config: {
-      /** The action to perform during live translation. */
-      action: unknown;
-    }): this;
+    execute(config?: ExecuteConfig | unknown[] | number | string): this;
+    /** Execute a remote procedure call. */
+    execute_rpc(config?: ExecuteRpcConfig | unknown[] | number | string): this;
+    /** Jump to a label, optionally based on a condition. The label is looked up in the current section first and then in each enclosing block, so a `goto` inside `switch`, `cond` or `execute.on_return` can target a label in the section that contains it. A section run with `execute` cannot jump back into its caller. */
+    goto(config?: GotoConfig | unknown[] | number | string): this;
     /** End the call with an optional reason. */
-    hangup(config?: { /** The reason for hanging up the call. */ reason?: string }): this;
+    hangup(config?: HangupConfig | unknown[] | number | string): this;
+    /** Join an ad-hoc audio conference. This method allows you to connect the current call to a named conference where multiple participants can communicate simultaneously. */
+    join_conference(config?: JoinConferenceConfig | unknown[] | number | string): this;
     /** Join a RELAY room. If the room doesn't exist, it creates a new room. */
-    join_room(config: {
-      /** Name of the room to join. Allowed characters: A-Z, a-z, 0-9, underscore, and hyphen. */
-      name: string;
-    }): this;
-    /** Join an ad-hoc audio conference started on either the SignalWire or Compatibility API. This method allows you to connect the current call to a named conference where multiple participants can communicate simultaneously. */
-    join_conference(config?: unknown): this;
+    join_room(config?: JoinRoomConfig | unknown[] | number | string): this;
+    /** Mark any point of the SWML section with a label so that goto can jump to it. */
+    label(config?: LabelConfig | unknown[] | number | string): this;
+    /** Start live transcription of the call. The transcription will be sent to the specified webhook URL. Without `action`, the operation has no effect: it is accepted and ignored, not rejected. */
+    live_transcribe(config?: LiveTranscribeConfig | unknown[] | number | string): this;
+    /** Start live translation of the call. The translation will be sent to the specified webhook URL. Without `action`, the operation has no effect: it is accepted and ignored, not rejected. */
+    live_translate(config?: LiveTranslateConfig | unknown[] | number | string): this;
+    /** Enables secure payment processing during voice calls. When implemented, it manages the entire payment flow including data collection, validation, and processing through your configured payment gateway. */
+    pay(config?: PayConfig | unknown[] | number | string): this;
     /** Play file(s), ringtones, speech or silence. */
     play(config?: PlayVerbConfig): this;
     /** Play a prompt and wait for input. The input can be received either as digits from the keypad, or from speech, or both depending on what parameters are set. By default, only digit input is enabled. To enable speech input, set at least one speech parameter. To enable both digit and speech input, set at least one parameter for each. */
-    prompt(config: {
-      /** URL or array of URLs to play. Allowed URLs are:     http:// or https:// - audio file to GET     ring:[duration:]<country code> - ring tone to play. For example: ring:us to play single ring or ring:20.0:us to play ring for 20 seconds.     say:<text to speak> - Sentence to say     silence: <duration> - seconds of silence to play */
-      play: unknown[]; /** Volume level for the audio file. Default is `0`. Valid range is -40 to 40. */
-      volume?: number; /** The voice to use for the text to speech. */
-      say_voice?: string; /** The language to use for the text to speech. */
-      say_language?: string; /** The gender to use for the text to speech. */
-      say_gender?: 'male' | 'female'; /** Number of digits to collect. Default is `1`. */
-      max_digits?: number; /** Digits that terminate digit collection. Default is not set. */
-      terminators?: string; /** Time in seconds to wait for next digit. Default is `5.0` seconds. */
-      digit_timeout?: number; /** Time in seconds to wait for start of input. Default is `5.0` seconds. */
-      initial_timeout?: number; /** Max time in seconds to wait for speech result. */
-      speech_timeout?: number; /** Time in seconds to wait for end of speech utterance. */
-      speech_end_timeout?: number; /** Language to detect speech in. */
-      speech_language?: string; /** Expected words or phrases to help the speech recognition. */
-      speech_hints?:
-        | string[]
-        | unknown[]; /** The engine that is selected for speech recognition. The engine must support the specified language. [Deepgram|Google| etc...] Default is not set (SignalWire picks the engine). */
-      speech_engine?: string; /** http or https URL to deliver prompt status events */
-      status_url?: string;
-    }): this;
+    prompt(config?: PromptConfig | unknown[] | number | string): this;
     /** Receive a fax being delivered to this call. */
-    receive_fax(config?: {
-      /** http or https URL to deliver receive_fax status events */
-      status_url?: string;
-    }): this;
+    receive_fax(config?: ReceiveFaxConfig | unknown[] | number | string): this;
     /** Record the call audio in the foreground, pausing further SWML execution until recording ends. Use this, for example, to record voicemails. To record calls in the background in a non-blocking fashion, use the record_call method. */
-    record(config?: {
-      /** If true, record in stereo. Default is `false`. */
-      stereo?: boolean; /** The format to record in. Can be `wav`, `mp3`, or `mp4`. Default is `"wav"`. */
-      format?:
-        | 'wav'
-        | 'mp3'
-        | 'mp4'; /** Direction of the audio to record: "speak" for what party says, "listen" for what party hears. Default is `"speak"`. */
-      direction?:
-        | 'speak'
-        | 'listen'; /** String of digits that will stop the recording when pressed. Default is `"#"`. */
-      terminators?: string; /** Play a beep before recording. Default is `false`. */
-      beep?: boolean; /** How sensitive the recording voice activity detector is to background noise. A larger value is more sensitive. Allowed values from 0.0 to 100.0. Default is `44.0`. */
-      input_sensitivity?: number; /** Time in seconds to wait for the start of speech. Default is `4.0` seconds. */
-      initial_timeout?: number; /** Time in seconds to wait in silence before ending the recording. Default is `5.0` seconds. */
-      end_silence_timeout?: number; /** Maximum length of the recording in seconds. */
-      max_length?: number; /** URL to send recording status events to. */
-      status_url?: string;
-    }): this;
+    record(config?: RecordConfig | unknown[] | number | string): this;
     /** Record call in the background. Unlike the record method, the record_call method will start the recording and continue executing the SWML script while allowing the recording to happen in the background. To stop call recordings started with record_call, use the stop_record_call method. */
-    record_call(config?: {
-      /** Identifier for this recording, to use with `stop_call_record`. */
-      control_id?: string; /** If `true`, record in stereo. Default is `false`. */
-      stereo?: boolean; /** The format to record in. It can be `wav`, `mp3`, or `mp4`. Default is `"wav"`. */
-      format?:
-        | 'wav'
-        | 'mp3'
-        | 'mp4'; /** Direction of the audio to record: "speak" for what party says, "listen" for what party hears, "both" for what the party hears and says. Default is `"both"`. */
-      direction?:
-        | 'speak'
-        | 'listen'
-        | 'both'; /** String of digits that will stop the recording when pressed. Default is `""` (empty). */
-      terminators?: string; /** Play a beep before recording. Default is `false`. */
-      beep?: boolean; /** How sensitive the recording voice activity detector is to background noise. A larger value is more sensitive. Allowed values from 0.0 to 100.0. Default is `44.0`. */
-      input_sensitivity?: number; /** Time in seconds to wait for the start of speech. Default is `0.0` seconds. */
-      initial_timeout?: number; /** Time in seconds to wait in silence before ending the recording. Default is `0.0` seconds. */
-      end_silence_timeout?: number; /** Maximum length of the recording in seconds. */
-      max_length?: number; /** http or https URL to deliver record_call status events */
-      status_url?: string;
-    }): this;
+    record_call(config?: RecordCallConfig | unknown[] | number | string): this;
     /** Send a GET, POST, PUT, or DELETE request to a remote URL. */
-    request(config: {
-      /** URL to send the HTTPS request to. Authentication can also be set in the URL in the format of username:password@url. */
-      url: string; /** The HTTP method to be used for the request. Can be `GET`, `POST`, `PUT`, or `DELETE`. */
-      method:
-        | 'GET'
-        | 'POST'
-        | 'PUT'
-        | 'DELETE'; /** Object containing HTTP headers to set. Valid header values are Accept, Authorization, Content-Type, Range, and custom X- headers. */
-      headers?: Record<
-        string,
-        unknown
-      >; /** Request body. Content-Type header should be explicitly set, but if not set, the most likely type will be set based on the first non-whitespace character. */
-      body?:
-        | string
-        | Record<
-            string,
-            unknown
-          >; /** Maximum time in seconds to wait for a response. Default is `0` (no timeout). */
-      timeout?: number; /** Maximum time in seconds to wait for a connection. Default is `0` (no timeout). */
-      connect_timeout?: number; /** Store parsed JSON response as variables. Default is `false`. */
-      save_variables?: boolean;
-    }): this;
+    request(config?: RequestConfig | unknown[] | number | string): this;
     /** Return a value from an execute call or exit the script. The value can be any type. */
-    return(config?: unknown): this;
+    return(config?: Record<string, unknown> | unknown[] | boolean | number | string): this;
+    /** Send 180 Ringing on an inbound call without answering. */
+    ring(config?: Record<string, unknown> | unknown[] | number | string): this;
+    /** Send SIP REFER to a SIP call. */
+    sip_refer(config?: SipReferConfig | unknown[] | number | string): this;
     /** Send digit presses as DTMF tones. */
-    send_digits(config: {
-      /** The digits to send. Valid values are 0123456789*#ABCDWw. Character W is a 1 second delay, and w is a 500ms delay. */
-      digits: string;
-    }): this;
+    send_digits(config?: SendDigitsConfig | unknown[] | number | string): this;
     /** Send a fax. */
-    send_fax(config: {
-      /** URL to the PDF document to fax. */
-      document: string; /** Header text to include on the fax. */
-      header_info?: string; /** Station identity to report. Default is the calling party's caller ID number. */
-      identity?: string; /** http or https URL to deliver send_fax status events */
-      status_url?: string;
-    }): this;
+    send_fax(config?: SendFaxConfig | unknown[] | number | string): this;
     /** Send an outbound SMS or MMS message to a PSTN phone number. */
-    send_sms(config: Record<string, unknown> | number): this;
+    send_sms(config?: SendSmsConfig): this;
     /** Set script variables to the specified values. Accepts an object mapping variable names to values. Variables set using set can be removed using unset. */
     set(config?: Record<string, unknown>): this;
+    /** Override subscriber capabilities */
+    set_capabilities(config?: SetCapabilitiesConfig | unknown[] | number | string): this;
+    /** Add customer metadata to call and conference events */
+    set_meta(config?: SetMetaConfig | unknown[] | number | string): this;
     /** Pause execution for a specified duration. */
     sleep(durationOrConfig: number | { duration: number }): this;
-    /** Send SIP REFER to a SIP call. */
-    sip_refer(config: {
-      /** The SIP URI to send the REFER to. */
-      to_uri: string; /** The HTTP or HTTPS URL to send status callback events to. */
-      status_url?: string; /** Username to use for SIP authentication. */
-      username?: string; /** Password to use for SIP authentication. */
-      password?: string;
-    }): this;
     /** Stop noise reduction that was started with denoise. */
-    stop_denoise(config?: Record<string, unknown>): this;
+    stop_denoise(config?: Record<string, unknown> | unknown[] | number | string): this;
     /** Stop an active background recording. */
-    stop_record_call(config?: {
-      /** Identifier for the recording to stop. If not set, the last recording started will be stopped. */
-      control_id?: string;
-    }): this;
+    stop_record_call(config?: StopRecordCallConfig | unknown[] | number | string): this;
+    /** Stop streaming call audio. */
+    stop_stream(config?: StopStreamConfig | unknown[] | number | string): this;
     /** Stop an active tap stream. */
-    stop_tap(config?: {
-      /** ID of the tap to stop. If not set, it will shut off the most recent tap session. */
-      control_id?: string;
-    }): this;
+    stop_tap(config?: StopTapConfig | unknown[] | number | string): this;
+    /** Stream call audio to a WebSocket endpoint. */
+    stream(config?: StreamConfig | unknown[] | number | string): this;
     /** Execute different instructions based on a variable's value. */
-    switch(config: {
-      /** Name of the variable whose value needs to be compared. */
-      variable: string; /** Object of key-mapped values to array of SWML methods to execute. */
-      case: Record<string, unknown>; /** Array of SWML methods to execute if no cases match. */
-      default?: unknown[];
-    }): this;
+    switch(config?: SwitchConfig | unknown[] | number | string): this;
     /** Start background call tap. Media is streamed over Websocket or RTP to customer controlled URI. */
-    tap(config: {
-      /** Destination of the tap media stream: rtp://IP:port, ws://example.com, or wss://example.com. */
-      uri: string; /** Identifier for this tap to use with `stop_tap`. */
-      control_id?: string; /** Direction of the audio to tap:     `speak` for what party says,     `listen` for what party hears,     `both` for what party hears and says.     Default is `"speak"`. */
-      direction?:
-        | 'speak'
-        | 'listen'
-        | 'both'; /** Codec to use for the tap media stream. Possible Values: [`PCMU`, `PCMA`] Default is `"PCMU"`. */
-      codec?:
-        | 'PCMU'
-        | 'PCMA'; /** If `uri` is a `rtp://` this will set the packetization time of the media in milliseconds. Default is `20` milliseconds. */
-      rtp_ptime?: number; /** http or https URL to deliver tap status events */
-      status_url?: string;
-    }): this;
+    tap(config?: TapConfig | unknown[] | number | string): this;
+    /** Start transcription on the call. */
+    transcribe(config?: TranscribeConfig | unknown[] | number | string): this;
+    /** Stop transcription on the call. */
+    transcribe_stop(config?: Record<string, unknown> | unknown[] | number | string): this;
     /** Transfer the execution of the script to a different SWML section, URL, or Relay application. Once the transfer is complete, the script will continue executing SWML from the new location. */
-    transfer(config: {
-      /** Specifies where to transfer to. The value can be one of: - <section_name> - section in the SWML document to jump to - A URL (http or https) - URL to fetch next document from. Sends HTTP POST.   Authentication can also be set in the URL in the format of username:password@url. - An inline SWML document (as a JSON string) */
-      dest: string; /** Named parameters to send to transfer destination. Accepts an object mapping variable names to values. Default is not set. */
-      params?: Record<
-        string,
-        unknown
-      >; /** User data, ignored by SignalWire. Accepts an object mapping variable names to values. Default is not set. */
-      meta?: Record<string, unknown>;
-    }): this;
-    /** Unset specified variables. The variables may have been set using the set method or as a byproduct of other statements or methods. Accepts a single variable name as a string or an array of variable names. */
-    unset(config: Record<string, unknown> | number): this;
-    /** Enables secure payment processing during voice calls. When implemented, it manages the entire payment flow including data collection, validation, and processing through your configured payment gateway. */
-    pay(config: {
-      /** The URL to make POST requests with all the gathered payment details. This URL is used to process the final payment transaction and return the results through the response.  Visit https://developer.signalwire.com/swml/methods/pay/payment_connector_url for more important information. */
-      payment_connector_url: string; /** The amount to charge against payment method passed in the request. `Float` value with no currency prefix passed as string. */
-      charge_amount?: string; /** Uses the ISO 4217 currency code of the charge amount. */
-      currency?: string; /** Custom description of the payment provided in the request. */
-      description?: string; /** The method of how to collect the payment details. Currently only `dtmf` mode is supported. */
-      input?: 'dtmf'; /** Language to use for prompts being played to the caller by the `pay` method. */
-      language?: string; /** Number of times the `pay` method will retry to collect payment details. */
-      max_attempts?: number; /** The minimum length of the postal code the user must enter. */
-      min_postal_code_length?: number; /** Array of parameter objects to pass to your payment processor. The parameters are user-defined key-value pairs. */
-      parameters?: unknown[]; /** Indicates the payment method which is going to be used in this payment request. Currently only `credit-card` is supported. */
-      payment_method?: 'credit-card'; /** Takes `true`, `false` or real postalcode (if it's known beforehand) to let pay method know whether to prompt for postal code. Default is `true`. */
-      postal_code?:
-        | boolean
-        | string; /** Array of prompt objects for customizing the audio prompts during different stages of the payment process. */
-      prompts?: unknown[]; /** Takes true or false to let pay method know whether to prompt for security code. */
-      security_code?: boolean; /** The URL to send requests for each status change during the payment process.  See https://developer.signalwire.com/swml/methods/pay#status_url_request_body for more important information. */
-      status_url?: string; /** Limit in seconds that pay method waits for the caller to press another digit before moving on to validate the digits captured. */
-      timeout?: number; /** Whether the payment is a one off payment or re-occurring.  Allowed values: - `one-time` - `reusable` */
-      token_type?:
-        | 'one-time'
-        | 'reusable'; /** List of payment cards allowed to use in the requested payment process separated by space.  Allowed values: - `visa` - `mastercard` - `amex` - `maestro` - `discover` - `jcb` - `diners-club` */
-      valid_card_types?: string; /** Text-to-speech voice to use. Please refer to https://developer.signalwire.com/voice/getting-started/voice-and-languages for more information. */
-      voice?: string;
-    }): this;
-    /** A detection method that combines AMD (Answering Machine Detection) and fax detection. Detect whether the user on the other end of the call is a machine (fax, voicemail, etc.) or a human. The detection result(s) will be sent to the specified status_url as a POST request and will also be saved in the detect_result variable. */
-    detect_machine(config?: {
-      /** If `true`, stops detection on beep / end of voicemail greeting. Default `false`. */
-      detect_message_end?: boolean; /** Comma-separated string of detectors to enable. Valid values: `amd`, `fax`. */
-      detectors?: string; /** How long to wait for voice to finish. Default `1.0`. */
-      end_silence_timeout?: number; /** How long to wait for initial voice before giving up. Default `4.5`. */
-      initial_timeout?: number; /** How long to wait for voice to finish before firing READY event. Default is `end_silence_timeout`. */
-      machine_ready_timeout?: number; /** The number of seconds of ongoing voice activity required to classify as MACHINE. Default `1.25`. */
-      machine_voice_threshold?: number; /** The minimum number of words that must be detected in a single utterance before classifying the call as MACHINE. Default `6`. */
-      machine_words_threshold?: number; /** The http(s) URL to deliver detector events to. */
-      status_url?: string; /** The max time to run detector. Default `30.0` seconds. */
-      timeout?: number; /** The tone to detect, will only receive remote side tone. Default `CED`. */
-      tone?:
-        | 'CED'
-        | 'CNG'; /** If false, the detector will run asynchronously and status_url must be set. If true, the detector will wait for detection to complete before moving to the next SWML instruction. Default is `true`. */
-      wait?: boolean;
-    }): this;
-    /** Allows the user to set and send events to the connected client on the call. This is useful for triggering actions on the client side. Commonly used with the [browser-sdk](https://developer.signalwire.com/sdks/reference/browser-sdk/SignalWire%20Client/). The event object can be any valid JSON object. Any key-value pair in the object is sent to the client as an event type called `user_event`. */
-    user_event(config: { event: Record<string, unknown> }): this;
+    transfer(config?: TransferConfig | unknown[] | number | string): this;
+    /** validator: is_valid_swml_set_var_name */
+    unset(config?: unknown[] | string): this;
+    /** Allows the user to set and send events to the connected client on the call. This is useful for triggering actions on the client side. Commonly used with the [browser-sdk](https://developer.signalwire.com/sdks/reference/browser-sdk/SignalWire%20Client/). The event object can be any valid JSON object. Any key-value pair in the object is sent to the client as an event type called `user_event`. Without `event`, the operation has no effect: it is accepted and ignored, not rejected. */
+    user_event(config?: UserEventConfig | unknown[] | number | string): this;
   }
 }
 

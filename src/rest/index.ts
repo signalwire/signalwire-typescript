@@ -16,6 +16,23 @@ import { _GeneratedResourceTree } from './namespaces/_client_tree_generated.js';
 const logger = getLogger('rest_client');
 
 /**
+ * Stands in for the HTTP client of a credential the `RestClient` was not given:
+ * every request rejects with an `Error` naming the missing credential, before
+ * anything is sent — so a PAT-only client fails loudly on a project resource (and
+ * a project-only client on `client.space`) instead of sending a request the
+ * server can only refuse.
+ */
+function missingCredentialHttp(message: string): HttpClient {
+  return new Proxy({} as HttpClient, {
+    get(_target, prop) {
+      // Not a thenable, and no implicit-conversion hooks: only named methods refuse.
+      if (typeof prop !== 'string' || prop === 'then') return undefined;
+      return () => Promise.reject(new Error(message));
+    },
+  });
+}
+
+/**
  * REST client for the SignalWire platform APIs.
  *
  * @example
@@ -37,6 +54,11 @@ const logger = getLogger('rest_client');
  * await client.calling.play(callId, [{ type: 'audio', params: { url: 'https://cdn.example.com/greeting.mp3' } }]);
  * await client.phoneNumbers.search({ areacode: '512' });
  * await client.video.rooms.create({ name: 'standup' });
+ *
+ * // The Space Administration API (client.space) authenticates with a user's
+ * // Personal Access Token (or SIGNALWIRE_PERSONAL_ACCESS_TOKEN):
+ * const admin = new RestClient({ personalAccessToken: 'pat_...', host: 'your-space.signalwire.com' });
+ * await admin.space.members.list();
  * ```
  */
 export class RestClient extends _GeneratedResourceTree {
@@ -48,11 +70,15 @@ export class RestClient extends _GeneratedResourceTree {
   /**
    * Create a new REST client.
    *
-   * @param options - Connection options. `project`, `token`, and `host` are
-   *   required. If any are omitted they fall back to `SIGNALWIRE_PROJECT_ID`,
-   *   `SIGNALWIRE_API_TOKEN`, and `SIGNALWIRE_SPACE` environment variables.
-   * @throws {Error} When `project`, `token`, or `host` is missing from both
-   *   the options and the environment.
+   * @param options - Connection options. Each falls back to its environment
+   *   variable when omitted: `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`,
+   *   `SIGNALWIRE_SPACE` and `SIGNALWIRE_PERSONAL_ACCESS_TOKEN`. `project` +
+   *   `token` authenticate every project-scoped resource; `personalAccessToken`
+   *   (a user's `pat_...` token) authenticates `client.space`. Either credential,
+   *   or both, may be given; calling a resource whose credential is missing
+   *   rejects with an `Error` naming it, before any request is sent.
+   * @throws {Error} When `host` is missing, or neither a complete `project` +
+   *   `token` pair nor a `personalAccessToken` is given.
    */
   constructor(options: ClientOptions = {}) {
     super();
@@ -69,12 +95,17 @@ export class RestClient extends _GeneratedResourceTree {
       process.env['SIGNALWIRE_SPACE'] ||
       '';
 
-    if (!project || !token || !host) {
+    const pat =
+      options.personalAccessToken || process.env['SIGNALWIRE_PERSONAL_ACCESS_TOKEN'] || '';
+    const hasProject = Boolean(project && token);
+
+    if (!host || !(hasProject || pat)) {
       throw new Error(
         'project, token, and host are required. ' +
           'Provide them as arguments or set SIGNALWIRE_PROJECT_ID, ' +
           'SIGNALWIRE_API_TOKEN, and (SIGNALWIRE_SPACE or SIGNALWIRE_REST_BASE_URL) ' +
-          'environment variables.',
+          'environment variables (or, for client.space only, host and ' +
+          'personalAccessToken / SIGNALWIRE_PERSONAL_ACCESS_TOKEN).',
       );
     }
 
@@ -86,18 +117,37 @@ export class RestClient extends _GeneratedResourceTree {
     // one place (HttpClient). Mirrors the python reference.
     const httpOptions = host.startsWith('http') ? { baseUrl: host } : { host };
 
-    const http = new HttpClient({
-      ...httpOptions,
-      project,
-      token,
-      fetchImpl: options.fetchImpl,
-      requestOptions: options.requestOptions,
-    });
+    const http = hasProject
+      ? new HttpClient({
+          ...httpOptions,
+          project,
+          token,
+          fetchImpl: options.fetchImpl,
+          requestOptions: options.requestOptions,
+        })
+      : missingCredentialHttp(
+          'project and token are required for this resource ' +
+            '(SIGNALWIRE_PROJECT_ID / SIGNALWIRE_API_TOKEN); this client has only ' +
+            'a personal access token, which authenticates client.space',
+        );
+    // A Personal Access Token is HTTP Basic with an EMPTY username
+    // (prime-rails API::Space::BaseController -> Authenticators::PersonalAccessToken).
+    const patHttp = pat
+      ? new HttpClient({
+          ...httpOptions,
+          project: '',
+          token: pat,
+          fetchImpl: options.fetchImpl,
+          requestOptions: options.requestOptions,
+        })
+      : missingCredentialHttp(
+          'personalAccessToken is required for client.space (SIGNALWIRE_PERSONAL_ACCESS_TOKEN)',
+        );
 
     logger.info('RestClient initialized', { host });
 
     // Generated resource tree (flat resources + namespace containers).
-    this._wireResources(http);
+    this._wireResources(http, patHttp);
   }
 }
 

@@ -105,33 +105,47 @@ export interface AgentOptions {
 }
 
 /** Configuration for a supported language in the AI agent. */
+// Member ORDER is load-bearing and must not be rearranged: it mirrors the
+// Python reference's `add_language(name, code, voice, speech_fillers,
+// function_fillers, engine, model, params)` positional order
+// (signalwire/core/mixins/ai_config_mixin.py:87-96). The signature enumerator
+// unfolds this named options bag in declaration order, so reordering these
+// members makes the audited signature diverge even though every member here is
+// passed by name. `speechModel` is last deliberately — see its note below.
 export interface LanguageConfig {
   /** Human-readable language name (e.g. "English"). */
   name: string;
   /** BCP-47 language code (e.g. "en-US"). */
   code: string;
-  /** Voice identifier to use for this language. */
-  voice?: string;
+  /**
+   * Voice identifier to use for this language. REQUIRED — `LanguagesWithFillers`
+   * in the SWML schema lists `voice` alongside `name` and `code` in its `required`
+   * set (`src/schema.json`), and the Python reference declares it as a required
+   * positional (`ai_config_mixin.add_language`). A language object emitted without
+   * it is invalid at the engine.
+   *
+   * Accepts a plain voice name (`"en-US-Neural2-F"`) or the combined
+   * `"engine.voice:model"` form (`"elevenlabs.josh:eleven_turbo_v2_5"`), which is
+   * split into the separate `voice` / `engine` / `model` wire keys.
+   */
+  voice: string;
+  /**
+   * Filler phrases spoken between conversational turns. A flat list of strings —
+   * `speech_fillers` in the SWML schema is `{"type": "array", "items": "string"}`.
+   */
+  speechFillers?: string[];
+  /**
+   * Filler phrases played asynchronously while a SWAIG function runs. A flat list
+   * of strings — `function_fillers` in the SWML schema is
+   * `{"type": "array", "items": "string"}`. The older form, keyed by function
+   * name then language code, is still accepted and flattened into one list; for
+   * fillers per tool, use the tool's own `fillers` option.
+   */
+  functionFillers?: string[] | Record<string, Record<string, string[]>>;
   /** TTS engine identifier. */
   engine?: string;
   /** Explicit TTS model identifier (e.g. "mistv2", "eleven_turbo_v2_5"). */
   model?: string;
-  /** Phrases the AI can say to fill a pause in speech (`speech_fillers`). */
-  speechFillers?: string[];
-  /**
-   * Phrases said while a function runs (`function_fillers`). The older form,
-   * keyed by function name then language code, is flattened into one list;
-   * for fillers per tool, use the tool's own `fillers` option.
-   */
-  functionFillers?: string[] | Record<string, Record<string, string[]>>;
-  /**
-   * Filler phrases for both speech and functions, the schema's older `fillers`
-   * list. The older form keyed by category is flattened into one list and
-   * sent as `speechFillers`.
-   */
-  fillers?: string[] | Record<string, string[]>;
-  /** Speech recognition model identifier. */
-  speechModel?: string;
   /**
    * Optional per-language params dict (engine-specific tuning, voice settings,
    * etc.). Emitted as the language object's `params` key in SWML — only
@@ -139,6 +153,25 @@ export interface LanguageConfig {
    * byte-identical when no params are passed.
    */
   params?: Record<string, unknown>;
+  /**
+   * Filler phrases for both speech and functions, the schema's older `fillers`
+   * list. The older form keyed by category is flattened into one list and
+   * sent as `speechFillers`. Declared after the reference-order members so it
+   * does not perturb the unfold above.
+   */
+  fillers?: string[] | Record<string, string[]>;
+  /**
+   * Speech recognition model identifier, emitted as the `speech_model` wire key.
+   *
+   * NOTE: this member has NO twin in either the Python reference's
+   * `add_language` or the SWML schema's `LanguagesWithFillers` object
+   * (`src/schema.json` properties: name, code, voice, model, emotion, speed,
+   * engine, params, function_fillers, speech_fillers). It is declared LAST so it
+   * does not perturb the reference-order unfold above. Flagged for an owner
+   * ruling: either the spec is behind and this is real, or it is invented
+   * surface and should be deleted.
+   */
+  speechModel?: string;
 }
 
 /** Rule for overriding how the TTS engine pronounces a specific word or phrase. */

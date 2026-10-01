@@ -36,7 +36,9 @@ const VIP_NUMBERS = ['+15551234567', '+15559876543'];
 
 agent.setDynamicConfigCallback(async (queryParams, bodyParams, _headers, agentCopy) => {
   const copy = agentCopy as AgentBase;
-  const callerNumber = bodyParams.call?.from ?? '';
+  // `call` is one of the per-device-type variants; all but `other` carry `from`.
+  const from = bodyParams.call?.from;
+  const callerNumber = typeof from === 'string' ? from : '';
 
   // VIP detection
   if (VIP_NUMBERS.includes(callerNumber)) {

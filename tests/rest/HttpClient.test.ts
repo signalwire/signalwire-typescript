@@ -274,19 +274,53 @@ describe('HttpClient', () => {
     ).toThrow('HttpClientOptions requires either "host" or "baseUrl".');
   });
 
-  it('RestError body is parsed JSON object when server returns JSON error', async () => {
-    const { options } = mockClientOptions([{ status: 422, body: { errors: ['invalid'] } }]);
+  async function errorBodyFor(status: number, body: unknown): Promise<RestError> {
+    const { options } = mockClientOptions([{ status, body }]);
     const http = new HttpClient(options);
-
     try {
       await http.post('/api/test', { bad: true });
-      throw new Error('Should have thrown');
     } catch (e) {
       expect(e).toBeInstanceOf(RestError);
-      const err = e as RestError;
-      expect(typeof err.body).toBe('object');
-      expect(err.body).toEqual({ errors: ['invalid'] });
+      return e as RestError;
     }
+    throw new Error('Should have thrown');
+  }
+
+  it("RestError body is the REST specs' {errors: RestApiErrorItem[]} envelope", async () => {
+    const wire = {
+      errors: [
+        {
+          type: 'validation_error',
+          code: 'missing_required_parameter',
+          message: 'Name is required',
+          attribute: 'name',
+          url: 'https://developer.signalwire.com/rest/overview/error-codes#missing_required_parameter',
+        },
+      ],
+    };
+    const err = await errorBodyFor(422, wire);
+    expect(err.statusCode).toBe(422);
+    expect(err.body).toEqual(wire);
+  });
+
+  it("RestError body is relay-rest's {errors: SpaceApiErrorItem[]} envelope", async () => {
+    const wire = {
+      errors: [
+        {
+          detail: 'name is required',
+          status: '422',
+          title: 'Unprocessable Entity',
+          code: 'invalid',
+        },
+      ],
+    };
+    const err = await errorBodyFor(422, wire);
+    expect(err.body).toEqual(wire);
+  });
+
+  it('RestError body keeps JSON of any other shape as parsed', async () => {
+    const err = await errorBodyFor(400, { error: 'invalid_json' });
+    expect(err.body).toEqual({ error: 'invalid_json' });
   });
 
   it('RestError body is plain string when server returns non-JSON error', async () => {

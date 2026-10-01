@@ -2,7 +2,7 @@
  * Google Maps Skill - Address geocoding and coordinate-based routing.
  *
  * Needs a Google Maps API key, from `api_key` or the GOOGLE_MAPS_API_KEY
- * environment variable. Matches the Python reference's two-tool interface exactly:
+ * environment variable. Exposes a two-tool interface:
  *   - `lookup_address` — geocode an address/business name (with optional
  *     lat/lng bias) via the Google Geocoding API.
  *   - `compute_route` — driving distance + travel time between two
@@ -127,10 +127,9 @@ export class GoogleMapsSkill extends SkillBase {
   }
 
   /**
-   * @returns Two tools matching the Python reference exactly:
-   *   `lookup_address` (geocode an address/business name, optional lat/lng
-   *   bias) and `compute_route` (driving distance + time between two
-   *   coordinates). No `required` arrays — Python omits them (skill.py:433,457).
+   * @returns Two tools: `lookup_address` (geocode an address/business name,
+   *   optional lat/lng bias) and `compute_route` (driving distance + time
+   *   between two coordinates). Neither declares a `required` array.
    */
   getTools(): SkillToolDefinition[] {
     const lookupToolName = this.getConfig<string>('lookup_tool_name', 'lookup_address');

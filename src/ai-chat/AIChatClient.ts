@@ -11,9 +11,9 @@
  * (seconds, not milliseconds). The service streams keepalive whitespace ahead of
  * a slow response body (proxy read-timeout protection), so liveness is byte-driven
  * rather than wall-clock: there is no total-request timeout a slow turn could
- * trip, only an idle timeout that restarts with every chunk received, as with
- * the python reference's `aiohttp.ClientTimeout(total=None, sock_read=60)`.
- * Leading whitespace is valid JSON, so parsing the buffered body is unaffected.
+ * trip, only an idle timeout that restarts with every chunk received (no total
+ * cap, 60s idle read). Leading whitespace is valid JSON, so parsing the
+ * buffered body is unaffected.
  *
  * URL resolution, in order:
  *
@@ -23,8 +23,6 @@
  * 3. `https://{space}.signalwire.com/api/ai/chat`, from the `space` option or
  *    `SIGNALWIRE_SPACE`. A space hostname (`example.signalwire.com`), the form
  *    the REST client reads from the same variable, is accepted too.
- *
- * Mirrors the python reference `signalwire.ai_chat.AIChatClient`.
  *
  * @example
  * ```ts
@@ -83,8 +81,7 @@ function warnIfIdWillBeAltered(conversationId: string): void {
 /**
  * Idle read timeout (seconds) for a single request. The service streams keepalive
  * whitespace roughly every 10s, so this bounds true byte-silence (a dead
- * connection), NOT total turn length — mirroring the python reference's
- * `sock_read=60`. `fetch` has no native per-read timeout, so this is applied as a
+ * connection), NOT total turn length. `fetch` has no native per-read timeout, so this is applied as a
  * bounded read the streaming proxy's heartbeat keeps alive. A total wall-clock cap
  * is deliberately absent — a slow-but-live turn must never be severed by the client.
  */
@@ -634,16 +631,18 @@ export class AIChatClient {
    * @returns The summary text.
    * @throws {SummaryError} When the service reports summary generation failed.
    */
-  async summarize(conversationId: string, options: SummarizeOptions = {}): Promise<string> {
+  async summarize(conversationId: string, options?: SummarizeOptions): Promise<string> {
     const params: JsonRpcParams = { id: conversationId };
-    if (options.summaryPrompt) params['summary_prompt'] = options.summaryPrompt;
-    if (options.temperature !== undefined) params['temperature'] = options.temperature;
-    if (options.topP !== undefined) params['top_p'] = options.topP;
-    if (options.frequencyPenalty !== undefined) {
+    if (options?.summaryPrompt) params['summary_prompt'] = options.summaryPrompt;
+    if (options?.temperature !== undefined) params['temperature'] = options.temperature;
+    if (options?.topP !== undefined) params['top_p'] = options.topP;
+    if (options?.frequencyPenalty !== undefined) {
       params['frequency_penalty'] = options.frequencyPenalty;
     }
-    if (options.presencePenalty !== undefined) params['presence_penalty'] = options.presencePenalty;
-    if (options.maxTokens !== undefined) params['max_tokens'] = options.maxTokens;
+    if (options?.presencePenalty !== undefined) {
+      params['presence_penalty'] = options.presencePenalty;
+    }
+    if (options?.maxTokens !== undefined) params['max_tokens'] = options.maxTokens;
 
     const result = await this._request('summarize', params);
     if ('error' in result && !('summary' in result)) {

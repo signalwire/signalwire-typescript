@@ -1,4 +1,4 @@
-// AUTO-GENERATED from porting-sdk/rest-apis/calling/openapi.yaml — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/rest-apis/calling/openapi.enriched.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-rest-types.ts
 //
 // Held to the same lint bar as hand-written source (no rule suppressions, no
@@ -6,340 +6,576 @@
 // generator rather than weaken the output.
 
 export interface AI {
-  /** Creates an AI agent that conducts voice conversations using automatic speech recognition (ASR), */
-  ai: AIObject;
-}
-
-export interface AIObject {
-  /** A key-value object for storing data that persists throughout the AI session. */
-  global_data?: Record<string, Record<string, unknown>>;
-  /** Hints help the AI agent understand certain words or phrases better. Words that can commonly be misinterpreted can be added to the hints to help the AI speak more accurately. */
-  hints?: (string | Hint)[];
-  /** An array of JSON objects defining supported languages in the conversation. */
-  languages?: Languages[];
-  /** A JSON object containing parameters as key-value pairs. */
-  params?: AIParams;
-  /** The final set of instructions and configuration settings to send to the agent. */
-  post_prompt?: AIPostPrompt;
-  /** The URL to which to send status callbacks and reports. Authentication can also be set in the url in the format of `username:password@url`. */
-  post_prompt_url?: string;
-  /** An array of JSON objects to clarify the AI's pronunciation of words or expressions. */
-  pronounce?: Pronounce[];
-  /** Defines the AI agent's personality, goals, behaviors, and instructions for handling conversations. */
-  prompt: AIPrompt;
-  /** An array of JSON objects to create user-defined functions/endpoints that can be executed during the dialogue. */
-  SWAIG?: SWAIG;
-}
-
-export interface AIParams {
-  /** Instructs the agent to acknowledge crosstalk and confirm user input when the user speaks over the agent. */
-  acknowledge_interruptions?: boolean | SWMLVar;
-  /** The model to use for the AI. Allowed values are `gpt-4o-mini`, `gpt-4.1-mini`, and `gpt-4.1-nano`. */
-  ai_model?: 'gpt-4o-mini' | 'gpt-4.1-mini' | 'gpt-4.1-nano' | string;
-  /** Sets the name the AI agent responds to for wake/activation purposes. When using `enable_pause`, `start_paused`, or `speak_when_spoken_to`, the user must say this name to get the agent's attention. The name matching is case-insensitive. */
-  ai_name?: string;
-  /** Adjust the volume of the AI. Allowed values from `-50` - `50`. **Default:** `0`. */
-  ai_volume?: number | SWMLVar;
-  /** A custom identifier for the AI application instance. This name is included in webhook payloads, allowing backend systems to identify which AI configuration made the request. */
-  app_name?: string;
-  /** If true, enables smart formatting in ASR (Automatic Speech Recognition). */
-  asr_smart_format?: boolean | SWMLVar;
-  /** Amount of time, in ms, to wait before prompting the user to respond. Allowed values from `10,000` - `600,000`. Set to `0` to disable. **Default:** `5000` ms (note: user-configurable values must be `0` or within the `10,000` - `600,000` range). */
-  attention_timeout?: AttentionTimeout | 0 | SWMLVar;
-  /** A custom prompt that is fed into the AI when the attention_timeout is reached. */
-  attention_timeout_prompt?: string;
-  /** If true, enables speaker diarization in ASR (Automatic Speech Recognition). */
-  asr_diarize?: boolean | SWMLVar;
-  /** If true, will force the AI Agent to only respond to the speaker who reesponds to the AI Agent first. */
-  asr_speaker_affinity?: boolean | SWMLVar;
-  /** URL of audio file to play in the background while AI plays in foreground. */
-  background_file?: string;
-  /** Maximum number of times to loop playing the background file. `undefined` means loop indefinitely. */
-  background_file_loops?: number | null | SWMLVar;
-  /** Defines background_file volume within a range of `-50` to `50`. **Default:** `0`. */
-  background_file_volume?: number | SWMLVar;
-  /** Controls the barge behavior. Allowed values are `"complete"`, `"partial"`, `"all"`, or boolean. */
-  enable_barge?: string | boolean | SWMLVar;
-  /** Enables the inner dialog feature, which runs a separate AI process in the background */
-  enable_inner_dialog?: boolean | SWMLVar;
-  /** Enables the pause/resume functionality for the AI agent. When enabled, a `pause_conversation` */
-  enable_pause?: boolean | SWMLVar;
-  /** Enables intelligent turn detection that monitors partial speech transcripts for sentence-ending */
-  enable_turn_detection?: boolean | SWMLVar;
-  /** Takes a string, including a regular expression, defining barge behavior. */
-  barge_match_string?: string;
-  /** Defines the number of words that must be input before triggering barge behavior, in a range of `1-99`. */
-  barge_min_words?: number | SWMLVar;
-  /** If `true`, allows functions to be executed while the AI is being interrupted. **Default:** `true`. */
-  barge_functions?: boolean | SWMLVar;
-  /** Sets the prompt which binds the agent to its purpose. */
-  conscience?: string;
-  /** Injects pre-existing conversation history into the AI session at startup. This allows you to seed the AI agent with context from a previous conversation or provide example interactions. */
-  convo?: ConversationMessage[];
-  /** Used by `check_for_input` and `save_conversation` to identify an individual conversation. */
-  conversation_id?: string;
-  /** Sets the size of the sliding window for conversation history. This limits how much conversation history is sent to the AI model. */
-  conversation_sliding_window?: number | SWMLVar;
-  /** Enables debugging to the set URL. Allowed values from `0` - `2`. Default is `1` if url is set. */
-  debug_webhook_level?: number | SWMLVar;
-  /** Each interaction between the AI and end user is posted in real time to the established URL. */
-  debug_webhook_url?: string;
-  /** Enables debug mode for the AI session. When enabled, additional diagnostic information is logged including turn detection events, speech processing details, and internal state changes. */
-  debug?: boolean | number | SWMLVar;
-  /** Forces the direction of the call to the assistant. Valid values are `inbound` and `outbound`. */
-  direction?: Direction | SWMLVar;
-  /** DTMF digit, as a string, to signal the end of input (ex: '#') */
-  digit_terminators?: string;
-  /** Time, in ms, at the end of digit input to detect end of input. Allowed values from `0` - `30,000`. **Default:** `3000` ms. */
-  digit_timeout?: number | SWMLVar;
-  /** Amount of silence, in ms, at the end of an utterance to detect end of speech. Allowed values from `250` - `10,000`. **Default:** `700` ms. */
-  end_of_speech_timeout?: number | SWMLVar;
-  /** Enables thinking output for the AI Agent. */
-  enable_thinking?: boolean | SWMLVar;
-  /** Enables visual input processing for the AI Agent. */
-  enable_vision?: boolean | SWMLVar;
-  /** Amount of energy necessary for bot to hear you (in dB). Allowed values from `0.0` - `100.0`. **Default:** `52.0` dB. */
-  energy_level?: number | SWMLVar;
-  /** Amount of time, in ms, to wait for the first word after speech is detected. Allowed values from `0` - `10,000`. **Default:** `1000` ms. */
-  first_word_timeout?: number | SWMLVar;
-  /** If `true`, the AI will wait for any `filler` to finish playing before executing a function. */
-  function_wait_for_talking?: boolean | SWMLVar;
-  /** If `true`, functions can be executed when there is no user response after a timeout. **Default:** `false`. */
-  functions_on_no_response?: boolean | SWMLVar;
-  /** A final prompt that is fed into the AI when the `hard_stop_time` is reached. */
-  hard_stop_prompt?: string;
-  /** Specifies the maximum duration fopr the AI Agent to remain active before it exists the session. */
-  hard_stop_time?: string | SWMLVar;
-  /** A URL for the hold music to play, accepting WAV, mp3, and FreeSWITCH tone_stream. */
-  hold_music?: string;
-  /** Enables hold music during SWAIG processing. */
-  hold_on_process?: boolean | SWMLVar;
-  /** Amount of time, in ms, to wait before exiting the app due to inactivity. Allowed values from `10,000` - `3,600,000`. **Default:** `600000` ms (10 minutes). */
-  inactivity_timeout?: number | SWMLVar;
-  /** Specifies the AI model to use for the inner dialog feature. Can be set to a different (often smaller/faster) model than the main conversation model. Only used when `enable_inner_dialog` is `true`. */
-  inner_dialog_model?: 'gpt-4o-mini' | 'gpt-4.1-mini' | 'gpt-4.1-nano' | string;
-  /** The system prompt that guides the inner dialog AI's behavior. This prompt shapes how the background AI */
-  inner_dialog_prompt?: string;
-  /** When enabled, synchronizes the inner dialog with the main conversation flow. */
-  inner_dialog_synced?: boolean | SWMLVar;
-  /** Amount of time, in ms, to wait before starting the conversation. Allowed values from `0` - `300,000`. */
-  initial_sleep_ms?: number | SWMLVar;
-  /** Check for input function with check_for_input. */
-  input_poll_freq?: number | SWMLVar;
-  /** When enabled, barges agent upon any sound interruption longer than 1 second. */
-  interrupt_on_noise?: boolean | SWMLVar;
-  /** Provide a prompt for the agent to handle crosstalk. */
-  interrupt_prompt?: string;
-  /** @deprecated Allows multilingualism when `true`. */
-  languages_enabled?: boolean | SWMLVar;
-  /** The local timezone setting for the AI. Value should use `IANA TZ ID` */
-  local_tz?: string;
-  /** If true, the AI Agent will be involved with the diarization process. */
-  llm_diarize_aware?: boolean | SWMLVar;
-  /** Sets the maximum emotion intensity for the AI voice. Allowed values from `1` - `30`. **Default:** `30`. */
-  max_emotion?: number | SWMLVar;
-  /** Sets the maximum number of tokens the AI model can generate in a single response. Lower values produce shorter responses and reduce latency. */
-  max_response_tokens?: number | SWMLVar;
-  /** The ASR (Automatic Speech Recognition) engine to use. Common values include `nova-2` and `nova-3`. */
-  openai_asr_engine?: string;
-  /** Sets a time duration for the outbound call recipient to respond to the AI agent before timeout, in a range from `10000` to `600000`. **Default:** `120000` ms (2 minutes). */
-  outbound_attention_timeout?: number | SWMLVar;
-  /** When enabled, the `global_data` object is automatically saved to a channel variable */
-  persist_global_data?: boolean | SWMLVar;
-  /** Specifies the output format for structured prompts when using the `pom` array in prompt definitions. Valid values are `markdown` or `xml`. */
-  pom_format?: 'markdown' | 'xml';
-  /** Send a summary of the conversation after the call ends. */
-  save_conversation?: boolean | SWMLVar;
-  /** Amount of time, in ms, to wait for a speech event. Allowed values from `0` - `10,000`. **Default:** `1400` ms. */
-  speech_event_timeout?: number | SWMLVar;
-  /** Number of quick stops to generate for speech. Allowed values from `0` - `10`. **Default:** `3`. */
-  speech_gen_quick_stops?: number | SWMLVar;
-  /** Overall speech timeout, in ms. Allowed values from `0` - `600,000`. **Default:** `60000` ms. */
-  speech_timeout?: number | SWMLVar;
-  /** When enabled, the AI agent remains silent until directly addressed by name (using `ai_name`). */
-  speak_when_spoken_to?: boolean | SWMLVar;
-  /** When enabled, the AI agent starts in a paused state and will not respond until the user */
-  start_paused?: boolean | SWMLVar;
-  /** The static greeting to play when the call is answered. This will always play at the beginning of the call. */
-  static_greeting?: string;
-  /** If `true`, the static greeting will not be interrupted by the user if they speak over the greeting. If `false`, the static greeting can be interrupted by the user if they speak over the greeting. */
-  static_greeting_no_barge?: boolean | SWMLVar;
-  /** Defines the mode for summary generation. Allowed values are `"string"` and `"original"`. */
-  summary_mode?: 'string' | 'original' | SWMLVar;
-  /** Allows tweaking any of the indicated settings, such as `barge_match_string`, using the returned SWML from the SWAIG function. **Default:** `true`. */
-  swaig_allow_settings?: boolean | SWMLVar;
-  /** Allows your SWAIG to return SWML to be executed. **Default:** `true`. */
-  swaig_allow_swml?: boolean | SWMLVar;
-  /** Post entire conversation to any SWAIG call. */
-  swaig_post_conversation?: boolean | SWMLVar;
-  /** Allows SWAIG to set global data that persists across calls. **Default:** `true`. */
-  swaig_set_global_data?: boolean | SWMLVar;
-  /** Controls whether SWML variables are included in SWAIG function webhook payloads. */
-  swaig_post_swml_vars?: boolean | string[] | SWMLVar;
-  /** The model to use for the AI's thinking capabilities. Allowed values are `gpt-4o-mini`, `gpt-4.1-mini`, and `gpt-4.1-nano`. */
-  thinking_model?: 'gpt-4o-mini' | 'gpt-4.1-mini' | 'gpt-4.1-nano' | string;
-  /** When enabled, the AI will not respond to the user's input when the user is speaking over the agent. */
-  transparent_barge?: boolean | SWMLVar;
-  /** Maximum time, in ms, for transparent barge mode. Allowed values from `0` - `60,000`. **Default:** `3000` ms. */
-  transparent_barge_max_time?: number | SWMLVar;
-  /** Pass a summary of a conversation from one AI agent to another. For example, transfer a call summary between support agents in two departments. */
-  transfer_summary?: boolean | SWMLVar;
-  /** Time in milliseconds to wait after detecting a potential end-of-turn before finalizing speech recognition. */
-  turn_detection_timeout?: number | SWMLVar;
-  /** The format for the AI agent to reference phone numbers. */
-  tts_number_format?: 'international' | 'national';
-  /** URL of a video file to play when AI is listening to the user speak. Only works for calls that support video. */
-  video_listening_file?: string;
-  /** URL of a video file to play when AI is idle. Only works for calls that support video. */
-  video_idle_file?: string;
-  /** URL of a video file to play when AI is talking. Only works for calls that support video. */
-  video_talking_file?: string;
-  /** The model to use for the AI's vision capabilities. Allowed values are `gpt-4o-mini`, `gpt-4.1-mini`, and `gpt-4.1-nano`. */
-  vision_model?: 'gpt-4o-mini' | 'gpt-4.1-mini' | 'gpt-4.1-nano' | string;
-  /** Configures Silero Voice Activity Detection (VAD) settings. Format: `"threshold"` or `"threshold:frame_ms"`. */
-  vad_config?: string;
-  /** When false, AI agent will initialize dialogue after call is setup. When true, agent will wait for the user to speak first. */
-  wait_for_user?: boolean | SWMLVar;
-  /** Specifies an additional prefix that must be spoken along with the agent's name (`ai_name`) */
-  wake_prefix?: string;
-  /** The stability slider determines how stable the voice is and the randomness between each generation. Lowering this slider introduces a broader emotional range for the voice. */
-  eleven_labs_stability?: number | SWMLVar;
-  /** The similarity slider dictates how closely the AI should adhere to the original voice when attempting to replicate it. The higher the similarity, the closer the AI will sound to the original voice. */
-  eleven_labs_similarity?: number | SWMLVar;
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  ai: AIObject | (string | SWMLVar)[] | number | (string & (string | SWMLVar));
   [key: string]:
     | Record<string, unknown>
-    | boolean
-    | SWMLVar
-    | 'gpt-4o-mini'
-    | 'gpt-4.1-mini'
-    | 'gpt-4.1-nano'
-    | string
-    | string
+    | AIObject
+    | (string | SWMLVar)[]
     | number
-    | SWMLVar
-    | AttentionTimeout
-    | 0
-    | SWMLVar
-    | number
-    | null
-    | SWMLVar
+    | (string & (string | SWMLVar));
+}
+
+/** Creates an AI agent that conducts voice conversations using automatic speech recognition (ASR), */
+export interface AIObject {
+  /** An array of JSON objects to create user-defined functions/endpoints that can be executed during the dialogue. */
+  SWAIG?:
+    | {
+        description?: string;
+        active?: boolean | number | string;
+        argument?: FunctionParameters;
+        data_map?: DataMap;
+        fillers?: {
+          default?: Record<string, unknown>;
+          auto?: Record<string, unknown>;
+        };
+        function?: string;
+        meta_data?: Record<string, unknown>;
+        meta_data_token?: string;
+        parameters?: FunctionParameters;
+        purpose?: string;
+        skip_fillers?: boolean | string;
+        wait_file?: string;
+        wait_file_loops?: number | string;
+        wait_for_fillers?: boolean | string;
+        web_hook_auth_pass?: string;
+        web_hook_auth_password?: string;
+        web_hook_auth_user?: string;
+        web_hook_url?: string;
+      }[]
+    | SWAIG;
+  agent?: string | SWMLVar;
+  /** The engine to use for the language. For example, 'elevenlabs'. */
+  engine?: string | SWMLVar;
+  /** A key-value object for storing data that persists throughout the AI session. */
+  global_data?: Record<string, unknown>;
+  /** Hints help the AI agent understand certain words or phrases better. Words that can commonly be misinterpreted can be added to the hints to help the AI speak more accurately. */
+  hints?: (Hint | string)[];
+  /** An array of JSON objects defining supported languages in the conversation. */
+  languages?: Languages[];
+  multilingual?: {
+    allowed?: unknown[];
+    engine?: string;
+    fillers?:
+      | unknown[]
+      | {
+          default?: Record<string, unknown>;
+          auto?: Record<string, unknown>;
+        };
+    function_fillers?:
+      | unknown[]
+      | {
+          default?: Record<string, unknown>;
+          auto?: Record<string, unknown>;
+        };
+    languages?: unknown[];
+    min_switch_words?: number;
+    model?: string;
+    provider?: string;
+    start_language?: string;
+    turn_fillers?:
+      | unknown[]
+      | {
+          default?: Record<string, unknown>;
+        };
+  };
+  params?: AIParams;
+  post_prompt?: AIPostPrompt;
+  post_prompt_auth_password?: string | SWMLVar;
+  post_prompt_auth_user?: string | SWMLVar;
+  /** The URL to which to send status callbacks and reports. Authentication can also be set in the url in the format of `username:password@url`. */
+  post_prompt_url?: string | SWMLVar;
+  prompt?: AIPrompt;
+  /** An array of JSON objects to clarify the AI's pronunciation of words or expressions. */
+  pronounce?: Pronounce[];
+  /** Voice to use for the language. String format: `<engine id>.<voice id>`. */
+  voice?: string | SWMLVar;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        description?: string;
+        active?: boolean | number | string;
+        argument?: FunctionParameters;
+        data_map?: DataMap;
+        fillers?: {
+          default?: Record<string, unknown>;
+          auto?: Record<string, unknown>;
+        };
+        function?: string;
+        meta_data?: Record<string, unknown>;
+        meta_data_token?: string;
+        parameters?: FunctionParameters;
+        purpose?: string;
+        skip_fillers?: boolean | string;
+        wait_file?: string;
+        wait_file_loops?: number | string;
+        wait_for_fillers?: boolean | string;
+        web_hook_auth_pass?: string;
+        web_hook_auth_password?: string;
+        web_hook_auth_user?: string;
+        web_hook_url?: string;
+      }[]
+    | SWAIG
     | string
-    | boolean
     | SWMLVar
-    | ConversationMessage[]
-    | boolean
-    | number
-    | SWMLVar
-    | Direction
-    | SWMLVar
-    | string
-    | SWMLVar
-    | 'markdown'
-    | 'xml'
-    | 'string'
-    | 'original'
-    | SWMLVar
-    | boolean
-    | string[]
-    | SWMLVar
-    | 'international'
-    | 'national'
+    | (Hint | string)[]
+    | Languages[]
+    | {
+        allowed?: unknown[];
+        engine?: string;
+        fillers?:
+          | unknown[]
+          | {
+              default?: Record<string, unknown>;
+              auto?: Record<string, unknown>;
+            };
+        function_fillers?:
+          | unknown[]
+          | {
+              default?: Record<string, unknown>;
+              auto?: Record<string, unknown>;
+            };
+        languages?: unknown[];
+        min_switch_words?: number;
+        model?: string;
+        provider?: string;
+        start_language?: string;
+        turn_fillers?:
+          | unknown[]
+          | {
+              default?: Record<string, unknown>;
+            };
+      }
+    | AIParams
+    | AIPostPrompt
+    | AIPrompt
+    | Pronounce[]
     | undefined;
 }
 
-export type AIPostPrompt = AIPostPromptText | AIPostPromptPom;
+/** An object of any necessary parameters for the API call. The key is the parameter name and the value is the parameter value. */
+export interface AIParams {
+  acknowledge_interruptions?: number | string | boolean;
+  acoustic_eot_gate_prob?: number | string;
+  acoustic_eot_trust_prob?: number | string;
+  ai_model?: string;
+  ai_name?: string;
+  ai_volume?: number | string;
+  app_name?: string;
+  asr_diarize?: boolean | number | string;
+  asr_params?: Record<string, unknown>;
+  asr_smart_format?: boolean | number | string;
+  asr_speaker_affinity?: boolean | number | string;
+  attention_escalate_prompt?: string;
+  attention_timeout?: AttentionTimeout | string;
+  attention_timeout_prompt?: string;
+  auth_token?: string;
+  auto_correct?: boolean | number | string;
+  azure_stream_first?: boolean | number | string;
+  azure_tts_key?: string;
+  background_file?: string;
+  background_file_loops?: number | string;
+  background_file_volume?: number | string;
+  barge_functions?: boolean | number | string;
+  barge_match_string?: string;
+  barge_min_words?: number | string;
+  bill_all_tts?: boolean | number | string;
+  cache?: boolean | number | string;
+  call_uuid?: string;
+  cartesia_key?: string;
+  cartesia_model?: string;
+  cartesia_stream_first?: boolean | number | string;
+  confidence?: number | string;
+  conscience?: string;
+  conversation_id?: string;
+  conversation_sliding_window?: number | string;
+  convo?: ConversationMessage[];
+  debug_webhook_level?: number | string;
+  debug_webhook_url?: string;
+  deepgram_key_override?: string;
+  deepgram_stream_first?: boolean | number | string;
+  deepgram_tts_key?: string;
+  deepgram_url_override?: string;
+  developer_prompt?: string;
+  digit_terminators?: string;
+  digit_timeout?: number | string;
+  direction?: Direction;
+  double_turn_filler_every_n?: number | string;
+  double_turn_filler_min_ms?: number | string;
+  double_turn_model?: string;
+  double_turn_prompt?: string;
+  double_turn_wait_ms?: number | string;
+  double_turns?: boolean | string;
+  eleven_labs_key?: string;
+  eleven_labs_model?: string;
+  eleven_labs_similarity?: number | string;
+  eleven_labs_stability?: number | string;
+  eleven_labs_stream_first?: boolean | number | string;
+  enable_barge?: string | boolean;
+  enable_inner_dialog?: boolean | string;
+  enable_pause?: boolean | string;
+  enable_text_normalization?: string;
+  enable_thinking?: boolean | string;
+  enable_turn_detection?: boolean | string;
+  enable_vision?: boolean | string;
+  end_of_speech_timeout?: number | string;
+  energy_level?: number | string;
+  escalate_after_ms?: number | string;
+  escalate_after_turns?: number | string;
+  event_webhook_url?: string;
+  ext?: string;
+  first_word_timeout?: number | string;
+  fish_key?: string;
+  fish_model?: string;
+  function_filler_sequence_gap_ms?: number | string;
+  function_wait_for_talking?: boolean | number | string;
+  functions_on_no_response?: boolean | number | string;
+  grok_key?: string;
+  groq_tts_key?: string;
+  hard_stop_prompt?: string;
+  hard_stop_time?: string;
+  hold_music?: string;
+  hold_on_process?: boolean | number | string;
+  inactivity_timeout?: number | string;
+  initial_sleep_ms?: number | string;
+  inner_dialog?: {
+    SWAIG?: {
+      defaults?: {
+        web_hook_auth_pass?: string;
+        web_hook_auth_password?: string;
+        web_hook_auth_user?: string;
+        web_hook_url?: string;
+      };
+      functions?: unknown[];
+    };
+  };
+  inner_dialog_model?: string;
+  /** The default applies only when `enable_inner_dialog` / `inner_dialog_scorecard` enables it; otherwise the value stays unset. */
+  inner_dialog_prompt?: string;
+  inner_dialog_scorecard?:
+    | boolean
+    | {
+        dials?: unknown[];
+        replace?: boolean | string;
+      };
+  input_poll_freq?: number | string;
+  interrupt_on_noise?: number | string | boolean;
+  interrupt_prompt?: string;
+  inworld_apikey?: string;
+  inworld_key?: string;
+  inworld_model?: string;
+  language?: string;
+  /** @deprecated */
+  languages_enabled?: boolean | number | string;
+  lipsync_debug?: boolean | number | string;
+  llm_diarize_aware?: boolean | number | string;
+  local_tz?: string;
+  max_emotion?: number | string;
+  max_response_tokens?: number | string;
+  min_utterance_ms?: number | string;
+  minimax_key?: string;
+  minimax_model?: string;
+  mistral_key?: string;
+  mistral_model?: string;
+  model?: string;
+  openai_asr_engine?: string;
+  openai_azure?: boolean | number | string;
+  openai_gcloud_version?: string;
+  openai_stream_first?: boolean | number | string;
+  openai_tts_key?: string;
+  openai_tts_url?: string;
+  outbound_attention_timeout?: number | string;
+  pcm_channels?: number | string;
+  pcm_rate?: number | string;
+  persist_global_data?: boolean | string;
+  pom_format?: string;
+  provider?: string;
+  pvt_params?: string;
+  realtime?: {
+    input_transcription?: string;
+    local_vad?: boolean | string;
+    local_vad_frame_ms?: number | string;
+    local_vad_threshold?: number | string;
+    noise_reduction?: string;
+    packets_per_send?: number | string;
+    reasoning_effort?: string;
+    speed?: number | string;
+    temperature?: number | string;
+    tool_model?: string;
+    vad_eagerness?: string;
+    vad_prefix_padding_ms?: number | string;
+    vad_silence_duration_ms?: number | string;
+    vad_threshold?: number | string;
+    vad_type?: string;
+    voice?: string;
+  };
+  redact_prompt?: string;
+  rime_apikey?: string;
+  rime_key?: string;
+  rime_model?: string;
+  rime_stream_first?: boolean | number | string;
+  sample_rate?: number | string;
+  save_conversation?: boolean | number | string;
+  send_single_llm_response?: boolean | number | string;
+  similarity?: number | string;
+  smallest_key?: string;
+  smallest_model?: string;
+  speak_when_spoken_to?: boolean | string;
+  speaker?: string;
+  speech_event_timeout?: number | string;
+  speech_gen_quick_stops?: number | string;
+  speech_timeout?: number | string;
+  speechify_key?: string;
+  speechify_loudness_normalization?: boolean | number | string;
+  speechify_model?: string;
+  speechify_output_format?: string;
+  speechify_stream_first?: boolean | number | string;
+  speechify_text_normalization?: boolean | number | string;
+  speed?: number | string;
+  stability?: number | string;
+  start_paused?: boolean | string;
+  static_greeting?: string;
+  static_greeting_no_barge?: boolean | number | string;
+  stream_first?: boolean | number | string;
+  streaming?: boolean | number | string;
+  strict_mode?: string;
+  summary_mode?: string;
+  swaig_allow_settings?: boolean | number | string;
+  swaig_allow_swml?: boolean | number | string;
+  swaig_post_conversation?: boolean | number | string;
+  swaig_post_swml_vars?: string[] | boolean | string;
+  swaig_set_global_data?: boolean | number | string;
+  target_first_segment_ms?: number | string;
+  text_normalization_far_dir?: string;
+  thinking_model?: string;
+  tool_result_distill?:
+    | boolean
+    | {
+        enabled?: boolean | string;
+        min_chars?: number;
+        model?: string;
+        prompt?: string;
+      };
+  transfer_summary?: boolean | number | string;
+  transparent_barge?: boolean | number | string;
+  transparent_barge_max_time?: number | string;
+  tts_number_format?: string;
+  turn_detection?: boolean | string;
+  turn_detection_min_length?: number | string;
+  turn_detection_timeout?: number | string;
+  turn_filler_every_n?: number | string;
+  turn_filler_min_ms?: number | string;
+  turn_filler_sources?: string;
+  url?: string;
+  utility_model?: string;
+  vad_config?: string;
+  video_fps?: number | string;
+  video_idle_file?: string;
+  video_listening_file?: string;
+  video_scale?: string;
+  video_talking_file?: string;
+  vision_model?: string;
+  voice_name?: string;
+  vol?: number | string;
+  wait_for_user?: boolean | number | string;
+  wake_prefix?: string;
+}
 
+/** The final set of instructions and configuration settings to send to the agent. */
+export interface AIPostPrompt {
+  frequency_penalty?: Record<string, unknown>;
+  max_completion_tokens?: number;
+  max_tokens?: number;
+  model?: string;
+  pom?: POM[];
+  presence_penalty?: Record<string, unknown>;
+  reasoning_effort?: string;
+  temperature?: number;
+  text?: string;
+  top_p?: number;
+  verbosity?: string;
+}
+
+/** The final set of instructions and configuration settings to send to the agent. */
 export interface AIPostPromptPom {
-  /** Limits the amount of tokens that the AI agent may generate when creating its response */
+  frequency_penalty?: Record<string, unknown>;
+  max_completion_tokens?: number;
   max_tokens?: number;
-  /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  temperature?: number | SWMLVar;
-  /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  top_p?: number | SWMLVar;
-  /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-  confidence?: number | SWMLVar;
-  /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-  presence_penalty?: number | SWMLVar;
-  /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-  frequency_penalty?: number | SWMLVar;
-  /** The instructions to send to the agent. */
-  pom: POM[];
+  model?: string;
+  pom?: POM[];
+  presence_penalty?: Record<string, unknown>;
+  reasoning_effort?: string;
+  temperature?: number;
+  text?: string;
+  top_p?: number;
+  verbosity?: string;
 }
 
+/** The final set of instructions and configuration settings to send to the agent. */
 export interface AIPostPromptText {
-  /** Limits the amount of tokens that the AI agent may generate when creating its response */
+  frequency_penalty?: Record<string, unknown>;
+  max_completion_tokens?: number;
   max_tokens?: number;
-  /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  temperature?: number | SWMLVar;
-  /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  top_p?: number | SWMLVar;
-  /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-  confidence?: number | SWMLVar;
-  /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-  presence_penalty?: number | SWMLVar;
-  /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-  frequency_penalty?: number | SWMLVar;
-  /** The instructions to send to the agent. */
-  text: string;
+  model?: string;
+  pom?: POM[];
+  presence_penalty?: Record<string, unknown>;
+  reasoning_effort?: string;
+  temperature?: number;
+  text?: string;
+  top_p?: number;
+  verbosity?: string;
 }
 
-export type AIPrompt = AIPromptText | AIPromptPom;
+/** Defines the AI agent's personality, goals, behaviors, and instructions for handling conversations. */
+export interface AIPrompt {
+  contexts?: Contexts;
+  frequency_penalty?: Record<string, unknown>;
+  max_completion_tokens?: number;
+  max_tokens?: number;
+  model?: string;
+  pom?: {
+    title?: string;
+    body?: string;
+    bullets?: unknown[];
+    numbered?: boolean;
+    numberedBullets?: boolean;
+    subsections?: unknown[];
+  }[];
+  presence_penalty?: Record<string, unknown>;
+  reasoning_effort?: string;
+  steps?: Step[];
+  temperature?: number;
+  text?: string;
+  top_p?: number;
+  verbosity?: string;
+}
 
+/** Defines the AI agent's personality, goals, behaviors, and instructions for handling conversations. */
 export interface AIPromptPom {
-  /** Limits the amount of tokens that the AI agent may generate when creating its response */
-  max_tokens?: number;
-  /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  temperature?: number | SWMLVar;
-  /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  top_p?: number | SWMLVar;
-  /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-  confidence?: number | SWMLVar;
-  /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-  presence_penalty?: number | SWMLVar;
-  /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-  frequency_penalty?: number | SWMLVar;
-  /** Prompt Object Model (POM) is a structured data format for composing, organizing, and rendering prompt instructions for AI agents. */
-  pom: POM[];
-  /** An object that defines the context steps for the AI. The context steps are used to define the flow of the conversation. */
   contexts?: Contexts;
+  frequency_penalty?: Record<string, unknown>;
+  max_completion_tokens?: number;
+  max_tokens?: number;
+  model?: string;
+  pom?: {
+    title?: string;
+    body?: string;
+    bullets?: unknown[];
+    numbered?: boolean;
+    numberedBullets?: boolean;
+    subsections?: unknown[];
+  }[];
+  presence_penalty?: Record<string, unknown>;
+  reasoning_effort?: string;
+  steps?: Step[];
+  temperature?: number;
+  text?: string;
+  top_p?: number;
+  verbosity?: string;
 }
 
+/** Defines the AI agent's personality, goals, behaviors, and instructions for handling conversations. */
 export interface AIPromptText {
-  /** Limits the amount of tokens that the AI agent may generate when creating its response */
-  max_tokens?: number;
-  /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  temperature?: number | SWMLVar;
-  /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-  top_p?: number | SWMLVar;
-  /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-  confidence?: number | SWMLVar;
-  /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-  presence_penalty?: number | SWMLVar;
-  /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-  frequency_penalty?: number | SWMLVar;
-  /** The instructions to send to the agent. */
-  text: string;
-  /** An object that defines the context steps for the AI. The context steps are used to define the flow of the conversation. */
   contexts?: Contexts;
+  frequency_penalty?: Record<string, unknown>;
+  max_completion_tokens?: number;
+  max_tokens?: number;
+  model?: string;
+  pom?: {
+    title?: string;
+    body?: string;
+    bullets?: unknown[];
+    numbered?: boolean;
+    numberedBullets?: boolean;
+    subsections?: unknown[];
+  }[];
+  presence_penalty?: Record<string, unknown>;
+  reasoning_effort?: string;
+  steps?: Step[];
+  temperature?: number;
+  text?: string;
+  top_p?: number;
+  verbosity?: string;
 }
 
-export type Action =
-  | SWMLAction
-  | ChangeContextAction
-  | ChangeStepAction
-  | ContextSwitchAction
-  | HangupAction
-  | HoldAction
-  | PlaybackBGAction
-  | SayAction
-  | SetGlobalDataAction
-  | SetMetaDataAction
-  | StopAction
-  | StopPlaybackBGAction
-  | ToggleFunctionsAction
-  | UnsetGlobalDataAction
-  | UnsetMetaDataAction
-  | UserInputAction;
+export interface Action {
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
+}
 
 export interface AllOfProperty {
   /** An array of schemas where all of the schemas must be valid. */
@@ -347,37 +583,101 @@ export interface AllOfProperty {
 }
 
 export interface AmazonBedrock {
-  /** Creates a new Bedrock AI Agent */
-  amazon_bedrock: AmazonBedrockObject;
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  amazon_bedrock: AmazonBedrockObject | unknown[] | number | string;
+  [key: string]: Record<string, unknown> | AmazonBedrockObject | unknown[] | number | string;
 }
 
+/** Creates a new Bedrock AI Agent */
 export interface AmazonBedrockObject {
+  SWAIG?: BedrockSWAIG;
+  app_name?: string;
+  assistant_name?: string;
+  assistant_prompt?: string;
+  conversation_id?: string;
   /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script */
-  global_data?: Record<string, Record<string, unknown>>;
-  /** A JSON object containing parameters as key-value pairs. */
+  global_data?: Record<string, unknown>;
+  greeting_prompt?: {
+    role?: string;
+    text?: string;
+  };
   params?: BedrockParams;
-  /** The final set of instructions and configuration settings to send to the agent. */
   post_prompt?: BedrockPostPrompt;
   /** The URL to which to send status callbacks and reports. Authentication can also be set in the url in the format of `username:password@url`. */
   post_prompt_url?: string;
-  /** Establishes the initial set of instructions and settings to configure the agent. */
-  prompt: BedrockPrompt;
-  /** An array of JSON objects to create user-defined functions/endpoints that can be executed during the dialogue. */
-  SWAIG?: BedrockSWAIG;
+  prompt?: BedrockPrompt;
+  transcript_webhook_url?: string;
+  [key: string]:
+    | Record<string, unknown>
+    | BedrockSWAIG
+    | string
+    | {
+        role?: string;
+        text?: string;
+      }
+    | BedrockParams
+    | BedrockPostPrompt
+    | BedrockPrompt
+    | undefined;
 }
 
 export interface Answer {
-  /** Answer incoming call and set an optional maximum duration. */
-  answer: {
-    /** Maximum duration in seconds for the call. Defaults to `14400` seconds (4 hours). */
-    max_duration?: number | SWMLVar;
-    /** Comma-separated string of codecs to offer. Valid codecs are: PCMU, PCMA, G722, G729, AMR-WB, OPUS, VP8, H264. */
-    codecs?: string;
-    /** Username to use for SIP authentication. */
-    username?: string;
-    /** Password to use for SIP authentication. */
-    password?: string;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  answer:
+    | {
+        /** Comma-separated string of codecs to offer. Valid codecs are: PCMU, PCMA, G722, G729, AMR-WB, OPUS, VP8, H264. */
+        codecs?:
+          | string
+          | ('PCMU' | 'PCMA' | 'OPUS' | 'G722' | 'G729' | 'AMR-WB' | 'VP8' | 'H264')[]
+          | SWMLVar;
+        /** Maximum duration in seconds for the call. Defaults to `14400` seconds (4 hours). */
+        max_duration?: number | SWMLVar;
+        /** Password to use for SIP authentication. */
+        password?: string | SWMLVar;
+        /** Username to use for SIP authentication. */
+        username?: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | ('PCMU' | 'PCMA' | 'OPUS' | 'G722' | 'G729' | 'AMR-WB' | 'VP8' | 'H264')[]
+          | SWMLVar
+          | number
+          | SWMLVar
+          | string
+          | SWMLVar
+          | undefined;
+      }
+    | (number | SWMLVar)[]
+    | (number & (number | SWMLVar))
+    | (string & (number | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** Comma-separated string of codecs to offer. Valid codecs are: PCMU, PCMA, G722, G729, AMR-WB, OPUS, VP8, H264. */
+        codecs?:
+          | string
+          | ('PCMU' | 'PCMA' | 'OPUS' | 'G722' | 'G729' | 'AMR-WB' | 'VP8' | 'H264')[]
+          | SWMLVar;
+        /** Maximum duration in seconds for the call. Defaults to `14400` seconds (4 hours). */
+        max_duration?: number | SWMLVar;
+        /** Password to use for SIP authentication. */
+        password?: string | SWMLVar;
+        /** Username to use for SIP authentication. */
+        username?: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | ('PCMU' | 'PCMA' | 'OPUS' | 'G722' | 'G729' | 'AMR-WB' | 'VP8' | 'H264')[]
+          | SWMLVar
+          | number
+          | SWMLVar
+          | string
+          | SWMLVar
+          | undefined;
+      }
+    | (number | SWMLVar)[]
+    | (number & (number | SWMLVar))
+    | (string & (number | SWMLVar));
 }
 
 export interface AnyOfProperty {
@@ -401,188 +701,69 @@ export interface ArrayProperty {
 
 export type AttentionTimeout = number;
 
+/** A JSON object containing parameters as key-value pairs. */
 export interface BedrockParams {
-  /** Amount of time, in ms, to wait before prompting the user to respond. Allowed values from `10,000` - `600,000`. Set to `0` to disable. **Default:** `5000` ms (note: user-configurable values must be `0` or within the `10,000` - `600,000` range). */
-  attention_timeout?: AttentionTimeout | 0 | SWMLVar;
-  /** Specifies the maximum duration fopr the AI Agent to remain active before it exists the session. */
-  hard_stop_time?: string | SWMLVar;
-  /** Amount of time, in ms, to wait before exiting the app due to inactivity. Allowed values from `10,000` - `3,600,000`. **Default:** `600000` ms (10 minutes). */
-  inactivity_timeout?: number | SWMLVar;
-  /** URL of a video file to play when AI is listening to the user speak. Only works for calls that support video. */
-  video_listening_file?: string;
-  /** URL of a video file to play when AI is idle. Only works for calls that support video. */
-  video_idle_file?: string;
-  /** URL of a video file to play when AI is talking. Only works for calls that support video. */
-  video_talking_file?: string;
-  /** A final prompt that is fed into the AI when the `hard_stop_time` is reached. */
+  /** Effective range 1000..60000 (0 is also accepted). A value outside it is ignored by the engine rather than rejected. */
+  attention_timeout?: number | string;
+  compact_conversation_time?: string;
+  compact_strategy?: string;
+  /** The default applies only when `hard_stop_time` enables it; otherwise the value stays unset. */
   hard_stop_prompt?: string;
-  [key: string]:
-    | Record<string, unknown>
-    | AttentionTimeout
-    | 0
-    | SWMLVar
-    | string
-    | SWMLVar
-    | number
-    | SWMLVar
-    | string
-    | undefined;
+  hard_stop_time?: string;
+  /** Effective range 10000..3600000 (0 is also accepted). A value outside it is ignored by the engine rather than rejected. */
+  inactivity_timeout?: number | string;
+  video_idle_file?: string;
+  video_listening_file?: string;
+  video_talking_file?: string;
 }
 
-export type BedrockPostPrompt =
-  | {
-      /** Limits the amount of tokens that the AI agent may generate when creating its response */
-      max_tokens?: number;
-      /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      temperature?: number | SWMLVar;
-      /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      top_p?: number | SWMLVar;
-      /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-      confidence?: number | SWMLVar;
-      /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-      presence_penalty?: number | SWMLVar;
-      /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-      frequency_penalty?: number | SWMLVar;
-      /** The instructions to send to the agent. */
-      text: string;
-    }
-  | {
-      /** Limits the amount of tokens that the AI agent may generate when creating its response */
-      max_tokens?: number;
-      /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      temperature?: number | SWMLVar;
-      /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      top_p?: number | SWMLVar;
-      /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-      confidence?: number | SWMLVar;
-      /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-      presence_penalty?: number | SWMLVar;
-      /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-      frequency_penalty?: number | SWMLVar;
-      /** The instructions to send to the agent. */
-      pom: POM[];
-    };
+/** The final set of instructions and configuration settings to send to the agent. */
+export interface BedrockPostPrompt {
+  pom?: {
+    title?: string;
+    body?: string;
+    bullets?: unknown[];
+    numbered?: boolean;
+    numberedBullets?: boolean;
+    subsections?: unknown[];
+  }[];
+  text?: string;
+}
 
-export type BedrockPrompt =
-  | {
-      voice_id?: 'tiffany' | 'matthew' | 'amy' | 'lupe' | 'carlos';
-      /** Limits the amount of tokens that the AI agent may generate when creating its response */
-      max_tokens?: number;
-      /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      temperature?: number | SWMLVar;
-      /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      top_p?: number | SWMLVar;
-      /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-      confidence?: number | SWMLVar;
-      /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-      presence_penalty?: number | SWMLVar;
-      /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-      frequency_penalty?: number | SWMLVar;
-      /** The instructions to send to the agent. */
-      text: string;
-    }
-  | {
-      voice_id?: 'tiffany' | 'matthew' | 'amy' | 'lupe' | 'carlos';
-      /** Limits the amount of tokens that the AI agent may generate when creating its response */
-      max_tokens?: number;
-      /** Randomness setting. Float value between 0.0 and 1.5. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      temperature?: number | SWMLVar;
-      /** Randomness setting. Alternative to `temperature`. Float value between 0.0 and 1.0. Closer to 0 will make the output less random. **Default:** `1.0`. */
-      top_p?: number | SWMLVar;
-      /** Threshold to fire a speech-detect event at the end of the utterance. Float value between 0.0 and 1.0. */
-      confidence?: number | SWMLVar;
-      /** Aversion to staying on topic. Float value between -2.0 and 2.0. Positive values increase the model's likelihood to talk about new topics. **Default:** `0`. */
-      presence_penalty?: number | SWMLVar;
-      /** Aversion to repeating lines. Float value between -2.0 and 2.0. Positive values decrease the model's likelihood to repeat the same line verbatim. **Default:** `0`. */
-      frequency_penalty?: number | SWMLVar;
-      /** The instructions to send to the agent. */
-      pom: POM[];
-    };
+/** Establishes the initial set of instructions and settings to configure the agent. */
+export interface BedrockPrompt {
+  pom?: {
+    title?: string;
+    body?: string;
+    bullets?: unknown[];
+    numbered?: boolean;
+    numberedBullets?: boolean;
+    subsections?: unknown[];
+  }[];
+  temperature?: number | string;
+  text?: string;
+  top_p?: number | string;
+  voice_id?: string;
+}
 
+/** An object holding the user-defined functions/endpoints that can be executed during the dialogue. The engine reads two keys off it: `functions`, the array of function definitions, and `defaults`, an object of settings applied to each of them. */
 export interface BedrockSWAIG {
-  /** An array of JSON objects to define functions that can be executed during the interaction with the Bedrock AI. Default is not set. */
+  defaults?: {
+    web_hook_url?: string;
+  };
   functions?: BedrockSWAIGFunction[];
-  /** Default settings for all SWAIG functions. If `defaults` is not set, settings may be set in each function object. Default is not set. */
-  defaults?: SWAIGDefaults;
-  /** Prebuilt functions the AI agent is able to call from this list of available native functions */
-  native_functions?: SWAIGNativeFunction[];
-  /** An array of objects to include remote function signatures. */
-  includes?: SWAIGIncludes[];
 }
 
-export type BedrockSWAIGFunction =
-  | {
-      /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-      description: string;
-      /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-      parameters?: FunctionParameters;
-      /** Whether the function is active. **Default:** `true`. */
-      active?: boolean | SWMLVar;
-      /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-      meta_data?: Record<string, Record<string, unknown>>;
-      /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-      meta_data_token?: string;
-      /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
-      data_map?: DataMap;
-      /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-      web_hook_url?: string;
-      /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation. */
-      function: string;
-    }
-  | {
-      /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-      description: string;
-      /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-      parameters?: FunctionParameters;
-      /** Whether the function is active. **Default:** `true`. */
-      active?: boolean | SWMLVar;
-      /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-      meta_data?: Record<string, Record<string, unknown>>;
-      /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-      meta_data_token?: string;
-      /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
-      data_map?: DataMap;
-      /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-      web_hook_url?: string;
-      /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation. For the start_hook function, the function name is 'start_hook'. */
-      function: 'startup_hook';
-    }
-  | {
-      /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-      description: string;
-      /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-      parameters?: FunctionParameters;
-      /** Whether the function is active. **Default:** `true`. */
-      active?: boolean | SWMLVar;
-      /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-      meta_data?: Record<string, Record<string, unknown>>;
-      /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-      meta_data_token?: string;
-      /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
-      data_map?: DataMap;
-      /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-      web_hook_url?: string;
-      /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation. For the stop_hook function, the function name is 'stop_hook'. */
-      function: 'hangup_hook';
-    }
-  | {
-      /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-      description: string;
-      /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-      parameters?: FunctionParameters;
-      /** Whether the function is active. **Default:** `true`. */
-      active?: boolean | SWMLVar;
-      /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-      meta_data?: Record<string, Record<string, unknown>>;
-      /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-      meta_data_token?: string;
-      /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
-      data_map?: DataMap;
-      /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-      web_hook_url?: string;
-      /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation.. For the summarize_conversation function, the function name is 'summarize_conversation'. */
-      function: 'summarize_conversation';
-    };
+/** Without `description` and `function`, `SWAIG` (checked only where amazon_bedrock discards the result) has no effect: it is accepted and ignored, not rejected. */
+export interface BedrockSWAIGFunction {
+  description?: string;
+  data_map?: DataMap;
+  function?: string;
+  meta_data?: Record<string, unknown>;
+  meta_data_token?: string;
+  parameters?: JsonSchema;
+  web_hook_url?: string;
+}
 
 /** Base interface for all property types */
 export interface BooleanProperty {
@@ -602,15 +783,15 @@ export interface CallAIMessageRequest {
   /** The `calling.ai_message` command is used to inject a message into the AI conversation. */
   command: 'calling.ai_message';
   /** An object of parameters that will be utilized by the active command. */
-  params: {
-    /** The role that the message is from. Required when `reset` is not provided. Each role type has a different purpose and will influence how the AI will interpret the message. */
-    role?: 'system' | 'user' | 'assistant';
+  params?: {
+    /** Arbitrary JSON data to merge into the AI session's global data store. */
+    global_data?: Record<string, unknown>;
     /** The text content that will be sent to the AI. Required when `reset` is not provided. */
     message_text?: string;
     /** Parameters for resetting the AI conversation state. When provided, `role` and `message_text` are optional. */
-    reset?: CallAIMessageResetParams;
-    /** Arbitrary JSON data to merge into the AI session's global data store. */
-    global_data?: Record<string, Record<string, unknown>>;
+    reset?: RelayIsReset;
+    /** The role that the message is from. Required when `reset` is not provided. Each role type has a different purpose and will influence how the AI will interpret the message. */
+    role?: string;
   };
 }
 
@@ -634,7 +815,7 @@ export interface CallCreateParamsSWML {
   /** The address that initiated the call. Can be either a E.164 formatted number (`+xxxxxxxxxxx`), or a SIP endpoint (`sip:xxx@yyy.zzz`). */
   from: string;
   /** The address that received the call. Can be either a E.164 formatted number (`+xxxxxxxxxxx`), or a SIP endpoint (`sip:xxx@yyy.zzz`). */
-  to: string;
+  to?: string;
   /** The number, in E.164 format, or identifier of the caller. */
   caller_id?: string;
   /** The Fallback URL to handle the call. This parameter allows you to specify a backup webhook or different route in your code containing SWML instructions for handling the call. */
@@ -647,15 +828,44 @@ export interface CallCreateParamsSWML {
   url_method?: string;
   /** A list of codecs to use for the call. Can be an array of codec strings or a comma-separated string. Valid codecs are: `PCMU`, `PCMA`, `G722`, `G729`, `OPUS`, `VP8`, `H264`. For PSTN calls, `PCMA` and `PCMU` are recommended as many other codecs are not supported by PSTN gateways. If a SIP URI with included codecs is passed in the `to` field along with this parameter, the SIP URI codecs will be prioritized. */
   codecs?: string[] | string;
+  /** SWML to run on the destination leg, instead of dialing `to`. Either an SWML document (object, or a JSON/YAML string) or an `http(s)` URL that returns SWML. When set, `to` may be omitted. */
+  to_script?: string | Record<string, unknown>;
+  /** Time, in seconds, to wait for the call to be answered. */
+  timeout?: number;
+  /** The maximum price, in USD, per minute that the call may cost. The call is rejected if the route costs more. */
+  max_price_per_minute?: number;
+  /** DTMF digits to send once the call is answered (`0-9`, `A-D`, `*`, `#`, `w` for wait, `,` for pause), at most 98 characters. */
+  send_digits?: string;
+  /** The region, or ordered list of regions, to originate the call from. Values must be regions available to the project; defaults to the project's region preference. */
+  region?: string | string[];
+  /** SIP authentication username, used when the destination is a SIP endpoint. */
+  username?: string;
+  /** SIP authentication password, used when the destination is a SIP endpoint. */
+  password?: string;
+  /** Custom SIP headers to send on the outbound leg (at most 20). */
+  headers?: {
+    /** Header name (an HTTP token). `identity` and `x-projectid` are reserved. */
+    name: string;
+    /** Header value, at most 1024 bytes, without CR, LF or NUL characters. */
+    value: string;
+  }[];
+  /** Variables to set on the call, readable from SWML as `${envs.<name>}` (at most 20). Names must be valid SWML variable names and may not start with `signalwire_`, `sw_`, `rtc_` or `internal_`; values are non-empty strings of at most 1024 bytes. */
+  custom_variables?: Record<string, string>;
   /** Inline SWML object containing SWML instructions for handling the call. Either `url` or `swml` must be included for a new call. */
-  swml: SWMLObject;
+  swml:
+    | string
+    | {
+        sections: Section;
+        version?: '1.0.0';
+        [key: string]: Record<string, unknown> | Section | '1.0.0' | undefined;
+      };
 }
 
 export interface CallCreateParamsURL {
   /** The address that initiated the call. Can be either a E.164 formatted number (`+xxxxxxxxxxx`), or a SIP endpoint (`sip:xxx@yyy.zzz`). */
   from: string;
   /** The address that received the call. Can be either a E.164 formatted number (`+xxxxxxxxxxx`), or a SIP endpoint (`sip:xxx@yyy.zzz`). */
-  to: string;
+  to?: string;
   /** The number, in E.164 format, or identifier of the caller. */
   caller_id?: string;
   /** The Fallback URL to handle the call. This parameter allows you to specify a backup webhook or different route in your code containing SWML instructions for handling the call. */
@@ -666,6 +876,31 @@ export interface CallCreateParamsURL {
   status_events?: ('answered' | 'queued' | 'initiated' | 'ringing' | 'ending' | 'ended')[];
   /** The HTTP method to use when requesting the URL. */
   url_method?: string;
+  /** A list of codecs to use for the call. Can be an array of codec strings or a comma-separated string. Valid codecs are: `PCMU`, `PCMA`, `G722`, `G729`, `OPUS`, `VP8`, `H264`. For PSTN calls, `PCMA` and `PCMU` are recommended as many other codecs are not supported by PSTN gateways. If a SIP URI with included codecs is passed in the `to` field along with this parameter, the SIP URI codecs will be prioritized. */
+  codecs?: string[] | string;
+  /** SWML to run on the destination leg, instead of dialing `to`. Either an SWML document (object, or a JSON/YAML string) or an `http(s)` URL that returns SWML. When set, `to` may be omitted. */
+  to_script?: string | Record<string, unknown>;
+  /** Time, in seconds, to wait for the call to be answered. */
+  timeout?: number;
+  /** The maximum price, in USD, per minute that the call may cost. The call is rejected if the route costs more. */
+  max_price_per_minute?: number;
+  /** DTMF digits to send once the call is answered (`0-9`, `A-D`, `*`, `#`, `w` for wait, `,` for pause), at most 98 characters. */
+  send_digits?: string;
+  /** The region, or ordered list of regions, to originate the call from. Values must be regions available to the project; defaults to the project's region preference. */
+  region?: string | string[];
+  /** SIP authentication username, used when the destination is a SIP endpoint. */
+  username?: string;
+  /** SIP authentication password, used when the destination is a SIP endpoint. */
+  password?: string;
+  /** Custom SIP headers to send on the outbound leg (at most 20). */
+  headers?: {
+    /** Header name (an HTTP token). `identity` and `x-projectid` are reserved. */
+    name: string;
+    /** Header value, at most 1024 bytes, without CR, LF or NUL characters. */
+    value: string;
+  }[];
+  /** Variables to set on the call, readable from SWML as `${envs.<name>}` (at most 20). Names must be valid SWML variable names and may not start with `signalwire_`, `sw_`, `rtc_` or `internal_`; values are non-empty strings of at most 1024 bytes. */
+  custom_variables?: Record<string, string>;
   /** The URL to handle the call. This parameter allows you to specify a webhook or different route in your code containing SWML instructions for handling the call. */
   url: string;
 }
@@ -686,9 +921,9 @@ export interface CallHangupRequest {
   /** The `calling.end` command is used to hang up a call. */
   command: 'calling.end';
   /** An object of parameters that will be utilized by the active command. */
-  params: {
+  params?: {
     /** Set the reason why the call was hung up. */
-    reason?: HangupReason;
+    reason?: 'hangup' | 'cancel' | 'busy' | 'noAnswer' | 'decline' | 'error';
   };
 }
 
@@ -698,11 +933,11 @@ export interface CallHoldRequest {
   /** The `calling.ai_hold` command is used to hold a call. */
   command: 'calling.ai_hold';
   /** An object of parameters that will be utilized by the active command. */
-  params: {
-    /** The duration to hold the caller in seconds. */
-    timeout?: number;
+  params?: {
     /** A system message added to the AI conversation before placing the caller on hold. */
     prompt?: string;
+    /** The duration to hold the caller in seconds. */
+    timeout?: string | number;
   };
 }
 
@@ -736,6 +971,29 @@ export interface CallLeg {
   billing_ms: number | null;
   /** Type of this call. */
   type: 'relay_pstn_call' | 'relay_sip_call' | 'relay_webrtc_call';
+  /** Media quality metrics reported for the call once it has ended. `null` until metrics are available (always `null` in the response to a new dial). */
+  qos_metrics?: {
+    audio_in_media_packet_count?: Record<string, unknown>;
+    audio_in_dtmf_packet_count?: Record<string, unknown>;
+    audio_in_flaw_total?: Record<string, unknown>;
+    audio_in_quality_percentage?: Record<string, unknown>;
+    audio_in_mean_interval?: Record<string, unknown>;
+    audio_out_media_packet_count?: Record<string, unknown>;
+    audio_in_skip_packet_count?: Record<string, unknown>;
+    audio_in_flush_packet_count?: Record<string, unknown>;
+    audio_in_largest_jb_size?: Record<string, unknown>;
+    audio_in_jitter_min_variance?: Record<string, unknown>;
+    audio_in_jitter_max_variance?: Record<string, unknown>;
+    audio_out_dtmf_packet_count?: Record<string, unknown>;
+    audio_rtt_avg?: Record<string, unknown>;
+    audio_rtt_min?: Record<string, unknown>;
+    audio_rtt_max?: Record<string, unknown>;
+    audio_out_jitter_min?: Record<string, unknown>;
+    audio_out_jitter_max?: Record<string, unknown>;
+    audio_out_jitter_avg?: Record<string, unknown>;
+    audio_out_lost?: Record<string, unknown>;
+    audio_in_mos?: Record<string, unknown>;
+  } | null;
   /** The parent call ID if this is a child call. */
   parent_id: uuid | null;
 }
@@ -748,7 +1006,37 @@ export interface CallLiveTranscribeRequest {
   /** An object of parameters that will be utilized by the active command. */
   params: {
     /** The transcription action to perform: start, stop, or summarize. */
-    action: LiveTranscribeStartAction | LiveTranscribeSummarizeAction | LiveTranscribeStopAction;
+    action:
+      | 'start'
+      | 'stop'
+      | 'summarize'
+      | {
+          start?: {
+            ai_summary?: boolean;
+            ai_summary_prompt?: string;
+            debug_level?: number;
+            deepgram_key_override?: string;
+            deepgram_url_override?: string;
+            direction: ('local-caller' | 'remote-caller')[];
+            hints?: string[];
+            lang: string;
+            live_events?: boolean;
+            speech_engine?: 'deepgram' | 'google';
+            speech_timeout?: number;
+            vad_silence_ms?: number;
+            vad_thresh?: number;
+            verbose_utterances?: boolean;
+            webhook?: string;
+          };
+          stop?: Record<string, unknown>;
+          summarize?: {
+            ai_model?: string;
+            prompt?: string;
+            summary_prompt?: string;
+            webhook?: string;
+          };
+        };
+    hints?: Record<string, unknown>[];
   };
 }
 
@@ -761,10 +1049,47 @@ export interface CallLiveTranslateRequest {
   params: {
     /** The translation action to perform: start, stop, summarize, or inject. */
     action:
-      | LiveTranslateStartAction
-      | LiveTranslateSummarizeAction
-      | LiveTranslateInjectAction
-      | LiveTranslateStopAction;
+      | 'start'
+      | 'stop'
+      | 'summarize'
+      | 'inject'
+      | {
+          inject?: {
+            direction: 'local-caller' | 'remote-caller';
+            message: string;
+          };
+          start?: {
+            ai_summary?: boolean;
+            ai_summary_prompt?: string;
+            debug_level?: number;
+            deepgram_key_override?: string;
+            deepgram_url_override?: string;
+            direction: ('local-caller' | 'remote-caller')[];
+            filter_from?: string;
+            filter_to?: string;
+            from_lang: string;
+            from_voice?: string;
+            from_voice_params?: Record<string, boolean | number | string>;
+            live_events?: boolean;
+            mode?: string;
+            speech_engine?: 'deepgram' | 'google';
+            speech_timeout?: number;
+            to_lang: string;
+            to_voice?: string;
+            to_voice_params?: Record<string, boolean | number | string>;
+            translation_model?: string;
+            translation_model_params?: Record<string, unknown>;
+            vad_silence_ms?: number;
+            vad_thresh?: number;
+            webhook?: string;
+          };
+          stop?: Record<string, unknown>;
+          summarize?: {
+            prompt?: string;
+            summary_prompt?: string;
+            webhook?: string;
+          };
+        };
     /** A URL to receive status update callbacks for the translation session. */
     status_url?: string;
   };
@@ -806,6 +1131,11 @@ export type CallRequest =
   | CallTranscribeRequest
   | CallTranscribeStopRequest
   | CallAIStopRequest
+  | CallAISidecarRequest
+  | CallAISidecarAskRequest
+  | CallAISidecarPokeRequest
+  | CallAISidecarStopRequest
+  | CallAISidecarStatusRequest
   | CallSendFaxStopRequest
   | CallReceiveFaxStopRequest
   | CallReferRequest;
@@ -816,7 +1146,7 @@ export interface CallDisconnectRequest {
   /** The `calling.disconnect` command disconnects bridged calls without hanging up either leg. */
   command: 'calling.disconnect';
   /** An object of parameters that will be utilized by the active command. */
-  params: Record<string, unknown>;
+  params?: Record<string, unknown>;
 }
 
 export interface CallPlayRequest {
@@ -826,23 +1156,21 @@ export interface CallPlayRequest {
   command: 'calling.play';
   /** An object of parameters that will be utilized by the active command. */
   params: {
-    /** Unique identifier for this play operation. Auto-generated if not provided. */
-    control_id?: string;
-    /** Array of media objects to play. */
-    play: {
-      /** The type of media to play. */
-      type?: 'audio' | 'tts' | 'silence' | 'ring';
-      /** Type-specific parameters (url for audio, text/language/gender for tts, duration for silence/ring). */
-      params?: Record<string, unknown>;
-    }[];
-    /** Volume adjustment in dB. 0 is default. */
-    volume?: number;
+    /** Unique identifier for this play operation. */
+    control_id: string;
     /** Which leg of the call to play to. */
     direction?: 'listen' | 'speak' | 'both';
+    gender?: 'male' | 'female';
+    language?: string;
     /** Number of times to loop. 0 means infinite. */
     loop?: number;
+    /** Array of media objects to play. */
+    play: RelayCallPlayInner[];
     /** Webhook URL for play state events. */
     status_url?: string;
+    voice?: string;
+    /** Volume adjustment in dB. 0 is default. */
+    volume?: number;
   };
 }
 
@@ -903,27 +1231,10 @@ export interface CallRecordRequest {
   command: 'calling.record';
   /** An object of parameters that will be utilized by the active command. */
   params: {
-    /** Unique identifier for this recording. Auto-generated if not provided. */
-    control_id?: string;
-    /** Audio recording parameters. */
-    audio?: {
-      /** Play a beep before recording starts. */
-      beep?: boolean;
-      /** Recording file format. */
-      format?: 'mp3' | 'wav';
-      /** Record in stereo (separate channels per leg). */
-      stereo?: boolean;
-      /** Which leg(s) to record. */
-      direction?: 'listen' | 'speak' | 'both';
-      /** Seconds of silence before recording ends if no audio detected. */
-      initial_timeout?: number;
-      /** Seconds of silence after speech to stop recording. */
-      end_silence_timeout?: number;
-      /** DTMF digits that stop recording (e.g. '#'). */
-      terminators?: string;
-      /** Input sensitivity threshold (0-100). */
-      input_sensitivity?: number;
-    };
+    /** Unique identifier for this recording. */
+    control_id: string;
+    /** What to record. */
+    record: RelayCallRecordInner;
     /** Webhook URL for recording state events. */
     status_url?: string;
   };
@@ -936,6 +1247,7 @@ export interface CallRecordPauseRequest {
   command: 'calling.record.pause';
   /** An object of parameters that will be utilized by the active command. */
   params: {
+    behavior?: 'skip' | 'silence';
     /** The control_id of the recording to pause. */
     control_id: string;
   };
@@ -972,36 +1284,22 @@ export interface CallCollectRequest {
   command: 'calling.collect';
   /** An object of parameters that will be utilized by the active command. */
   params: {
-    /** Unique identifier for this collect operation. */
-    control_id?: string;
-    /** Seconds to wait for first input before timeout. */
-    initial_timeout?: number;
-    /** DTMF digit collection parameters. */
-    digits?: {
-      /** Maximum number of digits to collect. */
-      max?: number;
-      /** Characters that end digit collection (e.g. '#'). */
-      terminators?: string;
-      /** Seconds to wait between digits. */
-      digit_timeout?: number;
-    };
-    /** Speech recognition parameters. */
-    speech?: {
-      /** Seconds of silence after speech to finalize. */
-      end_silence_timeout?: number;
-      /** Max seconds of speech to collect. */
-      speech_timeout?: number;
-      /** Speech recognition language code (e.g. en-US). */
-      language?: string;
-      /** Words or phrases to boost recognition. */
-      hints?: string[];
-      /** Speech recognition engine. */
-      engine?: string;
-    };
+    continue?: boolean;
     /** Keep collecting after each result. */
     continuous?: boolean;
+    /** Unique identifier for this collect operation. */
+    control_id: string;
+    /** DTMF digit collection parameters. */
+    digits?: RelayCallCollectDigitsInner;
+    /** Seconds to wait for first input before timeout. */
+    initial_timeout?: number;
     /** Deliver partial recognition results. */
     partial_results?: boolean;
+    send_start_of_input?: boolean;
+    /** Speech recognition parameters. */
+    speech?: RelayCallCollectSpeechInner;
+    start_input_timers?: boolean;
+    status_url?: string;
   };
 }
 
@@ -1037,33 +1335,10 @@ export interface CallDetectRequest {
   /** An object of parameters that will be utilized by the active command. */
   params: {
     /** Unique identifier for this detect operation. */
-    control_id?: string;
+    control_id: string;
     /** Detection configuration. */
-    detect: {
-      /** Type of detection to perform. */
-      type: 'machine' | 'fax' | 'digit';
-      /** Type-specific detection parameters. */
-      params?: {
-        /** Seconds to wait for initial detection. */
-        initial_timeout?: number;
-        /** Seconds of silence to end detection. */
-        end_silence_timeout?: number;
-        /** Seconds to wait for machine greeting to finish. */
-        machine_ready_timeout?: number;
-        /** Threshold for machine voice detection. */
-        machine_voice_threshold?: number;
-        /** Word count threshold for machine detection. */
-        machine_words_threshold?: number;
-        /** Detect if machine greeting is interrupted. */
-        detect_interruptions?: boolean;
-        /** Detect end of machine message (beep). */
-        detect_message_end?: boolean;
-        /** Tone to detect (for fax type - CED or CNG). */
-        tone?: string;
-        /** Specific digit sequence to detect (for digit type). */
-        digits?: string;
-      };
-    };
+    detect: RelayCallDetectInner;
+    status_url?: string;
     /** Overall timeout in seconds for the detect operation. */
     timeout?: number;
   };
@@ -1089,37 +1364,12 @@ export interface CallTapRequest {
   /** An object of parameters that will be utilized by the active command. */
   params: {
     /** Unique identifier for this tap operation. */
-    control_id?: string;
-    /** What to tap. */
-    tap: {
-      /** Tap type. */
-      type: 'audio';
-      /** Tap parameters. */
-      params?: {
-        /** Which direction to tap. */
-        direction?: 'listen' | 'speak' | 'both';
-      };
-    };
+    control_id: string;
     /** Target device to send tapped audio to. */
-    device: {
-      /** Target device type. */
-      type: 'rtp' | 'ws';
-      /** Device-specific parameters. */
-      params?: {
-        /** Target IP address (rtp type). */
-        addr?: string;
-        /** Target port (rtp type). */
-        port?: number;
-        /** Audio codec (PCMU, PCMA, OPUS). */
-        codec?: string;
-        /** Packetization time in ms (rtp type). */
-        ptime?: number;
-        /** WebSocket URI (ws type). */
-        uri?: string;
-        /** Sample rate (ws type). */
-        rate?: number;
-      };
-    };
+    device: RelayCallTapDevice;
+    status_url?: string;
+    /** What to tap. */
+    tap: RelayTap;
   };
 }
 
@@ -1142,18 +1392,21 @@ export interface CallStreamRequest {
   command: 'calling.stream';
   /** An object of parameters that will be utilized by the active command. */
   params: {
-    /** Unique identifier for this stream operation. */
-    control_id?: string;
-    /** WebSocket URL (wss://) to stream audio to. */
-    url: string;
-    /** Audio codec for the stream. */
-    codec?: string;
-    /** Which audio track(s) to stream. */
-    track?: 'inbound_track' | 'outbound_track' | 'both_tracks';
     /** Bearer token sent in the WebSocket handshake. */
     authorization_bearer_token?: string;
+    /** Audio codec for the stream. */
+    codec?: string;
+    /** Unique identifier for this stream operation. */
+    control_id: string;
     /** Custom key-value pairs sent with the stream. */
     custom_parameters?: Record<string, unknown>;
+    name?: string;
+    status_url?: string;
+    status_url_method?: 'GET' | 'POST';
+    /** Which audio track(s) to stream. */
+    track?: 'inbound_track' | 'outbound_track' | 'both_tracks';
+    /** WebSocket URL (wss://) to stream audio to. */
+    url: string;
   };
 }
 
@@ -1175,7 +1428,7 @@ export interface CallDenoiseRequest {
   /** The `calling.denoise` command starts noise reduction on a call. */
   command: 'calling.denoise';
   /** An object of parameters that will be utilized by the active command. */
-  params: Record<string, unknown>;
+  params?: Record<string, unknown>;
 }
 
 export interface CallDenoiseStopRequest {
@@ -1184,7 +1437,7 @@ export interface CallDenoiseStopRequest {
   /** The `calling.denoise.stop` command stops noise reduction on a call. */
   command: 'calling.denoise.stop';
   /** An object of parameters that will be utilized by the active command. */
-  params: Record<string, unknown>;
+  params?: Record<string, unknown>;
 }
 
 export interface CallTranscribeRequest {
@@ -1195,7 +1448,7 @@ export interface CallTranscribeRequest {
   /** An object of parameters that will be utilized by the active command. */
   params: {
     /** Unique identifier for this transcription. */
-    control_id?: string;
+    control_id: string;
     /** Webhook URL for transcription results. */
     status_url?: string;
   };
@@ -1219,10 +1472,93 @@ export interface CallAIStopRequest {
   /** The `calling.ai.stop` command stops an active AI session on a call. */
   command: 'calling.ai.stop';
   /** An object of parameters that will be utilized by the active command. */
-  params: {
+  params?: {
     /** The control_id of the AI session to stop. */
-    control_id: string;
+    control_id?: string;
   };
+}
+
+export interface CallAISidecarRequest {
+  /** The unique identifying ID of an existing call. */
+  id: uuid;
+  /** The `calling.ai_sidecar` command starts an AI sidecar on a call, which runs live transcription with an LLM, SWAIG and MCP loop on top and advises without taking over the call. */
+  command: 'calling.ai_sidecar';
+  /** An object of parameters that will be utilized by the active command. */
+  params: {
+    SWAIG?: Record<string, unknown>;
+    action?: Record<string, unknown>;
+    customer_role?: 'remote-caller' | 'local-caller';
+    direction?: ('remote-caller' | 'local-caller')[];
+    global_data?: Record<string, unknown>;
+    hints?: string[];
+    lang: string;
+    model?: string;
+    params?: {
+      act_on_channel?: boolean;
+      ai_summary?: boolean;
+      ai_summary_prompt?: string;
+      debug?: boolean;
+      debug_level?: number;
+      deepgram_key_override?: string;
+      deepgram_url_override?: string;
+      final_summary?: boolean;
+      idle_timeout_ms?: number;
+      live_events?: boolean;
+      max_history_tokens?: number;
+      max_iters_per_tick?: number;
+      min_interval_ms?: number;
+      speech_engine?: 'deepgram' | 'google';
+      speech_timeout?: number;
+      summary_model?: string;
+      transcribe_prompt?: string;
+      vad_silence_ms?: number;
+      vad_thresh?: number;
+      verbose_utterances?: boolean;
+    };
+    permissions?: Record<string, unknown>;
+    prompt?: Record<string, unknown> | string;
+    url?: string;
+  };
+}
+
+export interface CallAISidecarAskRequest {
+  /** The unique identifying ID of an existing call. */
+  id: uuid;
+  /** The `calling.ai_sidecar.ask` command queues a question for the call's active AI sidecar. */
+  command: 'calling.ai_sidecar.ask';
+  /** An object of parameters that will be utilized by the active command. */
+  params: {
+    text: string;
+  };
+}
+
+export interface CallAISidecarPokeRequest {
+  /** The unique identifying ID of an existing call. */
+  id: uuid;
+  /** The `calling.ai_sidecar.poke` command sends text to the call's active AI sidecar. */
+  command: 'calling.ai_sidecar.poke';
+  /** An object of parameters that will be utilized by the active command. */
+  params: {
+    text: string;
+  };
+}
+
+export interface CallAISidecarStopRequest {
+  /** The unique identifying ID of an existing call. */
+  id: uuid;
+  /** The `calling.ai_sidecar.stop` command stops the call's active AI sidecar. */
+  command: 'calling.ai_sidecar.stop';
+  /** An object of parameters that will be utilized by the active command. */
+  params?: Record<string, unknown>;
+}
+
+export interface CallAISidecarStatusRequest {
+  /** The unique identifying ID of an existing call. */
+  id: uuid;
+  /** The `calling.ai_sidecar.status` command reports the state of the call's AI sidecar. */
+  command: 'calling.ai_sidecar.status';
+  /** An object of parameters that will be utilized by the active command. */
+  params?: Record<string, unknown>;
 }
 
 export interface CallSendFaxStopRequest {
@@ -1257,25 +1593,70 @@ export interface CallReferRequest {
   /** An object of parameters that will be utilized by the active command. */
   params: {
     /** Target device for the REFER. */
-    device: {
-      /** Device type (only sip supported for REFER). */
-      type: 'sip';
-      /** SIP REFER parameters. */
-      params: {
-        /** SIP URI to REFER to. */
-        to: string;
-        /** Optional SIP auth username. */
-        username?: string;
-        /** Optional SIP auth password. */
-        password?: string;
-      };
-    };
+    device: RelayCallReferDevice;
     /** Webhook URL for REFER state events. */
     status_url?: string;
   };
 }
 
-export type CallResponse = CallLeg | FabricDeviceLeg;
+/** The response varies based on the type of call. A standard call returns a Call Leg, while a Fabric subscriber call returns a Fabric Device Leg. */
+export type CallResponse = CallLeg | FabricDeviceLeg | VideoRoomCallLeg | DialogflowCallLeg;
+
+/** A PSTN or SIP leg joined to a video room. */
+export interface VideoRoomCallLeg {
+  /** The unique identifier of the call on SignalWire. */
+  id: uuid;
+  /** The origin number or address. */
+  from: string | null;
+  /** The destination number or address. */
+  to: string | null;
+  /** The direction of the call. */
+  direction: string | null;
+  /** Source of this call. */
+  source: 'realtime_api';
+  /** Always null for video room legs. */
+  url: null;
+  /** Total charge for this call. */
+  charge: number;
+  /** The date and time when the call was created. */
+  created_at: string;
+  /** Details on charges associated with this call. */
+  charge_details: ChargeDetails[];
+  /** The status of the call. */
+  status: string | null;
+  /** The duration of the call in seconds. */
+  duration: number | null;
+  /** The duration of the call in milliseconds. */
+  duration_ms: number | null;
+  /** Type of this call. */
+  type: 'video_room_pstn_leg' | 'video_room_sip_leg';
+}
+
+/** A Dialogflow call. */
+export interface DialogflowCallLeg {
+  /** The unique identifier of the call on SignalWire. */
+  id: uuid;
+  /** The origin number or address. */
+  from: string | null;
+  /** The destination number or address. */
+  to: string | null;
+  /** Source of this call. */
+  source: 'dialogflow';
+  /** Always null for Dialogflow calls. */
+  url: null;
+  /** Total charge for this call. */
+  charge: number;
+  /** The date and time when the call was created. */
+  created_at: string;
+  /** Details on charges associated with this call. */
+  charge_details: ChargeDetails[];
+  /** The status of the call. */
+  status: string | null;
+  /** The duration of the call in seconds. */
+  duration: number | null;
+  /** Type of this call. */
+  type: 'dialogflow_call';
+}
 
 /** The status of the call throughout its lifecycle. */
 export type CallResponseStatus =
@@ -1290,7 +1671,7 @@ export type CallResponseStatus =
   | 'canceled'
   | 'completed';
 
-export type CallStatus = 'created' | 'ringing' | 'answered' | 'ended';
+export type CallStatus = string;
 
 export interface CallTransferRequest {
   /** The unique identifying ID of a existing call. */
@@ -1310,7 +1691,7 @@ export interface CallUnholdRequest {
   /** The `calling.ai_unhold` command is used to unhold a call. */
   command: 'calling.ai_unhold';
   /** An object of parameters that will be utilized by the active command. */
-  params: {
+  params?: {
     /** A system message added to the AI conversation when taking the caller off hold. */
     prompt?: string;
   };
@@ -1333,7 +1714,13 @@ export interface CallUpdateParamsSWML {
   /** A URL to receive call status update callbacks. */
   status_url?: string;
   /** Inline SWML object containing SWML instructions for handling the call. Either `url` or `swml` must be included for a new call. */
-  swml: SWMLObject;
+  swml?:
+    | string
+    | {
+        sections: Section;
+        version?: '1.0.0';
+        [key: string]: Record<string, unknown> | Section | '1.0.0' | undefined;
+      };
 }
 
 export interface CallUpdateParamsURL {
@@ -1346,7 +1733,7 @@ export interface CallUpdateParamsURL {
   /** A URL to receive call status update callbacks. */
   status_url?: string;
   /** The URL to handle the call. This parameter allows you to specify a webhook or different route in your code containing SWML instructions for handling the call. */
-  url: string;
+  url?: string;
 }
 
 export interface CallUserEventRequest {
@@ -1357,18 +1744,166 @@ export interface CallUserEventRequest {
   /** An object of parameters that will be utilized by the active command. */
   params: {
     /** Arbitrary JSON event data to fire on the call. */
-    event: Record<string, Record<string, unknown>>;
+    event: Record<string, unknown>;
   };
 }
 
 export interface ChangeContextAction {
-  /** The name of the context to switch to. The context must be defined in the AI's prompt.contexts configuration. */
-  change_context: string;
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
 export interface ChangeStepAction {
-  /** The name of the step to switch to. The step must be defined in the current context's steps array. */
-  change_step: string;
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
 export interface ChargeDetails {
@@ -1379,229 +1914,97 @@ export interface ChargeDetails {
 }
 
 export interface Cond {
-  /** Execute a sequence of instructions depending on the value of a JavaScript condition. */
+  /** Body shape enforced by is_valid_cond_method, swml_schema.c:1271. */
   cond: CondParams[];
+  [key: string]: Record<string, unknown> | CondParams[];
 }
 
 export interface CondElse {
-  /** Sequence of SWML methods to execute when none of the other conditions evaluate to true. */
-  else: SWMLMethod[];
+  else?: SWMLMethod[];
+  then?: SWMLMethod[];
+  when?: string;
+  [key: string]: Record<string, unknown> | SWMLMethod[] | string | undefined;
 }
 
-export type CondParams = CondReg | CondElse;
+export interface CondParams {
+  else?: SWMLMethod[];
+  then?: SWMLMethod[];
+  when?: string;
+  [key: string]: Record<string, unknown> | SWMLMethod[] | string | undefined;
+}
 
 export interface CondReg {
-  /** The JavaScript condition to act on. */
-  when: string;
-  /** Sequence of SWML methods to execute when the condition evaluates to true. */
-  then: SWMLMethod[];
-  /** Sequence of SWML methods to execute when none of the other conditions evaluate to true. */
   else?: SWMLMethod[];
+  then?: SWMLMethod[];
+  when?: string;
+  [key: string]: Record<string, unknown> | SWMLMethod[] | string | undefined;
 }
 
 export interface Connect {
-  /** Connect to a phone number, SIP URI, Call Fabric resource, queue, or WebSocket stream. */
-  connect:
-    ConnectDeviceSingle | ConnectDeviceSerial | ConnectDeviceParallel | ConnectDeviceSerialParallel;
+  connect: ConnectDeviceSingle;
+  [key: string]: Record<string, unknown> | ConnectDeviceSingle;
 }
 
-export interface ConnectDeviceParallel {
-  /** The caller ID to use when dialing the number. */
-  from?: string;
-  /** Custom SIP headers to add to INVITE. It Has no effect on calls to phone numbers. */
-  headers?: ConnectHeaders[];
-  /** Comma-separated string of codecs to offer. */
-  codecs?: string;
-  /** If true, WebRTC media is offered to the SIP endpoint. */
-  webrtc_media?: boolean | SWMLVar;
-  /** Time, in seconds, to set the SIP `Session-Expires` header in INVITE. */
-  session_timeout?: number | SWMLVar;
-  /** Array of URIs to play as ringback tone. If not specified, plays audio from the provider. */
-  ringback?: string[];
-  /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
-  result?: ConnectSwitch | CondParams[];
-  /** Time, in seconds, to wait for the call to be answered. */
-  timeout?: number | SWMLVar;
-  /** Maximum duration, in seconds, allowed for the call. */
-  max_duration?: number | SWMLVar;
-  /** Delay answer until the B-leg answers. */
-  answer_on_bridge?: boolean | SWMLVar;
-  /** Confirmation to execute when the call is connected. Can be either: */
-  confirm?: string | ValidConfirmMethods[];
-  /** The amount of time, in seconds, to wait for the `confirm` URL to return a response */
-  confirm_timeout?: number | SWMLVar;
-  /** SIP username to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  username?: string;
-  /** SIP password to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  password?: string;
-  /** Encryption setting to use. **Possible values:** `mandatory`, `optional`, `forbidden` */
-  encryption?: 'mandatory' | 'optional' | 'forbidden';
-  /** Webhook URL to send call status change notifications to. Authentication can also be set in the URL in the format of `username:password@url`. */
-  call_state_url?: string;
-  /** SWML to execute after the bridge completes. This defines what should happen after the call is connected and the bridge ends. */
-  transfer_after_bridge?: string | SWMLVar;
-  /** An array of call state event names to be notified about. */
-  call_state_events?: CallStatus[];
-  /** HTTP or HTTPS URL to deliver connect status events. */
-  status_url?: string;
-  /** Array of destinations to dial simultaneously. */
-  parallel: ConnectDeviceSingle[];
-}
+/** Dial a SIP URI or phone number. */
+export type ConnectDeviceParallel = Record<string, unknown>;
 
-export interface ConnectDeviceSerial {
-  /** The caller ID to use when dialing the number. */
-  from?: string;
-  /** Custom SIP headers to add to INVITE. It Has no effect on calls to phone numbers. */
-  headers?: ConnectHeaders[];
-  /** Comma-separated string of codecs to offer. */
-  codecs?: string;
-  /** If true, WebRTC media is offered to the SIP endpoint. */
-  webrtc_media?: boolean | SWMLVar;
-  /** Time, in seconds, to set the SIP `Session-Expires` header in INVITE. */
-  session_timeout?: number | SWMLVar;
-  /** Array of URIs to play as ringback tone. If not specified, plays audio from the provider. */
-  ringback?: string[];
-  /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
-  result?: ConnectSwitch | CondParams[];
-  /** Time, in seconds, to wait for the call to be answered. */
-  timeout?: number | SWMLVar;
-  /** Maximum duration, in seconds, allowed for the call. */
-  max_duration?: number | SWMLVar;
-  /** Delay answer until the B-leg answers. */
-  answer_on_bridge?: boolean | SWMLVar;
-  /** Confirmation to execute when the call is connected. Can be either: */
-  confirm?: string | ValidConfirmMethods[];
-  /** The amount of time, in seconds, to wait for the `confirm` URL to return a response */
-  confirm_timeout?: number | SWMLVar;
-  /** SIP username to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  username?: string;
-  /** SIP password to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  password?: string;
-  /** Encryption setting to use. **Possible values:** `mandatory`, `optional`, `forbidden` */
-  encryption?: 'mandatory' | 'optional' | 'forbidden';
-  /** Webhook URL to send call status change notifications to. Authentication can also be set in the URL in the format of `username:password@url`. */
-  call_state_url?: string;
-  /** SWML to execute after the bridge completes. This defines what should happen after the call is connected and the bridge ends. */
-  transfer_after_bridge?: string | SWMLVar;
-  /** An array of call state event names to be notified about. */
-  call_state_events?: CallStatus[];
-  /** HTTP or HTTPS URL to deliver connect status events. */
-  status_url?: string;
-  serial: ConnectDeviceSingle[];
-}
+/** Dial a SIP URI or phone number. */
+export type ConnectDeviceSerial = Record<string, unknown>;
 
-export interface ConnectDeviceSerialParallel {
-  /** The caller ID to use when dialing the number. */
-  from?: string;
-  /** Custom SIP headers to add to INVITE. It Has no effect on calls to phone numbers. */
-  headers?: ConnectHeaders[];
-  /** Comma-separated string of codecs to offer. */
-  codecs?: string;
-  /** If true, WebRTC media is offered to the SIP endpoint. */
-  webrtc_media?: boolean | SWMLVar;
-  /** Time, in seconds, to set the SIP `Session-Expires` header in INVITE. */
-  session_timeout?: number | SWMLVar;
-  /** Array of URIs to play as ringback tone. If not specified, plays audio from the provider. */
-  ringback?: string[];
-  /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
-  result?: ConnectSwitch | CondParams[];
-  /** Time, in seconds, to wait for the call to be answered. */
-  timeout?: number | SWMLVar;
-  /** Maximum duration, in seconds, allowed for the call. */
-  max_duration?: number | SWMLVar;
-  /** Delay answer until the B-leg answers. */
-  answer_on_bridge?: boolean | SWMLVar;
-  /** Confirmation to execute when the call is connected. Can be either: */
-  confirm?: string | ValidConfirmMethods[];
-  /** The amount of time, in seconds, to wait for the `confirm` URL to return a response */
-  confirm_timeout?: number | SWMLVar;
-  /** SIP username to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  username?: string;
-  /** SIP password to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  password?: string;
-  /** Encryption setting to use. **Possible values:** `mandatory`, `optional`, `forbidden` */
-  encryption?: 'mandatory' | 'optional' | 'forbidden';
-  /** Webhook URL to send call status change notifications to. Authentication can also be set in the URL in the format of `username:password@url`. */
-  call_state_url?: string;
-  /** SWML to execute after the bridge completes. This defines what should happen after the call is connected and the bridge ends. */
-  transfer_after_bridge?: string | SWMLVar;
-  /** An array of call state event names to be notified about. */
-  call_state_events?: CallStatus[];
-  /** HTTP or HTTPS URL to deliver connect status events. */
-  status_url?: string;
-  /** Array of arrays. */
-  serial_parallel: ConnectDeviceSingle[][];
-}
+/** Dial a SIP URI or phone number. */
+export type ConnectDeviceSerialParallel = Record<string, unknown>;
 
-export interface ConnectDeviceSingle {
-  /** The caller ID to use when dialing the number. */
-  from?: string;
-  /** Custom SIP headers to add to INVITE. It Has no effect on calls to phone numbers. */
-  headers?: ConnectHeaders[];
-  /** Comma-separated string of codecs to offer. */
-  codecs?: string;
-  /** If true, WebRTC media is offered to the SIP endpoint. */
-  webrtc_media?: boolean | SWMLVar;
-  /** Time, in seconds, to set the SIP `Session-Expires` header in INVITE. */
-  session_timeout?: number | SWMLVar;
-  /** Array of URIs to play as ringback tone. If not specified, plays audio from the provider. */
-  ringback?: string[];
-  /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
-  result?: ConnectSwitch | CondParams[];
-  /** Time, in seconds, to wait for the call to be answered. */
-  timeout?: number | SWMLVar;
-  /** Maximum duration, in seconds, allowed for the call. */
-  max_duration?: number | SWMLVar;
-  /** Delay answer until the B-leg answers. */
-  answer_on_bridge?: boolean | SWMLVar;
-  /** Confirmation to execute when the call is connected. Can be either: */
-  confirm?: string | ValidConfirmMethods[];
-  /** The amount of time, in seconds, to wait for the `confirm` URL to return a response */
-  confirm_timeout?: number | SWMLVar;
-  /** SIP username to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  username?: string;
-  /** SIP password to use for authentication when dialing a SIP URI. Has no effect on calls to phone numbers. */
-  password?: string;
-  /** Encryption setting to use. **Possible values:** `mandatory`, `optional`, `forbidden` */
-  encryption?: 'mandatory' | 'optional' | 'forbidden';
-  /** Webhook URL to send call status change notifications to. Authentication can also be set in the URL in the format of `username:password@url`. */
-  call_state_url?: string;
-  /** SWML to execute after the bridge completes. This defines what should happen after the call is connected and the bridge ends. */
-  transfer_after_bridge?: string | SWMLVar;
-  /** An array of call state event names to be notified about. */
-  call_state_events?: CallStatus[];
-  /** HTTP or HTTPS URL to deliver connect status events. */
-  status_url?: string;
-  /** Destination to dial. Can be: */
-  to: string;
-  /** Stream name identifier. Only applies to stream destinations. */
-  name?: string;
-  /** Audio codec for the stream. Supported values: `PCMU`, `PCMA`, `G722`, `L16`. */
-  codec?: string;
-  /** Enable realtime mode for bidirectional audio. */
-  realtime?: boolean | SWMLVar;
-  /** HTTP method for the stream status webhook. */
-  status_url_method?: 'GET' | 'POST';
-  /** Bearer token sent as an `Authorization` header during the WebSocket handshake. Only applies to stream destinations. */
-  authorization_bearer_token?: string;
-  /** Custom key-value pairs sent in the WebSocket start message. Only applies to stream destinations. */
-  custom_parameters?: Record<string, string>;
-}
+/** Dial a SIP URI or phone number. */
+export type ConnectDeviceSingle = Record<string, unknown>;
 
 export interface ConnectHeaders {
-  /** The name of the header. */
   name: string;
-  /** The value of the header. */
-  value: string;
+  value: string | SWMLVar;
+  [key: string]: Record<string, unknown> | string | string | SWMLVar;
 }
 
+/** Execute different instructions based on a variable's value. */
 export interface ConnectSwitch {
-  /** Name of the variable whose value needs to be compared. If not provided, it will check the `connect_result` variable. */
-  variable?: string;
-  /** Object of values mapped to array of instructions to execute */
-  case: Record<string, SWMLMethod[]>;
-  /** Array of instructions to execute if no cases match */
-  default?: SWMLMethod[];
+  /** Array of SWML methods to execute if no `case` matches. If omitted and no case */
+  default?:
+    | SWMLMethod[]
+    | {
+        code: Record<string, unknown>;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
+      };
+  /** Map of values to arrays of SWML methods to execute. The key is the value to compare */
+  case?: Record<
+    string,
+    | SWMLMethod[]
+    | {
+        code: Record<string, unknown>;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
+      }
+  >;
+  /** Variable path to match. Specified without the `%{}` wrapper (e.g. `message.body`). */
+  variable?: string | SWMLVar;
+  [key: string]:
+    | Record<string, unknown>
+    | SWMLMethod[]
+    | {
+        code: Record<string, unknown>;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
+      }
+    | Record<
+        string,
+        | SWMLMethod[]
+        | {
+            code: Record<string, unknown>;
+            meta?: Record<string, unknown>;
+            [key: string]: Record<string, unknown> | undefined;
+          }
+      >
+    | string
+    | SWMLVar
+    | undefined;
 }
 
 export interface ConstProperty {
@@ -1631,15 +2034,82 @@ export interface ContextPOMSteps {
 export type ContextSteps = ContextPOMSteps | ContextTextSteps;
 
 export interface ContextSwitchAction {
-  /** A JSON object containing the context to switch to. Default is not set. */
-  context_switch: {
-    /** The instructions to send to the agent. Default is not set. */
-    system_prompt: string;
-    /** Whether to consolidate the context. Default is `false`. */
-    consolidate?: boolean | SWMLVar;
-    /** A string serving as simulated user input for the AI Agent. */
-    user_prompt?: string;
-  };
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
 export interface ContextTextSteps {
@@ -1661,11 +2131,7 @@ export interface ContextTextSteps {
   text: string;
 }
 
-export interface Contexts {
-  /** The default context to use at the beginning of the conversation. Additional context steps can be defined as any other key in the object. */
-  default: ContextsObject;
-  [key: string]: ContextsObject;
-}
+export type Contexts = Record<string, Context>;
 
 export type ContextsObject = ContextsPOMObject | ContextsTextObject;
 
@@ -1695,115 +2161,311 @@ export interface ContextsTextObject {
   text?: string;
 }
 
-/** A message object representing a single turn in the conversation history. */
 export interface ConversationMessage {
-  /** The role of the message sender. */
-  role: ConversationRole;
-  /** The text content of the message. */
-  content: string;
-  /** Optional language code for the message (e.g., 'en', 'es', 'fr'). */
+  content?: string;
   lang?: string;
+  role?: ConversationRole;
+  tool_call_id?: string;
+  tool_calls?: unknown[];
 }
 
-export type ConversationRole = 'user' | 'assistant' | 'system';
+export type ConversationRole = string;
 
 /** Custom translation filter with a prompt prefix. Use `prompt:` followed by your custom instructions (e.g., `prompt:Use formal business language`). */
 export type CustomTranslationFilter = string;
 
 export interface DataMap {
-  /** An object that contains a response and a list of actions to be performed upon a SWAIG function call. */
+  contexts?: unknown[] | boolean | null | number | Record<string, unknown> | string;
+  expressions?: Expression[] | Expression;
   output?: Output;
-  /** An array of objects that have pattern matching logic to process the user's input data. A user can define multiple expressions to match against the user's input data. */
-  expressions?: Expression[];
-  /** An array of objects that define external API calls. */
-  webhooks?: Webhook[];
+  webhooks?: Webhook[] | Webhook;
 }
 
 export interface Denoise {
-  /** Start noise reduction. You can stop it at any time using `stop_denoise`. */
-  denoise: Record<string, unknown>;
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  denoise:
+    | {
+        [key: string]: Record<string, unknown>;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        [key: string]: Record<string, unknown>;
+      }
+    | unknown[]
+    | number
+    | string;
 }
 
 export interface DetectMachine {
-  /** A detection method that combines AMD (Answering Machine Detection) and fax detection. */
-  detect_machine: {
-    /** If `true`, stops detection on beep / end of voicemail greeting. Default `false`. */
-    detect_message_end?: boolean | SWMLVar;
-    /** Comma-separated string of detectors to enable. Valid values: `amd`, `fax`. */
-    detectors?: string;
-    /** How long to wait for voice to finish. Default `1.0`. */
-    end_silence_timeout?: number | SWMLVar;
-    /** How long to wait for initial voice before giving up. Default `4.5`. */
-    initial_timeout?: number | SWMLVar;
-    /** How long to wait for voice to finish before firing READY event. Default is `end_silence_timeout`. */
-    machine_ready_timeout?: number | SWMLVar;
-    /** The number of seconds of ongoing voice activity required to classify as MACHINE. Default `1.25`. */
-    machine_voice_threshold?: number | SWMLVar;
-    /** The minimum number of words that must be detected in a single utterance before classifying the call as MACHINE. Default `6`. */
-    machine_words_threshold?: number | SWMLVar;
-    /** The http(s) URL to deliver detector events to. */
-    status_url?: string;
-    /** The max time to run detector. Default `30.0` seconds. */
-    timeout?: number | SWMLVar;
-    /** The tone to detect, will only receive remote side tone. Default `CED`. */
-    tone?: 'CED' | 'CNG';
-    /** If false, the detector will run asynchronously and status_url must be set. */
-    wait?: boolean | SWMLVar;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  detect_machine:
+    | {
+        /** If `true`, stops detection on beep / end of voicemail greeting. Default `false`. */
+        detect_message_end?: boolean | SWMLVar;
+        /** Comma-separated string of detectors to enable. Valid values: `amd`, `fax`. */
+        detectors?: string | SWMLVar;
+        /** How long to wait for voice to finish. Default `1.0`. */
+        end_silence_timeout?: number | SWMLVar;
+        /** How long to wait for initial voice before giving up. Default `4.5`. */
+        initial_timeout?: number | SWMLVar;
+        /** How long to wait for voice to finish before firing READY event. Default is `end_silence_timeout`. */
+        machine_ready_timeout?: number | SWMLVar;
+        /** The number of seconds of ongoing voice activity required to classify as MACHINE. Default `1.25`. */
+        machine_voice_threshold?: number | SWMLVar;
+        /** The minimum number of words that must be detected in a single utterance before classifying the call as MACHINE. Default `6`. */
+        machine_words_threshold?: number | SWMLVar;
+        /** The http(s) URL to deliver detector events to. */
+        status_url?: string | SWMLVar;
+        /** The max time to run detector. Default `30.0` seconds. */
+        timeout?: number | SWMLVar;
+        /** The tone to detect, will only receive remote side tone. Default `CED`. */
+        tone?: 'CNG' | 'CED' | 'cng' | 'ced' | SWMLVar;
+        /** If false, the detector will run asynchronously and status_url must be set. */
+        wait?: boolean | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | boolean
+          | SWMLVar
+          | string
+          | SWMLVar
+          | number
+          | SWMLVar
+          | 'CNG'
+          | 'CED'
+          | 'cng'
+          | 'ced'
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** If `true`, stops detection on beep / end of voicemail greeting. Default `false`. */
+        detect_message_end?: boolean | SWMLVar;
+        /** Comma-separated string of detectors to enable. Valid values: `amd`, `fax`. */
+        detectors?: string | SWMLVar;
+        /** How long to wait for voice to finish. Default `1.0`. */
+        end_silence_timeout?: number | SWMLVar;
+        /** How long to wait for initial voice before giving up. Default `4.5`. */
+        initial_timeout?: number | SWMLVar;
+        /** How long to wait for voice to finish before firing READY event. Default is `end_silence_timeout`. */
+        machine_ready_timeout?: number | SWMLVar;
+        /** The number of seconds of ongoing voice activity required to classify as MACHINE. Default `1.25`. */
+        machine_voice_threshold?: number | SWMLVar;
+        /** The minimum number of words that must be detected in a single utterance before classifying the call as MACHINE. Default `6`. */
+        machine_words_threshold?: number | SWMLVar;
+        /** The http(s) URL to deliver detector events to. */
+        status_url?: string | SWMLVar;
+        /** The max time to run detector. Default `30.0` seconds. */
+        timeout?: number | SWMLVar;
+        /** The tone to detect, will only receive remote side tone. Default `CED`. */
+        tone?: 'CNG' | 'CED' | 'cng' | 'ced' | SWMLVar;
+        /** If false, the detector will run asynchronously and status_url must be set. */
+        wait?: boolean | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | boolean
+          | SWMLVar
+          | string
+          | SWMLVar
+          | number
+          | SWMLVar
+          | 'CNG'
+          | 'CED'
+          | 'cng'
+          | 'ced'
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
 }
 
-export type Direction = 'inbound' | 'outbound';
+export type Direction = string;
 
 export interface EnterQueue {
-  /** Place the current call in a named queue where it will wait to be connected to an available agent or resource. */
-  enter_queue: EnterQueueObject;
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  enter_queue: EnterQueueObject | unknown[] | number | string;
+  [key: string]: Record<string, unknown> | EnterQueueObject | unknown[] | number | string;
 }
 
+/** Place the current call in a named queue where it will wait to be connected to an available agent or resource. */
 export interface EnterQueueObject {
+  execute_after_queue?: string | SWMLVar;
   /** Name of the queue to enter. If a queue with this name does not exist, it will be automatically created. */
-  queue_name: string;
-  /** SWML to execute after the bridge completes. This defines what should happen after the call is connected to an agent and the bridge ends. */
-  transfer_after_bridge: string | SWMLVar;
+  queue_name: string | SWMLVar;
   /** HTTP or HTTPS URL to deliver queue status events. Default not set */
-  status_url?: string;
+  status_url?: string | SWMLVar;
+  /** Maximum time in seconds to wait in the queue before timeout. Default `180` */
+  wait_time?: number | SWMLVar;
   /** URL for media to play while waiting in the queue. Default hold music will be played if not set */
   wait_url?: string | SWMLVar;
-  /** Maximum time in seconds to wait in the queue before timeout. Default `3600` */
-  wait_time?: number | SWMLVar;
+  whisper_url?: string | SWMLVar;
+  [key: string]: Record<string, unknown> | string | SWMLVar | number | SWMLVar | undefined;
 }
 
 export interface Execute {
-  /** Execute a specified section or URL as a subroutine, and upon completion, return to the current document. */
-  execute: {
-    /** Specifies what to execute. The value can be one of: */
-    dest: string;
-    /** Named parameters to send to section or URL */
-    params?: Record<string, Record<string, unknown>>;
-    /** User-defined metadata, ignored by SignalWire */
-    meta?: Record<string, Record<string, unknown>>;
-    /** The list of SWML instructions to be executed when the executed section or URL returns */
-    on_return?: SWMLMethod[];
-    /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
-    result?: ExecuteSwitch | CondParams[];
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  execute:
+    | {
+        /** Name of the section to execute. Must reference a section in the current document. */
+        dest: string | SWMLVar;
+        /** User-defined metadata, ignored by SignalWire */
+        meta?: Record<string, unknown>;
+        /** The list of SWML instructions to be executed when the executed section or URL returns */
+        on_return?:
+          | SWMLMethod[]
+          | {
+              code: Record<string, unknown>;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
+            };
+        /** Parameters accessible as `params.*` in the called section. Replaces (does not merge with) any outer `params` from the caller. */
+        params?: Record<string, unknown> | SWMLVar;
+        /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
+        result?:
+          | {
+              else?: SWMLMethod[];
+              then?: SWMLMethod[];
+              when?: string;
+              [key: string]: Record<string, unknown> | SWMLMethod[] | string | undefined;
+            }[]
+          | ExecuteSwitch;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | SWMLVar
+          | SWMLMethod[]
+          | {
+              code: Record<string, unknown>;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
+            }
+          | Record<string, unknown>
+          | SWMLVar
+          | {
+              else?: SWMLMethod[];
+              then?: SWMLMethod[];
+              when?: string;
+              [key: string]: Record<string, unknown> | SWMLMethod[] | string | undefined;
+            }[]
+          | ExecuteSwitch
+          | undefined;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** Name of the section to execute. Must reference a section in the current document. */
+        dest: string | SWMLVar;
+        /** User-defined metadata, ignored by SignalWire */
+        meta?: Record<string, unknown>;
+        /** The list of SWML instructions to be executed when the executed section or URL returns */
+        on_return?:
+          | SWMLMethod[]
+          | {
+              code: Record<string, unknown>;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
+            };
+        /** Parameters accessible as `params.*` in the called section. Replaces (does not merge with) any outer `params` from the caller. */
+        params?: Record<string, unknown> | SWMLVar;
+        /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
+        result?:
+          | {
+              else?: SWMLMethod[];
+              then?: SWMLMethod[];
+              when?: string;
+              [key: string]: Record<string, unknown> | SWMLMethod[] | string | undefined;
+            }[]
+          | ExecuteSwitch;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | SWMLVar
+          | SWMLMethod[]
+          | {
+              code: Record<string, unknown>;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
+            }
+          | Record<string, unknown>
+          | SWMLVar
+          | {
+              else?: SWMLMethod[];
+              then?: SWMLMethod[];
+              when?: string;
+              [key: string]: Record<string, unknown> | SWMLMethod[] | string | undefined;
+            }[]
+          | ExecuteSwitch
+          | undefined;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
 }
 
+/** Execute different instructions based on a variable's value. */
 export interface ExecuteSwitch {
-  /** Name of the variable whose value needs to be compared. If not provided, it will check the `return_value` variable. */
-  variable?: string;
-  /** Object of values mapped to array of instructions to execute */
-  case: Record<string, SWMLMethod[]>;
-  /** Array of instructions to execute if no cases match */
-  default?: SWMLMethod[];
+  /** Array of SWML methods to execute if no `case` matches. If omitted and no case */
+  default?:
+    | SWMLMethod[]
+    | {
+        code: Record<string, unknown>;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
+      };
+  /** Map of values to arrays of SWML methods to execute. The key is the value to compare */
+  case?: Record<
+    string,
+    | SWMLMethod[]
+    | {
+        code: Record<string, unknown>;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
+      }
+  >;
+  /** Variable path to match. Specified without the `%{}` wrapper (e.g. `message.body`). */
+  variable?: string | SWMLVar;
+  [key: string]:
+    | Record<string, unknown>
+    | SWMLMethod[]
+    | {
+        code: Record<string, unknown>;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
+      }
+    | Record<
+        string,
+        | SWMLMethod[]
+        | {
+            code: Record<string, unknown>;
+            meta?: Record<string, unknown>;
+            [key: string]: Record<string, unknown> | undefined;
+          }
+      >
+    | string
+    | SWMLVar
+    | undefined;
 }
 
+/** Without one of `expr` / `string` and `output`, a Expression has no effect: it is accepted and ignored, not rejected. */
 export interface Expression {
-  /** The actual input or value from the user or system. */
-  string: string;
-  /** A regular expression pattern to validate or match the string. */
-  pattern: string;
-  /** An object that contains a response and a list of actions to be performed upon a expression match. */
-  output: Output;
+  pattern?: string;
+  expr?: string;
+  'nomatch-output'?: Output;
+  output?: Output;
+  string?: string;
 }
 
 /** A Fabric subscriber device leg. */
@@ -1832,319 +2494,331 @@ export interface FabricDeviceLeg {
   type: 'fabric_subscriber_device_leg';
 }
 
-/** Supported language codes */
-export type FunctionFillers =
-  | {
-      /** Default language set by the user */
-      default: string[];
-    }
-  | {
-      /** Bulgarian */
-      bg: string[];
-    }
-  | {
-      /** Catalan */
-      ca: string[];
-    }
-  | {
-      /** Chinese (Simplified) */
-      zh: string[];
-    }
-  | {
-      /** Chinese (Simplified, China) */
-      'zh-CN': string[];
-    }
-  | {
-      /** Chinese (Simplified Han) */
-      'zh-Hans': string[];
-    }
-  | {
-      /** Chinese (Traditional, Taiwan) */
-      'zh-TW': string[];
-    }
-  | {
-      /** Chinese (Traditional Han) */
-      'zh-Hant': string[];
-    }
-  | {
-      /** Chinese (Traditional, Hong Kong) */
-      'zh-HK': string[];
-    }
-  | {
-      /** Czech */
-      cs: string[];
-    }
-  | {
-      /** Danish */
-      da: string[];
-    }
-  | {
-      /** Danish (Denmark) */
-      'da-DK': string[];
-    }
-  | {
-      /** Dutch */
-      nl: string[];
-    }
-  | {
-      /** English */
-      en: string[];
-    }
-  | {
-      /** English (United States) */
-      'en-US': string[];
-    }
-  | {
-      /** English (United Kingdom) */
-      'en-GB': string[];
-    }
-  | {
-      /** English (New Zealand) */
-      'en-NZ': string[];
-    }
-  | {
-      /** English (India) */
-      'en-IN': string[];
-    }
-  | {
-      /** English (Australia) */
-      'en-AU': string[];
-    }
-  | {
-      /** Estonian */
-      et: string[];
-    }
-  | {
-      /** Finnish */
-      fi: string[];
-    }
-  | {
-      /** Flemish (Belgian Dutch) */
-      'nl-BE': string[];
-    }
-  | {
-      /** French */
-      fr: string[];
-    }
-  | {
-      /** French (Canada) */
-      'fr-CA': string[];
-    }
-  | {
-      /** German */
-      de: string[];
-    }
-  | {
-      /** German (Switzerland) */
-      'de-CH': string[];
-    }
-  | {
-      /** Greek */
-      el: string[];
-    }
-  | {
-      /** Hindi */
-      hi: string[];
-    }
-  | {
-      /** Hungarian */
-      hu: string[];
-    }
-  | {
-      /** Indonesian */
-      id: string[];
-    }
-  | {
-      /** Italian */
-      it: string[];
-    }
-  | {
-      /** Japanese */
-      ja: string[];
-    }
-  | {
-      /** Korean */
-      ko: string[];
-    }
-  | {
-      /** Korean (South Korea) */
-      'ko-KR': string[];
-    }
-  | {
-      /** Latvian */
-      lv: string[];
-    }
-  | {
-      /** Lithuanian */
-      lt: string[];
-    }
-  | {
-      /** Malay */
-      ms: string[];
-    }
-  | {
-      /** Multilingual (Spanish + English) */
-      multi: string[];
-    }
-  | {
-      /** Norwegian */
-      no: string[];
-    }
-  | {
-      /** Polish */
-      pl: string[];
-    }
-  | {
-      /** Portuguese */
-      pt: string[];
-    }
-  | {
-      /** Portuguese (Brazil) */
-      'pt-BR': string[];
-    }
-  | {
-      /** Portuguese (Portugal) */
-      'pt-PT': string[];
-    }
-  | {
-      /** Romanian */
-      ro: string[];
-    }
-  | {
-      /** Russian */
-      ru: string[];
-    }
-  | {
-      /** Slovak */
-      sk: string[];
-    }
-  | {
-      /** Spanish */
-      es: string[];
-    }
-  | {
-      /** Spanish (Latin America) */
-      'es-419': string[];
-    }
-  | {
-      /** Swedish */
-      sv: string[];
-    }
-  | {
-      /** Swedish (Sweden) */
-      'sv-SE': string[];
-    }
-  | {
-      /** Thai */
-      th: string[];
-    }
-  | {
-      /** Thai (Thailand) */
-      'th-TH': string[];
-    }
-  | {
-      /** Turkish */
-      tr: string[];
-    }
-  | {
-      /** Ukrainian */
-      uk: string[];
-    }
-  | {
-      /** Vietnamese */
-      vi: string[];
-    };
+export interface FunctionFillers {
+  default?: Record<string, unknown>;
+  auto?: Record<string, unknown>;
+}
 
+/** A JSON Schema (draft 2020-12) that may also carry `example`, `nullable`, `propertyOrdering`: the value is forwarded verbatim to whichever model API the session resolves to, and those receivers do not accept one vocabulary, so a schema here must be able to express their UNION (vocabulary_union). The engine does not inspect it. */
 export interface FunctionParameters {
-  /** The type of argument the AI is passing to the function. Possible values are 'string' and 'object'. */
-  type: 'object';
-  /** An object containing the property definitions that are passed to the function. */
-  properties: Record<string, SchemaType>;
-  /** An array of required property names from the `properties` object. */
+  title?: string;
+  description?: string;
+  type?:
+    | 'array'
+    | 'boolean'
+    | 'integer'
+    | 'null'
+    | 'number'
+    | 'object'
+    | 'string'
+    | ('array' | 'boolean' | 'integer' | 'null' | 'number' | 'object' | 'string')[];
+  const?: Record<string, unknown>;
+  enum?: unknown[];
+  format?: string;
+  pattern?: string;
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  minItems?: number;
+  maxItems?: number;
+  minProperties?: number;
+  maxProperties?: number;
+  default?: Record<string, unknown>;
+  examples?: unknown[];
+  deprecated?: boolean;
+  nullable?: boolean;
+  properties?: Record<string, FunctionParameters | boolean>;
   required?: string[];
+  prefixItems?: (FunctionParameters | boolean)[];
+  items?: FunctionParameters | boolean;
+  propertyNames?: FunctionParameters | boolean;
+  additionalProperties?: FunctionParameters | boolean;
+  unevaluatedProperties?: FunctionParameters | boolean;
+  oneOf?: (FunctionParameters | boolean)[];
+  anyOf?: (FunctionParameters | boolean)[];
+  allOf?: (FunctionParameters | boolean)[];
+  not?: FunctionParameters | boolean;
+  contains?: FunctionParameters | boolean;
+  dependentRequired?: Record<string, string[]>;
+  dependentSchemas?: Record<string, FunctionParameters | boolean>;
+  else?: FunctionParameters | boolean;
+  example?: Record<string, unknown>;
+  if?: FunctionParameters | boolean;
+  maxContains?: number;
+  minContains?: number;
+  multipleOf?: number;
+  patternProperties?: Record<string, FunctionParameters | boolean>;
+  propertyOrdering?: string[];
+  readOnly?: boolean;
+  then?: FunctionParameters | boolean;
+  unevaluatedItems?: FunctionParameters | boolean;
+  uniqueItems?: boolean;
+  writeOnly?: boolean;
 }
 
 export interface Goto {
-  /** Jump to a label within the current section, optionally based on a condition. */
-  goto: {
-    /** Mark any point of the SWML section with a label so that goto can jump to it. */
-    label: string;
-    /** A JavaScript condition that determines whether to perform the jump. If the condition evaluates to true, the jump is executed. If omitted, the jump is unconditional. */
-    when?: string;
-    /** The maximum number of times to perform the jump. Must be a number between 1 and 100. Default `100`. */
-    max?: number | SWMLVar;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  goto:
+    | {
+        /** Label to jump to. Must reference a `label` step in the current section or in a section that encloses it. */
+        label: string | SWMLVar;
+        /** Maximum number of times this `goto` can jump to its label. Once the limit is reached, */
+        max?: number | SWMLVar;
+        /** A JavaScript condition that determines whether to perform the jump. If the condition evaluates to true, the jump is executed. If omitted, the jump is unconditional. */
+        when?: string | SWMLVar;
+        [key: string]: Record<string, unknown> | string | SWMLVar | number | SWMLVar | undefined;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** Label to jump to. Must reference a `label` step in the current section or in a section that encloses it. */
+        label: string | SWMLVar;
+        /** Maximum number of times this `goto` can jump to its label. Once the limit is reached, */
+        max?: number | SWMLVar;
+        /** A JavaScript condition that determines whether to perform the jump. If the condition evaluates to true, the jump is executed. If omitted, the jump is unconditional. */
+        when?: string | SWMLVar;
+        [key: string]: Record<string, unknown> | string | SWMLVar | number | SWMLVar | undefined;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
 }
 
+/** Without one of `data_map` / `web_hook_url`, one of `description` / `purpose` and `function`, the element has no effect: it is accepted and ignored, not rejected. */
 export interface HangUpHookSWAIGFunction {
-  /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-  description: string;
-  /** The purpose field has been deprecated and is replaced by the `description` field. */
-  purpose?: string;
-  /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-  parameters?: FunctionParameters;
-  /** A JSON object defining the fillers that should be played when calling a `swaig function`. This helps the AI break silence between responses. The filler is played asynchronously during the function call. */
-  fillers?: FunctionFillers;
-  /** The argument field has been deprecated and is replaced by the `parameters` field.  */
+  description?: string;
+  active?: boolean | number | string;
   argument?: FunctionParameters;
-  /** Whether the function is active. **Default:** `true`. */
-  active?: boolean | SWMLVar;
-  /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-  meta_data?: Record<string, Record<string, unknown>>;
-  /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-  meta_data_token?: string;
-  /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
   data_map?: DataMap;
-  /** Skips the top-level fillers specified in `ai.languages` (which includes `speech_fillers` and `function_fillers`). */
-  skip_fillers?: boolean | SWMLVar;
-  /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-  web_hook_url?: string;
-  /** A file to play while the function is running. `wait_file_loops` can specify the amount of times that files should continously play. Default is not set. */
+  fillers?: FunctionFillers;
+  function?: string;
+  meta_data?: Record<string, unknown>;
+  meta_data_token?: string;
+  parameters?: FunctionParameters;
+  purpose?: string;
+  skip_fillers?: boolean | string;
   wait_file?: string;
-  /** The number of times to loop playing the file. Default is not set. */
   wait_file_loops?: number | string;
-  /** Whether to wait for fillers to finish playing before continuing with the function. **Default:** `false`. */
-  wait_for_fillers?: boolean | SWMLVar;
-  /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation. For the stop_hook function, the function name is 'stop_hook'. */
-  function: 'hangup_hook';
+  wait_for_fillers?: boolean | string;
+  web_hook_auth_pass?: string;
+  web_hook_auth_password?: string;
+  web_hook_auth_user?: string;
+  web_hook_url?: string;
 }
 
 export interface Hangup {
-  /** End the call with an optional reason. */
-  hangup: {
-    /** The reason for hanging up the call. */
-    reason?: 'hangup' | 'busy' | 'decline';
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  hangup:
+    | {
+        /** The reason for hanging up the call. */
+        reason?: 'hangup' | 'cancel' | 'busy' | 'noAnswer' | 'decline' | 'error' | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | 'hangup'
+          | 'cancel'
+          | 'busy'
+          | 'noAnswer'
+          | 'decline'
+          | 'error'
+          | SWMLVar
+          | undefined;
+      }
+    | ('hangup' | 'cancel' | 'busy' | 'noAnswer' | 'decline' | 'error' | SWMLVar)[]
+    | number
+    | (string & ('hangup' | 'cancel' | 'busy' | 'noAnswer' | 'decline' | 'error' | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** The reason for hanging up the call. */
+        reason?: 'hangup' | 'cancel' | 'busy' | 'noAnswer' | 'decline' | 'error' | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | 'hangup'
+          | 'cancel'
+          | 'busy'
+          | 'noAnswer'
+          | 'decline'
+          | 'error'
+          | SWMLVar
+          | undefined;
+      }
+    | ('hangup' | 'cancel' | 'busy' | 'noAnswer' | 'decline' | 'error' | SWMLVar)[]
+    | number
+    | (string & ('hangup' | 'cancel' | 'busy' | 'noAnswer' | 'decline' | 'error' | SWMLVar));
 }
 
 export interface HangupAction {
-  /** Whether to hang up the call. When set to `true`, the call will be terminated after the AI agent finishes speaking. */
-  hangup: boolean | SWMLVar;
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
 /** The reason for hanging up the call. */
 export type HangupReason = 'hangup' | 'cancel' | 'busy' | 'noAnswer' | 'decline' | 'error';
 
 export interface Hint {
-  /** The hint to match. This will match the string exactly as provided */
-  hint: string;
-  /** A regular expression to match the hint against. This will ensure that the hint has a valid matching pattern before being replaced. */
-  pattern: string;
-  /** The text to replace the hint with. This will replace the portion of the hint that matches the pattern. */
-  replace: string;
-  /** If true, the hint will be matched in a case-insensitive manner. **Default:** `false`. */
-  ignore_case?: boolean | SWMLVar;
+  pattern?: string;
+  hint?: string;
+  ignore_case?: boolean | string;
+  replace?: string;
 }
 
 export interface HoldAction {
-  /** Places the caller on hold while playing hold music (configured via params.hold_music). */
-  hold:
-    | number
-    | SWMLVar
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
     | {
-        /** The duration to hold the caller in seconds. Can be a number or an object with timeout property. */
-        timeout?: number | SWMLVar;
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
       };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
 export interface InjectAction {
@@ -2172,131 +2846,429 @@ export interface IntegerProperty {
 }
 
 export interface JoinConference {
-  /** Join an ad-hoc audio conference started on either the SignalWire or Compatibility API. */
-  join_conference: JoinConferenceObject;
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  join_conference:
+    JoinConferenceObject | (string | SWMLVar)[] | number | (string & (string | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | JoinConferenceObject
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
 }
 
+/** Join an ad-hoc audio conference. */
 export interface JoinConferenceObject {
-  /** Name of conference */
-  name: string;
-  /** Whether to join the conference in a muted state. If set to `true`, the participant will be muted upon joining. Default `false`. */
-  muted?: boolean | SWMLVar;
-  /** Sets the behavior of the beep sound when joining or leaving the conference. Default `"true"`. */
-  beep?: 'true' | 'false' | 'onEnter' | 'onExit';
-  /** Starts the conference when the main participant joins. This means the start action will not wait on more participants to join before starting. Default `true`. */
-  start_on_enter?: boolean | SWMLVar;
+  /** Sets the behavior of the beep sound when joining or leaving the conference. Default `\"true\"`. */
+  beep?: 'true' | 'false' | 'onEnter' | 'onExit' | SWMLVar;
+  /** Coach accepts a call SID of a call that is currently connected to an in-progress conference. */
+  coach?: string | SWMLVar;
+  emit_call_quality?: boolean | SWMLVar;
   /** Ends the conference when the main participant leaves. This means the end action will not wait on more participants to leave before ending. Default `false`. */
   end_on_exit?: boolean | SWMLVar;
-  /** A URL that will play media when the conference is put on hold. Default hold music will be played if not set */
-  wait_url?: string | SWMLVar;
   /** The maximum number of participants allowed in the conference. If the limit is reached, new participants will not be able to join. Default `100000`. */
   max_participants?: number | SWMLVar;
-  /** Enables or disables recording of the conference. Default `"do-not-record"`. */
-  record?: 'do-not-record' | 'record-from-start';
-  /** Specifies the geographical region where the conference will be hosted. Default not set */
-  region?: string;
-  /** If set to `trim-silence`, it will remove silence from the start of the recording. If set to `do-not-trim`, it will keep the silence. Default `"trim-silence"`. */
-  trim?: 'trim-silence' | 'do-not-trim';
-  /** Coach accepts a call SID of a call that is currently connected to an in-progress conference. */
-  coach?: string;
-  /** The events to listen for and send to the status callback URL. Default not set */
-  status_callback_event?:
-    'start' | 'end' | 'join' | 'leave' | 'mute' | 'hold' | 'modify' | 'speaker' | 'announcement';
-  /** The URL to which status events will be sent. This URL must be publicly accessible and able to handle HTTP requests. Default not set */
-  status_callback?: string;
-  /** The HTTP method to use when sending status events to the status callback URL. Default `"POST"`. */
-  status_callback_method?: 'GET' | 'POST';
-  /** The URL to which recording status events will be sent. This URL must be publicly accessible and able to handle HTTP requests. Default not set */
-  recording_status_callback?: string;
-  /** The HTTP method to use when sending recording status events to the recording status callback URL. Default `"POST"`. */
-  recording_status_callback_method?: 'GET' | 'POST';
-  /** The events to listen for and send to the recording status callback URL. Default not set */
-  recording_status_callback_event?: 'in-progress' | 'completed' | 'absent';
-  /** Allows the user to specify a custom action to be executed when the conference result is returned (typically when it has ended).  */
-  result?:
+  meta?:
     | {
-        /** Name of the variable whose value needs to be compared. */
-        variable: string;
-        /** Object of key-mapped values to array of SWML methods to execute. */
-        case: Record<string, SWMLMethod[]>;
-        /** Array of SWML methods to execute if no cases match. */
-        default?: SWMLMethod[];
+        private?: Record<string, unknown>;
+        public?: Record<string, unknown>;
       }
-    | CondParams[];
+    | SWMLVar;
+  min_participants?: number | SWMLVar;
+  /** Whether to join the conference in a muted state. If set to `true`, the participant will be muted upon joining. Default `false`. */
+  muted?: boolean | SWMLVar;
+  /** A friendly name to identify the stream at the WebSocket endpoint. Default not set */
+  name: string | SWMLVar;
+  /** Enables or disables recording of the conference. Default `\"do-not-record\"`. */
+  record?: 'do-not-record' | 'record-from-start' | SWMLVar;
+  /** The URL to which recording status events will be sent. This URL must be publicly accessible and able to handle HTTP requests. Default not set */
+  recording_status_callback?: string | SWMLVar;
+  /** Space-separated list of one or more events to send to the recording status callback URL. */
+  recording_status_callback_event?: string | SWMLVar;
+  /** The content type used when sending recording status events to the recording status callback URL. Defaults to `relay`. An unlisted value is rejected rather than falling back to the default. */
+  recording_status_callback_event_type?: 'cxml' | 'laml' | 'relay' | SWMLVar;
+  /** The HTTP method to use when sending recording status events to the recording status callback URL. Default `\"POST\"`. */
+  recording_status_callback_method?: 'GET' | 'POST' | SWMLVar;
+  /** Specifies the geographical region where the conference will be hosted. Default not set */
+  region?: 'global' | 'us' | 'eu' | 'ch' | SWMLVar;
+  /** Starts the conference when the main participant joins. This means the start action will not wait on more participants to join before starting. Default `true`. */
+  start_on_enter?: boolean | SWMLVar;
+  /** The URL to which status events will be sent. This URL must be publicly accessible and able to handle HTTP requests. Default not set */
+  status_callback?: string | SWMLVar;
+  /** Space-separated list of one or more events to send to the status callback URL. */
+  status_callback_event?: string | SWMLVar;
+  /** The content type used when sending status events to the status callback URL. Default not set */
+  status_callback_event_type?: 'cxml' | 'laml' | 'relay' | SWMLVar;
+  /** The HTTP method to use when sending status events to the status callback URL. Default `\"POST\"`. */
+  status_callback_method?: 'GET' | 'POST' | SWMLVar;
+  /** Attach a bidirectional WebSocket stream to the conference. Conference audio is streamed to */
+  stream?: CallDeviceStream | SWMLVar;
+  /** If set to `trim-silence`, it will remove silence from the start of the recording. If set to `do-not-trim`, it will keep the silence. Default `\"trim-silence\"`. */
+  trim?: 'trim-silence' | 'do-not-trim' | SWMLVar;
+  video?: boolean | SWMLVar;
+  video_layout?: string | SWMLVar;
+  video_preview?: boolean | SWMLVar;
+  video_quality?: '720p' | '1080p' | SWMLVar;
+  /** A URL that will play media when the conference is put on hold. Default hold music will be played if not set */
+  wait_url?: string | SWMLVar;
+  [key: string]:
+    | Record<string, unknown>
+    | 'true'
+    | 'false'
+    | 'onEnter'
+    | 'onExit'
+    | SWMLVar
+    | string
+    | SWMLVar
+    | boolean
+    | SWMLVar
+    | number
+    | SWMLVar
+    | {
+        private?: Record<string, unknown>;
+        public?: Record<string, unknown>;
+      }
+    | SWMLVar
+    | 'do-not-record'
+    | 'record-from-start'
+    | SWMLVar
+    | 'cxml'
+    | 'laml'
+    | 'relay'
+    | SWMLVar
+    | 'GET'
+    | 'POST'
+    | SWMLVar
+    | 'global'
+    | 'us'
+    | 'eu'
+    | 'ch'
+    | SWMLVar
+    | CallDeviceStream
+    | SWMLVar
+    | 'trim-silence'
+    | 'do-not-trim'
+    | SWMLVar
+    | '720p'
+    | '1080p'
+    | SWMLVar
+    | undefined;
 }
 
 export interface JoinRoom {
-  /** Join a RELAY room. If the room doesn't exist, it creates a new room. */
-  join_room: {
-    /** Name of the room to join. Allowed characters: A-Z, a-z, 0-9, underscore, and hyphen. */
-    name: string;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  join_room:
+    | {
+        /** Name of the room to join. Allowed characters: A-Z, a-z, 0-9, underscore, and hyphen. */
+        name: string | SWMLVar;
+        [key: string]: Record<string, unknown> | string | SWMLVar;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** Name of the room to join. Allowed characters: A-Z, a-z, 0-9, underscore, and hyphen. */
+        name: string | SWMLVar;
+        [key: string]: Record<string, unknown> | string | SWMLVar;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
 }
 
 export interface Label {
-  /** Mark any point of the SWML section with a label so that goto can jump to it. */
-  label: string;
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  label:
+    | {
+        /** Mark any point of the SWML section with a label so that `goto` can jump to it. Must be */
+        label: string;
+        [key: string]: Record<string, unknown> | string;
+      }
+    | string[]
+    | number
+    | (string & string);
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** Mark any point of the SWML section with a label so that `goto` can jump to it. Must be */
+        label: string;
+        [key: string]: Record<string, unknown> | string;
+      }
+    | string[]
+    | number
+    | (string & string);
 }
 
 export interface LanguageParams {
-  /** The stability slider determines how stable the voice is and the randomness between each generation. Lowering this slider introduces a broader emotional range for the voice. IMPORTANT: Only works with ElevenLabs TTS engine. */
-  stability?: number | SWMLVar;
-  /** The similarity slider dictates how closely the AI should adhere to the original voice when attempting to replicate it. The higher the similarity, the closer the AI will sound to the original voice. IMPORTANT: Only works with ElevenLabs TTS engine. */
-  similarity?: number | SWMLVar;
+  emotion?: string;
+  pitch?: number | string;
+  similarity?: number | string;
+  speakingRate?: number | string;
+  speed?: number | string;
+  stability?: number | string;
+  streaming?: boolean | string;
+  temperature?: number | string;
+  vol?: number | string;
 }
 
-export type Languages = LanguagesWithSoloFillers | LanguagesWithFillers;
+/** Without one of `code` / `listen_language`, `name` and `voice`, the element has no effect: it is accepted and ignored, not rejected. */
+export interface Languages {
+  auto_emotion?: boolean | string;
+  auto_speed?: boolean | string;
+  code?: unknown[] | string;
+  double_turn_fillers?: unknown[];
+  engine?: string;
+  fillers?: unknown[];
+  function_fillers?: unknown[];
+  listen_language?: unknown[] | string;
+  model?: string;
+  name?: string;
+  params?: LanguageParams;
+  pronounce?: unknown[];
+  speech_fillers?: unknown[];
+  turn_fillers?: unknown[];
+  voice?: string;
+}
 
+/** Without one of `code` / `listen_language`, `name` and `voice`, the element has no effect: it is accepted and ignored, not rejected. */
 export interface LanguagesWithFillers {
-  /** Name of the language (e.g., 'French', 'English'). This value is used in the system prompt to instruct the LLM what language is being spoken. */
-  name: string;
-  /** The language code for ASR (Automatic Speech Recognition) purposes. By default, SignalWire uses Deepgram's */
-  code: string;
-  /** Voice to use for the language. String format: `<engine id>.<voice id>`. */
-  voice: string;
-  /** The model to use for the specified TTS engine. For example, 'arcana'. */
-  model?: string;
-  /** Enables emotion detection for the set TTS engine. This allows the AI to express emotions when speaking. */
-  emotion?: 'auto';
-  /** The speed to use for the specified TTS engine. This allows the AI to speak at a different speed at different points in the conversation. */
-  speed?: 'auto';
-  /** The engine to use for the language. For example, 'elevenlabs'. */
+  auto_emotion?: boolean | string;
+  auto_speed?: boolean | string;
+  code?: unknown[] | string;
+  double_turn_fillers?: unknown[];
   engine?: string;
-  /** TTS engine-specific parameters for this language. */
+  fillers?: unknown[];
+  function_fillers?: unknown[];
+  listen_language?: unknown[] | string;
+  model?: string;
+  name?: string;
   params?: LanguageParams;
-  /** An array of strings to be used as fillers in the conversation when calling a `swaig function`. This helps the AI break silence between responses. The filler is played asynchronously during the function call. */
-  function_fillers?: string[];
-  /** An array of strings to be used as fillers in the conversation. This helps the AI break silence between responses. */
-  speech_fillers?: string[];
+  pronounce?: unknown[];
+  speech_fillers?: unknown[];
+  turn_fillers?: unknown[];
+  voice?: string;
 }
 
+/** Without one of `code` / `listen_language`, `name` and `voice`, the element has no effect: it is accepted and ignored, not rejected. */
 export interface LanguagesWithSoloFillers {
-  /** Name of the language (e.g., 'French', 'English'). This value is used in the system prompt to instruct the LLM what language is being spoken. */
-  name: string;
-  /** The language code for ASR (Automatic Speech Recognition) purposes. By default, SignalWire uses Deepgram's */
-  code: string;
-  /** Voice to use for the language. String format: `<engine id>.<voice id>`. */
-  voice: string;
-  /** The model to use for the specified TTS engine. For example, 'arcana'. */
-  model?: string;
-  /** Enables emotion detection for the set TTS engine. This allows the AI to express emotions when speaking. */
-  emotion?: 'auto';
-  /** The speed to use for the specified TTS engine. This allows the AI to speak at a different speed at different points in the conversation. */
-  speed?: 'auto';
-  /** The engine to use for the language. For example, 'elevenlabs'. */
+  auto_emotion?: boolean | string;
+  auto_speed?: boolean | string;
+  code?: unknown[] | string;
+  double_turn_fillers?: unknown[];
   engine?: string;
-  /** TTS engine-specific parameters for this language. */
+  fillers?: unknown[];
+  function_fillers?: unknown[];
+  listen_language?: unknown[] | string;
+  model?: string;
+  name?: string;
   params?: LanguageParams;
-  /** An array of strings to be used as fillers in the conversation. This will be used for both speech and function fillers if provided. */
-  fillers?: string[];
+  pronounce?: unknown[];
+  speech_fillers?: unknown[];
+  turn_fillers?: unknown[];
+  voice?: string;
 }
 
 export interface LiveTranscribe {
-  /** Start live transcription of the call. The transcription will be sent to the specified webhook URL. */
-  live_transcribe: {
-    /** The action to perform during live transcription. */
-    action: TranscribeAction;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  live_transcribe:
+    | {
+        /** The action to perform during live transcription. */
+        action?:
+          | string
+          | {
+              start?:
+                | {
+                    ai_summary?: boolean | SWMLVar;
+                    ai_summary_prompt?: string | SWMLVar;
+                    debug_level?: number | SWMLVar;
+                    deepgram_key_override?: string | SWMLVar;
+                    deepgram_url_override?: string | SWMLVar;
+                    direction?: (string | SWMLVar)[] | SWMLVar;
+                    hints?: (string | SWMLVar)[] | SWMLVar;
+                    lang?: string | SWMLVar;
+                    live_events?: boolean | SWMLVar;
+                    speech_engine?: string | SWMLVar;
+                    speech_timeout?: number | SWMLVar;
+                    vad_silence_ms?: number | SWMLVar;
+                    vad_thresh?: number | SWMLVar;
+                    verbose_utterances?: boolean | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              stop?: Record<string, unknown>;
+              summarize?:
+                | {
+                    ai_model?: string | SWMLVar;
+                    prompt?: string | SWMLVar;
+                    summary_prompt?: string | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+            }
+          | SWMLVar;
+        hints?:
+          | (
+              | {
+                  pattern?: string | SWMLVar;
+                  hint?: string | SWMLVar;
+                  ignore_case?: boolean | string | SWMLVar;
+                  replace?: string | SWMLVar;
+                }
+              | string
+              | SWMLVar
+            )[]
+          | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | {
+              start?:
+                | {
+                    ai_summary?: boolean | SWMLVar;
+                    ai_summary_prompt?: string | SWMLVar;
+                    debug_level?: number | SWMLVar;
+                    deepgram_key_override?: string | SWMLVar;
+                    deepgram_url_override?: string | SWMLVar;
+                    direction?: (string | SWMLVar)[] | SWMLVar;
+                    hints?: (string | SWMLVar)[] | SWMLVar;
+                    lang?: string | SWMLVar;
+                    live_events?: boolean | SWMLVar;
+                    speech_engine?: string | SWMLVar;
+                    speech_timeout?: number | SWMLVar;
+                    vad_silence_ms?: number | SWMLVar;
+                    vad_thresh?: number | SWMLVar;
+                    verbose_utterances?: boolean | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              stop?: Record<string, unknown>;
+              summarize?:
+                | {
+                    ai_model?: string | SWMLVar;
+                    prompt?: string | SWMLVar;
+                    summary_prompt?: string | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+            }
+          | SWMLVar
+          | (
+              | {
+                  pattern?: string | SWMLVar;
+                  hint?: string | SWMLVar;
+                  ignore_case?: boolean | string | SWMLVar;
+                  replace?: string | SWMLVar;
+                }
+              | string
+              | SWMLVar
+            )[]
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** The action to perform during live transcription. */
+        action?:
+          | string
+          | {
+              start?:
+                | {
+                    ai_summary?: boolean | SWMLVar;
+                    ai_summary_prompt?: string | SWMLVar;
+                    debug_level?: number | SWMLVar;
+                    deepgram_key_override?: string | SWMLVar;
+                    deepgram_url_override?: string | SWMLVar;
+                    direction?: (string | SWMLVar)[] | SWMLVar;
+                    hints?: (string | SWMLVar)[] | SWMLVar;
+                    lang?: string | SWMLVar;
+                    live_events?: boolean | SWMLVar;
+                    speech_engine?: string | SWMLVar;
+                    speech_timeout?: number | SWMLVar;
+                    vad_silence_ms?: number | SWMLVar;
+                    vad_thresh?: number | SWMLVar;
+                    verbose_utterances?: boolean | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              stop?: Record<string, unknown>;
+              summarize?:
+                | {
+                    ai_model?: string | SWMLVar;
+                    prompt?: string | SWMLVar;
+                    summary_prompt?: string | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+            }
+          | SWMLVar;
+        hints?:
+          | (
+              | {
+                  pattern?: string | SWMLVar;
+                  hint?: string | SWMLVar;
+                  ignore_case?: boolean | string | SWMLVar;
+                  replace?: string | SWMLVar;
+                }
+              | string
+              | SWMLVar
+            )[]
+          | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | {
+              start?:
+                | {
+                    ai_summary?: boolean | SWMLVar;
+                    ai_summary_prompt?: string | SWMLVar;
+                    debug_level?: number | SWMLVar;
+                    deepgram_key_override?: string | SWMLVar;
+                    deepgram_url_override?: string | SWMLVar;
+                    direction?: (string | SWMLVar)[] | SWMLVar;
+                    hints?: (string | SWMLVar)[] | SWMLVar;
+                    lang?: string | SWMLVar;
+                    live_events?: boolean | SWMLVar;
+                    speech_engine?: string | SWMLVar;
+                    speech_timeout?: number | SWMLVar;
+                    vad_silence_ms?: number | SWMLVar;
+                    vad_thresh?: number | SWMLVar;
+                    verbose_utterances?: boolean | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              stop?: Record<string, unknown>;
+              summarize?:
+                | {
+                    ai_model?: string | SWMLVar;
+                    prompt?: string | SWMLVar;
+                    summary_prompt?: string | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+            }
+          | SWMLVar
+          | (
+              | {
+                  pattern?: string | SWMLVar;
+                  hint?: string | SWMLVar;
+                  ignore_case?: boolean | string | SWMLVar;
+                  replace?: string | SWMLVar;
+                }
+              | string
+              | SWMLVar
+            )[]
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
 }
 
 export interface LiveTranscribeStartAction {
@@ -2341,11 +3313,210 @@ export interface LiveTranscribeSummarizeAction {
 }
 
 export interface LiveTranslate {
-  /** Start live translation of the call. The translation will be sent to the specified webhook URL. */
-  live_translate: {
-    /** The action to perform during live translation. */
-    action: TranslateAction;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  live_translate:
+    | {
+        /** The action to perform during live translation. */
+        action?:
+          | string
+          | {
+              inject?:
+                | {
+                    direction?: string | SWMLVar;
+                    message?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              start?:
+                | {
+                    ai_summary?: boolean | SWMLVar;
+                    ai_summary_prompt?: string | SWMLVar;
+                    debug_level?: number | SWMLVar;
+                    deepgram_key_override?: string | SWMLVar;
+                    deepgram_url_override?: string | SWMLVar;
+                    direction?: (string | SWMLVar)[] | SWMLVar;
+                    filter_from?: string | SWMLVar;
+                    filter_to?: string | SWMLVar;
+                    from_lang?: string | SWMLVar;
+                    from_voice?: string | SWMLVar;
+                    from_voice_params?: Record<string, unknown> | SWMLVar;
+                    live_events?: boolean | SWMLVar;
+                    mode?: string | SWMLVar;
+                    speech_engine?: string | SWMLVar;
+                    speech_timeout?: number | SWMLVar;
+                    to_lang?: string | SWMLVar;
+                    to_voice?: string | SWMLVar;
+                    to_voice_params?: Record<string, unknown> | SWMLVar;
+                    translation_model?: string | SWMLVar;
+                    translation_model_params?: Record<string, unknown> | SWMLVar;
+                    vad_silence_ms?: number | SWMLVar;
+                    vad_thresh?: number | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              stop?: Record<string, unknown>;
+              summarize?:
+                | {
+                    prompt?: string | SWMLVar;
+                    summary_prompt?: string | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+            }
+          | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | {
+              inject?:
+                | {
+                    direction?: string | SWMLVar;
+                    message?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              start?:
+                | {
+                    ai_summary?: boolean | SWMLVar;
+                    ai_summary_prompt?: string | SWMLVar;
+                    debug_level?: number | SWMLVar;
+                    deepgram_key_override?: string | SWMLVar;
+                    deepgram_url_override?: string | SWMLVar;
+                    direction?: (string | SWMLVar)[] | SWMLVar;
+                    filter_from?: string | SWMLVar;
+                    filter_to?: string | SWMLVar;
+                    from_lang?: string | SWMLVar;
+                    from_voice?: string | SWMLVar;
+                    from_voice_params?: Record<string, unknown> | SWMLVar;
+                    live_events?: boolean | SWMLVar;
+                    mode?: string | SWMLVar;
+                    speech_engine?: string | SWMLVar;
+                    speech_timeout?: number | SWMLVar;
+                    to_lang?: string | SWMLVar;
+                    to_voice?: string | SWMLVar;
+                    to_voice_params?: Record<string, unknown> | SWMLVar;
+                    translation_model?: string | SWMLVar;
+                    translation_model_params?: Record<string, unknown> | SWMLVar;
+                    vad_silence_ms?: number | SWMLVar;
+                    vad_thresh?: number | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              stop?: Record<string, unknown>;
+              summarize?:
+                | {
+                    prompt?: string | SWMLVar;
+                    summary_prompt?: string | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+            }
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** The action to perform during live translation. */
+        action?:
+          | string
+          | {
+              inject?:
+                | {
+                    direction?: string | SWMLVar;
+                    message?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              start?:
+                | {
+                    ai_summary?: boolean | SWMLVar;
+                    ai_summary_prompt?: string | SWMLVar;
+                    debug_level?: number | SWMLVar;
+                    deepgram_key_override?: string | SWMLVar;
+                    deepgram_url_override?: string | SWMLVar;
+                    direction?: (string | SWMLVar)[] | SWMLVar;
+                    filter_from?: string | SWMLVar;
+                    filter_to?: string | SWMLVar;
+                    from_lang?: string | SWMLVar;
+                    from_voice?: string | SWMLVar;
+                    from_voice_params?: Record<string, unknown> | SWMLVar;
+                    live_events?: boolean | SWMLVar;
+                    mode?: string | SWMLVar;
+                    speech_engine?: string | SWMLVar;
+                    speech_timeout?: number | SWMLVar;
+                    to_lang?: string | SWMLVar;
+                    to_voice?: string | SWMLVar;
+                    to_voice_params?: Record<string, unknown> | SWMLVar;
+                    translation_model?: string | SWMLVar;
+                    translation_model_params?: Record<string, unknown> | SWMLVar;
+                    vad_silence_ms?: number | SWMLVar;
+                    vad_thresh?: number | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              stop?: Record<string, unknown>;
+              summarize?:
+                | {
+                    prompt?: string | SWMLVar;
+                    summary_prompt?: string | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+            }
+          | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | {
+              inject?:
+                | {
+                    direction?: string | SWMLVar;
+                    message?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              start?:
+                | {
+                    ai_summary?: boolean | SWMLVar;
+                    ai_summary_prompt?: string | SWMLVar;
+                    debug_level?: number | SWMLVar;
+                    deepgram_key_override?: string | SWMLVar;
+                    deepgram_url_override?: string | SWMLVar;
+                    direction?: (string | SWMLVar)[] | SWMLVar;
+                    filter_from?: string | SWMLVar;
+                    filter_to?: string | SWMLVar;
+                    from_lang?: string | SWMLVar;
+                    from_voice?: string | SWMLVar;
+                    from_voice_params?: Record<string, unknown> | SWMLVar;
+                    live_events?: boolean | SWMLVar;
+                    mode?: string | SWMLVar;
+                    speech_engine?: string | SWMLVar;
+                    speech_timeout?: number | SWMLVar;
+                    to_lang?: string | SWMLVar;
+                    to_voice?: string | SWMLVar;
+                    to_voice_params?: Record<string, unknown> | SWMLVar;
+                    translation_model?: string | SWMLVar;
+                    translation_model_params?: Record<string, unknown> | SWMLVar;
+                    vad_silence_ms?: number | SWMLVar;
+                    vad_thresh?: number | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              stop?: Record<string, unknown>;
+              summarize?:
+                | {
+                    prompt?: string | SWMLVar;
+                    summary_prompt?: string | SWMLVar;
+                    webhook?: string | SWMLVar;
+                  }
+                | SWMLVar;
+            }
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
 }
 
 export interface LiveTranslateInjectAction {
@@ -2452,427 +3623,1112 @@ export interface OneOfProperty {
 }
 
 export interface Output {
-  /** A static response text or message returned to the AI agent's context. */
-  response: string;
-  /** A list of actions to be performed upon matching. */
-  action?: Action[];
+  action?: Action | Action[];
+  post_process?: boolean;
+  response?:
+    | string
+    | {
+        tool_prompt?: string;
+        tool_result?: string;
+      };
 }
 
-/** Regular section that requires either body or bullets. */
-export type POM = PomSectionBodyContent | PomSectionBulletsContent;
+/** Without one of `body` / `bullets` / `subsections`, the element has no effect: it is accepted and ignored, not rejected. */
+export interface POM {
+  title?: string;
+  body?: string;
+  bullets?: unknown[];
+  numbered?: boolean;
+  numberedBullets?: boolean;
+  subsections?: unknown[];
+}
 
 export interface Pay {
-  /** Enables secure payment processing during voice calls. When implemented, it manages the entire payment flow */
-  pay: {
-    /** The URL to make POST requests with all the gathered payment details. */
-    payment_connector_url: string;
-    /** The amount to charge against payment method passed in the request. `Float` value with no currency prefix passed as string. */
-    charge_amount?: string;
-    /** Uses the ISO 4217 currency code of the charge amount. */
-    currency?: string;
-    /** Custom description of the payment provided in the request. */
-    description?: string;
-    /** The method of how to collect the payment details. Currently only `dtmf` mode is supported. */
-    input?: 'dtmf';
-    /** Language to use for prompts being played to the caller by the `pay` method. */
-    language?: string;
-    /** Number of times the `pay` method will retry to collect payment details. */
-    max_attempts?: number | SWMLVar;
-    /** The minimum length of the postal code the user must enter. */
-    min_postal_code_length?: number | SWMLVar;
-    /** Array of parameter objects to pass to your payment processor. The parameters are user-defined key-value pairs. */
-    parameters?: PayParameters[];
-    /** Indicates the payment method which is going to be used in this payment request. Currently only `credit-card` is supported. */
-    payment_method?: 'credit-card';
-    /** Takes `true`, `false` or real postalcode (if it's known beforehand) to let pay method know whether to prompt for postal code. Default is `true`. */
-    postal_code?: boolean | string;
-    /** Array of prompt objects for customizing the audio prompts during different stages of the payment process. */
-    prompts?: PayPrompts[];
-    /** Takes true or false to let pay method know whether to prompt for security code. */
-    security_code?: boolean | SWMLVar;
-    /** The URL to send requests for each status change during the payment process. */
-    status_url?: string;
-    /** Limit in seconds that pay method waits for the caller to press another digit before moving on to validate the digits captured. */
-    timeout?: number | SWMLVar;
-    /** Whether the payment is a one off payment or re-occurring. */
-    token_type?: 'one-time' | 'reusable';
-    /** List of payment cards allowed to use in the requested payment process separated by space. */
-    valid_card_types?: string;
-    /** Text-to-speech voice to use. Please refer to https://signalwire.com/docs/voice/getting-started/voice-and-languages for more information. */
-    voice?: string;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  pay:
+    | {
+        /** Custom description of the payment provided in the request. */
+        description?: string | SWMLVar;
+        bank_account_type?:
+          'consumer-checking' | 'consumer-savings' | 'commercial-checking' | SWMLVar;
+        /** The amount to charge against payment method passed in the request. `Float` value with no currency prefix passed as string. */
+        charge_amount?: string | SWMLVar;
+        /** Uses the ISO 4217 currency code of the charge amount. */
+        currency?: string | SWMLVar;
+        /** The method of how to collect the payment details. Currently only `dtmf` mode is supported. */
+        input?: 'dtmf' | 'voice' | SWMLVar;
+        /** Language to use for prompts being played to the caller by the `pay` method. */
+        language?: string | SWMLVar;
+        /** Number of times the `pay` method will retry to collect payment details. */
+        max_attempts?: string | SWMLVar;
+        /** The minimum length of the postal code the user must enter. */
+        min_postal_code_length?: string | SWMLVar;
+        /** Array of parameter objects to pass to your payment processor. The parameters are user-defined key-value pairs. */
+        parameters?: (PayParameters | SWMLVar)[] | SWMLVar;
+        /** The URL to make POST requests with all the gathered payment details. */
+        payment_connector_url: string | SWMLVar;
+        /** Indicates the payment method which is going to be used in this payment request, `credit-card` or `ach-debit`. Default is `credit-card`. */
+        payment_method?: 'credit-card' | 'ach-debit' | SWMLVar;
+        /** Takes `true`, `false` or real postalcode (if it's known beforehand) to let pay method know whether to prompt for postal code. Default is `true`. */
+        postal_code?: string | SWMLVar;
+        /** Array of prompt objects for customizing the audio prompts during different stages of the payment process. */
+        prompts?: (PayPrompts | SWMLVar)[] | SWMLVar;
+        say_voice?: string | SWMLVar;
+        /** Takes true or false to let pay method know whether to prompt for security code. */
+        security_code?: string | SWMLVar;
+        /** The URL to send requests for each status change during the payment process. */
+        status_url?: string | SWMLVar;
+        /** Limit in seconds that pay method waits for the caller to press another digit before moving on to validate the digits captured. */
+        timeout?: string | SWMLVar;
+        /** Whether the payment is a one off payment or re-occurring. */
+        token_type?: 'one-time' | 'reusable' | SWMLVar;
+        /** List of payment cards allowed to use in the requested payment process separated by space. */
+        valid_card_types?: string | SWMLVar;
+        /** Text-to-speech voice to use. Please refer to [TTS documentation](/docs/platform/voice/tts) for more information. */
+        voice?: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | SWMLVar
+          | 'consumer-checking'
+          | 'consumer-savings'
+          | 'commercial-checking'
+          | SWMLVar
+          | 'dtmf'
+          | 'voice'
+          | SWMLVar
+          | (PayParameters | SWMLVar)[]
+          | SWMLVar
+          | 'credit-card'
+          | 'ach-debit'
+          | SWMLVar
+          | (PayPrompts | SWMLVar)[]
+          | SWMLVar
+          | 'one-time'
+          | 'reusable'
+          | SWMLVar
+          | undefined;
+      }
+    | (Record<string, unknown> | 'dtmf' | 'voice' | SWMLVar)[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** Custom description of the payment provided in the request. */
+        description?: string | SWMLVar;
+        bank_account_type?:
+          'consumer-checking' | 'consumer-savings' | 'commercial-checking' | SWMLVar;
+        /** The amount to charge against payment method passed in the request. `Float` value with no currency prefix passed as string. */
+        charge_amount?: string | SWMLVar;
+        /** Uses the ISO 4217 currency code of the charge amount. */
+        currency?: string | SWMLVar;
+        /** The method of how to collect the payment details. Currently only `dtmf` mode is supported. */
+        input?: 'dtmf' | 'voice' | SWMLVar;
+        /** Language to use for prompts being played to the caller by the `pay` method. */
+        language?: string | SWMLVar;
+        /** Number of times the `pay` method will retry to collect payment details. */
+        max_attempts?: string | SWMLVar;
+        /** The minimum length of the postal code the user must enter. */
+        min_postal_code_length?: string | SWMLVar;
+        /** Array of parameter objects to pass to your payment processor. The parameters are user-defined key-value pairs. */
+        parameters?: (PayParameters | SWMLVar)[] | SWMLVar;
+        /** The URL to make POST requests with all the gathered payment details. */
+        payment_connector_url: string | SWMLVar;
+        /** Indicates the payment method which is going to be used in this payment request, `credit-card` or `ach-debit`. Default is `credit-card`. */
+        payment_method?: 'credit-card' | 'ach-debit' | SWMLVar;
+        /** Takes `true`, `false` or real postalcode (if it's known beforehand) to let pay method know whether to prompt for postal code. Default is `true`. */
+        postal_code?: string | SWMLVar;
+        /** Array of prompt objects for customizing the audio prompts during different stages of the payment process. */
+        prompts?: (PayPrompts | SWMLVar)[] | SWMLVar;
+        say_voice?: string | SWMLVar;
+        /** Takes true or false to let pay method know whether to prompt for security code. */
+        security_code?: string | SWMLVar;
+        /** The URL to send requests for each status change during the payment process. */
+        status_url?: string | SWMLVar;
+        /** Limit in seconds that pay method waits for the caller to press another digit before moving on to validate the digits captured. */
+        timeout?: string | SWMLVar;
+        /** Whether the payment is a one off payment or re-occurring. */
+        token_type?: 'one-time' | 'reusable' | SWMLVar;
+        /** List of payment cards allowed to use in the requested payment process separated by space. */
+        valid_card_types?: string | SWMLVar;
+        /** Text-to-speech voice to use. Please refer to [TTS documentation](/docs/platform/voice/tts) for more information. */
+        voice?: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | SWMLVar
+          | 'consumer-checking'
+          | 'consumer-savings'
+          | 'commercial-checking'
+          | SWMLVar
+          | 'dtmf'
+          | 'voice'
+          | SWMLVar
+          | (PayParameters | SWMLVar)[]
+          | SWMLVar
+          | 'credit-card'
+          | 'ach-debit'
+          | SWMLVar
+          | (PayPrompts | SWMLVar)[]
+          | SWMLVar
+          | 'one-time'
+          | 'reusable'
+          | SWMLVar
+          | undefined;
+      }
+    | (Record<string, unknown> | 'dtmf' | 'voice' | SWMLVar)[]
+    | number
+    | string;
 }
 
 export interface PayParameters {
-  /** The identifier for your custom parameter. This will be the key in the parameters object. */
-  name: string;
-  /** The value associated with the parameter. This will be the value in the parameters object. */
-  value: string;
+  name: string | SWMLVar;
+  value: string | SWMLVar;
+  [key: string]: Record<string, unknown> | string | SWMLVar;
 }
 
-export type PayPromptAction = PayPromptSayAction | PayPromptPlayAction;
+export interface PayPromptAction {
+  type: 'Say' | 'Play' | SWMLVar;
+  phrase: string | SWMLVar;
+  [key: string]: Record<string, unknown> | 'Say' | 'Play' | SWMLVar | string | SWMLVar;
+}
 
 export interface PayPromptPlayAction {
-  /** When the action `type` is `Say`, this value is the text to be spoken; when the type is `Play`, it should be a URL to the audio file. */
-  type: 'Play';
-  /** The URL of the audio file to play */
-  phrase: string;
+  type: 'Say' | 'Play' | SWMLVar;
+  phrase: string | SWMLVar;
+  [key: string]: Record<string, unknown> | 'Say' | 'Play' | SWMLVar | string | SWMLVar;
 }
 
 export interface PayPromptSayAction {
-  /** When the action `type` is `Say`, this value is the text to be spoken; when the type is `Play`, it should be a URL to the audio file. */
-  type: 'Say';
-  /** The phrase to speak */
-  phrase: string;
+  type: 'Say' | 'Play' | SWMLVar;
+  phrase: string | SWMLVar;
+  [key: string]: Record<string, unknown> | 'Say' | 'Play' | SWMLVar | string | SWMLVar;
 }
 
 export interface PayPrompts {
-  /** Array of action objects to execute for this prompt. These actions can either play an audio file or speak a phrase. */
-  actions: PayPromptAction[];
-  /** The payment step this prompt is for. See Payment Steps for a list of available steps. */
-  for: string;
-  /** Specifies which payment attempt(s) this prompt applies to. The value increments when a payment fails. */
-  attempts?: string;
-  /** Space-seperated list of card types that are allowed to be used for this prompt. */
-  card_type?: string;
-  /** Space-separated list of error types this prompt applies to. */
-  error_type?: string;
+  actions?: (PayPromptAction | SWMLVar)[] | SWMLVar;
+  attempt?: string | SWMLVar;
+  card_type?: string | SWMLVar;
+  error_type?: string | SWMLVar;
+  for:
+    | 'payment-card-number'
+    | 'expiration-date'
+    | 'security-code'
+    | 'postal-code'
+    | 'bank-routing-number'
+    | 'bank-account-number'
+    | 'payment-processing'
+    | 'payment-completed'
+    | 'payment-failed'
+    | 'payment-canceled'
+    | SWMLVar;
+  play?: (RingbackConfig | SWMLVar)[] | SWMLVar;
+  require_matching_inputs?: string | SWMLVar;
+  [key: string]:
+    | Record<string, unknown>
+    | (PayPromptAction | SWMLVar)[]
+    | SWMLVar
+    | string
+    | SWMLVar
+    | 'payment-card-number'
+    | 'expiration-date'
+    | 'security-code'
+    | 'postal-code'
+    | 'bank-routing-number'
+    | 'bank-account-number'
+    | 'payment-processing'
+    | 'payment-completed'
+    | 'payment-failed'
+    | 'payment-canceled'
+    | SWMLVar
+    | (RingbackConfig | SWMLVar)[]
+    | SWMLVar
+    | undefined;
 }
 
 export interface Play {
-  /** Play file(s), ringtones, speech or silence. */
-  play: PlayWithURL | PlayWithURLS;
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  play: PlayWithURL | string[] | number | (string & string);
+  [key: string]: Record<string, unknown> | PlayWithURL | string[] | number | (string & string);
 }
 
-/** Play with a single URL */
+/** Play file(s), ringtones, speech or silence. */
 export interface PlayWithURL {
   /** If `true`, the call will automatically answer as the sound is playing. If `false`, you will start playing the audio during early media. Default `true`. */
-  auto_answer?: boolean | SWMLVar;
+  auto_answer?: boolean | string | SWMLVar;
+  loop?: number | SWMLVar;
+  /** Gender to use for the text to speech. */
+  say_gender?: 'male' | 'female' | SWMLVar;
+  /** The language to use for the text to speech. */
+  say_language?: string | SWMLVar;
+  /** The voice to use for the text to speech. */
+  say_voice?: string | SWMLVar;
+  /** http or https URL to deliver play status events */
+  status_url?: string | SWMLVar;
+  url?: play_url;
+  /** Array of URLs to play. */
+  urls?: string[];
   /** Volume level for the audio file. */
   volume?: number | SWMLVar;
-  /** The voice to use for the text to speech. */
-  say_voice?: string;
-  /** The language to use for the text to speech. */
-  say_language?: string;
-  /** Gender to use for the text to speech. */
-  say_gender?: string;
-  /** http or https URL to deliver play status events */
-  status_url?: string;
-  /** URL to play. */
-  url: play_url | SWMLVar;
+  [key: string]:
+    | Record<string, unknown>
+    | boolean
+    | string
+    | SWMLVar
+    | number
+    | SWMLVar
+    | 'male'
+    | 'female'
+    | SWMLVar
+    | string
+    | SWMLVar
+    | play_url
+    | string[]
+    | undefined;
 }
 
+/** Play file(s), ringtones, speech or silence. */
 export interface PlayWithURLS {
   /** If `true`, the call will automatically answer as the sound is playing. If `false`, you will start playing the audio during early media. Default `true`. */
-  auto_answer?: boolean | SWMLVar;
+  auto_answer?: boolean | string | SWMLVar;
+  loop?: number | SWMLVar;
+  /** Gender to use for the text to speech. */
+  say_gender?: 'male' | 'female' | SWMLVar;
+  /** The language to use for the text to speech. */
+  say_language?: string | SWMLVar;
+  /** The voice to use for the text to speech. */
+  say_voice?: string | SWMLVar;
+  /** http or https URL to deliver play status events */
+  status_url?: string | SWMLVar;
+  url?: play_url;
+  /** Array of URLs to play. */
+  urls?: string[];
   /** Volume level for the audio file. */
   volume?: number | SWMLVar;
-  /** The voice to use for the text to speech. */
-  say_voice?: string;
-  /** The language to use for the text to speech. */
-  say_language?: string;
-  /** Gender to use for the text to speech. */
-  say_gender?: string;
-  /** http or https URL to deliver play status events */
-  status_url?: string;
-  /** Array of URLs to play. */
-  urls: play_url[] | SWMLVar[];
+  [key: string]:
+    | Record<string, unknown>
+    | boolean
+    | string
+    | SWMLVar
+    | number
+    | SWMLVar
+    | 'male'
+    | 'female'
+    | SWMLVar
+    | string
+    | SWMLVar
+    | play_url
+    | string[]
+    | undefined;
 }
 
 export interface PlaybackBGAction {
-  /** A JSON object containing the audio file to play. */
-  playback_bg: {
-    /** URL or filepath of the audio file to play. */
-    file: string;
-    /** Whether to wait for the audio file to finish playing before continuing. Default is `false`. */
-    wait?: boolean | SWMLVar;
-  };
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
-/** Content model with body text and optional bullets */
+/** Without one of `body` / `bullets` / `subsections`, the element has no effect: it is accepted and ignored, not rejected. */
 export interface PomSectionBodyContent {
-  /** Title for the section */
   title?: string;
-  /** Optional array of nested subsections */
-  subsections?: POM[];
-  /** Whether to number the section */
-  numbered?: boolean | SWMLVar;
-  /** Whether to number the bullets */
-  numberedBullets?: boolean | SWMLVar;
-  /** Body text for the section */
-  body: string;
-  /** Optional array of bullet points */
-  bullets?: string[];
+  body?: string;
+  bullets?: unknown[];
+  numbered?: boolean;
+  numberedBullets?: boolean;
+  subsections?: unknown[];
 }
 
-/** Content model with bullets and optional body */
+/** Without one of `body` / `bullets` / `subsections`, the element has no effect: it is accepted and ignored, not rejected. */
 export interface PomSectionBulletsContent {
-  /** Title for the section */
   title?: string;
-  /** Optional array of nested subsections */
-  subsections?: POM[];
-  /** Whether to number the section */
-  numbered?: boolean | SWMLVar;
-  /** Whether to number the bullets */
-  numberedBullets?: boolean | SWMLVar;
-  /** Body text for the section (optional) */
   body?: string;
-  /** Array of bullet points */
-  bullets: string[];
+  bullets?: unknown[];
+  numbered?: boolean;
+  numberedBullets?: boolean;
+  subsections?: unknown[];
 }
 
 export interface Prompt {
-  /** Play a prompt and wait for input. The input can be received either as digits from the keypad, */
-  prompt: {
-    /** URL or array of URLs to play. */
-    play: play_url | play_url[] | SWMLVar | SWMLVar[];
-    /** Volume level for the audio file. */
-    volume?: number;
-    /** The voice to use for the text to speech. */
-    say_voice?: string;
-    /** The language to use for the text to speech. */
-    say_language?: string;
-    /** The gender to use for the text to speech. */
-    say_gender?: string;
-    /** Number of digits to collect. */
-    max_digits?: number | SWMLVar;
-    /** Digits that terminate digit collection. */
-    terminators?: string;
-    /** Time in seconds to wait for next digit. */
-    digit_timeout?: number | SWMLVar;
-    /** Time in seconds to wait for start of input. */
-    initial_timeout?: number | SWMLVar;
-    /** Max time in seconds to wait for speech result. */
-    speech_timeout?: number | SWMLVar;
-    /** Time in seconds to wait for end of speech utterance. */
-    speech_end_timeout?: number | SWMLVar;
-    /** Language to detect speech in. */
-    speech_language?: string;
-    /** Expected words or phrases to help the speech recognition. */
-    speech_hints?: string[] | SWMLVar[];
-    /** The engine that is selected for speech recognition. The engine must support the specified language. */
-    speech_engine?: string;
-    /** http or https URL to deliver prompt status events */
-    status_url?: string;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  prompt:
+    | {
+        /** Time in seconds to wait for next digit. */
+        digit_timeout?: number | SWMLVar;
+        /** Time in seconds to wait for start of input. */
+        initial_timeout?: number | SWMLVar;
+        /** Number of digits to collect. */
+        max_digits?: number | SWMLVar;
+        /** URL or array of URLs to play. */
+        play?: RingbackConfig | string[] | string;
+        /** The gender to use for the text to speech. */
+        say_gender?: 'male' | 'female' | SWMLVar;
+        /** The language to use for the text to speech. */
+        say_language?: string | SWMLVar;
+        /** The voice to use for the text to speech. */
+        say_voice?: string | SWMLVar;
+        /** Time in seconds to wait for end of speech utterance. */
+        speech_end_timeout?: number | SWMLVar;
+        /** The engine that is selected for speech recognition. The engine must support the specified language. */
+        speech_engine?: 'Google' | 'Google.V2' | 'Deepgram' | SWMLVar;
+        /** Expected words or phrases to help the speech recognition. */
+        speech_hints?: string[];
+        /** Language to detect speech in. */
+        speech_language?: string | SWMLVar;
+        /** Max time in seconds to wait for speech result. */
+        speech_timeout?: number | SWMLVar;
+        /** http or https URL to deliver prompt status events */
+        status_url?: string | SWMLVar;
+        /** Digits that terminate digit collection. */
+        terminators?: string | SWMLVar;
+        url?: string;
+        /** Volume level for the audio file. */
+        volume?: number | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | number
+          | SWMLVar
+          | RingbackConfig
+          | string[]
+          | string
+          | 'male'
+          | 'female'
+          | SWMLVar
+          | string
+          | SWMLVar
+          | 'Google'
+          | 'Google.V2'
+          | 'Deepgram'
+          | SWMLVar
+          | string[]
+          | string
+          | undefined;
+      }
+    | (string | number | SWMLVar)[]
+    | number
+    | (string & string);
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** Time in seconds to wait for next digit. */
+        digit_timeout?: number | SWMLVar;
+        /** Time in seconds to wait for start of input. */
+        initial_timeout?: number | SWMLVar;
+        /** Number of digits to collect. */
+        max_digits?: number | SWMLVar;
+        /** URL or array of URLs to play. */
+        play?: RingbackConfig | string[] | string;
+        /** The gender to use for the text to speech. */
+        say_gender?: 'male' | 'female' | SWMLVar;
+        /** The language to use for the text to speech. */
+        say_language?: string | SWMLVar;
+        /** The voice to use for the text to speech. */
+        say_voice?: string | SWMLVar;
+        /** Time in seconds to wait for end of speech utterance. */
+        speech_end_timeout?: number | SWMLVar;
+        /** The engine that is selected for speech recognition. The engine must support the specified language. */
+        speech_engine?: 'Google' | 'Google.V2' | 'Deepgram' | SWMLVar;
+        /** Expected words or phrases to help the speech recognition. */
+        speech_hints?: string[];
+        /** Language to detect speech in. */
+        speech_language?: string | SWMLVar;
+        /** Max time in seconds to wait for speech result. */
+        speech_timeout?: number | SWMLVar;
+        /** http or https URL to deliver prompt status events */
+        status_url?: string | SWMLVar;
+        /** Digits that terminate digit collection. */
+        terminators?: string | SWMLVar;
+        url?: string;
+        /** Volume level for the audio file. */
+        volume?: number | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | number
+          | SWMLVar
+          | RingbackConfig
+          | string[]
+          | string
+          | 'male'
+          | 'female'
+          | SWMLVar
+          | string
+          | SWMLVar
+          | 'Google'
+          | 'Google.V2'
+          | 'Deepgram'
+          | SWMLVar
+          | string[]
+          | string
+          | undefined;
+      }
+    | (string | number | SWMLVar)[]
+    | number
+    | (string & string);
 }
 
+/** Without `replace` and `with`, the element has no effect: it is accepted and ignored, not rejected. */
 export interface Pronounce {
-  /** The expression to replace. */
-  replace: string;
-  /** The phonetic spelling of the expression. */
-  with: string;
-  /** Whether the pronunciation replacement should ignore case. **Default:** `true`. */
-  ignore_case?: boolean | SWMLVar;
+  ignore_case?: boolean | number | string;
+  replace?: string;
+  with?: string;
 }
 
 export interface ReceiveFax {
-  /** Receive a fax being delivered to this call. */
-  receive_fax: {
-    /** http or https URL to deliver receive_fax status events */
-    status_url?: string;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  receive_fax:
+    | {
+        /** http or https URL to deliver receive_fax status events */
+        status_url?: string | SWMLVar;
+        [key: string]: Record<string, unknown> | string | SWMLVar | undefined;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** http or https URL to deliver receive_fax status events */
+        status_url?: string | SWMLVar;
+        [key: string]: Record<string, unknown> | string | SWMLVar | undefined;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
 }
 
 export interface Record_ {
-  /** Record the call audio in the foreground, pausing further SWML execution until recording ends. */
-  record: {
-    /** If true, record in stereo. */
-    stereo?: boolean | SWMLVar;
-    /** The format to record in. Can be `wav`, `mp3`, or `mp4`. */
-    format?: 'wav' | 'mp3' | 'mp4';
-    /** Direction of the audio to record: "speak" for what party says, "listen" for what party hears. */
-    direction?: 'speak' | 'listen';
-    /** String of digits that will stop the recording when pressed. Default is `"#"`. */
-    terminators?: string;
-    /** Play a beep before recording. */
-    beep?: boolean | SWMLVar;
-    /** How sensitive the recording voice activity detector is to background noise. */
-    input_sensitivity?: number | SWMLVar;
-    /** Time in seconds to wait for the start of speech. */
-    initial_timeout?: number | SWMLVar;
-    /** Time in seconds to wait in silence before ending the recording. */
-    end_silence_timeout?: number | SWMLVar;
-    /** Maximum length of the recording in seconds. */
-    max_length?: number | SWMLVar;
-    /** URL to send recording status events to. */
-    status_url?: string;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  record:
+    | {
+        /** The format to record in. Can be `wav`, `mp3`, or `mp4`. */
+        format?: 'wav' | 'mp3' | 'mp4' | SWMLVar;
+        /** Play a beep before recording. */
+        beep?: boolean | SWMLVar;
+        /** Direction of the audio to record: "speak" for what party says, "listen" for what party hears, "both" for what the party hears and says. */
+        direction?: 'listen' | 'speak' | 'both' | SWMLVar;
+        /** Time in seconds to wait in silence before ending the recording. */
+        end_silence_timeout?: number | SWMLVar;
+        /** Time in seconds to wait for the start of speech. */
+        initial_timeout?: number | SWMLVar;
+        /** How sensitive the recording voice activity detector is to background noise. */
+        input_sensitivity?: number | SWMLVar;
+        /** Maximum length of the recording in seconds. */
+        max_length?: number | SWMLVar;
+        /** URL to send recording status events to. */
+        status_url?: string | SWMLVar;
+        /** If true, record in stereo. */
+        stereo?: boolean | SWMLVar;
+        /** String of digits that will stop the recording when pressed. Default is `\"#\"`. */
+        terminators?: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | 'wav'
+          | 'mp3'
+          | 'mp4'
+          | SWMLVar
+          | boolean
+          | SWMLVar
+          | 'listen'
+          | 'speak'
+          | 'both'
+          | SWMLVar
+          | number
+          | SWMLVar
+          | string
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** The format to record in. Can be `wav`, `mp3`, or `mp4`. */
+        format?: 'wav' | 'mp3' | 'mp4' | SWMLVar;
+        /** Play a beep before recording. */
+        beep?: boolean | SWMLVar;
+        /** Direction of the audio to record: "speak" for what party says, "listen" for what party hears, "both" for what the party hears and says. */
+        direction?: 'listen' | 'speak' | 'both' | SWMLVar;
+        /** Time in seconds to wait in silence before ending the recording. */
+        end_silence_timeout?: number | SWMLVar;
+        /** Time in seconds to wait for the start of speech. */
+        initial_timeout?: number | SWMLVar;
+        /** How sensitive the recording voice activity detector is to background noise. */
+        input_sensitivity?: number | SWMLVar;
+        /** Maximum length of the recording in seconds. */
+        max_length?: number | SWMLVar;
+        /** URL to send recording status events to. */
+        status_url?: string | SWMLVar;
+        /** If true, record in stereo. */
+        stereo?: boolean | SWMLVar;
+        /** String of digits that will stop the recording when pressed. Default is `\"#\"`. */
+        terminators?: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | 'wav'
+          | 'mp3'
+          | 'mp4'
+          | SWMLVar
+          | boolean
+          | SWMLVar
+          | 'listen'
+          | 'speak'
+          | 'both'
+          | SWMLVar
+          | number
+          | SWMLVar
+          | string
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
 }
 
 export interface RecordCall {
-  /** Record call in the background. */
-  record_call: {
-    /** Identifier for this recording, to use with `stop_call_record`. */
-    control_id?: string;
-    /** If `true`, record in stereo. */
-    stereo?: boolean | SWMLVar;
-    /** The format to record in. It can be `wav`, `mp3`, or `mp4`. */
-    format?: 'wav' | 'mp3' | 'mp4';
-    /** Direction of the audio to record: "speak" for what party says, "listen" for what party hears, "both" for what the party hears and says. */
-    direction?: 'speak' | 'listen' | 'both';
-    /** String of digits that will stop the recording when pressed. Default is `""` (empty). */
-    terminators?: string;
-    /** Play a beep before recording. */
-    beep?: boolean | SWMLVar;
-    /** How sensitive the recording voice activity detector is to background noise. */
-    input_sensitivity?: number | SWMLVar;
-    /** Time in seconds to wait for the start of speech. */
-    initial_timeout?: number | SWMLVar;
-    /** Time in seconds to wait in silence before ending the recording. */
-    end_silence_timeout?: number | SWMLVar;
-    /** Maximum length of the recording in seconds. */
-    max_length?: number | SWMLVar;
-    /** http or https URL to deliver record_call status events */
-    status_url?: string;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  record_call:
+    | {
+        /** The format to record in. It can be `wav`, `mp3`, or `mp4`. */
+        format?: 'wav' | 'mp3' | 'mp4' | SWMLVar;
+        /** Play a beep before recording. */
+        beep?: boolean | SWMLVar;
+        /** Identifier for this recording, to use with `stop_record_call`. */
+        control_id?: string | SWMLVar;
+        /** Direction of the audio to record: "speak" for what party says, "listen" for what party hears, "both" for what the party hears and says. */
+        direction?: 'listen' | 'speak' | 'both' | SWMLVar;
+        /** Time in seconds to wait in silence before ending the recording. Must be at least `1`; `0` and fractional values below `1` are rejected. */
+        end_silence_timeout?: number | SWMLVar;
+        /** Time in seconds to wait for the start of speech. Must be at least `1`; `0` and fractional values below `1` are rejected. */
+        initial_timeout?: number | SWMLVar;
+        /** How sensitive the recording voice activity detector is to background noise. */
+        input_sensitivity?: number | SWMLVar;
+        /** Maximum length of the recording in seconds. */
+        max_length?: number | SWMLVar;
+        /** http or https URL to deliver record_call status events */
+        status_url?: string | SWMLVar;
+        /** If `true`, record in stereo. */
+        stereo?: boolean | SWMLVar;
+        /** String of digits that will stop the recording when pressed. Default is `\"\"` (empty). */
+        terminators?: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | 'wav'
+          | 'mp3'
+          | 'mp4'
+          | SWMLVar
+          | boolean
+          | SWMLVar
+          | string
+          | SWMLVar
+          | 'listen'
+          | 'speak'
+          | 'both'
+          | SWMLVar
+          | number
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** The format to record in. It can be `wav`, `mp3`, or `mp4`. */
+        format?: 'wav' | 'mp3' | 'mp4' | SWMLVar;
+        /** Play a beep before recording. */
+        beep?: boolean | SWMLVar;
+        /** Identifier for this recording, to use with `stop_record_call`. */
+        control_id?: string | SWMLVar;
+        /** Direction of the audio to record: "speak" for what party says, "listen" for what party hears, "both" for what the party hears and says. */
+        direction?: 'listen' | 'speak' | 'both' | SWMLVar;
+        /** Time in seconds to wait in silence before ending the recording. Must be at least `1`; `0` and fractional values below `1` are rejected. */
+        end_silence_timeout?: number | SWMLVar;
+        /** Time in seconds to wait for the start of speech. Must be at least `1`; `0` and fractional values below `1` are rejected. */
+        initial_timeout?: number | SWMLVar;
+        /** How sensitive the recording voice activity detector is to background noise. */
+        input_sensitivity?: number | SWMLVar;
+        /** Maximum length of the recording in seconds. */
+        max_length?: number | SWMLVar;
+        /** http or https URL to deliver record_call status events */
+        status_url?: string | SWMLVar;
+        /** If `true`, record in stereo. */
+        stereo?: boolean | SWMLVar;
+        /** String of digits that will stop the recording when pressed. Default is `\"\"` (empty). */
+        terminators?: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | 'wav'
+          | 'mp3'
+          | 'mp4'
+          | SWMLVar
+          | boolean
+          | SWMLVar
+          | string
+          | SWMLVar
+          | 'listen'
+          | 'speak'
+          | 'both'
+          | SWMLVar
+          | number
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
 }
 
 export interface Request {
-  /** Send a GET, POST, PUT, or DELETE request to a remote URL. */
-  request: {
-    /** URL to send the HTTPS request to. Authentication can also be set in the URL in the format of username:password@url. */
-    url: string;
-    /** The HTTP method to be used for the request. Can be `GET`, `POST`, `PUT`, or `DELETE`. */
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
-    /** Object containing HTTP headers to set. Valid header values are Accept, Authorization, Content-Type, Range, and custom X- headers. */
-    headers?: Record<string, Record<string, unknown>>;
-    /** Request body. Content-Type header should be explicitly set, but if not set, the most likely type */
-    body?: string | Record<string, Record<string, unknown>>;
-    /** Maximum time in seconds to wait for a response. */
-    timeout?: number | SWMLVar;
-    /** Maximum time in seconds to wait for a connection. */
-    connect_timeout?: number | SWMLVar;
-    /** Store parsed JSON response as variables. */
-    save_variables?: boolean | SWMLVar;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  request:
+    | {
+        /** Request body. Objects are JSON-encoded automatically. */
+        body?: Record<string, unknown> | Record<string, unknown>[] | string | number | boolean;
+        /** Maximum time in seconds to wait for a connection. Defaults to `5` when the key is absent, and is clamped to a maximum of `30`. Fractional input is truncated to an integer. */
+        connect_timeout?: number | SWMLVar;
+        /** HTTP headers to include with the request, as a map of header name to value. Each value must be a string. */
+        headers?: Record<string, unknown>;
+        /** The HTTP method to be used for the request. Can be `GET`, `POST`, `PUT`, or `DELETE`. */
+        method: 'get' | 'GET' | 'put' | 'PUT' | 'POST' | 'post' | 'DELETE' | 'delete' | SWMLVar;
+        /** If `true`, parse the JSON response into `request_response.*` variables. */
+        save_variables?: boolean | SWMLVar;
+        /** Timeout in seconds. Defaults to `5` when the key is absent, and is clamped to a maximum of `30`. Fractional input is truncated to an integer. */
+        timeout?: number | SWMLVar;
+        /** Endpoint to call. Must be a publicly reachable URL. */
+        url: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | Record<string, unknown>
+          | Record<string, unknown>[]
+          | string
+          | number
+          | boolean
+          | number
+          | SWMLVar
+          | 'get'
+          | 'GET'
+          | 'put'
+          | 'PUT'
+          | 'POST'
+          | 'post'
+          | 'DELETE'
+          | 'delete'
+          | SWMLVar
+          | boolean
+          | SWMLVar
+          | string
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** Request body. Objects are JSON-encoded automatically. */
+        body?: Record<string, unknown> | Record<string, unknown>[] | string | number | boolean;
+        /** Maximum time in seconds to wait for a connection. Defaults to `5` when the key is absent, and is clamped to a maximum of `30`. Fractional input is truncated to an integer. */
+        connect_timeout?: number | SWMLVar;
+        /** HTTP headers to include with the request, as a map of header name to value. Each value must be a string. */
+        headers?: Record<string, unknown>;
+        /** The HTTP method to be used for the request. Can be `GET`, `POST`, `PUT`, or `DELETE`. */
+        method: 'get' | 'GET' | 'put' | 'PUT' | 'POST' | 'post' | 'DELETE' | 'delete' | SWMLVar;
+        /** If `true`, parse the JSON response into `request_response.*` variables. */
+        save_variables?: boolean | SWMLVar;
+        /** Timeout in seconds. Defaults to `5` when the key is absent, and is clamped to a maximum of `30`. Fractional input is truncated to an integer. */
+        timeout?: number | SWMLVar;
+        /** Endpoint to call. Must be a publicly reachable URL. */
+        url: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | Record<string, unknown>
+          | Record<string, unknown>[]
+          | string
+          | number
+          | boolean
+          | number
+          | SWMLVar
+          | 'get'
+          | 'GET'
+          | 'put'
+          | 'PUT'
+          | 'POST'
+          | 'post'
+          | 'DELETE'
+          | 'delete'
+          | SWMLVar
+          | boolean
+          | SWMLVar
+          | string
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
 }
 
 export interface Return {
-  /** Return a value from an execute call or exit the script. The value can be any type. */
-  return: Record<string, unknown>;
+  /** Body shape enforced by CHECK_swml_method_return, swml_schema.c:1495. */
+  return: Record<string, unknown> | unknown[] | boolean | null | number | string;
+  [key: string]:
+    | Record<string, unknown>
+    | Record<string, unknown>
+    | unknown[]
+    | boolean
+    | null
+    | number
+    | string;
 }
 
 export interface SIPRefer {
-  /** Send SIP REFER to a SIP call. */
-  sip_refer: {
-    /** The SIP URI to send the REFER to. */
-    to_uri: string;
-    /** The HTTP or HTTPS URL to send status callback events to. */
-    status_url?: string;
-    /** Username to use for SIP authentication. */
-    username?: string;
-    /** Password to use for SIP authentication. */
-    password?: string;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  sip_refer:
+    Record<string, unknown> | (string | SWMLVar)[] | number | (string & (string | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | Record<string, unknown>
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
 }
 
+/** Send an outbound SMS or MMS message to a PSTN phone number. */
 export interface SMSWithBody {
-  /** Phone number to send SMS message to in E.164 format. */
-  to_number: string;
+  /** Optional if `media` is present. The body of the SMS message. */
+  body?: string | SWMLVar;
   /** Phone number the SMS message will be sent from in E.164 format. */
-  from_number: string;
+  from_number: string | SWMLVar;
+  /** Required if `body` is not present. Array of media URLs to include in the message. */
+  media?: string[];
   /** Region of the world to originate the message from. Chosen based on account preferences or device location if not specified. */
-  region?: string;
+  region?: string | SWMLVar;
+  /** URL to receive delivery status callbacks for the outbound message (e.g., `queued`, `sent`, `delivered`, `failed`). Not set if not specified. The callback uses the [message status callback payload](/docs/apis/rest/messages/webhooks/message-status-callback). */
+  status_callback?: string | SWMLVar;
   /** Array of tags to associate with the message to facilitate log searches. */
   tags?: string[];
-  /** Required if `media` is not present. The body of the SMS message. */
-  body: string;
+  /** Phone number to send SMS message to in E.164 format. */
+  to_number: string | SWMLVar;
+  [key: string]: Record<string, unknown> | string | SWMLVar | string[] | undefined;
 }
 
+/** Send an outbound SMS or MMS message to a PSTN phone number. */
 export interface SMSWithMedia {
-  /** Phone number to send SMS message to in E.164 format. */
-  to_number: string;
+  /** Optional if `media` is present. The body of the SMS message. */
+  body?: string | SWMLVar;
   /** Phone number the SMS message will be sent from in E.164 format. */
-  from_number: string;
+  from_number: string | SWMLVar;
+  /** Required if `body` is not present. Array of media URLs to include in the message. */
+  media?: string[];
   /** Region of the world to originate the message from. Chosen based on account preferences or device location if not specified. */
-  region?: string;
+  region?: string | SWMLVar;
+  /** URL to receive delivery status callbacks for the outbound message (e.g., `queued`, `sent`, `delivered`, `failed`). Not set if not specified. The callback uses the [message status callback payload](/docs/apis/rest/messages/webhooks/message-status-callback). */
+  status_callback?: string | SWMLVar;
   /** Array of tags to associate with the message to facilitate log searches. */
   tags?: string[];
-  /** Required if `body` is not present. Array of media URLs to include in the message. */
-  media: string[];
-  /** Optional if `media` is present. The body of the SMS message. */
-  body?: string;
+  /** Phone number to send SMS message to in E.164 format. */
+  to_number: string | SWMLVar;
+  [key: string]: Record<string, unknown> | string | SWMLVar | string[] | undefined;
 }
 
 export interface SWAIG {
-  /** Default settings for all SWAIG functions. If `defaults` is not set, settings may be set in each function object. Default is not set. */
   defaults?: SWAIGDefaults;
-  /** Prebuilt functions the AI agent is able to call from this list of available native functions */
-  native_functions?: SWAIGNativeFunction[];
-  /** An array of objects to include remote function signatures. */
-  includes?: SWAIGIncludes[];
-  /** An array of JSON objects to define functions that can be executed during the interaction with the AI. Default is not set. */
   functions?: SWAIGFunction[];
-  /** An object containing filler phrases for internal SWAIG functions. These fillers are played while utilizing internal functions. */
+  hooks?: {
+    description?: string;
+    active?: boolean | number | string;
+    argument?: FunctionParameters;
+    data_map?: DataMap;
+    fillers?: {
+      default?: Record<string, unknown>;
+      auto?: Record<string, unknown>;
+    };
+    function?: string;
+    meta_data?: Record<string, unknown>;
+    meta_data_token?: string;
+    parameters?: FunctionParameters;
+    purpose?: string;
+    skip_fillers?: boolean | string;
+    wait_file?: string;
+    wait_file_loops?: number | string;
+    wait_for_fillers?: boolean | string;
+    web_hook_auth_pass?: string;
+    web_hook_auth_password?: string;
+    web_hook_auth_user?: string;
+    web_hook_url?: string;
+  }[];
+  includes?: SWAIGIncludes[];
   internal_fillers?: SWAIGInternalFiller;
+  mcp_servers?: {
+    headers?: Record<string, unknown>;
+    resource_vars?: Record<string, unknown>;
+    resources?: boolean | string;
+    url?: string;
+  }[];
+  native_functions?: SWAIGNativeFunction[];
 }
 
 export interface SWAIGDefaults {
-  /** Default URL to send status callbacks and reports to. Authentication can also be set in the url in the format of `username:password@url.` */
+  meta_data?: Record<string, unknown>;
+  meta_data_token?: string;
+  web_hook_auth_pass?: string;
+  web_hook_auth_password?: string;
+  web_hook_auth_user?: string;
   web_hook_url?: string;
 }
 
-export type SWAIGFunction =
-  | UserSWAIGFunction
-  | StartUpHookSWAIGFunction
-  | HangUpHookSWAIGFunction
-  | SummarizeConversationSWAIGFunction;
+/** Without one of `data_map` / `web_hook_url`, one of `description` / `purpose` and `function`, the element has no effect: it is accepted and ignored, not rejected. */
+export interface SWAIGFunction {
+  description?: string;
+  active?: boolean | number | string;
+  argument?: FunctionParameters;
+  data_map?: DataMap;
+  fillers?: FunctionFillers;
+  function?: string;
+  meta_data?: Record<string, unknown>;
+  meta_data_token?: string;
+  parameters?: FunctionParameters;
+  purpose?: string;
+  skip_fillers?: boolean | string;
+  wait_file?: string;
+  wait_file_loops?: number | string;
+  wait_for_fillers?: boolean | string;
+  web_hook_auth_pass?: string;
+  web_hook_auth_password?: string;
+  web_hook_auth_user?: string;
+  web_hook_url?: string;
+}
 
+/** Without `functions` and `url`, the element has no effect: it is accepted and ignored, not rejected. */
 export interface SWAIGIncludes {
-  /** Remote functions to fetch and include in your AI application. */
-  functions: string[];
-  /** URL to fetch remote functions and include in your AI application. Authentication can also be set in the url in the format of `username:password@url`. */
-  url: string;
-  /** User-defined metadata to pass with the remote function request. */
-  meta_data?: Record<string, Record<string, unknown>>;
+  auth_password?: string;
+  auth_user?: string;
+  functions?: unknown[];
+  meta_data?: Record<string, unknown>;
+  url?: string;
 }
 
 export interface SWAIGInternalFiller {
-  /** Filler phrases played when the AI Agent is hanging up the call. */
-  hangup?: FunctionFillers;
-  /** Filler phrases played when the AI Agent is checking the time. */
-  check_time?: FunctionFillers;
-  /** Filler phrases played when the AI Agent is waiting for user input. */
-  wait_for_user?: FunctionFillers;
-  /** Filler phrases played during deliberate pauses or wait periods. */
-  wait_seconds?: FunctionFillers;
-  /** Filler phrases played when the AI Agent is adjusting response timing. */
-  adjust_response_latency?: FunctionFillers;
-  /** Filler phrases played when transitioning between conversation steps when utilizing `prompt.contexts`. */
-  next_step?: FunctionFillers;
-  /** Filler phrases played when switching between conversation contexts when utilizing `prompt.contexts`. */
-  change_context?: FunctionFillers;
-  /** Filler phrases played when the AI Agent is processing visual input. This function is enabled when `enable_vision` is set to `true` in `ai.params`. */
-  get_visual_input?: FunctionFillers;
-  /** Filler phrases played when the AI Agent is thinking or considering options. This is utilized when `enable_thinking` is set to `true` in `ai.params`. */
-  get_ideal_strategy?: FunctionFillers;
+  adjust_response_latency?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  change_context?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  check_time?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  get_ideal_strategy?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  get_visual_input?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  next_step?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  pause_conversation?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  wait_for_user?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
+  wait_seconds?: {
+    default?: Record<string, unknown>;
+    auto?: Record<string, unknown>;
+  };
 }
 
-export type SWAIGNativeFunction =
-  'check_time' | 'wait_seconds' | 'wait_for_user' | 'adjust_response_latency';
+export type SWAIGNativeFunction = string;
 
 export interface SWMLAction {
-  /** A SWML object to be executed. */
-  SWML: SWMLObject;
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
 export type SWMLMethod =
-  | Answer
   | AI
+  | AiSidecar
   | AmazonBedrock
+  | Answer
+  | BindDigit
+  | ClearDigitBindings
   | Cond
   | Connect
   | Denoise
+  | DetectMachine
+  | Echo
   | EnterQueue
   | Execute
+  | ExecuteRpc
   | Goto
+  | Hangup
+  | JoinConference
+  | JoinRoom
   | Label
   | LiveTranscribe
   | LiveTranslate
-  | Hangup
-  | JoinRoom
-  | JoinConference
+  | Pay
   | Play
   | Prompt
   | ReceiveFax
@@ -2880,34 +4736,114 @@ export type SWMLMethod =
   | RecordCall
   | Request
   | Return
+  | Ring
+  | SIPRefer
   | SendDigits
   | SendFax
   | SendSMS
   | Set_
+  | SetCapabilities
+  | SetMeta
   | Sleep
-  | SIPRefer
   | StopDenoise
   | StopRecordCall
+  | StopStream
   | StopTap
+  | Stream
   | Switch
   | Tap
+  | Transcribe
+  | TranscribeStop
   | Transfer
   | Unset
-  | Pay
-  | DetectMachine
   | UserEvent;
 
 export interface SWMLObject {
-  version?: '1.0.0';
   sections: Section;
+  version?: '1.0.0';
+  [key: string]: Record<string, unknown> | Section | '1.0.0' | undefined;
 }
 
-/** A SWML variable reference for dynamic value substitution at runtime. */
+/** A SWML variable reference using ${varname} or %{varname} syntax for dynamic value substitution at runtime. */
 export type SWMLVar = string;
 
 export interface SayAction {
-  /** A message to be spoken by the AI agent. */
-  say: string;
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
 export type SchemaType =
@@ -2929,56 +4865,253 @@ export interface Section {
 }
 
 export interface SendDigits {
-  /** Send digit presses as DTMF tones. */
-  send_digits: {
-    /** The digits to send. Valid values are 0123456789*#ABCDWw. Character W is a 1 second delay, and w is a 500ms delay. */
-    digits: string;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  send_digits:
+    | {
+        /** The digits to send. Valid values are 0123456789*#ABCDWw. Character W is a 1 second delay, and w is a 500ms delay. */
+        digits: string | SWMLVar;
+        [key: string]: Record<string, unknown> | string | SWMLVar;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** The digits to send. Valid values are 0123456789*#ABCDWw. Character W is a 1 second delay, and w is a 500ms delay. */
+        digits: string | SWMLVar;
+        [key: string]: Record<string, unknown> | string | SWMLVar;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
 }
 
 export interface SendFax {
-  /** Send a fax. */
-  send_fax: {
-    /** URL to the PDF document to fax. */
-    document: string;
-    /** Header text to include on the fax. */
-    header_info?: string;
-    /** Station identity to report. */
-    identity?: string;
-    /** http or https URL to deliver send_fax status events */
-    status_url?: string;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  send_fax:
+    | {
+        /** URL to the PDF document to fax. */
+        document: string | SWMLVar;
+        /** Header text to include on the fax. */
+        header_info?: string | SWMLVar;
+        /** Station identity to report. */
+        identity?: string | SWMLVar;
+        /** http or https URL to deliver send_fax status events */
+        status_url?: string | SWMLVar;
+        [key: string]: Record<string, unknown> | string | SWMLVar | undefined;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** URL to the PDF document to fax. */
+        document: string | SWMLVar;
+        /** Header text to include on the fax. */
+        header_info?: string | SWMLVar;
+        /** Station identity to report. */
+        identity?: string | SWMLVar;
+        /** http or https URL to deliver send_fax status events */
+        status_url?: string | SWMLVar;
+        [key: string]: Record<string, unknown> | string | SWMLVar | undefined;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
 }
 
 export interface SendSMS {
-  /** Send an outbound SMS or MMS message to a PSTN phone number. */
-  send_sms: SMSWithBody | SMSWithMedia;
+  send_sms: SMSWithBody;
+  [key: string]: Record<string, unknown> | SMSWithBody;
 }
 
 export interface Set_ {
   /** Set script variables to the specified values. */
-  set: Record<string, Record<string, unknown>>;
+  set: Record<string, unknown>;
+  [key: string]: Record<string, unknown>;
 }
 
 export interface SetGlobalDataAction {
-  /** A JSON object containing any global data, as a key-value map. This action sets the data in the `global_data` to be globally referenced. */
-  set_global_data: Record<string, Record<string, unknown>>;
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
 export interface SetMetaDataAction {
-  /** A JSON object containing any metadata, as a key-value map. This action sets the data in the `meta_data` to be referenced locally in the function. */
-  set_meta_data: Record<string, Record<string, unknown>>;
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
 export interface Sleep {
-  /** Pause execution for a specified duration. */
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
   sleep:
     | {
         /** The amount of time to sleep in milliseconds. */
         duration: number | SWMLVar;
+        [key: string]: Record<string, unknown> | number | SWMLVar;
       }
-    | number
-    | SWMLVar;
+    | (number | SWMLVar)[]
+    | (number & (number | SWMLVar))
+    | (string & (number | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** The amount of time to sleep in milliseconds. */
+        duration: number | SWMLVar;
+        [key: string]: Record<string, unknown> | number | SWMLVar;
+      }
+    | (number | SWMLVar)[]
+    | (number & (number | SWMLVar))
+    | (string & (number | SWMLVar));
 }
 
 /** Speech recognition engine options. */
@@ -3022,68 +5155,249 @@ export interface StartAction {
   };
 }
 
+/** Without one of `data_map` / `web_hook_url`, one of `description` / `purpose` and `function`, the element has no effect: it is accepted and ignored, not rejected. */
 export interface StartUpHookSWAIGFunction {
-  /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-  description: string;
-  /** The purpose field has been deprecated and is replaced by the `description` field. */
-  purpose?: string;
-  /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-  parameters?: FunctionParameters;
-  /** A JSON object defining the fillers that should be played when calling a `swaig function`. This helps the AI break silence between responses. The filler is played asynchronously during the function call. */
-  fillers?: FunctionFillers;
-  /** The argument field has been deprecated and is replaced by the `parameters` field.  */
+  description?: string;
+  active?: boolean | number | string;
   argument?: FunctionParameters;
-  /** Whether the function is active. **Default:** `true`. */
-  active?: boolean | SWMLVar;
-  /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-  meta_data?: Record<string, Record<string, unknown>>;
-  /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-  meta_data_token?: string;
-  /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
   data_map?: DataMap;
-  /** Skips the top-level fillers specified in `ai.languages` (which includes `speech_fillers` and `function_fillers`). */
-  skip_fillers?: boolean | SWMLVar;
-  /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-  web_hook_url?: string;
-  /** A file to play while the function is running. `wait_file_loops` can specify the amount of times that files should continously play. Default is not set. */
+  fillers?: FunctionFillers;
+  function?: string;
+  meta_data?: Record<string, unknown>;
+  meta_data_token?: string;
+  parameters?: FunctionParameters;
+  purpose?: string;
+  skip_fillers?: boolean | string;
   wait_file?: string;
-  /** The number of times to loop playing the file. Default is not set. */
   wait_file_loops?: number | string;
-  /** Whether to wait for fillers to finish playing before continuing with the function. **Default:** `false`. */
-  wait_for_fillers?: boolean | SWMLVar;
-  /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation. For the start_hook function, the function name is 'start_hook'. */
-  function: 'startup_hook';
+  wait_for_fillers?: boolean | string;
+  web_hook_auth_pass?: string;
+  web_hook_auth_password?: string;
+  web_hook_auth_user?: string;
+  web_hook_url?: string;
 }
 
 export interface StopAction {
-  /** Whether to stop the conversation. */
-  stop: boolean | SWMLVar;
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
 export interface StopDenoise {
-  /** Stop noise reduction that was started with denoise. */
-  stop_denoise: Record<string, unknown>;
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  stop_denoise:
+    | {
+        [key: string]: Record<string, unknown>;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        [key: string]: Record<string, unknown>;
+      }
+    | unknown[]
+    | number
+    | string;
 }
 
 export interface StopPlaybackBGAction {
-  /** Whether to stop the background audio file. */
-  stop_playback_bg: boolean | SWMLVar;
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
 export interface StopRecordCall {
-  /** Stop an active background recording. */
-  stop_record_call: {
-    /** Identifier for the recording to stop. */
-    control_id?: string;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  stop_record_call:
+    | {
+        /** Identifier for the recording to stop. */
+        control_id?: string | SWMLVar;
+        [key: string]: Record<string, unknown> | string | SWMLVar | undefined;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** Identifier for the recording to stop. */
+        control_id?: string | SWMLVar;
+        [key: string]: Record<string, unknown> | string | SWMLVar | undefined;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
 }
 
 export interface StopTap {
-  /** Stop an active tap stream. */
-  stop_tap: {
-    /** ID of the tap to stop. */
-    control_id?: string;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  stop_tap:
+    | {
+        /** ID of the tap to stop. */
+        control_id?: Record<string, unknown> | SWMLVar;
+        [key: string]: Record<string, unknown> | Record<string, unknown> | SWMLVar | undefined;
+      }
+    | (Record<string, unknown> | SWMLVar)[]
+    | number
+    | (string & (Record<string, unknown> | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** ID of the tap to stop. */
+        control_id?: Record<string, unknown> | SWMLVar;
+        [key: string]: Record<string, unknown> | Record<string, unknown> | SWMLVar | undefined;
+      }
+    | (Record<string, unknown> | SWMLVar)[]
+    | number
+    | (string & (Record<string, unknown> | SWMLVar));
 }
 
 export type StringFormat =
@@ -3128,78 +5442,279 @@ export interface SummarizeAction {
 
 export type SummarizeActionUnion = SummarizeAction | 'summarize';
 
-/** An internal reserved function that generates a summary of the conversation and sends any specified properties to the configured webhook after the conversation has ended. */
+/** Without one of `data_map` / `web_hook_url`, one of `description` / `purpose` and `function`, the element has no effect: it is accepted and ignored, not rejected. */
 export interface SummarizeConversationSWAIGFunction {
-  /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-  description: string;
-  /** The purpose field has been deprecated and is replaced by the `description` field. */
-  purpose?: string;
-  /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-  parameters?: FunctionParameters;
-  /** A JSON object defining the fillers that should be played when calling a `swaig function`. This helps the AI break silence between responses. The filler is played asynchronously during the function call. */
-  fillers?: FunctionFillers;
-  /** The argument field has been deprecated and is replaced by the `parameters` field.  */
+  description?: string;
+  active?: boolean | number | string;
   argument?: FunctionParameters;
-  /** Whether the function is active. **Default:** `true`. */
-  active?: boolean | SWMLVar;
-  /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-  meta_data?: Record<string, Record<string, unknown>>;
-  /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-  meta_data_token?: string;
-  /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
   data_map?: DataMap;
-  /** Skips the top-level fillers specified in `ai.languages` (which includes `speech_fillers` and `function_fillers`). */
-  skip_fillers?: boolean | SWMLVar;
-  /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-  web_hook_url?: string;
-  /** A file to play while the function is running. `wait_file_loops` can specify the amount of times that files should continously play. Default is not set. */
+  fillers?: FunctionFillers;
+  function?: string;
+  meta_data?: Record<string, unknown>;
+  meta_data_token?: string;
+  parameters?: FunctionParameters;
+  purpose?: string;
+  skip_fillers?: boolean | string;
   wait_file?: string;
-  /** The number of times to loop playing the file. Default is not set. */
   wait_file_loops?: number | string;
-  /** Whether to wait for fillers to finish playing before continuing with the function. **Default:** `false`. */
-  wait_for_fillers?: boolean | SWMLVar;
-  /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation.. For the summarize_conversation function, the function name is 'summarize_conversation'. */
-  function: 'summarize_conversation';
+  wait_for_fillers?: boolean | string;
+  web_hook_auth_pass?: string;
+  web_hook_auth_password?: string;
+  web_hook_auth_user?: string;
+  web_hook_url?: string;
 }
 
 export interface Switch {
-  /** Execute different instructions based on a variable's value. */
-  switch: {
-    /** Name of the variable whose value needs to be compared. */
-    variable: string;
-    /** Object of key-mapped values to array of SWML methods to execute. */
-    case: Record<string, SWMLMethod[]>;
-    /** Array of SWML methods to execute if no cases match. */
-    default?: SWMLMethod[];
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  switch:
+    | {
+        /** Array of SWML methods to execute if no `case` matches. If omitted and no case */
+        default?:
+          | SWMLMethod[]
+          | {
+              code: Record<string, unknown>;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
+            };
+        /** Map of values to arrays of SWML methods to execute. The key is the value to compare */
+        case?: Record<
+          string,
+          | SWMLMethod[]
+          | {
+              code: Record<string, unknown>;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
+            }
+        >;
+        /** Variable path to match. Specified without the `%{}` wrapper (e.g. `message.body`). */
+        variable: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | SWMLMethod[]
+          | {
+              code: Record<string, unknown>;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
+            }
+          | Record<
+              string,
+              | SWMLMethod[]
+              | {
+                  code: Record<string, unknown>;
+                  meta?: Record<string, unknown>;
+                  [key: string]: Record<string, unknown> | undefined;
+                }
+            >
+          | string
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** Array of SWML methods to execute if no `case` matches. If omitted and no case */
+        default?:
+          | SWMLMethod[]
+          | {
+              code: Record<string, unknown>;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
+            };
+        /** Map of values to arrays of SWML methods to execute. The key is the value to compare */
+        case?: Record<
+          string,
+          | SWMLMethod[]
+          | {
+              code: Record<string, unknown>;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
+            }
+        >;
+        /** Variable path to match. Specified without the `%{}` wrapper (e.g. `message.body`). */
+        variable: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | SWMLMethod[]
+          | {
+              code: Record<string, unknown>;
+              meta?: Record<string, unknown>;
+              [key: string]: Record<string, unknown> | undefined;
+            }
+          | Record<
+              string,
+              | SWMLMethod[]
+              | {
+                  code: Record<string, unknown>;
+                  meta?: Record<string, unknown>;
+                  [key: string]: Record<string, unknown> | undefined;
+                }
+            >
+          | string
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
 }
 
 export interface Tap {
-  /** Start background call tap. Media is streamed over Websocket or RTP to customer controlled URI. */
-  tap: {
-    /** Destination of the tap media stream: rtp://IP:port, ws://example.com, or wss://example.com. */
-    uri: string;
-    /** Identifier for this tap to use with `stop_tap`. */
-    control_id?: string;
-    /** Direction of the audio to tap: */
-    direction?: 'speak' | 'listen' | 'both';
-    /** Codec to use for the tap media stream. */
-    codec?: 'PCMU' | 'PCMA';
-    /** If `uri` is a `rtp://` this will set the packetization time of the media in milliseconds. */
-    rtp_ptime?: number | SWMLVar;
-    /** http or https URL to deliver tap status events */
-    status_url?: string;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  tap:
+    | {
+        /** Codec to use for the tap media stream. */
+        codec?: 'PCMA' | 'PCMU' | 'pcma' | 'pcmu' | SWMLVar;
+        /** Identifier for this tap to use with `stop_tap`. */
+        control_id?: Record<string, unknown> | SWMLVar;
+        /** Direction of the audio to tap: */
+        direction?: 'listen' | 'speak' | 'both' | SWMLVar;
+        /** If `uri` is a `rtp://` this will set the packetization time of the media in milliseconds. */
+        rtp_ptime?: number | SWMLVar;
+        /** http or https URL to deliver tap status events */
+        status_url?: string | SWMLVar;
+        /** Destination of the tap media stream: rtp://IP:port, ws://example.com, or wss://example.com. */
+        uri: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | 'PCMA'
+          | 'PCMU'
+          | 'pcma'
+          | 'pcmu'
+          | SWMLVar
+          | Record<string, unknown>
+          | SWMLVar
+          | 'listen'
+          | 'speak'
+          | 'both'
+          | SWMLVar
+          | number
+          | SWMLVar
+          | string
+          | SWMLVar
+          | undefined;
+      }
+    | (string | SWMLVar | 'listen' | 'speak' | 'both')[]
+    | number
+    | (string & (string | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** Codec to use for the tap media stream. */
+        codec?: 'PCMA' | 'PCMU' | 'pcma' | 'pcmu' | SWMLVar;
+        /** Identifier for this tap to use with `stop_tap`. */
+        control_id?: Record<string, unknown> | SWMLVar;
+        /** Direction of the audio to tap: */
+        direction?: 'listen' | 'speak' | 'both' | SWMLVar;
+        /** If `uri` is a `rtp://` this will set the packetization time of the media in milliseconds. */
+        rtp_ptime?: number | SWMLVar;
+        /** http or https URL to deliver tap status events */
+        status_url?: string | SWMLVar;
+        /** Destination of the tap media stream: rtp://IP:port, ws://example.com, or wss://example.com. */
+        uri: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | 'PCMA'
+          | 'PCMU'
+          | 'pcma'
+          | 'pcmu'
+          | SWMLVar
+          | Record<string, unknown>
+          | SWMLVar
+          | 'listen'
+          | 'speak'
+          | 'both'
+          | SWMLVar
+          | number
+          | SWMLVar
+          | string
+          | SWMLVar
+          | undefined;
+      }
+    | (string | SWMLVar | 'listen' | 'speak' | 'both')[]
+    | number
+    | (string & (string | SWMLVar));
 }
 
 export interface ToggleFunctionsAction {
-  /** Whether to toggle the functions on or off. */
-  toggle_functions: {
-    /** Whether to activate or deactivate the functions. Default is `true` */
-    active: boolean | SWMLVar;
-    /** The function names to toggle. */
-    function: string | string[];
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
   }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
 export type TranscribeAction = TranscribeStartAction | 'stop' | TranscribeSummarizeActionUnion;
@@ -3247,15 +5762,46 @@ export interface TranscribeSummarizeAction {
 export type TranscribeSummarizeActionUnion = TranscribeSummarizeAction | 'summarize';
 
 export interface Transfer {
-  /** Transfer the execution of the script to a different SWML section, URL, or Relay application. */
-  transfer: {
-    /** Specifies where to transfer to. The value can be one of: */
-    dest: string;
-    /** Named parameters to send to transfer destination. */
-    params?: Record<string, Record<string, unknown>>;
-    /** User data, ignored by SignalWire. */
-    meta?: Record<string, Record<string, unknown>>;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  transfer:
+    | {
+        /** URL (`http` or `https`) to fetch the new SWML document from. Authentication can */
+        dest: string | SWMLVar;
+        /** User data, ignored by SignalWire. */
+        meta?: Record<string, unknown>;
+        /** Parameters to include in the request body of the fetch. Available as `params.*` in the transferred document. */
+        params?: Record<string, unknown> | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | SWMLVar
+          | Record<string, unknown>
+          | SWMLVar
+          | undefined;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** URL (`http` or `https`) to fetch the new SWML document from. Authentication can */
+        dest: string | SWMLVar;
+        /** User data, ignored by SignalWire. */
+        meta?: Record<string, unknown>;
+        /** Parameters to include in the request body of the fetch. Available as `params.*` in the transferred document. */
+        params?: Record<string, unknown> | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | SWMLVar
+          | Record<string, unknown>
+          | SWMLVar
+          | undefined;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
 }
 
 export type TranslateAction = StartAction | 'stop' | SummarizeActionUnion | InjectAction;
@@ -3300,63 +5846,289 @@ export interface Types_StatusCodes_StatusCode500 {
 }
 
 export interface Unset {
-  /** Unset specified variables. The variables may have been set using the set method */
-  unset: string | string[];
+  /** Body shape enforced by CHECK_swml_method_unset, swml_schema.c. */
+  unset: string[] | string;
+  [key: string]: Record<string, unknown> | string[] | string;
 }
 
 export interface UnsetGlobalDataAction {
-  /** The key of the global data to unset from the `global_data`. You can also reset the `global_data` by passing in a new object. */
-  unset_global_data: string | Record<string, unknown>;
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
 export interface UnsetMetaDataAction {
-  /** The key of the local data to unset from the `meta_data`. You can also reset the `meta_data` by passing in a new object. */
-  unset_meta_data: string | Record<string, unknown>;
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
 export interface UserEvent {
-  /** Allows the user to set and send events to the connected client on the call. */
-  user_event: {
-    event: Record<string, Record<string, unknown>>;
-  };
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  user_event:
+    | {
+        event?: Record<string, unknown> | SWMLVar;
+        [key: string]: Record<string, unknown> | Record<string, unknown> | SWMLVar | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        event?: Record<string, unknown> | SWMLVar;
+        [key: string]: Record<string, unknown> | Record<string, unknown> | SWMLVar | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
 }
 
 export interface UserInputAction {
-  /** Used to inject text into the users queue as if they input the data themselves. */
-  user_input: string;
+  SWML?: string | Record<string, unknown>;
+  add_dynamic_hints?: (
+    | {
+        pattern?: string;
+        hint?: string;
+        ignore_case?: boolean | string;
+        replace?: string;
+      }
+    | string
+  )[];
+  back_to_back_functions?: boolean | 'forever' | string;
+  change_context?: string;
+  change_step?: string;
+  change_voice?:
+    | string
+    | {
+        voice?: Record<string, unknown>;
+      };
+  clear_dynamic_hints?: boolean | string;
+  context_switch?:
+    | string
+    | {
+        consolidate?: boolean | string;
+        full_reset?: boolean | string;
+        system_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        system_prompt?: string;
+        user_pom?: {
+          pom?: PromptPomSection[];
+          text?: string;
+        };
+        user_prompt?: string;
+      };
+  end_of_speech_timeout?: number;
+  extensive_data?: boolean | string;
+  functions_on_speaker_timeout?: boolean | string;
+  hangup?: boolean | string;
+  hold?:
+    | number
+    | string
+    | {
+        step?: string;
+        timeout?: number | string;
+        timeout_step?: string;
+      };
+  playback_bg?:
+    | string
+    | {
+        file?: string;
+        wait?: boolean | string;
+      };
+  replace_in_history?: string | true;
+  say?: string;
+  set_global_data?: Record<string, unknown>;
+  set_meta_data?: Record<string, unknown>;
+  settings?: Record<string, unknown>;
+  speech_event_timeout?: number;
+  stop?: boolean | string;
+  stop_playback_bg?: boolean | string | number | Record<string, unknown> | unknown[] | null;
+  toggle_functions?: {
+    active?: boolean | number | string;
+    function?: string;
+  }[];
+  transfer?:
+    | string
+    | {
+        dest?: string;
+        summarize?: boolean | string;
+      };
+  unset_global_data?: string | string[];
+  unset_meta_data?: string | string[];
+  user_event?: Record<string, unknown>;
+  user_input?: string;
+  wait_for_user?: boolean | number | 'answer_first' | string;
 }
 
+/** Without one of `data_map` / `web_hook_url`, one of `description` / `purpose` and `function`, the element has no effect: it is accepted and ignored, not rejected. */
 export interface UserSWAIGFunction {
-  /** A description of the context and purpose of the function, to explain to the agent when to use it. */
-  description: string;
-  /** The purpose field has been deprecated and is replaced by the `description` field. */
-  purpose?: string;
-  /** A JSON object that defines the expected user input parameters and their validation rules for the function. */
-  parameters?: FunctionParameters;
-  /** A JSON object defining the fillers that should be played when calling a `swaig function`. This helps the AI break silence between responses. The filler is played asynchronously during the function call. */
-  fillers?: FunctionFillers;
-  /** The argument field has been deprecated and is replaced by the `parameters` field.  */
+  description?: string;
+  active?: boolean | number | string;
   argument?: FunctionParameters;
-  /** Whether the function is active. **Default:** `true`. */
-  active?: boolean | SWMLVar;
-  /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-  meta_data?: Record<string, Record<string, unknown>>;
-  /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
-  meta_data_token?: string;
-  /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
   data_map?: DataMap;
-  /** Skips the top-level fillers specified in `ai.languages` (which includes `speech_fillers` and `function_fillers`). */
-  skip_fillers?: boolean | SWMLVar;
-  /** Function-specific URL to send status callbacks and reports to. Takes precedence over a default setting. Authentication can also be set in the url in the format of `username:password@url.` */
-  web_hook_url?: string;
-  /** A file to play while the function is running. `wait_file_loops` can specify the amount of times that files should continously play. Default is not set. */
+  fillers?: FunctionFillers;
+  function?: string;
+  meta_data?: Record<string, unknown>;
+  meta_data_token?: string;
+  parameters?: FunctionParameters;
+  purpose?: string;
+  skip_fillers?: boolean | string;
   wait_file?: string;
-  /** The number of times to loop playing the file. Default is not set. */
   wait_file_loops?: number | string;
-  /** Whether to wait for fillers to finish playing before continuing with the function. **Default:** `false`. */
-  wait_for_fillers?: boolean | SWMLVar;
-  /** A unique name for the function. This can be any user-defined string or can reference a reserved function. Reserved functions are SignalWire functions that will be executed at certain points in the conversation. */
-  function: string;
+  wait_for_fillers?: boolean | string;
+  web_hook_auth_pass?: string;
+  web_hook_auth_password?: string;
+  web_hook_auth_user?: string;
+  web_hook_url?: string;
 }
 
 export type ValidConfirmMethods =
@@ -3376,39 +6148,1054 @@ export type ValidConfirmMethods =
   | Denoise
   | StopDenoise;
 
+/** Without one of `expressions` / `output` and `url`, a Webhook has no effect: it is accepted and ignored, not rejected. */
 export interface Webhook {
-  /** A list of expressions to be evaluated upon matching. */
-  expressions?: Expression[];
-  /** A string or array of strings that represent the keys to be used for error handling. This will match the key(s) in the response from the API call. */
-  error_keys?: string | string[];
-  /** The endpoint for the external service or API. */
-  url: string;
-  /** Iterates over an array of objects and processes a output based on each element in the array. Works similarly to JavaScript's forEach method. */
-  foreach?: {
-    /** The key to be used to access the current element in the array. */
-    input_key: string;
-    /** The key that can be referenced in the output of the `foreach` iteration. The values that are stored from `append` will be stored in this key. */
-    output_key: string;
-    /** The max amount of elements that are iterated over in the array. This will start at the beginning of the array. */
-    max?: number | SWMLVar;
-    /** The values to append to the output_key. */
-    append: string;
-  };
-  /** Any necessary headers for the API call. */
-  headers?: Record<string, Record<string, unknown>>;
-  /** The HTTP method (GET, POST, etc.) for the API call. */
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-  /** A boolean to determine if the input arguments should be passed as parameters. */
-  input_args_as_params?: boolean | SWMLVar;
-  /** An object of any necessary parameters for the API call. The key is the parameter name and the value is the parameter value. */
-  params?: Record<string, Record<string, unknown>>;
-  /** A string or array of strings that represent the `arguments` that are required to make the webhook request. */
-  require_args?: string | string[];
-  /** An object that contains a response and a list of actions to be performed upon completion of the webhook request. */
+  error_keys?: unknown[] | string;
+  expressions?: Expression[] | Expression;
+  foreach?: Foreach;
+  form_param?: string;
+  headers?: Record<string, unknown>;
+  input_args_as_params?: boolean;
+  method?: string;
   output?: Output;
+  params?: unknown[] | boolean | null | number | Record<string, unknown> | string;
+  require_args?: unknown[] | string;
+  url?: string;
 }
 
+/** URL to play. */
 export type play_url = string;
 
 /** Universal Unique Identifier. */
 export type uuid = string;
+
+export interface TranscribeStop {
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  transcribe_stop: Record<string, unknown> | unknown[] | number | string;
+  [key: string]: Record<string, unknown> | Record<string, unknown> | unknown[] | number | string;
+}
+
+export interface Transcribe {
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  transcribe:
+    | {
+        /** An HTTP or HTTPS URL that receives the status callback when the transcription finishes */
+        status_url?: string | SWMLVar;
+        [key: string]: Record<string, unknown> | string | SWMLVar | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** An HTTP or HTTPS URL that receives the status callback when the transcription finishes */
+        status_url?: string | SWMLVar;
+        [key: string]: Record<string, unknown> | string | SWMLVar | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+}
+
+export interface Stream {
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  stream:
+    | {
+        /** Bearer token sent as an `Authorization` header during the WebSocket handshake. */
+        authorization_bearer_token?: string | SWMLVar;
+        /** Codec to use for the streamed audio. Freeform and endpoint-specific. */
+        codec?: string | SWMLVar;
+        /** Identifier for this stream to use with `stop_stream`. If not set, one is generated and stored in the `stream_control_id` variable. */
+        control_id?: Record<string, unknown> | SWMLVar;
+        /** Custom key-value pairs sent to the WebSocket endpoint in the start message. */
+        custom_parameters?: Record<string, unknown>;
+        /** Friendly name for the stream. */
+        name?: string | SWMLVar;
+        /** HTTP or HTTPS URL to deliver stream status events. */
+        status_url?: string | SWMLVar;
+        /** HTTP method used to deliver stream status events to `status_url`. */
+        status_url_method?: 'GET' | 'POST' | SWMLVar;
+        /** Audio track to stream: */
+        track?: 'inbound_track' | 'outbound_track' | 'both_tracks' | SWMLVar;
+        /** Secure WebSocket URI (wss://) to stream the call audio to. */
+        url: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | SWMLVar
+          | Record<string, unknown>
+          | SWMLVar
+          | 'GET'
+          | 'POST'
+          | SWMLVar
+          | 'inbound_track'
+          | 'outbound_track'
+          | 'both_tracks'
+          | SWMLVar
+          | undefined;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** Bearer token sent as an `Authorization` header during the WebSocket handshake. */
+        authorization_bearer_token?: string | SWMLVar;
+        /** Codec to use for the streamed audio. Freeform and endpoint-specific. */
+        codec?: string | SWMLVar;
+        /** Identifier for this stream to use with `stop_stream`. If not set, one is generated and stored in the `stream_control_id` variable. */
+        control_id?: Record<string, unknown> | SWMLVar;
+        /** Custom key-value pairs sent to the WebSocket endpoint in the start message. */
+        custom_parameters?: Record<string, unknown>;
+        /** Friendly name for the stream. */
+        name?: string | SWMLVar;
+        /** HTTP or HTTPS URL to deliver stream status events. */
+        status_url?: string | SWMLVar;
+        /** HTTP method used to deliver stream status events to `status_url`. */
+        status_url_method?: 'GET' | 'POST' | SWMLVar;
+        /** Audio track to stream: */
+        track?: 'inbound_track' | 'outbound_track' | 'both_tracks' | SWMLVar;
+        /** Secure WebSocket URI (wss://) to stream the call audio to. */
+        url: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | SWMLVar
+          | Record<string, unknown>
+          | SWMLVar
+          | 'GET'
+          | 'POST'
+          | SWMLVar
+          | 'inbound_track'
+          | 'outbound_track'
+          | 'both_tracks'
+          | SWMLVar
+          | undefined;
+      }
+    | (string | SWMLVar)[]
+    | number
+    | (string & (string | SWMLVar));
+}
+
+export interface StopStream {
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  stop_stream:
+    | {
+        /** ID of the stream to stop. */
+        control_id?: Record<string, unknown> | SWMLVar;
+        [key: string]: Record<string, unknown> | Record<string, unknown> | SWMLVar | undefined;
+      }
+    | (Record<string, unknown> | SWMLVar)[]
+    | number
+    | (string & (Record<string, unknown> | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** ID of the stream to stop. */
+        control_id?: Record<string, unknown> | SWMLVar;
+        [key: string]: Record<string, unknown> | Record<string, unknown> | SWMLVar | undefined;
+      }
+    | (Record<string, unknown> | SWMLVar)[]
+    | number
+    | (string & (Record<string, unknown> | SWMLVar));
+}
+
+export interface Step {
+  end?: boolean | string;
+  functions?: unknown[];
+  gather_info?: Record<string, unknown>;
+  history?: string;
+  name?: string;
+  pom?: PromptPomSection[];
+  reset?: Record<string, unknown>;
+  skip_to_next_step?: boolean | string;
+  skip_user_turn?: boolean | string;
+  step_criteria?: string;
+  text?: string;
+  valid_contexts?: string[];
+  valid_steps?: string[];
+}
+
+export interface SetMeta {
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  set_meta:
+    | {
+        private?: Record<string, unknown> | SWMLVar;
+        public?: Record<string, unknown> | SWMLVar;
+        [key: string]: Record<string, unknown> | Record<string, unknown> | SWMLVar | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        private?: Record<string, unknown> | SWMLVar;
+        public?: Record<string, unknown> | SWMLVar;
+        [key: string]: Record<string, unknown> | Record<string, unknown> | SWMLVar | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+}
+
+export interface SetCapabilities {
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  set_capabilities:
+    | {
+        capabilities: (string | SWMLVar)[] | SWMLVar;
+        [key: string]: Record<string, unknown> | (string | SWMLVar)[] | SWMLVar;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        capabilities: (string | SWMLVar)[] | SWMLVar;
+        [key: string]: Record<string, unknown> | (string | SWMLVar)[] | SWMLVar;
+      }
+    | unknown[]
+    | number
+    | string;
+}
+
+/** Declared as a named $defs entry so every generator emits a TYPED shape via $ref rather than collapsing an inline object to an untyped map. */
+export interface RingbackConfig {
+  /** URL to play. */
+  url?: string;
+  /** Array of URLs to play. */
+  urls?: string[];
+  /** Volume level for the audio file. */
+  volume?: number | SWMLVar;
+  [key: string]: Record<string, unknown> | string | string[] | number | SWMLVar | undefined;
+}
+
+export interface Ring {
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  ring:
+    | {
+        [key: string]: Record<string, unknown>;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        [key: string]: Record<string, unknown>;
+      }
+    | unknown[]
+    | number
+    | string;
+}
+
+/** Without one of `body` / `bullets` / `subsections`, the object has no effect: it is accepted and ignored, not rejected. */
+export interface PromptPomSection {
+  title?: string;
+  body?: string;
+  bullets?: string[];
+  numbered?: boolean;
+  numberedBullets?: boolean;
+  subsections?: PromptPomSection[];
+  [key: string]: unknown;
+}
+
+/** A JSON Schema (draft 2020-12). The value is forwarded verbatim to the receiving model API, which owns this contract; the engine does not inspect it. */
+export interface JsonSchema {
+  title?: string;
+  description?: string;
+  type?:
+    | 'array'
+    | 'boolean'
+    | 'integer'
+    | 'null'
+    | 'number'
+    | 'object'
+    | 'string'
+    | ('array' | 'boolean' | 'integer' | 'null' | 'number' | 'object' | 'string')[];
+  const?: Record<string, unknown>;
+  enum?: unknown[];
+  format?: string;
+  pattern?: string;
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  minItems?: number;
+  maxItems?: number;
+  minProperties?: number;
+  maxProperties?: number;
+  default?: Record<string, unknown>;
+  examples?: unknown[];
+  deprecated?: boolean;
+  properties?: Record<string, JsonSchema | boolean>;
+  required?: string[];
+  prefixItems?: (JsonSchema | boolean)[];
+  items?: JsonSchema | boolean;
+  propertyNames?: JsonSchema | boolean;
+  additionalProperties?: JsonSchema | boolean;
+  unevaluatedProperties?: JsonSchema | boolean;
+  oneOf?: (JsonSchema | boolean)[];
+  anyOf?: (JsonSchema | boolean)[];
+  allOf?: (JsonSchema | boolean)[];
+  not?: JsonSchema | boolean;
+  contains?: JsonSchema | boolean;
+  dependentRequired?: Record<string, string[]>;
+  dependentSchemas?: Record<string, JsonSchema | boolean>;
+  else?: JsonSchema | boolean;
+  if?: JsonSchema | boolean;
+  maxContains?: number;
+  minContains?: number;
+  multipleOf?: number;
+  patternProperties?: Record<string, JsonSchema | boolean>;
+  readOnly?: boolean;
+  then?: JsonSchema | boolean;
+  unevaluatedItems?: JsonSchema | boolean;
+  uniqueItems?: boolean;
+  writeOnly?: boolean;
+}
+
+/** Without `append`, `input_key` and `output_key`, a Foreach has no effect: it is accepted and ignored, not rejected. */
+export interface Foreach {
+  append?: string;
+  input_key?: string;
+  max?: number | string;
+  output_key?: string;
+}
+
+export interface ExecuteRpc {
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  execute_rpc:
+    | {
+        call_id?: string | SWMLVar;
+        method: string | SWMLVar;
+        node_id?: string | SWMLVar;
+        params?: Record<string, unknown> | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | SWMLVar
+          | Record<string, unknown>
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        call_id?: string | SWMLVar;
+        method: string | SWMLVar;
+        node_id?: string | SWMLVar;
+        params?: Record<string, unknown> | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | string
+          | SWMLVar
+          | Record<string, unknown>
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+}
+
+export interface Echo {
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  echo:
+    | {
+        timeout?: number | SWMLVar;
+        [key: string]: Record<string, unknown> | number | SWMLVar | undefined;
+      }
+    | (number | SWMLVar)[]
+    | (number & (number | SWMLVar))
+    | (string & (number | SWMLVar));
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        timeout?: number | SWMLVar;
+        [key: string]: Record<string, unknown> | number | SWMLVar | undefined;
+      }
+    | (number | SWMLVar)[]
+    | (number & (number | SWMLVar))
+    | (string & (number | SWMLVar));
+}
+
+export interface Context {
+  consolidate?: boolean | string;
+  enter_fillers?: Record<string, unknown>;
+  exit_fillers?: Record<string, unknown>;
+  full_reset?: boolean | string;
+  history?: string;
+  initial_step?: string;
+  isolated?: boolean | string;
+  pom?: PromptPomSection[];
+  post_prompt?: Record<string, unknown>;
+  prompt?: string;
+  reset?: unknown[] | boolean | null | number | Record<string, unknown> | string;
+  steps?: Step[];
+  system_prompt?: string;
+  user_prompt?: string;
+  valid_contexts?: unknown[];
+  valid_steps?: unknown[];
+}
+
+/** Body shape enforced by CHECK_swml_connect_serial_parallel, swml_schema.c. */
+export type ConnectSerialParallel = ConnectDevice[];
+
+/** Body shape enforced by CHECK_swml_connect_device, swml_schema.c. */
+export interface ConnectDevice {
+  authorization_bearer_token?: string | SWMLVar;
+  call_state_events?: string[] | SWMLVar;
+  call_state_url?: string | SWMLVar;
+  codec?: string | SWMLVar;
+  codecs?: string | Record<string, unknown>[];
+  confirm?:
+    | string
+    | SWMLMethod[]
+    | {
+        code: Record<string, unknown>;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
+      }
+    | SWMLVar;
+  confirm_timeout?: number | SWMLVar;
+  custom_parameters?: Record<string, string> | SWMLVar;
+  encryption?: 'mandatory' | 'optional' | 'forbidden' | SWMLVar;
+  from?: string | SWMLVar;
+  from_name?: string | SWMLVar;
+  headers?: ConnectHeaders[];
+  name?: string | SWMLVar;
+  password?: string | SWMLVar;
+  realtime?: boolean | SWMLVar;
+  session_timeout?: number | SWMLVar;
+  status_url?: string | SWMLVar;
+  status_url_method?: 'GET' | 'POST' | SWMLVar;
+  timeout?: number | SWMLVar;
+  to: string | SWMLVar;
+  username?: string | SWMLVar;
+  webrtc_media?: boolean | SWMLVar;
+  [key: string]:
+    | Record<string, unknown>
+    | string
+    | SWMLVar
+    | string[]
+    | SWMLVar
+    | string
+    | Record<string, unknown>[]
+    | string
+    | SWMLMethod[]
+    | {
+        code: Record<string, unknown>;
+        meta?: Record<string, unknown>;
+        [key: string]: Record<string, unknown> | undefined;
+      }
+    | SWMLVar
+    | number
+    | SWMLVar
+    | Record<string, string>
+    | SWMLVar
+    | 'mandatory'
+    | 'optional'
+    | 'forbidden'
+    | SWMLVar
+    | ConnectHeaders[]
+    | boolean
+    | SWMLVar
+    | 'GET'
+    | 'POST'
+    | SWMLVar
+    | undefined;
+}
+
+export interface ClearDigitBindings {
+  /** Clear all digit bindings. */
+  clear_digit_bindings: {
+    realm?: string;
+    [key: string]: Record<string, unknown> | string | undefined;
+  };
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        realm?: string;
+        [key: string]: Record<string, unknown> | string | undefined;
+      };
+}
+
+export interface CallDeviceStream {
+  authorization_bearer_token?: string | SWMLVar;
+  codec?: string | SWMLVar;
+  custom_parameters?: Record<string, unknown>;
+  name?: string | SWMLVar;
+  realtime?: boolean | SWMLVar;
+  status_url?: string | SWMLVar;
+  status_url_method?: 'GET' | 'POST' | SWMLVar;
+  url: string | SWMLVar;
+  [key: string]:
+    | Record<string, unknown>
+    | string
+    | SWMLVar
+    | boolean
+    | SWMLVar
+    | 'GET'
+    | 'POST'
+    | SWMLVar
+    | undefined;
+}
+
+export interface BindDigit {
+  /** Bind DTMF digit actions. */
+  bind_digit: {
+    digits: string;
+    max_triggers?: number | SWMLVar;
+    method: string;
+    params?: Record<string, unknown>;
+    realm?: string;
+    [key: string]: Record<string, unknown> | string | number | SWMLVar | undefined;
+  };
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        digits: string;
+        max_triggers?: number | SWMLVar;
+        method: string;
+        params?: Record<string, unknown>;
+        realm?: string;
+        [key: string]: Record<string, unknown> | string | number | SWMLVar | undefined;
+      };
+}
+
+export interface AiSidecar {
+  /** Body shape enforced by check_method_type_and_unknown_params, swml_schema.c:911. */
+  ai_sidecar:
+    | {
+        /** SWAIG functions and MCP servers available to the sidecar. */
+        SWAIG?:
+          | {
+              defaults?:
+                | {
+                    web_hook_auth_pass?: string | SWMLVar;
+                    web_hook_auth_password?: string | SWMLVar;
+                    web_hook_auth_user?: string | SWMLVar;
+                    web_hook_url?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              functions?:
+                | (
+                    | {
+                        description?: string | SWMLVar;
+                        function?: string | SWMLVar;
+                        parameters?: FunctionParameters | SWMLVar;
+                        purpose?: string | SWMLVar;
+                        web_hook_auth_pass?: string | SWMLVar;
+                        web_hook_auth_password?: string | SWMLVar;
+                        web_hook_auth_user?: string | SWMLVar;
+                        web_hook_url?: string | SWMLVar;
+                      }
+                    | SWMLVar
+                  )[]
+                | SWMLVar;
+              mcp_servers?: unknown[] | SWMLVar;
+            }
+          | SWMLVar;
+        /** Summarize the conversation instead of starting a sidecar. When you include `action.summarize`, */
+        action?: Record<string, unknown> | SWMLVar;
+        /** Which leg is the customer, used as the turn-end trigger source. **Default:** `remote-caller`. */
+        customer_role?: string | SWMLVar;
+        /** The call legs to observe. Both legs are required — a single-leg value is rejected. When omitted, both legs are observed. **Default:** both legs (`remote-caller` and `local-caller`). */
+        direction?: (string | SWMLVar)[] | SWMLVar;
+        /** A key-value object of data that is available throughout the sidecar session. You can reference it in the prompt with variable expansion, and it is included in the requests sent to your tools. */
+        global_data?: Record<string, unknown> | SWMLVar;
+        /** Hints that improve speech recognition of specific terms, such as product names, competitor names, jargon, or customer names. Strongly recommended. */
+        hints?: (string | SWMLVar)[] | SWMLVar;
+        /** The conversation language as a single BCP-47 tag. Sets the speech recognition language and is shared with the model as a hint. */
+        lang?: string | SWMLVar;
+        /** The model used for the sidecar's advice and its end-of-call summaries. Suggested values: `gpt-4o-mini`, `gpt-4.1-mini`, `gpt-4.1-nano`. **Default:** `gpt-4o-mini`. */
+        model?: string | SWMLVar;
+        /** Tuning options for the sidecar. */
+        params?:
+          | {
+              act_on_channel?: boolean | SWMLVar;
+              ai_summary?: boolean | SWMLVar;
+              ai_summary_prompt?: string | SWMLVar;
+              debug?: boolean | SWMLVar;
+              debug_level?: number | SWMLVar;
+              deepgram_key_override?: string | SWMLVar;
+              deepgram_url_override?: string | SWMLVar;
+              final_summary?: boolean | SWMLVar;
+              idle_timeout_ms?: number | SWMLVar;
+              live_events?: boolean | SWMLVar;
+              max_history_tokens?: number | SWMLVar;
+              max_iters_per_tick?: number | SWMLVar;
+              min_interval_ms?: number | SWMLVar;
+              speech_engine?: string | SWMLVar;
+              speech_timeout?: number | SWMLVar;
+              summary_model?: string | SWMLVar;
+              transcribe_prompt?: string | SWMLVar;
+              vad_silence_ms?: number | SWMLVar;
+              vad_thresh?: number | SWMLVar;
+              verbose_utterances?: boolean | SWMLVar;
+            }
+          | SWMLVar;
+        /** SWAIG permission overrides. Defaults to all permissions enabled. */
+        permissions?:
+          | {
+              swaig_allow_settings?: boolean | SWMLVar;
+              swaig_allow_swml?: boolean | SWMLVar;
+              swaig_set_global_data?: boolean | SWMLVar;
+            }
+          | SWMLVar;
+        /** The prompt used to write the summary. May be given as a string, or as an object with a `file` key naming a file to read it from. Defaults to `Be helpful.` */
+        prompt?:
+          | {
+              file?: string | SWMLVar;
+            }
+          | string
+          | SWMLVar;
+        /** The webhook URL the sidecar POSTs its callbacks to. Receives both transcription events and sidecar callbacks. */
+        url?: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | {
+              defaults?:
+                | {
+                    web_hook_auth_pass?: string | SWMLVar;
+                    web_hook_auth_password?: string | SWMLVar;
+                    web_hook_auth_user?: string | SWMLVar;
+                    web_hook_url?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              functions?:
+                | (
+                    | {
+                        description?: string | SWMLVar;
+                        function?: string | SWMLVar;
+                        parameters?: FunctionParameters | SWMLVar;
+                        purpose?: string | SWMLVar;
+                        web_hook_auth_pass?: string | SWMLVar;
+                        web_hook_auth_password?: string | SWMLVar;
+                        web_hook_auth_user?: string | SWMLVar;
+                        web_hook_url?: string | SWMLVar;
+                      }
+                    | SWMLVar
+                  )[]
+                | SWMLVar;
+              mcp_servers?: unknown[] | SWMLVar;
+            }
+          | SWMLVar
+          | Record<string, unknown>
+          | SWMLVar
+          | string
+          | SWMLVar
+          | (string | SWMLVar)[]
+          | SWMLVar
+          | {
+              act_on_channel?: boolean | SWMLVar;
+              ai_summary?: boolean | SWMLVar;
+              ai_summary_prompt?: string | SWMLVar;
+              debug?: boolean | SWMLVar;
+              debug_level?: number | SWMLVar;
+              deepgram_key_override?: string | SWMLVar;
+              deepgram_url_override?: string | SWMLVar;
+              final_summary?: boolean | SWMLVar;
+              idle_timeout_ms?: number | SWMLVar;
+              live_events?: boolean | SWMLVar;
+              max_history_tokens?: number | SWMLVar;
+              max_iters_per_tick?: number | SWMLVar;
+              min_interval_ms?: number | SWMLVar;
+              speech_engine?: string | SWMLVar;
+              speech_timeout?: number | SWMLVar;
+              summary_model?: string | SWMLVar;
+              transcribe_prompt?: string | SWMLVar;
+              vad_silence_ms?: number | SWMLVar;
+              vad_thresh?: number | SWMLVar;
+              verbose_utterances?: boolean | SWMLVar;
+            }
+          | SWMLVar
+          | {
+              swaig_allow_settings?: boolean | SWMLVar;
+              swaig_allow_swml?: boolean | SWMLVar;
+              swaig_set_global_data?: boolean | SWMLVar;
+            }
+          | SWMLVar
+          | {
+              file?: string | SWMLVar;
+            }
+          | string
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+  [key: string]:
+    | Record<string, unknown>
+    | {
+        /** SWAIG functions and MCP servers available to the sidecar. */
+        SWAIG?:
+          | {
+              defaults?:
+                | {
+                    web_hook_auth_pass?: string | SWMLVar;
+                    web_hook_auth_password?: string | SWMLVar;
+                    web_hook_auth_user?: string | SWMLVar;
+                    web_hook_url?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              functions?:
+                | (
+                    | {
+                        description?: string | SWMLVar;
+                        function?: string | SWMLVar;
+                        parameters?: FunctionParameters | SWMLVar;
+                        purpose?: string | SWMLVar;
+                        web_hook_auth_pass?: string | SWMLVar;
+                        web_hook_auth_password?: string | SWMLVar;
+                        web_hook_auth_user?: string | SWMLVar;
+                        web_hook_url?: string | SWMLVar;
+                      }
+                    | SWMLVar
+                  )[]
+                | SWMLVar;
+              mcp_servers?: unknown[] | SWMLVar;
+            }
+          | SWMLVar;
+        /** Summarize the conversation instead of starting a sidecar. When you include `action.summarize`, */
+        action?: Record<string, unknown> | SWMLVar;
+        /** Which leg is the customer, used as the turn-end trigger source. **Default:** `remote-caller`. */
+        customer_role?: string | SWMLVar;
+        /** The call legs to observe. Both legs are required — a single-leg value is rejected. When omitted, both legs are observed. **Default:** both legs (`remote-caller` and `local-caller`). */
+        direction?: (string | SWMLVar)[] | SWMLVar;
+        /** A key-value object of data that is available throughout the sidecar session. You can reference it in the prompt with variable expansion, and it is included in the requests sent to your tools. */
+        global_data?: Record<string, unknown> | SWMLVar;
+        /** Hints that improve speech recognition of specific terms, such as product names, competitor names, jargon, or customer names. Strongly recommended. */
+        hints?: (string | SWMLVar)[] | SWMLVar;
+        /** The conversation language as a single BCP-47 tag. Sets the speech recognition language and is shared with the model as a hint. */
+        lang?: string | SWMLVar;
+        /** The model used for the sidecar's advice and its end-of-call summaries. Suggested values: `gpt-4o-mini`, `gpt-4.1-mini`, `gpt-4.1-nano`. **Default:** `gpt-4o-mini`. */
+        model?: string | SWMLVar;
+        /** Tuning options for the sidecar. */
+        params?:
+          | {
+              act_on_channel?: boolean | SWMLVar;
+              ai_summary?: boolean | SWMLVar;
+              ai_summary_prompt?: string | SWMLVar;
+              debug?: boolean | SWMLVar;
+              debug_level?: number | SWMLVar;
+              deepgram_key_override?: string | SWMLVar;
+              deepgram_url_override?: string | SWMLVar;
+              final_summary?: boolean | SWMLVar;
+              idle_timeout_ms?: number | SWMLVar;
+              live_events?: boolean | SWMLVar;
+              max_history_tokens?: number | SWMLVar;
+              max_iters_per_tick?: number | SWMLVar;
+              min_interval_ms?: number | SWMLVar;
+              speech_engine?: string | SWMLVar;
+              speech_timeout?: number | SWMLVar;
+              summary_model?: string | SWMLVar;
+              transcribe_prompt?: string | SWMLVar;
+              vad_silence_ms?: number | SWMLVar;
+              vad_thresh?: number | SWMLVar;
+              verbose_utterances?: boolean | SWMLVar;
+            }
+          | SWMLVar;
+        /** SWAIG permission overrides. Defaults to all permissions enabled. */
+        permissions?:
+          | {
+              swaig_allow_settings?: boolean | SWMLVar;
+              swaig_allow_swml?: boolean | SWMLVar;
+              swaig_set_global_data?: boolean | SWMLVar;
+            }
+          | SWMLVar;
+        /** The prompt used to write the summary. May be given as a string, or as an object with a `file` key naming a file to read it from. Defaults to `Be helpful.` */
+        prompt?:
+          | {
+              file?: string | SWMLVar;
+            }
+          | string
+          | SWMLVar;
+        /** The webhook URL the sidecar POSTs its callbacks to. Receives both transcription events and sidecar callbacks. */
+        url?: string | SWMLVar;
+        [key: string]:
+          | Record<string, unknown>
+          | {
+              defaults?:
+                | {
+                    web_hook_auth_pass?: string | SWMLVar;
+                    web_hook_auth_password?: string | SWMLVar;
+                    web_hook_auth_user?: string | SWMLVar;
+                    web_hook_url?: string | SWMLVar;
+                  }
+                | SWMLVar;
+              functions?:
+                | (
+                    | {
+                        description?: string | SWMLVar;
+                        function?: string | SWMLVar;
+                        parameters?: FunctionParameters | SWMLVar;
+                        purpose?: string | SWMLVar;
+                        web_hook_auth_pass?: string | SWMLVar;
+                        web_hook_auth_password?: string | SWMLVar;
+                        web_hook_auth_user?: string | SWMLVar;
+                        web_hook_url?: string | SWMLVar;
+                      }
+                    | SWMLVar
+                  )[]
+                | SWMLVar;
+              mcp_servers?: unknown[] | SWMLVar;
+            }
+          | SWMLVar
+          | Record<string, unknown>
+          | SWMLVar
+          | string
+          | SWMLVar
+          | (string | SWMLVar)[]
+          | SWMLVar
+          | {
+              act_on_channel?: boolean | SWMLVar;
+              ai_summary?: boolean | SWMLVar;
+              ai_summary_prompt?: string | SWMLVar;
+              debug?: boolean | SWMLVar;
+              debug_level?: number | SWMLVar;
+              deepgram_key_override?: string | SWMLVar;
+              deepgram_url_override?: string | SWMLVar;
+              final_summary?: boolean | SWMLVar;
+              idle_timeout_ms?: number | SWMLVar;
+              live_events?: boolean | SWMLVar;
+              max_history_tokens?: number | SWMLVar;
+              max_iters_per_tick?: number | SWMLVar;
+              min_interval_ms?: number | SWMLVar;
+              speech_engine?: string | SWMLVar;
+              speech_timeout?: number | SWMLVar;
+              summary_model?: string | SWMLVar;
+              transcribe_prompt?: string | SWMLVar;
+              vad_silence_ms?: number | SWMLVar;
+              vad_thresh?: number | SWMLVar;
+              verbose_utterances?: boolean | SWMLVar;
+            }
+          | SWMLVar
+          | {
+              swaig_allow_settings?: boolean | SWMLVar;
+              swaig_allow_swml?: boolean | SWMLVar;
+              swaig_set_global_data?: boolean | SWMLVar;
+            }
+          | SWMLVar
+          | {
+              file?: string | SWMLVar;
+            }
+          | string
+          | SWMLVar
+          | undefined;
+      }
+    | unknown[]
+    | number
+    | string;
+}
+
+export interface RelayIsReset {
+  full_reset?: Record<string, unknown>;
+  system_prompt?: Record<string, unknown>;
+  user_prompt?: Record<string, unknown>;
+}
+
+export type RelayCallPlayInner =
+  | {
+      params?: RelayCallPlayAudio;
+      type: 'audio';
+    }
+  | {
+      params?: RelayCallPlayTts;
+      type: 'tts';
+    }
+  | {
+      params?: RelayCallPlaySilence;
+      type: 'silence';
+    }
+  | {
+      params?: RelayCallPlayRingtone;
+      type: 'ringtone';
+    };
+
+export interface RelayCallPlayAudio {
+  url: string;
+}
+
+export interface RelayCallPlayTts {
+  gender?: 'male' | 'female';
+  language?: string;
+  text: string;
+  voice?: string;
+}
+
+export interface RelayCallPlaySilence {
+  duration: number;
+}
+
+export interface RelayCallPlayRingtone {
+  duration?: number;
+  name:
+    | 'au'
+    | 'be'
+    | 'ca'
+    | 'cn'
+    | 'cy'
+    | 'cz'
+    | 'de'
+    | 'dk'
+    | 'dz'
+    | 'eg'
+    | 'es'
+    | 'fi'
+    | 'fr'
+    | 'hu'
+    | 'il'
+    | 'in'
+    | 'jp'
+    | 'ko'
+    | 'pk'
+    | 'pl'
+    | 'ro'
+    | 'rs'
+    | 'ru'
+    | 'sa'
+    | 'tr'
+    | 'uk'
+    | 'us'
+    | 'at'
+    | 'bg'
+    | 'br'
+    | 'ch'
+    | 'cl'
+    | 'ee'
+    | 'gr'
+    | 'it'
+    | 'lt'
+    | 'mx'
+    | 'my'
+    | 'nl'
+    | 'no'
+    | 'nz'
+    | 'ph'
+    | 'pt'
+    | 'se'
+    | 'sg'
+    | 'th'
+    | 'za'
+    | 'tw'
+    | 've'
+    | 'bong';
+}
+
+export interface RelayCallRecordInner {
+  audio: RelayCallRecordAudio;
+}
+
+export interface RelayCallRecordAudio {
+  beep?: boolean;
+  direction?: 'listen' | 'speak' | 'both';
+  end_silence_timeout?: number;
+  format?: 'mp3' | 'wav' | 'mp4';
+  initial_timeout?: number;
+  input_sensitivity?: number;
+  max_length?: number;
+  stereo?: boolean;
+  terminators?: string;
+}
+
+export interface RelayCallCollectDigitsInner {
+  digit_timeout?: number;
+  max: number;
+  terminators?: string;
+}
+
+export interface RelayCallCollectSpeechInner {
+  /** Server default 0.5, a value the validator itself would reject: it tests the integer part of the number. */
+  end_silence_timeout?: number;
+  engine?: 'Google' | 'Google.V2' | 'Deepgram';
+  hints?: string[];
+  language?: string;
+  model?: string;
+  speech_timeout?: number;
+}
+
+export type RelayCallDetectInner =
+  | {
+      params?: RelayCallDetectFax;
+      type?: 'fax';
+    }
+  | {
+      params?: RelayCallDetectMachine;
+      type?: 'machine';
+    }
+  | {
+      params?: RelayCallDetectDigit;
+      type?: 'digit';
+    };
+
+export interface RelayCallDetectFax {
+  tone?: 'CNG' | 'CED' | 'cng' | 'ced';
+}
+
+export interface RelayCallDetectMachine {
+  detect_interruptions?: boolean;
+  detect_message_end?: boolean;
+  end_silence_timeout?: number;
+  initial_timeout?: number;
+  machine_ready_timeout?: number;
+  machine_voice_threshold?: number;
+  machine_words_threshold?: number;
+}
+
+export interface RelayCallDetectDigit {
+  digits?: string;
+}
+
+export type RelayCallTapDevice =
+  | {
+      params?: RelayCallTapDeviceRtp;
+      type: 'rtp';
+    }
+  | {
+      params?: RelayCallTapDeviceWs;
+      type: 'ws';
+    };
+
+export interface RelayCallTapDeviceRtp {
+  addr: string;
+  codec?: 'PCMA' | 'PCMU' | 'pcma' | 'pcmu' | 'OPUS' | 'opus';
+  port: number;
+  ptime?: number;
+}
+
+export interface RelayCallTapDeviceWs {
+  codec?: 'PCMA' | 'PCMU' | 'pcma' | 'pcmu' | 'OPUS' | 'opus';
+  uri: string;
+}
+
+export interface RelayTap {
+  params: RelayAudioTapParams;
+  type: 'audio';
+}
+
+export interface RelayAudioTapParams {
+  direction: 'listen' | 'speak' | 'both';
+}
+
+export interface RelayCallReferDevice {
+  params?: RelayCallReferDeviceSip;
+  type: 'sip';
+}
+
+export interface RelayCallReferDeviceSip {
+  from?: string;
+  password?: string;
+  to: string;
+  username?: string;
+}

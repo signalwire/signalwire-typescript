@@ -1,0 +1,56 @@
+# Ruff config for signalwire-typescript's hand-written PYTHON.
+#
+# The repo is a TypeScript SDK. Its TypeScript is fully covered: `eslint src
+# tests examples rest/examples relay/examples` runs one flat ruleset with no
+# per-directory overrides, `reportUnusedDisableDirectives: 'error'` prevents
+# stale disables, and tsc type-checks src + tests + examples. But eslint cannot
+# see a .py file, so any Python in this repo was linted and format-checked by
+# NOTHING.
+#
+# Today that is exactly ONE tracked file --
+# tests/fixtures/scrape-parity/python_extract.py, the reference HTML->text
+# extractor used to regenerate the scrape-parity expected/*.json. It is a
+# fixture tool, not shipped surface. The gate is wired anyway, for fleet
+# consistency and so the NEXT .py file added to this repo is linted from the day
+# it lands rather than starting a fresh blind spot. Across the other ports,
+# unlinted scripts/*.py is precisely where the worst defects lived: seven ports
+# shipped an enumerator that swallowed exceptions and emitted a SHORT-BUT-VALID
+# parity artifact at exit 0, and dotnet's was caught by ruff S112 -- the first
+# lint ever run on that repo's Python.
+#
+# The rule selection MIRRORS the reference implementation's
+# (signalwire-python/pyproject.toml [tool.ruff]) so the fleet is consistent --
+# same target-version, same line-length, same select list, same explicit
+# `preview = false` pin. Do not diverge from it without changing python first.
+# There are NO per-file-ignores here: the one Python file is clean at the full
+# ruleset, so the bar is the reference's bar with nothing carved out.
+#
+# This file lives at eng/ruff.toml rather than the repo root because
+# ROOT-HYGIENE (porting-sdk root_hygiene.py) rejects a tracked root-level
+# ruff.toml against the porting-sdk revision this port resolves. `--config` is
+# therefore PINNED explicitly by scripts/_env.sh's sw_ruff helper -- ruff only
+# auto-discovers a config by walking UP from the TARGET's directory, so a bare
+# `ruff check tests/...` would silently fall back to its BUILT-IN DEFAULTS.
+# Measured on this repo's one fixture: the built-in defaults find 0 findings,
+# this config finds 2. A gate running the wrong ruleset passes vacuously, which
+# is worse than no gate at all.
+#
+# Wired into scripts/run-ci.sh as the PY-LINT and PY-FMT gates (PY-FMT: local
+# applies, CI runs --check), mirroring the FMT/LINT contract for TypeScript.
+
+target-version = "py310"
+line-length = 88
+
+[format]
+# Pin STABLE formatting explicitly. Without this, `ruff format --check` can
+# resolve preview-mode formatting in CI while a local stable run leaves the file
+# unchanged -- a local != CI split with no visible cause. Same pin, same reason,
+# as signalwire-python.
+preview = false
+
+[lint]
+# E4/E7/E9 + F are the ruff defaults (E501 line-length intentionally excluded --
+# formatting is owned by `ruff format`, not the linter). B = flake8-bugbear
+# (likely-bug patterns), S = flake8-bandit (security smells). Identical to the
+# reference's select list.
+select = ["E4", "E7", "E9", "F", "B", "S", "C4", "PERF", "SIM", "PTH", "RET", "RUF", "UP"]

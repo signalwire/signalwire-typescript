@@ -23,6 +23,20 @@ beforeEach(async () => {
 });
 
 describe('fabric wire (generated)', () => {
+  it('addresses_delete success', async () => {
+    await client.fabric.addresses.delete('x');
+    const last = await mock.last();
+    expect(last.method).toBe('DELETE');
+    expect(last.matched_route).toBe('fabric.delete_fabric_address');
+  });
+
+  it('addresses_delete error', async () => {
+    await mock.pushScenario('fabric.delete_fabric_address', 500, { error: 'x' });
+    await expect(client.fabric.addresses.delete('x')).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
   it('addresses_get success', async () => {
     await client.fabric.addresses.get('x');
     const last = await mock.last();
@@ -52,7 +66,7 @@ describe('fabric wire (generated)', () => {
   });
 
   it('aiAgents_create success', async () => {
-    await client.fabric.aiAgents.create({ prompt: { text: 'x' }, name: 'x' });
+    await client.fabric.aiAgents.create({ name: 'x' });
     const last = await mock.last();
     expect(last.method).toBe('POST');
     expect(last.matched_route).toBe('fabric.create_ai_agent');
@@ -60,9 +74,7 @@ describe('fabric wire (generated)', () => {
 
   it('aiAgents_create error', async () => {
     await mock.pushScenario('fabric.create_ai_agent', 500, { error: 'x' });
-    await expect(
-      client.fabric.aiAgents.create({ prompt: { text: 'x' }, name: 'x' }),
-    ).rejects.toThrow(RestError);
+    await expect(client.fabric.aiAgents.create({ name: 'x' })).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -109,6 +121,20 @@ describe('fabric wire (generated)', () => {
     expect(last.response_status).toBe(500);
   });
 
+  it('aiAgents_listConversationLogs success', async () => {
+    await client.fabric.aiAgents.listConversationLogs('x');
+    const last = await mock.last();
+    expect(last.method).toBe('GET');
+    expect(last.matched_route).toBe('fabric.list_ai_agent_conversation_logs');
+  });
+
+  it('aiAgents_listConversationLogs error', async () => {
+    await mock.pushScenario('fabric.list_ai_agent_conversation_logs', 500, { error: 'x' });
+    await expect(client.fabric.aiAgents.listConversationLogs('x')).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
   it('aiAgents_list success', async () => {
     await client.fabric.aiAgents.list();
     const last = await mock.last();
@@ -123,6 +149,20 @@ describe('fabric wire (generated)', () => {
     expect(last.response_status).toBe(500);
   });
 
+  it('aiAgents_listVoices success', async () => {
+    await client.fabric.aiAgents.listVoices();
+    const last = await mock.last();
+    expect(last.method).toBe('GET');
+    expect(last.matched_route).toBe('fabric.list_ai_agent_voices');
+  });
+
+  it('aiAgents_listVoices error', async () => {
+    await mock.pushScenario('fabric.list_ai_agent_voices', 500, { error: 'x' });
+    await expect(client.fabric.aiAgents.listVoices()).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
   it('aiAgents_update success', async () => {
     await client.fabric.aiAgents.update('x', {});
     const last = await mock.last();
@@ -133,6 +173,78 @@ describe('fabric wire (generated)', () => {
   it('aiAgents_update error', async () => {
     await mock.pushScenario('fabric.update_ai_agent', 500, { error: 'x' });
     await expect(client.fabric.aiAgents.update('x', {})).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('aliasAddresses_create success', async () => {
+    await client.fabric.aliasAddresses.create({ name: 'x', resource_id: 'x' });
+    const last = await mock.last();
+    expect(last.method).toBe('POST');
+    expect(last.matched_route).toBe('fabric.create_alias_address');
+  });
+
+  it('aliasAddresses_create error', async () => {
+    await mock.pushScenario('fabric.create_alias_address', 500, { error: 'x' });
+    await expect(
+      client.fabric.aliasAddresses.create({ name: 'x', resource_id: 'x' }),
+    ).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('aliasAddresses_delete success', async () => {
+    await client.fabric.aliasAddresses.delete('x');
+    const last = await mock.last();
+    expect(last.method).toBe('DELETE');
+    expect(last.matched_route).toBe('fabric.delete_alias_address');
+  });
+
+  it('aliasAddresses_delete error', async () => {
+    await mock.pushScenario('fabric.delete_alias_address', 500, { error: 'x' });
+    await expect(client.fabric.aliasAddresses.delete('x')).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('aliasAddresses_get success', async () => {
+    await client.fabric.aliasAddresses.get('x');
+    const last = await mock.last();
+    expect(last.method).toBe('GET');
+    expect(last.matched_route).toBe('fabric.get_alias_address');
+  });
+
+  it('aliasAddresses_get error', async () => {
+    await mock.pushScenario('fabric.get_alias_address', 500, { error: 'x' });
+    await expect(client.fabric.aliasAddresses.get('x')).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('aliasAddresses_list success', async () => {
+    await client.fabric.aliasAddresses.list();
+    const last = await mock.last();
+    expect(last.method).toBe('GET');
+    expect(last.matched_route).toBe('fabric.list_alias_addresses');
+  });
+
+  it('aliasAddresses_list error', async () => {
+    await mock.pushScenario('fabric.list_alias_addresses', 500, { error: 'x' });
+    await expect(client.fabric.aliasAddresses.list()).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('aliasAddresses_update success', async () => {
+    await client.fabric.aliasAddresses.update('x', {});
+    const last = await mock.last();
+    expect(last.method).toBe('PATCH');
+    expect(last.matched_route).toBe('fabric.update_alias_address');
+  });
+
+  it('aliasAddresses_update error', async () => {
+    await mock.pushScenario('fabric.update_alias_address', 500, { error: 'x' });
+    await expect(client.fabric.aliasAddresses.update('x', {})).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -238,7 +350,7 @@ describe('fabric wire (generated)', () => {
   });
 
   it('callFlows_update success', async () => {
-    await client.fabric.callFlows.update('x', {});
+    await client.fabric.callFlows.update('x', { document_version: 1 });
     const last = await mock.last();
     expect(last.method).toBe('PUT');
     expect(last.matched_route).toBe('fabric.update_call_flow');
@@ -246,13 +358,15 @@ describe('fabric wire (generated)', () => {
 
   it('callFlows_update error', async () => {
     await mock.pushScenario('fabric.update_call_flow', 500, { error: 'x' });
-    await expect(client.fabric.callFlows.update('x', {})).rejects.toThrow(RestError);
+    await expect(client.fabric.callFlows.update('x', { document_version: 1 })).rejects.toThrow(
+      RestError,
+    );
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
 
   it('conferenceRooms_create success', async () => {
-    await client.fabric.conferenceRooms.create({ name: 'x', enable_room_previews: false });
+    await client.fabric.conferenceRooms.create({ name: 'x' });
     const last = await mock.last();
     expect(last.method).toBe('POST');
     expect(last.matched_route).toBe('fabric.create_conference_room');
@@ -260,9 +374,7 @@ describe('fabric wire (generated)', () => {
 
   it('conferenceRooms_create error', async () => {
     await mock.pushScenario('fabric.create_conference_room', 500, { error: 'x' });
-    await expect(
-      client.fabric.conferenceRooms.create({ name: 'x', enable_room_previews: false }),
-    ).rejects.toThrow(RestError);
+    await expect(client.fabric.conferenceRooms.create({ name: 'x' })).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -324,10 +436,7 @@ describe('fabric wire (generated)', () => {
   });
 
   it('conferenceRooms_update success', async () => {
-    await client.fabric.conferenceRooms.update('x', {
-      enable_room_previews: false,
-      sync_audio_video: false,
-    });
+    await client.fabric.conferenceRooms.update('x', {});
     const last = await mock.last();
     expect(last.method).toBe('PUT');
     expect(last.matched_route).toBe('fabric.update_conference_room');
@@ -335,12 +444,7 @@ describe('fabric wire (generated)', () => {
 
   it('conferenceRooms_update error', async () => {
     await mock.pushScenario('fabric.update_conference_room', 500, { error: 'x' });
-    await expect(
-      client.fabric.conferenceRooms.update('x', {
-        enable_room_previews: false,
-        sync_audio_video: false,
-      }),
-    ).rejects.toThrow(RestError);
+    await expect(client.fabric.conferenceRooms.update('x', {})).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -416,7 +520,7 @@ describe('fabric wire (generated)', () => {
   });
 
   it('cxmlScripts_create success', async () => {
-    await client.fabric.cxmlScripts.create({ display_name: 'x', contents: 'x' });
+    await client.fabric.cxmlScripts.create({ contents: 'x', name: 'x' });
     const last = await mock.last();
     expect(last.method).toBe('POST');
     expect(last.matched_route).toBe('fabric.create_cxml_script');
@@ -424,9 +528,9 @@ describe('fabric wire (generated)', () => {
 
   it('cxmlScripts_create error', async () => {
     await mock.pushScenario('fabric.create_cxml_script', 500, { error: 'x' });
-    await expect(
-      client.fabric.cxmlScripts.create({ display_name: 'x', contents: 'x' }),
-    ).rejects.toThrow(RestError);
+    await expect(client.fabric.cxmlScripts.create({ contents: 'x', name: 'x' })).rejects.toThrow(
+      RestError,
+    );
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -673,6 +777,78 @@ describe('fabric wire (generated)', () => {
     expect(last.response_status).toBe(500);
   });
 
+  it('phoneNumberAddresses_create success', async () => {
+    await client.fabric.phoneNumberAddresses.create({ resource_id: 'x', handler_type: 'calling' });
+    const last = await mock.last();
+    expect(last.method).toBe('POST');
+    expect(last.matched_route).toBe('fabric.create_phone_number_address');
+  });
+
+  it('phoneNumberAddresses_create error', async () => {
+    await mock.pushScenario('fabric.create_phone_number_address', 500, { error: 'x' });
+    await expect(
+      client.fabric.phoneNumberAddresses.create({ resource_id: 'x', handler_type: 'calling' }),
+    ).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('phoneNumberAddresses_delete success', async () => {
+    await client.fabric.phoneNumberAddresses.delete('x');
+    const last = await mock.last();
+    expect(last.method).toBe('DELETE');
+    expect(last.matched_route).toBe('fabric.delete_phone_number_address');
+  });
+
+  it('phoneNumberAddresses_delete error', async () => {
+    await mock.pushScenario('fabric.delete_phone_number_address', 500, { error: 'x' });
+    await expect(client.fabric.phoneNumberAddresses.delete('x')).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('phoneNumberAddresses_get success', async () => {
+    await client.fabric.phoneNumberAddresses.get('x');
+    const last = await mock.last();
+    expect(last.method).toBe('GET');
+    expect(last.matched_route).toBe('fabric.get_phone_number_address');
+  });
+
+  it('phoneNumberAddresses_get error', async () => {
+    await mock.pushScenario('fabric.get_phone_number_address', 500, { error: 'x' });
+    await expect(client.fabric.phoneNumberAddresses.get('x')).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('phoneNumberAddresses_list success', async () => {
+    await client.fabric.phoneNumberAddresses.list();
+    const last = await mock.last();
+    expect(last.method).toBe('GET');
+    expect(last.matched_route).toBe('fabric.list_phone_number_addresses');
+  });
+
+  it('phoneNumberAddresses_list error', async () => {
+    await mock.pushScenario('fabric.list_phone_number_addresses', 500, { error: 'x' });
+    await expect(client.fabric.phoneNumberAddresses.list()).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('phoneNumberAddresses_update success', async () => {
+    await client.fabric.phoneNumberAddresses.update('x', {});
+    const last = await mock.last();
+    expect(last.method).toBe('PATCH');
+    expect(last.matched_route).toBe('fabric.update_phone_number_address');
+  });
+
+  it('phoneNumberAddresses_update error', async () => {
+    await mock.pushScenario('fabric.update_phone_number_address', 500, { error: 'x' });
+    await expect(client.fabric.phoneNumberAddresses.update('x', {})).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
   it('relayApplications_create success', async () => {
     await client.fabric.relayApplications.create({ name: 'x', topic: 'x' });
     const last = await mock.last();
@@ -791,6 +967,36 @@ describe('fabric wire (generated)', () => {
     expect(last.response_status).toBe(500);
   });
 
+  it('resources_assignSipEndpoint success', async () => {
+    await client.fabric.resources.assignSipEndpoint('x', 'x');
+    const last = await mock.last();
+    expect(last.method).toBe('POST');
+    expect(last.matched_route).toBe('fabric.assign_resource_sip_endpoint');
+  });
+
+  it('resources_assignSipEndpoint error', async () => {
+    await mock.pushScenario('fabric.assign_resource_sip_endpoint', 500, { error: 'x' });
+    await expect(client.fabric.resources.assignSipEndpoint('x', 'x')).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('resources_assignWhatsappNumber success', async () => {
+    await client.fabric.resources.assignWhatsappNumber('x', 'x', 'calling');
+    const last = await mock.last();
+    expect(last.method).toBe('POST');
+    expect(last.matched_route).toBe('fabric.assign_resource_whatsapp_number');
+  });
+
+  it('resources_assignWhatsappNumber error', async () => {
+    await mock.pushScenario('fabric.assign_resource_whatsapp_number', 500, { error: 'x' });
+    await expect(client.fabric.resources.assignWhatsappNumber('x', 'x', 'calling')).rejects.toThrow(
+      RestError,
+    );
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
   it('resources_delete success', async () => {
     await client.fabric.resources.delete('x');
     const last = await mock.last();
@@ -847,17 +1053,80 @@ describe('fabric wire (generated)', () => {
     expect(last.response_status).toBe(500);
   });
 
+  it('sipAddresses_create success', async () => {
+    await client.fabric.sipAddresses.create({ name: 'x', calling_handler_resource_id: 'x' });
+    const last = await mock.last();
+    expect(last.method).toBe('POST');
+    expect(last.matched_route).toBe('fabric.create_sip_address');
+  });
+
+  it('sipAddresses_create error', async () => {
+    await mock.pushScenario('fabric.create_sip_address', 500, { error: 'x' });
+    await expect(
+      client.fabric.sipAddresses.create({ name: 'x', calling_handler_resource_id: 'x' }),
+    ).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('sipAddresses_delete success', async () => {
+    await client.fabric.sipAddresses.delete('x');
+    const last = await mock.last();
+    expect(last.method).toBe('DELETE');
+    expect(last.matched_route).toBe('fabric.delete_sip_address');
+  });
+
+  it('sipAddresses_delete error', async () => {
+    await mock.pushScenario('fabric.delete_sip_address', 500, { error: 'x' });
+    await expect(client.fabric.sipAddresses.delete('x')).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('sipAddresses_get success', async () => {
+    await client.fabric.sipAddresses.get('x');
+    const last = await mock.last();
+    expect(last.method).toBe('GET');
+    expect(last.matched_route).toBe('fabric.get_sip_address');
+  });
+
+  it('sipAddresses_get error', async () => {
+    await mock.pushScenario('fabric.get_sip_address', 500, { error: 'x' });
+    await expect(client.fabric.sipAddresses.get('x')).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('sipAddresses_list success', async () => {
+    await client.fabric.sipAddresses.list();
+    const last = await mock.last();
+    expect(last.method).toBe('GET');
+    expect(last.matched_route).toBe('fabric.list_sip_addresses');
+  });
+
+  it('sipAddresses_list error', async () => {
+    await mock.pushScenario('fabric.list_sip_addresses', 500, { error: 'x' });
+    await expect(client.fabric.sipAddresses.list()).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
+  it('sipAddresses_update success', async () => {
+    await client.fabric.sipAddresses.update('x', {});
+    const last = await mock.last();
+    expect(last.method).toBe('PATCH');
+    expect(last.matched_route).toBe('fabric.update_sip_address');
+  });
+
+  it('sipAddresses_update error', async () => {
+    await mock.pushScenario('fabric.update_sip_address', 500, { error: 'x' });
+    await expect(client.fabric.sipAddresses.update('x', {})).rejects.toThrow(RestError);
+    const last = await mock.last();
+    expect(last.response_status).toBe(500);
+  });
+
   it('sipEndpoints_create success', async () => {
-    await client.fabric.sipEndpoints.create({
-      username: 'x',
-      caller_id: 'x',
-      send_as: 'x',
-      ciphers: [],
-      codecs: [],
-      encryption: 'required',
-      call_handler: 'default',
-      calling_handler_resource_id: 'x',
-    });
+    await client.fabric.sipEndpoints.create({ username: 'x', password: 'x' });
     const last = await mock.last();
     expect(last.method).toBe('POST');
     expect(last.matched_route).toBe('fabric.create_sip_endpoint');
@@ -866,16 +1135,7 @@ describe('fabric wire (generated)', () => {
   it('sipEndpoints_create error', async () => {
     await mock.pushScenario('fabric.create_sip_endpoint', 500, { error: 'x' });
     await expect(
-      client.fabric.sipEndpoints.create({
-        username: 'x',
-        caller_id: 'x',
-        send_as: 'x',
-        ciphers: [],
-        codecs: [],
-        encryption: 'required',
-        call_handler: 'default',
-        calling_handler_resource_id: 'x',
-      }),
+      client.fabric.sipEndpoints.create({ username: 'x', password: 'x' }),
     ).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
@@ -938,7 +1198,7 @@ describe('fabric wire (generated)', () => {
   });
 
   it('sipEndpoints_update success', async () => {
-    await client.fabric.sipEndpoints.update('x', { calling_handler_resource_id: 'x' });
+    await client.fabric.sipEndpoints.update('x', {});
     const last = await mock.last();
     expect(last.method).toBe('PUT');
     expect(last.matched_route).toBe('fabric.update_sip_endpoint');
@@ -946,9 +1206,7 @@ describe('fabric wire (generated)', () => {
 
   it('sipEndpoints_update error', async () => {
     await mock.pushScenario('fabric.update_sip_endpoint', 500, { error: 'x' });
-    await expect(
-      client.fabric.sipEndpoints.update('x', { calling_handler_resource_id: 'x' }),
-    ).rejects.toThrow(RestError);
+    await expect(client.fabric.sipEndpoints.update('x', {})).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -1038,7 +1296,13 @@ describe('fabric wire (generated)', () => {
   });
 
   it('sipGateways_update success', async () => {
-    await client.fabric.sipGateways.update('x', {});
+    await client.fabric.sipGateways.update('x', {
+      name: 'x',
+      uri: 'x',
+      encryption: 'required',
+      ciphers: [],
+      codecs: [],
+    });
     const last = await mock.last();
     expect(last.method).toBe('PATCH');
     expect(last.matched_route).toBe('fabric.update_sip_gateway');
@@ -1046,7 +1310,15 @@ describe('fabric wire (generated)', () => {
 
   it('sipGateways_update error', async () => {
     await mock.pushScenario('fabric.update_sip_gateway', 500, { error: 'x' });
-    await expect(client.fabric.sipGateways.update('x', {})).rejects.toThrow(RestError);
+    await expect(
+      client.fabric.sipGateways.update('x', {
+        name: 'x',
+        uri: 'x',
+        encryption: 'required',
+        ciphers: [],
+        codecs: [],
+      }),
+    ).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -1180,7 +1452,7 @@ describe('fabric wire (generated)', () => {
   });
 
   it('subscribers_update success', async () => {
-    await client.fabric.subscribers.update('x', { email: 'x' });
+    await client.fabric.subscribers.update('x', {});
     const last = await mock.last();
     expect(last.method).toBe('PUT');
     expect(last.matched_route).toBe('fabric.update_subscriber');
@@ -1188,7 +1460,7 @@ describe('fabric wire (generated)', () => {
 
   it('subscribers_update error', async () => {
     await mock.pushScenario('fabric.update_subscriber', 500, { error: 'x' });
-    await expect(client.fabric.subscribers.update('x', { email: 'x' })).rejects.toThrow(RestError);
+    await expect(client.fabric.subscribers.update('x', {})).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });
@@ -1394,7 +1666,7 @@ describe('fabric wire (generated)', () => {
   });
 
   it('tokens_createGuestToken success', async () => {
-    await client.fabric.tokens.createGuestToken([]);
+    await client.fabric.tokens.createGuestToken();
     const last = await mock.last();
     expect(last.method).toBe('POST');
     expect(last.matched_route).toBe('fabric.create_subscriber_guest_token');
@@ -1402,21 +1674,7 @@ describe('fabric wire (generated)', () => {
 
   it('tokens_createGuestToken error', async () => {
     await mock.pushScenario('fabric.create_subscriber_guest_token', 500, { error: 'x' });
-    await expect(client.fabric.tokens.createGuestToken([])).rejects.toThrow(RestError);
-    const last = await mock.last();
-    expect(last.response_status).toBe(500);
-  });
-
-  it('tokens_createInviteToken success', async () => {
-    await client.fabric.tokens.createInviteToken('x');
-    const last = await mock.last();
-    expect(last.method).toBe('POST');
-    expect(last.matched_route).toBe('fabric.create_subscriber_invite_token');
-  });
-
-  it('tokens_createInviteToken error', async () => {
-    await mock.pushScenario('fabric.create_subscriber_invite_token', 500, { error: 'x' });
-    await expect(client.fabric.tokens.createInviteToken('x')).rejects.toThrow(RestError);
+    await expect(client.fabric.tokens.createGuestToken()).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });

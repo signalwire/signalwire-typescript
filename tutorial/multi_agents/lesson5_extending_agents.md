@@ -791,7 +791,7 @@ const AGENT_TYPES = {
 
 interface AgentConfig {
   skills?: SkillBase[];
-  languages?: { name: string; code: string; voice?: string }[];
+  languages?: { name: string; code: string; voice: string }[];
 }
 
 /** Build and configure an agent of one of the known types. */

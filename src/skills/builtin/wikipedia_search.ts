@@ -3,7 +3,7 @@
  *
  * Tier 3 built-in skill: no external API key required. Uses the Wikipedia
  * REST API to fetch article summaries and extracts for any given topic.
- * Matches the Python SDK's `num_results` / `no_results_message` options.
+ * Configurable via the `num_results` / `no_results_message` options.
  */
 
 import { SkillBase, defineSkillTool } from '../SkillBase.js';
@@ -67,14 +67,13 @@ export class WikipediaSearchSkill extends SkillBase {
 
   /**
    * Resolved `num_results` value (populated in `setup()`).
-   * Public to mirror Python's `self.num_results` — accessible to subclasses
-   * and external test code inspecting skill state.
+   * Public — accessible to subclasses and to external test code inspecting
+   * skill state.
    */
   public numResults: number = 1;
   /**
    * Resolved `no_results_message` template (populated in `setup()`).
-   * Protected to mirror Python's `self.no_results_message` public visibility
-   * within the class hierarchy.
+   * Protected — visible within the class hierarchy.
    */
   protected noResultsMessage: string = DEFAULT_NO_RESULTS_MESSAGE;
 
@@ -97,10 +96,10 @@ export class WikipediaSearchSkill extends SkillBase {
   }
 
   /**
-   * Extract config values into instance state. Enforces `num_results >= 1`
-   * (matching Python `skill.py:_setup` `max(1, ...)` floor). The schema's
-   * `max: 5` handles the upper bound at validation time — no runtime clamp
-   * here, so callers passing larger values get the raw value as in Python.
+   * Extract config values into instance state. Enforces a `num_results >= 1`
+   * floor. The schema's `max: 5` handles the upper bound at validation time —
+   * there is no runtime clamp here, so a caller passing a larger value gets
+   * that raw value.
    */
   override async setup(): Promise<boolean> {
     // Match Python setup() which validates required packages and returns false
@@ -147,9 +146,8 @@ export class WikipediaSearchSkill extends SkillBase {
   /**
    * Search Wikipedia and return a formatted text summary.
    *
-   * Mirrors the Python `search_wiki()` public entry point so the logic can be
-   * tested and reused outside the SWAIG handler. Uses `num_results` to decide
-   * how many articles to aggregate.
+   * A public entry point, so the logic can be tested and reused outside the
+   * SWAIG handler. Uses `num_results` to decide how many articles to aggregate.
    *
    * @param query - Plain-text search term.
    * @returns Formatted text ready for display to the caller.
@@ -243,7 +241,7 @@ export class WikipediaSearchSkill extends SkillBase {
   }
 
   /**
-   * Fetch JSON with a 10-second timeout (matches Python `requests.get(..., timeout=10)`).
+   * Fetch JSON with a 10-second timeout.
    * Returns `null` on HTTP error or network failure, logging the cause so
    * diagnostic signal isn't silently lost.
    */

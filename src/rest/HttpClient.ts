@@ -13,7 +13,6 @@
 import { createRequire } from 'node:module';
 import { getLogger } from '../Logger.js';
 import { RestError, RestTransportError } from './RestError.js';
-import type { SignalWireErrorBody } from '../PlatformContracts.js';
 import type { HttpClientOptions, QueryParams } from './types.js';
 import {
   resolve,
@@ -30,7 +29,6 @@ const logger = getLogger('rest_client');
  * so a shipped example runs verbatim against the local mock
  * (SIGNALWIRE_SPACE=127.0.0.1:<port>) without a code change. A real SignalWire
  * space (`<name>.signalwire.com`) is never loopback, so production is unaffected.
- * Mirrors the python reference `rest/_base.py:_is_loopback_host`.
  *
  * Module-private (not exported) — an internal transport helper, not public API
  * surface. RestClient reaches it by passing `host` to this HttpClient rather
@@ -50,7 +48,7 @@ function isLoopbackHost(host: string): boolean {
  * REST client User-Agent, derived at runtime from the installed package version
  * so it can never drift from a hardcoded literal (the token used to be a stale
  * `@signalwire/sdk-ts/2.0.0` while the package moved on). The product token is
- * `signalwire-typescript`, mirroring the Python reference's `signalwire-python/<v>`.
+ * `signalwire-typescript`, giving the SignalWire `<product>/<version>` form.
  *
  * `../../package.json` resolves identically in both layouts — from `src/rest/`
  * during dev (tsx) and from `dist/rest/` when installed — since package.json
@@ -81,8 +79,7 @@ export function _userAgent(): string {
  * no aliases). When the env var names a CA bundle, it becomes the REST HTTP
  * client's TLS trust root — the exact REST half of the fleet pair
  * (`SIGNALWIRE_RELAY_CA_FILE` is the RELAY half). Unset → node's default trust
- * store (no dispatcher attached). Mirrors the python reference
- * (`rest/_base.py:163` — `session.verify = SIGNALWIRE_REST_CA_FILE`).
+ * store (no dispatcher attached).
  *
  * The result is cached per resolved file path so repeated requests reuse one
  * connection pool. Returns `undefined` when the env var is unset (or the file
@@ -180,7 +177,9 @@ export class HttpClient {
     body?: unknown,
     params?: QueryParams,
     requestOptions?: RequestOptionsInit,
+    extra: { headers?: Record<string, string>; response?: 'json' | 'text' | 'redirect' } = {},
   ): Promise<T> {
+    const responseKind = extra.response ?? 'json';
     let url = path.startsWith('http') ? path : `${this.baseUrl}${path}`;
 
     if (params) {
@@ -203,6 +202,8 @@ export class HttpClient {
     if (body !== undefined) {
       headers['Content-Type'] = 'application/json';
     }
+    // Per-call headers (declared header params, a non-JSON success's Accept).
+    if (extra.headers) Object.assign(headers, extra.headers);
     const encodedBody = body !== undefined ? JSON.stringify(body) : undefined;
 
     // total attempts = retries + 1; retry on a retryable status (idempotency-
@@ -228,6 +229,8 @@ export class HttpClient {
           body: encodedBody,
           signal: this._attemptSignal(opts),
         };
+        // A redirect-answer endpoint: never follow — its Location IS the answer.
+        if (responseKind === 'redirect') init.redirect = 'manual';
         const dispatcher = restCaDispatcher();
         if (dispatcher !== undefined) init.dispatcher = dispatcher;
         resp = await this._fetch(url, init as RequestInit);
@@ -248,6 +251,17 @@ export class HttpClient {
         throw new RestTransportError(message, url, method);
       }
 
+      if (responseKind === 'redirect' && resp.status < 400) {
+        const location = resp.headers.get('Location');
+        if (resp.status >= 300 && location) return location as T;
+        // A success that is not the redirect the endpoint answers with.
+        const respHeaders: Record<string, string> = {};
+        resp.headers.forEach((v, k) => {
+          respHeaders[k] = v;
+        });
+        throw new RestError(resp.status, await resp.text(), url, method, respHeaders);
+      }
+
       if (!resp.ok) {
         if (attempt <= opts.retries && statusIsRetryable(method, resp.status, opts)) {
           let delay = this._retryAfterSeconds(resp);
@@ -256,9 +270,10 @@ export class HttpClient {
           continue;
         }
         const text = await resp.text();
-        let errBody: string | SignalWireErrorBody = text;
+        let errBody: RestError['body'] = text;
         try {
-          errBody = JSON.parse(text) as SignalWireErrorBody;
+          // Any JSON value is a member of RestError['body'], so this cast is sound.
+          errBody = JSON.parse(text) as RestError['body'];
         } catch {
           // Response was not valid JSON — keep as plain string.
         }
@@ -270,6 +285,8 @@ export class HttpClient {
         });
         throw new RestError(resp.status, errBody, url, method, respHeaders);
       }
+
+      if (responseKind === 'text') return (await resp.text()) as T;
 
       if (resp.status === 204) {
         return {} as T;
@@ -307,6 +324,7 @@ export class HttpClient {
    * @param path - Absolute URL or path relative to {@link HttpClient.baseUrl}.
    * @param params - Optional query parameters; `undefined` values are skipped.
    * @param requestOptions - Optional per-request transport envelope override.
+   * @param options - Per-call extras: `headers` are added to the request.
    * @returns The parsed JSON body, or `{}` on `204 No Content`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
@@ -314,8 +332,56 @@ export class HttpClient {
     path: string,
     params?: QueryParams,
     requestOptions?: RequestOptionsInit,
+    options?: { headers?: Record<string, string> },
   ): Promise<T> {
-    return this._request<T>('GET', path, undefined, params, requestOptions);
+    return this._request<T>('GET', path, undefined, params, requestOptions, {
+      headers: options?.headers,
+    });
+  }
+
+  /**
+   * Perform an authenticated HTTP GET whose success body is NOT JSON (e.g.
+   * `text/csv`) and return it as text. Pass that media type as the `Accept`
+   * header. Errors are raised exactly as {@link HttpClient.get}.
+   *
+   * @param path - Absolute URL or path relative to {@link HttpClient.baseUrl}.
+   * @param params - Optional query parameters; `undefined` values are skipped.
+   * @param requestOptions - Optional per-request transport envelope override.
+   * @param options - Per-call extras: `headers` are added to the request.
+   * @returns The response body as text.
+   * @throws {RestError} On any non-2xx HTTP response.
+   */
+  async getText(
+    path: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+    options?: { headers?: Record<string, string> },
+  ): Promise<string> {
+    return this._request<string>('GET', path, undefined, params, requestOptions, {
+      headers: options?.headers,
+      response: 'text',
+    });
+  }
+
+  /**
+   * Perform an authenticated HTTP GET whose success IS a redirect and return its
+   * `Location`. The redirect is not followed: the endpoint's answer is the URL of
+   * the resource (e.g. a signed download URL), fetched with any HTTP client.
+   *
+   * @param path - Absolute URL or path relative to {@link HttpClient.baseUrl}.
+   * @param params - Optional query parameters; `undefined` values are skipped.
+   * @param requestOptions - Optional per-request transport envelope override.
+   * @returns The redirect target URL.
+   * @throws {RestError} On an error status, or a success that is not a redirect.
+   */
+  async getRedirectLocation(
+    path: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<string> {
+    return this._request<string>('GET', path, undefined, params, requestOptions, {
+      response: 'redirect',
+    });
   }
 
   /**
@@ -326,6 +392,7 @@ export class HttpClient {
    * @param body - JSON-serialisable request body. Omit to send no body.
    * @param params - Optional query parameters appended to the URL.
    * @param requestOptions - Optional per-request transport envelope override.
+   * @param options - Per-call extras: `headers` are added to the request.
    * @returns The parsed JSON body, or `{}` on `204 No Content`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
@@ -334,8 +401,11 @@ export class HttpClient {
     body?: unknown,
     params?: QueryParams,
     requestOptions?: RequestOptionsInit,
+    options?: { headers?: Record<string, string> },
   ): Promise<T> {
-    return this._request<T>('POST', path, body, params, requestOptions);
+    return this._request<T>('POST', path, body, params, requestOptions, {
+      headers: options?.headers,
+    });
   }
 
   /**

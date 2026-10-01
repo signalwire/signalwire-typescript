@@ -23,10 +23,21 @@ The constructor accepts these options:
 | `project` | `string` | Project ID. Falls back to `SIGNALWIRE_PROJECT_ID`. |
 | `token` | `string` | API token. Falls back to `SIGNALWIRE_API_TOKEN`. |
 | `host` | `string` | A bare host (`example.signalwire.com`) or a full `http(s)://` URL. Falls back to `SIGNALWIRE_REST_BASE_URL`, then `SIGNALWIRE_SPACE`. |
+| `personalAccessToken` | `string` | A user's Personal Access Token (`pat_...`), which authenticates `client.space` (the Space Administration API). Falls back to `SIGNALWIRE_PERSONAL_ACCESS_TOKEN`. |
 | `requestOptions` | `RequestOptionsInit` | Default timeout, retry and abort settings for every request. See [Request Options](guide.md#request-options-timeout-retries-abort). |
 | `fetchImpl` | `typeof fetch` | A replacement `fetch`, for tests. |
 
-If `project`, `token` or `host` is missing from both the options and the environment, the constructor throws an `Error`. Authentication uses HTTP Basic Auth with `project:token`.
+The constructor throws an `Error` when `host` is missing, or when neither a complete `project` + `token` pair nor a `personalAccessToken` is given (each from its option or its environment variable). Project resources authenticate with HTTP Basic Auth `project:token`; `client.space` authenticates with the Personal Access Token (HTTP Basic with an empty username). Either credential, or both, may be given: calling a resource whose credential the client was not given rejects with an `Error` naming it, before any request is sent.
+
+```typescript
+import { RestClient } from '@signalwire/sdk';
+
+const admin = new RestClient({
+  personalAccessToken: 'pat_...', // SIGNALWIRE_PERSONAL_ACCESS_TOKEN
+  host: 'example.signalwire.com',
+});
+const members = await admin.space.members.list();
+```
 
 The `restClient(options?)` function, also exported from `@signalwire/sdk`, constructs the same client.
 

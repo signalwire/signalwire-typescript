@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { AuthHandler } from '../src/AuthHandler.js';
+import { AuthHandler, BasicCredentials, BearerCredentials } from '../src/AuthHandler.js';
 
 describe('AuthHandler', () => {
   it('validates Bearer token', async () => {
@@ -38,6 +38,76 @@ describe('AuthHandler', () => {
     const encoded = Buffer.from('admin:wrong').toString('base64');
     const valid = await auth.validate({ authorization: `Basic ${encoded}` });
     expect(valid).toBe(false);
+  });
+
+  // ── RFC 7235 auth-scheme case-insensitivity ──────────────────────────
+  // The reference (FastAPI HTTPBearer/HTTPBasic) partitions the header on the
+  // first space and compares `scheme.lower() != "bearer"` / `!= "basic"`, so a
+  // legal lowercase scheme token authenticates. A case-sensitive port 401s it.
+
+  it('accepts a lowercase `bearer` scheme token', async () => {
+    const auth = new AuthHandler({ bearerToken: 'my-secret-token' });
+    expect(await auth.validate({ authorization: 'bearer my-secret-token' })).toBe(true);
+  });
+
+  it('accepts a mixed-case `BeArEr` scheme token', async () => {
+    const auth = new AuthHandler({ bearerToken: 'my-secret-token' });
+    expect(await auth.validate({ authorization: 'BeArEr my-secret-token' })).toBe(true);
+  });
+
+  it('accepts a lowercase `basic` scheme token', async () => {
+    const auth = new AuthHandler({ basicAuth: ['admin', 'pass123'] });
+    const encoded = Buffer.from('admin:pass123').toString('base64');
+    expect(await auth.validate({ authorization: `basic ${encoded}` })).toBe(true);
+  });
+
+  it('accepts a mixed-case `BaSiC` scheme token', async () => {
+    const auth = new AuthHandler({ basicAuth: ['admin', 'pass123'] });
+    const encoded = Buffer.from('admin:pass123').toString('base64');
+    expect(await auth.validate({ authorization: `BaSiC ${encoded}` })).toBe(true);
+  });
+
+  // Case-insensitivity must not widen the scheme set: a wrong scheme, a scheme
+  // whose name merely starts with the right token, a cross-branch scheme, and a
+  // scheme-less header all stay rejected.
+
+  it('still rejects wrong schemes on the Bearer branch', async () => {
+    const auth = new AuthHandler({ bearerToken: 'my-secret-token' });
+    for (const header of [
+      'Digest my-secret-token',
+      'Negotiate my-secret-token',
+      'Bearerx my-secret-token',
+      'bearerx my-secret-token',
+      'Basic my-secret-token',
+      'my-secret-token',
+    ]) {
+      expect(await auth.validate({ authorization: header })).toBe(false);
+    }
+  });
+
+  it('still rejects wrong schemes on the Basic branch', async () => {
+    const auth = new AuthHandler({ basicAuth: ['admin', 'pass123'] });
+    const encoded = Buffer.from('admin:pass123').toString('base64');
+    for (const header of [
+      `Digest ${encoded}`,
+      `Negotiate ${encoded}`,
+      `Basicx ${encoded}`,
+      `basicx ${encoded}`,
+      `Bearer ${encoded}`,
+      `${encoded}`,
+    ]) {
+      expect(await auth.validate({ authorization: header })).toBe(false);
+    }
+  });
+
+  it('rejects a colon-less Basic payload regardless of scheme case', async () => {
+    // The reference does `username, separator, password = data.partition(":")`
+    // and raises when `not separator`, so a payload with no colon is rejected
+    // outright — it must never authenticate as user-with-empty-password.
+    const auth = new AuthHandler({ basicAuth: ['admin', ''] });
+    const encoded = Buffer.from('admin').toString('base64');
+    expect(await auth.validate({ authorization: `Basic ${encoded}` })).toBe(false);
+    expect(await auth.validate({ authorization: `basic ${encoded}` })).toBe(false);
   });
 
   it('validates custom validator', async () => {
@@ -133,5 +203,58 @@ describe('AuthHandler', () => {
     });
     expect(nextCalled).toBe(false);
     expect((result as { status: number }).status).toBe(401);
+  });
+
+  // The credential carriers are the parity contract with the Python reference:
+  // verify_basic_auth takes a {username, password} record and verify_bearer_token
+  // takes a {scheme, credentials} record. These verify the fields are load-bearing
+  // (each is actually compared) rather than decorative.
+  describe('credential carriers', () => {
+    it('BasicCredentials carries the username/password pair verbatim', () => {
+      const c = new BasicCredentials('alice', 'hunter2');
+      expect(c.username).toBe('alice');
+      expect(c.password).toBe('hunter2');
+    });
+
+    it('BearerCredentials carries the scheme/credentials pair verbatim', () => {
+      const c = new BearerCredentials('Bearer', 'tok-abc');
+      expect(c.scheme).toBe('Bearer');
+      expect(c.credentials).toBe('tok-abc');
+    });
+
+    it('verifyBasicAuth accepts the configured pair and compares BOTH fields', () => {
+      const h = new AuthHandler({ basicAuth: ['alice', 'hunter2'] });
+      expect(h.verifyBasicAuth(new BasicCredentials('alice', 'hunter2'))).toBe(true);
+      // Each field independently participates in the comparison.
+      expect(h.verifyBasicAuth(new BasicCredentials('bob', 'hunter2'))).toBe(false);
+      expect(h.verifyBasicAuth(new BasicCredentials('alice', 'wrong'))).toBe(false);
+    });
+
+    it('verifyBasicAuth returns false when Basic auth is not configured', () => {
+      const h = new AuthHandler({ bearerToken: 'tok' });
+      expect(h.verifyBasicAuth(new BasicCredentials('alice', 'hunter2'))).toBe(false);
+    });
+
+    it('verifyBearerToken compares the credentials field, not the scheme', () => {
+      const h = new AuthHandler({ bearerToken: 'tok-abc' });
+      expect(h.verifyBearerToken(new BearerCredentials('Bearer', 'tok-abc'))).toBe(true);
+      expect(h.verifyBearerToken(new BearerCredentials('Bearer', 'tok-wrong'))).toBe(false);
+      // The scheme is carried for header fidelity but is NOT the secret compared —
+      // same as the Python reference, which reads only `.credentials`.
+      expect(h.verifyBearerToken(new BearerCredentials('Token', 'tok-abc'))).toBe(true);
+    });
+
+    it('verifyBearerToken returns false when Bearer auth is not configured', () => {
+      const h = new AuthHandler({ apiKey: 'k' });
+      expect(h.verifyBearerToken(new BearerCredentials('Bearer', 'tok-abc'))).toBe(false);
+    });
+
+    it('validate() routes header parsing through the carriers', async () => {
+      const h = new AuthHandler({ basicAuth: ['alice', 'hunter2'] });
+      const encoded = Buffer.from('alice:hunter2').toString('base64');
+      expect(await h.validate({ authorization: `Basic ${encoded}` })).toBe(true);
+      const wrong = Buffer.from('alice:nope').toString('base64');
+      expect(await h.validate({ authorization: `Basic ${wrong}` })).toBe(false);
+    });
   });
 });

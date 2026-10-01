@@ -26,14 +26,21 @@ jobs:
         with:
           path: signalwire-typescript
 
+      - name: Resolve coordinated refs (branch-local .github/porting-sdk-ref pin; no pin = main)
+        # See porting-sdk/COORDINATED_PASS.md. Every foreign coordinated-set
+        # checkout below takes its ref from this step's outputs.
+        id: coord
+        shell: bash
+        run: bash signalwire-typescript/.github/coordinated-ref.sh signalwire-typescript
+
       - name: Checkout porting-sdk (mock servers + audit scripts + EMISSION corpus)
         uses: actions/checkout@v7
         with:
           repository: signalwire/porting-sdk
-          # Coordinated-pass pin: 'main' normally; set the PORTING_SDK_REF repo variable
-          # to a wave branch to test a coordinated porting-sdk change, declared on the PR
-          # (see porting-sdk/COORDINATED_PASS.md). No revert commit.
-          ref: ${{ vars.PORTING_SDK_REF || 'main' }}
+          # Coordinated-pass pin: resolved by the `coord` step from the branch-local
+          # .github/porting-sdk-ref pin file; main when the file is absent, so only a branch
+          # that commits the pin is affected (see porting-sdk/COORDINATED_PASS.md).
+          ref: ${{ steps.coord.outputs.ref }}
           path: porting-sdk
           token: ${{ secrets.PORTING_SDK_TOKEN }}
 
@@ -49,7 +56,7 @@ jobs:
           # CI-PIN (Wave 1): the reference's Wave-1 changes (PY-1..9, incl PY-7
           # request_options) live on signalwire-python wave/1-aplus (PR #67), not
           # yet on main. REVERT to main when signalwire-python wave/1-aplus merges.
-          ref: ${{ vars.PORTING_SDK_REF || 'main' }}
+          ref: ${{ steps.coord.outputs.ref_python }}
 
       # run-ci.sh's TEST/SIGNATURES/SURFACE-FRESH/EMISSION gates drive vitest /
       # tsx; the script expects Node 24 (it prepends a local nvm path when
@@ -68,6 +75,26 @@ jobs:
         run: |
           pip install -e porting-sdk/test_harness/mock_relay
           pip install -e porting-sdk/test_harness/mock_signalwire
+
+      # scripts/run-py-lint.sh and run-py-format.sh fail LOUD when ruff is
+      # absent rather than skipping, so PY-LINT/PY-FMT cannot pass vacuously on
+      # a runner that lacks it — hence this explicit install rather than relying
+      # on it being preinstalled. Without it the gates red with "ruff not found
+      # on PATH", which is a missing CI dep, not a code finding.
+      #
+      # PINNED EXACT. An unbounded `pip install ruff` resolves whatever is newest
+      # at CI time, so a ruff release that adds a rule or changes a format
+      # heuristic turns PY-LINT/PY-FMT red on a commit that was green locally —
+      # the VERSION changed, not the code. 0.15.21 is the fleet-wide ruff
+      # (signalwire-python/perl/php pin the same). Bump it in every port at once,
+      # with the resulting fixes in the same commit.
+      - name: Install ruff (PY-LINT / PY-FMT gates)
+        run: |
+          pip install "ruff==0.15.21"
+          # Assert the pin actually took: pip can satisfy a spec from an
+          # unexpected index or cache, so verify rather than assume.
+          ruff --version
+          ruff --version | grep -qw '0\.15\.21' || { echo "FATAL: ruff is not the pinned 0.15.21" >&2; exit 1; }
 
       - name: Install signalwire-python (EMISSION oracle) if not importable
         run: |
@@ -92,11 +119,18 @@ jobs:
       # binary and fails LOUD when it is absent (never a silent skip), so install
       # it before run-ci. Official installer drops the binary in the cwd; move it
       # onto PATH.
+      #
+      # VERSION PINNED. With no version argument the installer takes `latest`, so
+      # a new actionlint release (they add checks regularly) fails the ACTIONLINT
+      # gate on an UNCHANGED workflow file, while local dev — on whatever
+      # `brew install actionlint` last fetched — still passes. Keep in lockstep
+      # with SW_ACTIONLINT_VERSION in scripts/_env.sh.
       - name: Install actionlint (ACTIONLINT gate)
         run: |
-          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) 1.7.12
           sudo mv ./actionlint /usr/local/bin/actionlint
           actionlint --version
+          actionlint --version | grep -qw '1\.7\.12' || { echo "FATAL: actionlint is not the pinned 1.7.12" >&2; exit 1; }
 
       - name: npm ci
         working-directory: signalwire-typescript

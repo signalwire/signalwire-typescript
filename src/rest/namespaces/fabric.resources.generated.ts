@@ -1,4 +1,4 @@
-// AUTO-GENERATED from porting-sdk/rest-apis/fabric/openapi.yaml — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/rest-apis/fabric/openapi.enriched.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-rest-types.ts
 //
 // One typed resource class per x-sdk-resource: CRUD bases bound to the
@@ -10,13 +10,20 @@ import type { HttpClient } from '../HttpClient.js';
 import type { RequestOptionsInit } from '../RequestOptions.js';
 import type { QueryParams } from '../types.js';
 import { BaseResource } from '../base/BaseResource.js';
+import { CrudResource } from '../base/CrudResource.js';
 import { FabricResource } from '../base/FabricResource.js';
 import { ReadResource } from '../base/ReadResource.js';
 import type {
+  AIAgentConversationLogListResponse,
   AIAgentCreateRequest,
   AIAgentListResponse,
   AIAgentResponse,
   AIAgentUpdateRequest,
+  AIAgentVoice,
+  AliasAddress,
+  AliasAddressCreateRequest,
+  AliasAddressListResponse,
+  AliasAddressUpdateRequest,
   CXMLScriptCreateRequest,
   CXMLScriptListResponse,
   CXMLScriptResponse,
@@ -46,12 +53,16 @@ import type {
   DomainApplicationResponse,
   EmbedsTokensResponse,
   Encryption,
-  FabricAddress,
-  FabricAddressesResponse,
+  FabricAddressItem,
+  FabricAddressListResponse,
   FreeswitchConnectorCreateRequest,
   FreeswitchConnectorListResponse,
   FreeswitchConnectorResponse,
   FreeswitchConnectorUpdateRequest,
+  PhoneNumberAddress,
+  PhoneNumberAddressCreateRequest,
+  PhoneNumberAddressListResponse,
+  PhoneNumberAddressUpdateRequest,
   PhoneRouteResponse,
   RelayApplicationCreateRequest,
   RelayApplicationListResponse,
@@ -60,10 +71,15 @@ import type {
   ResourceAddressListResponse,
   ResourceListResponse,
   ResourceResponse,
+  ResourceResponseSipEndpoint,
   SWMLWebhookCreateRequest,
   SWMLWebhookListResponse,
   SWMLWebhookResponse,
   SWMLWebhookUpdateRequest,
+  SipAddress,
+  SipAddressCreateRequest,
+  SipAddressListResponse,
+  SipAddressUpdateRequest,
   SipEndpointCreateRequest,
   SipEndpointListResponse,
   SipEndpointResponse,
@@ -73,7 +89,6 @@ import type {
   SipGatewayRequestUpdate,
   SipGatewayResponse,
   SubscriberGuestTokenCreateResponse,
-  SubscriberInviteTokenCreateResponse,
   SubscriberListResponse,
   SubscriberRefreshTokenResponse,
   SubscriberRequest,
@@ -81,18 +96,133 @@ import type {
   SubscriberSIPEndpoint,
   SubscriberSipEndpointListResponse,
   SubscriberTokenResponse,
+  SubscriberUpdateRequest,
   SwmlScriptCreateRequest,
   SwmlScriptListResponse,
   SwmlScriptResponse,
   SwmlScriptUpdateRequest,
   UsedForType,
+  WhatsappNumberAddressResponse,
   jwt,
   uuid,
 } from './fabric.types.generated.js';
 
-export class FabricAddresses extends ReadResource<FabricAddressesResponse, FabricAddress> {
+export class AliasAddresses extends CrudResource<
+  AliasAddressListResponse,
+  AliasAddress,
+  AliasAddressCreateRequest,
+  AliasAddressUpdateRequest
+> {
+  constructor(http: HttpClient) {
+    super(http, '/api/fabric/addresses/alias');
+  }
+
+  /** Create — typed request body plus an `extras` escape hatch for fields not yet typed. */
+  override async create(
+    body: AliasAddressCreateRequest,
+    extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<AliasAddress> {
+    return this._http.post<AliasAddress>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
+  }
+
+  /** Update — typed request body plus an `extras` escape hatch. */
+  override async update(
+    id: string,
+    body: AliasAddressUpdateRequest,
+    extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<AliasAddress> {
+    return this._http.patch<AliasAddress>(this._path(id), { ...body, ...extras }, requestOptions);
+  }
+}
+
+export class SipAddresses extends CrudResource<
+  SipAddressListResponse,
+  SipAddress,
+  SipAddressCreateRequest,
+  SipAddressUpdateRequest
+> {
+  constructor(http: HttpClient) {
+    super(http, '/api/fabric/addresses/sip');
+  }
+
+  /** Create — typed request body plus an `extras` escape hatch for fields not yet typed. */
+  override async create(
+    body: SipAddressCreateRequest,
+    extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<SipAddress> {
+    return this._http.post<SipAddress>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
+  }
+
+  /** Update — typed request body plus an `extras` escape hatch. */
+  override async update(
+    id: string,
+    body: SipAddressUpdateRequest,
+    extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<SipAddress> {
+    return this._http.patch<SipAddress>(this._path(id), { ...body, ...extras }, requestOptions);
+  }
+}
+
+export class PhoneNumberAddresses extends CrudResource<
+  PhoneNumberAddressListResponse,
+  PhoneNumberAddress,
+  PhoneNumberAddressCreateRequest,
+  PhoneNumberAddressUpdateRequest
+> {
+  constructor(http: HttpClient) {
+    super(http, '/api/fabric/addresses/phone');
+  }
+
+  /** Create — typed request body plus an `extras` escape hatch for fields not yet typed. */
+  override async create(
+    body: PhoneNumberAddressCreateRequest,
+    extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<PhoneNumberAddress> {
+    return this._http.post<PhoneNumberAddress>(
+      this._basePath,
+      { ...body, ...extras },
+      undefined,
+      requestOptions,
+    );
+  }
+
+  /** Update — typed request body plus an `extras` escape hatch. */
+  override async update(
+    id: string,
+    body: PhoneNumberAddressUpdateRequest,
+    extras?: Record<string, unknown>,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<PhoneNumberAddress> {
+    return this._http.patch<PhoneNumberAddress>(
+      this._path(id),
+      { ...body, ...extras },
+      requestOptions,
+    );
+  }
+}
+
+export class FabricAddresses extends ReadResource<FabricAddressListResponse, FabricAddressItem> {
   constructor(http: HttpClient) {
     super(http, '/api/fabric/addresses');
+  }
+
+  async delete(id: string, requestOptions?: RequestOptionsInit): Promise<Record<string, unknown>> {
+    return this._http.delete<Record<string, unknown>>(this._path(id), requestOptions);
   }
 }
 
@@ -173,6 +303,48 @@ export class GenericResources extends BaseResource {
       requestOptions,
     );
   }
+
+  async assignSipEndpoint(
+    id: string,
+    sip_endpoint_id: uuid,
+    options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
+  ): Promise<ResourceResponseSipEndpoint> {
+    const body: Record<string, unknown> = {};
+    const _fields = {
+      sip_endpoint_id,
+    };
+    for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
+    if (options?.extras) Object.assign(body, options.extras);
+    return this._http.post<ResourceResponseSipEndpoint>(
+      this._path(id, 'sip_endpoints'),
+      body,
+      undefined,
+      requestOptions,
+    );
+  }
+
+  async assignWhatsappNumber(
+    id: string,
+    whatsapp_number_id: uuid,
+    handler: UsedForType,
+    options?: { extras?: Record<string, unknown> },
+    requestOptions?: RequestOptionsInit,
+  ): Promise<WhatsappNumberAddressResponse> {
+    const body: Record<string, unknown> = {};
+    const _fields = {
+      whatsapp_number_id,
+      handler,
+    };
+    for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
+    if (options?.extras) Object.assign(body, options.extras);
+    return this._http.post<WhatsappNumberAddressResponse>(
+      this._path(id, 'whatsapp_numbers'),
+      body,
+      undefined,
+      requestOptions,
+    );
+  }
 }
 
 export class AiAgents extends FabricResource<
@@ -209,6 +381,25 @@ export class AiAgents extends FabricResource<
     return this._http.patch<AIAgentResponse>(
       this._path(id),
       { ...body, ...extras },
+      requestOptions,
+    );
+  }
+
+  async listVoices(
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<AIAgentVoice[]> {
+    return this._http.get<AIAgentVoice[]>(this._path('voices'), params, requestOptions);
+  }
+
+  async listConversationLogs(
+    ai_agent_id: string,
+    params?: QueryParams,
+    requestOptions?: RequestOptionsInit,
+  ): Promise<AIAgentConversationLogListResponse> {
+    return this._http.get<AIAgentConversationLogListResponse>(
+      this._path(ai_agent_id, 'conversation_logs'),
+      params,
       requestOptions,
     );
   }
@@ -256,7 +447,7 @@ export class CallFlows extends FabricResource<
     requestOptions?: RequestOptionsInit,
   ): Promise<CallFlowAddressListResponse> {
     return this._http.get<CallFlowAddressListResponse>(
-      `/api/fabric/resources/call_flow/${id}/addresses`,
+      this._path(id, 'addresses'),
       params,
       requestOptions,
     );
@@ -268,7 +459,7 @@ export class CallFlows extends FabricResource<
     requestOptions?: RequestOptionsInit,
   ): Promise<CallFlowVersionListResponse> {
     return this._http.get<CallFlowVersionListResponse>(
-      `/api/fabric/resources/call_flow/${id}/versions`,
+      this._path(id, 'versions'),
       params,
       requestOptions,
     );
@@ -281,7 +472,7 @@ export class CallFlows extends FabricResource<
     requestOptions?: RequestOptionsInit,
   ): Promise<CallFlowVersionDeployResponse> {
     return this._http.post<CallFlowVersionDeployResponse>(
-      `/api/fabric/resources/call_flow/${id}/versions`,
+      this._path(id, 'versions'),
       { ...body, ...extras },
       undefined,
       requestOptions,
@@ -335,7 +526,7 @@ export class ConferenceRooms extends FabricResource<
     requestOptions?: RequestOptionsInit,
   ): Promise<ConferenceRoomAddressListResponse> {
     return this._http.get<ConferenceRoomAddressListResponse>(
-      `/api/fabric/resources/conference_room/${id}/addresses`,
+      this._path(id, 'addresses'),
       params,
       requestOptions,
     );
@@ -365,40 +556,38 @@ export class CxmlApplications extends BaseResource {
   async update(
     id: string,
     options?: {
-      display_name?: string;
-      account_sid?: uuid;
-      voice_url?: string;
-      voice_method?: 'GET' | 'POST';
-      voice_fallback_url?: string;
-      voice_fallback_method?: 'GET' | 'POST';
-      status_callback?: string;
-      status_callback_method?: 'GET' | 'POST';
-      sms_url?: string;
-      sms_method?: 'GET' | 'POST';
-      sms_fallback_url?: string;
-      sms_fallback_method?: 'GET' | 'POST';
-      sms_status_callback?: string;
-      sms_status_callback_method?: 'GET' | 'POST';
+      name?: string;
+      call_request_url?: string;
+      call_request_method?: 'GET' | 'POST';
+      call_fallback_url?: string;
+      call_fallback_method?: 'GET' | 'POST';
+      call_status_url?: string;
+      call_status_method?: 'GET' | 'POST';
+      message_request_url?: string;
+      message_request_method?: 'GET' | 'POST';
+      message_fallback_url?: string;
+      message_fallback_method?: 'GET' | 'POST';
+      message_status_url?: string;
+      message_status_method?: 'GET' | 'POST';
       extras?: Record<string, unknown>;
     },
     requestOptions?: RequestOptionsInit,
   ): Promise<CxmlApplicationResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
-      display_name: options?.display_name,
-      account_sid: options?.account_sid,
-      voice_url: options?.voice_url,
-      voice_method: options?.voice_method,
-      voice_fallback_url: options?.voice_fallback_url,
-      voice_fallback_method: options?.voice_fallback_method,
-      status_callback: options?.status_callback,
-      status_callback_method: options?.status_callback_method,
-      sms_url: options?.sms_url,
-      sms_method: options?.sms_method,
-      sms_fallback_url: options?.sms_fallback_url,
-      sms_fallback_method: options?.sms_fallback_method,
-      sms_status_callback: options?.sms_status_callback,
-      sms_status_callback_method: options?.sms_status_callback_method,
+      name: options?.name,
+      call_request_url: options?.call_request_url,
+      call_request_method: options?.call_request_method,
+      call_fallback_url: options?.call_fallback_url,
+      call_fallback_method: options?.call_fallback_method,
+      call_status_url: options?.call_status_url,
+      call_status_method: options?.call_status_method,
+      message_request_url: options?.message_request_url,
+      message_request_method: options?.message_request_method,
+      message_fallback_url: options?.message_fallback_url,
+      message_fallback_method: options?.message_fallback_method,
+      message_status_url: options?.message_status_url,
+      message_status_method: options?.message_status_method,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
@@ -668,7 +857,7 @@ export class Subscribers extends FabricResource<
   SubscriberListResponse,
   SubscriberResponse,
   SubscriberRequest,
-  SubscriberRequest
+  SubscriberUpdateRequest
 > {
   protected override _updateMethod: 'PATCH' | 'PUT' = 'PUT';
 
@@ -693,7 +882,7 @@ export class Subscribers extends FabricResource<
   /** Update — typed request body plus an `extras` escape hatch. */
   override async update(
     id: string,
-    body: SubscriberRequest,
+    body: SubscriberUpdateRequest,
     extras?: Record<string, unknown>,
     requestOptions?: RequestOptionsInit,
   ): Promise<SubscriberResponse> {
@@ -897,6 +1086,7 @@ export class FabricTokens extends BaseResource {
   async createSubscriberToken(
     reference: string,
     options?: {
+      ch?: string;
       expire_at?: number;
       application_id?: uuid;
       password?: string;
@@ -908,6 +1098,8 @@ export class FabricTokens extends BaseResource {
       country?: string;
       region?: string;
       company_name?: string;
+      scope?: 'sat:refresh';
+      fingerprint?: string;
       extras?: Record<string, unknown>;
     },
     requestOptions?: RequestOptionsInit,
@@ -915,6 +1107,7 @@ export class FabricTokens extends BaseResource {
     const body: Record<string, unknown> = {};
     const _fields = {
       reference,
+      ch: options?.ch,
       expire_at: options?.expire_at,
       application_id: options?.application_id,
       password: options?.password,
@@ -926,6 +1119,8 @@ export class FabricTokens extends BaseResource {
       country: options?.country,
       region: options?.region,
       company_name: options?.company_name,
+      scope: options?.scope,
+      fingerprint: options?.fingerprint,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
@@ -956,35 +1151,38 @@ export class FabricTokens extends BaseResource {
     );
   }
 
-  async createInviteToken(
-    address_id: uuid,
-    options?: { expires_at?: number; extras?: Record<string, unknown> },
-    requestOptions?: RequestOptionsInit,
-  ): Promise<SubscriberInviteTokenCreateResponse> {
-    const body: Record<string, unknown> = {};
-    const _fields = {
-      address_id,
-      expires_at: options?.expires_at,
-    };
-    for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
-    if (options?.extras) Object.assign(body, options.extras);
-    return this._http.post<SubscriberInviteTokenCreateResponse>(
-      this._path('subscriber', 'invites'),
-      body,
-      undefined,
-      requestOptions,
-    );
-  }
-
   async createGuestToken(
-    allowed_addresses: uuid[],
-    options?: { expire_at?: number; extras?: Record<string, unknown> },
+    allowed_addresses?: uuid[],
+    options?: {
+      expire_at?: number;
+      ch?: string;
+      region?: string;
+      email?: string;
+      first_name?: string;
+      last_name?: string;
+      display_name?: string;
+      job_title?: string;
+      time_zone?: string;
+      country?: string;
+      company_name?: string;
+      extras?: Record<string, unknown>;
+    },
     requestOptions?: RequestOptionsInit,
   ): Promise<SubscriberGuestTokenCreateResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
       allowed_addresses,
       expire_at: options?.expire_at,
+      ch: options?.ch,
+      region: options?.region,
+      email: options?.email,
+      first_name: options?.first_name,
+      last_name: options?.last_name,
+      display_name: options?.display_name,
+      job_title: options?.job_title,
+      time_zone: options?.time_zone,
+      country: options?.country,
+      company_name: options?.company_name,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);

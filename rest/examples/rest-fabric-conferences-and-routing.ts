@@ -40,7 +40,7 @@ async function main() {
   // 3. Create a cXML script
   console.log('\nCreating cXML script...');
   const cxml = await client.fabric.cxmlScripts.create({
-    display_name: 'Hold Music Script',
+    name: 'Hold Music Script',
     contents:
       '<Response><Say>Please hold.</Say><Play>https://example.com/hold.mp3</Play></Response>',
   });
@@ -101,15 +101,6 @@ async function main() {
   } catch (err) {
     if (err instanceof RestError) {
       console.log(`  Guest token failed (expected in demo): ${err.statusCode}`);
-    } else throw err;
-  }
-
-  try {
-    const invite = await client.fabric.tokens.createInviteToken(relayId);
-    console.log(`  Invite token: ${String(invite.token ?? '').slice(0, 40)}...`);
-  } catch (err) {
-    if (err instanceof RestError) {
-      console.log(`  Invite token failed (expected in demo): ${err.statusCode}`);
     } else throw err;
   }
 

@@ -12,9 +12,6 @@
  * for managing prompts, SWAIG functions, and AI configurations.
  *
  * Register implementations via {@link VerbHandlerRegistry.registerHandler}.
- *
- * Mirrors Python SDK's single-file layout in
- * `signalwire/signalwire/core/swml_handler.py`.
  */
 
 /**

@@ -1,4 +1,4 @@
-// AUTO-GENERATED from porting-sdk/rest-apis/logs/openapi.yaml — DO NOT EDIT.
+// AUTO-GENERATED from porting-sdk/rest-apis/logs/openapi.enriched.yaml — DO NOT EDIT.
 // Regenerate with: npx tsx scripts/generate-rest-types.ts
 //
 // Held to the same lint bar as hand-written source (no rule suppressions, no
@@ -9,7 +9,7 @@ export interface ChargeDetails {
   /** Description for this charge. */
   description: string;
   /** Charge amount in dollars. */
-  charge: string;
+  charge: number;
 }
 
 /** Pagination links for conference log list responses. */
@@ -133,13 +133,13 @@ export interface VideoRoomSessionConference {
   /** Status of the conference. */
   status: string | null;
   /** Whether the conference is locked. */
-  locked: boolean;
+  locked: boolean | null;
   /** Timestamp when the conference started. */
   started_at: string | null;
   /** Timestamp when the conference ended. */
   ended_at: string | null;
   /** Total charge amount of the conference in dollars. */
-  charge: string;
+  charge: number;
   /** Details on charges associated with this conference. */
   charge_details: ChargeDetails[];
 }

@@ -2,7 +2,6 @@
  * The SignalWire AI Chat service: {@link AIChatClient} to call it,
  * {@link ChatGateway} to let a browser chat through your app without a token,
  * and {@link HandoffRouter} to move a conversation between voice and text.
- * Mirrors the python reference `signalwire.ai_chat` package surface.
  */
 
 export {

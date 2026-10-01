@@ -104,8 +104,7 @@ export class SkillManager {
    * {@link loadSkill}, or `AgentBase.addSkill()`, for that.
    *
    * {@link loadSkill} / {@link loadSkillByName} wrap this and catch to return
-   * `[false, msg]`, matching Python `load_skill`'s return contract
-   * (`skill_manager.py` lines 114-118).
+   * `[false, msg]` instead of throwing.
    *
    * @param skill - The skill instance to add.
    * @returns Resolves once the skill is registered.
@@ -192,10 +191,6 @@ export class SkillManager {
    * Remove a skill by its instance key or instance ID, calling cleanup() before removal.
    * @param keyOrId - The instance key or instance ID of the skill to remove.
    * @returns True if the skill was found and removed, false otherwise.
-   *
-   * @remarks Equivalent to Python's `unload_skill(skill_identifier)`. Callers porting
-   *          from Python should change `skill_manager.unload_skill(id)` →
-   *          `skillManager.removeSkill(id)`.
    */
   async removeSkill(keyOrId: string): Promise<boolean> {
     // Try by instance key first
@@ -254,19 +249,14 @@ export class SkillManager {
   }
 
   /**
-   * Check if a skill with the given instance key is currently loaded.
-   * This matches Python's `has_skill` semantics, which performs a direct
-   * dictionary key lookup (`skill_identifier in self.loaded_skills`).
+   * Check if a skill with the given instance key is currently loaded — a
+   * direct map key lookup.
    *
    * Use `hasSkill(name)` to check by skill name (iterates values).
    * Use `hasSkillByKey(key)` to check by instance key (direct map lookup).
    *
    * @param instanceKey - The instance key to look up.
    * @returns True if a skill with this exact instance key is loaded.
-   *
-   * @remarks Equivalent to Python's `has_skill(skill_identifier)`. Callers porting
-   *          from Python should change `skill_manager.has_skill(key)` →
-   *          `skillManager.hasSkillByKey(key)`.
    */
   hasSkillByKey(instanceKey: string): boolean {
     return this.skills.has(instanceKey);
@@ -286,9 +276,8 @@ export class SkillManager {
   }
 
   /**
-   * Load a skill by providing the class constructor directly, bypassing the registry.
-   * This is the TypeScript equivalent of Python's `load_skill(skill_name, skill_class, params)`
-   * path where a caller-provided `skill_class` is used instead of a registry lookup.
+   * Load a skill by providing the class constructor directly, bypassing the registry:
+   * the caller-provided `skillClass` is used instead of a registry lookup.
    *
    * On a manager that belongs to an agent, the skill's tools, prompt sections,
    * hints and global data are registered on that agent, as with
@@ -296,10 +285,8 @@ export class SkillManager {
    *
    * @param skillClass - The skill class constructor (a subclass of `SkillBase`).
    * @param config - Optional configuration to pass to the skill constructor.
-   * @returns A tuple `[success, errorMessage]` matching Python's `load_skill` return
-   *          contract. `errorMessage` is an empty string on success.
-   *
-   * @remarks Equivalent to Python's `load_skill(skill_name, skill_class=MySkillClass, params)`.
+   * @returns A tuple `[success, errorMessage]`. `errorMessage` is an empty
+   *          string on success.
    *
    * @example
    * ```ts
@@ -336,20 +323,14 @@ export class SkillManager {
 
   /**
    * Load a skill by name from the global SkillRegistry, construct it, and add it.
-   * This is the TypeScript equivalent of Python's `load_skill(skill_name)` path
-   * where `skill_class=None` triggers a registry lookup.
    *
    * On a manager that belongs to an agent, the skill is registered on that
    * agent, as with {@link loadSkill}.
    *
    * @param skillName - The registered skill name to look up in the SkillRegistry.
    * @param config - Optional configuration to pass to the skill factory.
-   * @returns A tuple `[success, errorMessage]` matching Python's `load_skill` return
-   *          contract. `errorMessage` is an empty string on success.
-   *
-   * @remarks Equivalent to Python's `load_skill(skill_name)` (registry path, where
-   *          `skill_class=None`). Callers porting from Python should change
-   *          `skill_manager.load_skill(name)` → `skillManager.loadSkillByName(name)`.
+   * @returns A tuple `[success, errorMessage]`. `errorMessage` is an empty
+   *          string on success.
    */
   async loadSkillByName(skillName: string, config?: SkillConfig): Promise<[boolean, string]> {
     const registry = SkillRegistry.getInstance();
@@ -379,17 +360,11 @@ export class SkillManager {
 
   /**
    * List the instance keys of all currently loaded skills.
-   * Python equivalent: `list_loaded_skills() -> List[str]` which returns
-   * `list(self.loaded_skills.keys())`.
    *
    * Use `listSkills()` for richer objects (name, instanceId, initialized).
    * Use `listSkillKeys()` for a flat list of instance key strings.
    *
    * @returns Array of instance key strings.
-   *
-   * @remarks Equivalent to Python's `list_loaded_skills()`. Callers porting from
-   *          Python should change `skill_manager.list_loaded_skills()` →
-   *          `skillManager.listSkillKeys()`.
    */
   listSkillKeys(): string[] {
     return Array.from(this.skills.keys());

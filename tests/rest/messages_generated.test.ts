@@ -38,7 +38,7 @@ describe('messages wire (generated)', () => {
   });
 
   it('messages_update success', async () => {
-    await client.messages.update('x', 'x');
+    await client.messages.update('x');
     const last = await mock.last();
     expect(last.method).toBe('PATCH');
     expect(last.matched_route).toBe('messages.update_message');
@@ -46,7 +46,7 @@ describe('messages wire (generated)', () => {
 
   it('messages_update error', async () => {
     await mock.pushScenario('messages.update_message', 500, { error: 'x' });
-    await expect(client.messages.update('x', 'x')).rejects.toThrow(RestError);
+    await expect(client.messages.update('x')).rejects.toThrow(RestError);
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });

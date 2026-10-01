@@ -156,7 +156,7 @@ export { SchemaUtils, SchemaValidationError } from './SchemaUtils.js';
 export type { ValidationResult } from './SchemaUtils.js';
 
 // Auth
-export { AuthHandler } from './AuthHandler.js';
+export { AuthHandler, BasicCredentials, BearerCredentials } from './AuthHandler.js';
 export type { AuthConfig } from './AuthHandler.js';
 
 // Type inference for typed tool handlers
@@ -288,7 +288,7 @@ export type {
 // Platform-contract types — the webhook bodies the backend POSTs, referenced by
 // the public callback signatures above (DynamicConfigCallback → SwmlRequestData)
 // so a subclass/override can name them.
-export type { SwmlRequestData, SwmlRequestCall, SignalWireErrorBody } from './PlatformContracts.js';
+export type { SwmlRequestData, SwmlRequestCall } from './PlatformContracts.js';
 
 // Typed SWAIG wire payloads (SWAIG_PIPELINE §4), generated from the authoritative
 // porting-sdk/swaig-specs/ engine specs: SWAIG handlers receive `SwaigRequest`;
@@ -320,20 +320,17 @@ import type { ClientOptions as _ClientOptions } from './rest/types.js';
 /**
  * Construct a {@link _RestClient | RestClient} instance.
  *
- * Equivalent to Python's top-level `signalwire.RestClient(*args, **kwargs)`
- * factory — a thin wrapper that lazy-imports `signalwire.rest.RestClient`
- * and instantiates it. The TS class is also exported directly at module
- * scope (`new RestClient(...)`); this function offers the same factory-call
- * style as Python for users porting code across the two SDKs.
+ * A thin top-level factory that instantiates {@link _RestClient | RestClient}.
+ * The class is also exported directly at module scope
+ * (`new RestClient(...)`); this function offers a factory-call style instead.
  *
  * Note: TypeScript exports the class `RestClient` at the same name from
  * `./rest/index.js`. The function below is named `restClient` (camelCase)
  * to avoid shadowing the class — use either `new RestClient(opts)` or
  * `restClient(opts)`; both construct the same client.
  *
- * The declared signature is the idiomatic TS form: a single, fully-typed
- * options object. This gives real compile-time safety on the credential
- * fields, unlike Python's untyped `(*args, **kwargs)`. For back-compat,
+ * The declared signature is a single, fully-typed options object, giving
+ * compile-time safety on the credential fields. For back-compat,
  * the legacy `restClient([], { project, token, host })` call form (a leading
  * positional array followed by the options) is still accepted at runtime.
  *
@@ -370,10 +367,9 @@ export function restClient(opts?: _ClientOptions): _RestClient {
 /**
  * List metadata for all registered skills.
  *
- * Equivalent to Python's `list_skills()` — proxies to the singleton
- * {@link SkillRegistry}. Python's version returns a plain dict keyed by
- * skill name; this returns an array of {@link _SkillSchemaInfo} entries
- * (the TS shape is richer and includes the name field).
+ * Proxies to the singleton {@link SkillRegistry}. Returns an array of
+ * {@link _SkillSchemaInfo} entries, each of which includes the skill's name
+ * field.
  *
  * @returns Array of skill metadata entries.
  */
@@ -384,8 +380,8 @@ export function listSkills(): _SkillSchemaInfo[] {
 /**
  * Get full schema for all registered skills, including parameter metadata.
  *
- * Equivalent to Python's `list_skills_with_params()`. Useful for GUI
- * configuration tools, API documentation, and programmatic skill discovery.
+ * Useful for GUI configuration tools, API documentation, and programmatic
+ * skill discovery.
  *
  * @returns Map of skill name to {@link _SkillSchemaInfo | schema info}.
  */
@@ -396,8 +392,8 @@ export function listSkillsWithParams(): Record<string, _SkillSchemaInfo> {
 /**
  * Register a custom skill class with the global {@link SkillRegistry}.
  *
- * Equivalent to Python's `register_skill(skill_class)`. Allows third-party
- * code to register skills directly, bypassing the built-in directory scan.
+ * Allows third-party code to register skills directly, bypassing the built-in
+ * directory scan.
  *
  * @param skillClass - Skill class to register (a subclass of {@link SkillBase}).
  */
@@ -408,8 +404,7 @@ export function registerSkill(skillClass: typeof _SkillBase): void {
 /**
  * Register a directory to search for additional skill modules.
  *
- * Equivalent to Python's `add_skill_directory(path)`. Proxies to
- * `SkillRegistry.addSearchPath()`. Callers who want on-disk dynamic
+ * Proxies to `SkillRegistry.addSearchPath()`. Callers who want on-disk dynamic
  * discovery can pair this with `SkillRegistry.discoverFromDirectory()`.
  *
  * @param path - Absolute path to a directory containing skill files.

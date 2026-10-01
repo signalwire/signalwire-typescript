@@ -233,7 +233,6 @@ await client.mfa.verify('request-id', '1234');
 await client.registry.brands.list();
 await client.registry.brands.createCampaign('brand-id', {
   name: 'Alerts',
-  brand_id: 'brand-id',
   csp_campaign_reference: 'CAMP123',
 });
 await client.registry.campaigns.listNumbers('campaign-id');
