@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 19dec67cc61416c7f59734d1982ebed1584274f4",
+  "generated_from": "signalwire-typescript @ dd5098be100b38ecd40a798eb37a22358a74ec6d",
   "typescript_version": "6.0.3",
   "note": "TS-native camelCase surface — used by audit_docs.py to verify doc/example references. NOT a substitute for port_surface.json (which is Python-translated for Layer B diffing).",
   "modules": {
@@ -290,11 +290,17 @@
           "addGatherQuestion",
           "addSection",
           "clearSections",
+          "end",
+          "functions",
+          "gather_info",
           "getFunctions",
           "getGatherInfo",
           "getStepValidContexts",
           "getValidSteps",
+          "history",
           "name",
+          "pom",
+          "reset",
           "setEnd",
           "setFunctions",
           "setGatherInfo",
@@ -309,8 +315,14 @@
           "setText",
           "setValidContexts",
           "setValidSteps",
+          "skip_to_next_step",
+          "skip_user_turn",
+          "step_criteria",
+          "text",
           "toDict",
-          "toJSON"
+          "toJSON",
+          "valid_contexts",
+          "valid_steps"
         ],
         "Context": [
           "addBullets",
@@ -320,14 +332,25 @@
           "addStep",
           "addSystemBullets",
           "addSystemSection",
+          "consolidate",
+          "enter_fillers",
+          "exit_fillers",
+          "full_reset",
           "getInitialStep",
           "getStep",
           "getStepOrder",
           "getSteps",
           "getValidContexts",
+          "history",
+          "initial_step",
+          "isolated",
           "moveStep",
           "name",
+          "pom",
+          "post_prompt",
+          "prompt",
           "removeStep",
+          "reset",
           "setConsolidate",
           "setEnterFillers",
           "setExitFillers",
@@ -341,8 +364,13 @@
           "setUserPrompt",
           "setValidContexts",
           "setValidSteps",
+          "steps",
+          "system_prompt",
           "toDict",
-          "toJSON"
+          "toJSON",
+          "user_prompt",
+          "valid_contexts",
+          "valid_steps"
         ],
         "ContextBuilder": [
           "addContext",
@@ -355,6 +383,7 @@
         ],
         "DataMap": [
           "body",
+          "contexts",
           "description",
           "enableEnvExpansion",
           "errorKeys",
@@ -1011,18 +1040,79 @@
           "isConfigured",
           "keyPath"
         ],
+        "ChangeVoiceAction": [
+          "voice"
+        ],
         "ContextSwitchAction": [
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
           "consolidate",
           "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
           "full_reset",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
           "system_pom",
           "system_prompt",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
           "user_pom",
-          "user_prompt"
+          "user_prompt",
+          "wait_for_user"
         ],
         "HoldAction": [
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
+          "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
           "hold",
-          "timeout"
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "step",
+          "stop",
+          "stop_playback_bg",
+          "timeout",
+          "timeout_step",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait_for_user"
         ],
         "PlaybackBgAction": [
           "file",
@@ -1038,6 +1128,7 @@
           "back_to_back_functions",
           "change_context",
           "change_step",
+          "change_voice",
           "clear_dynamic_hints",
           "context_switch",
           "end_of_speech_timeout",
@@ -1279,7 +1370,6 @@
           "request_detect",
           "speech_start",
           "status_pushed",
-          "suspected_end",
           "turn_decided"
         ],
         "SwaigErrorContext": [
@@ -2909,121 +2999,458 @@
           "verbRegistry"
         ],
         "Action": [
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
           "call",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
           "completed",
+          "context_switch",
           "controlId",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
           "isDone",
+          "playback_bg",
+          "replace_in_history",
           "result",
-          "wait"
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait",
+          "wait_for_user"
         ],
         "PlayAction": [
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
           "call",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
           "completed",
+          "context_switch",
           "controlId",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
           "isDone",
           "pause",
+          "playback_bg",
+          "replace_in_history",
           "result",
           "resume",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
           "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
           "volume",
-          "wait"
+          "wait",
+          "wait_for_user"
         ],
         "RecordAction": [
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
           "call",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
           "completed",
+          "context_switch",
           "controlId",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
           "isDone",
           "pause",
+          "playback_bg",
+          "replace_in_history",
           "result",
           "resume",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
           "stop",
-          "wait"
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait",
+          "wait_for_user"
         ],
         "DetectAction": [
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
           "call",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
           "completed",
+          "context_switch",
           "controlId",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
           "isDone",
+          "playback_bg",
+          "replace_in_history",
           "result",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
           "stop",
-          "wait"
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait",
+          "wait_for_user"
         ],
         "CollectAction": [
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
           "call",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
           "completed",
+          "context_switch",
           "controlId",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
           "isDone",
           "pause",
+          "playback_bg",
+          "replace_in_history",
           "result",
           "resume",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
           "startInputTimers",
           "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
           "volume",
-          "wait"
+          "wait",
+          "wait_for_user"
         ],
         "StandaloneCollectAction": [
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
           "call",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
           "completed",
+          "context_switch",
           "controlId",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
           "isDone",
+          "playback_bg",
+          "replace_in_history",
           "result",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
           "startInputTimers",
           "stop",
-          "wait"
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait",
+          "wait_for_user"
         ],
         "FaxAction": [
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
           "call",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
           "completed",
+          "context_switch",
           "controlId",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
           "isDone",
+          "playback_bg",
+          "replace_in_history",
           "result",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
           "stop",
-          "wait"
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait",
+          "wait_for_user"
         ],
         "TapAction": [
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
           "call",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
           "completed",
+          "context_switch",
           "controlId",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
           "isDone",
+          "playback_bg",
+          "replace_in_history",
           "result",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
           "stop",
-          "wait"
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait",
+          "wait_for_user"
         ],
         "StreamAction": [
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
           "call",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
           "completed",
+          "context_switch",
           "controlId",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
           "isDone",
+          "playback_bg",
+          "replace_in_history",
           "result",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
           "stop",
-          "wait"
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait",
+          "wait_for_user"
         ],
         "PayAction": [
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
           "call",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
           "completed",
+          "context_switch",
           "controlId",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
           "isDone",
+          "playback_bg",
+          "replace_in_history",
           "result",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
           "stop",
-          "wait"
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait",
+          "wait_for_user"
         ],
         "TranscribeAction": [
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
           "call",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
           "completed",
+          "context_switch",
           "controlId",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
           "isDone",
+          "playback_bg",
+          "replace_in_history",
           "result",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
           "stop",
-          "wait"
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait",
+          "wait_for_user"
         ],
         "AIAction": [
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
           "call",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
           "completed",
+          "context_switch",
           "controlId",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
           "isDone",
+          "playback_bg",
+          "replace_in_history",
           "result",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
           "stop",
-          "wait"
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait",
+          "wait_for_user"
         ],
         "RelayClientLike": [
           "execute"
@@ -3511,6 +3938,7 @@
           "max_price_per_minute",
           "node_id",
           "ringback",
+          "send_digits",
           "tag"
         ],
         "CallingDenoiseParams": [
@@ -3538,6 +3966,7 @@
           "max_price_per_minute",
           "node_id",
           "region",
+          "send_digits",
           "tag"
         ],
         "CallingDisconnectParams": [
@@ -4260,6 +4689,40 @@
           "ice_servers",
           "result"
         ],
+        "VertoAnswerResult": [
+          "message"
+        ],
+        "VertoBroadcastResult": [
+          "code",
+          "message",
+          "sessid"
+        ],
+        "VertoByeResult": [
+          "callID",
+          "cause",
+          "causeCode",
+          "message"
+        ],
+        "VertoInfoResult": [
+          "message"
+        ],
+        "VertoInviteResult": [
+          "callID",
+          "memberID",
+          "message"
+        ],
+        "VertoModifyResult": [
+          "action",
+          "callID",
+          "holdState",
+          "message",
+          "sdp"
+        ],
+        "VertoSubscribeResult": [
+          "alreadySubscribedChannels",
+          "subscribedChannels",
+          "unauthorizedChannels"
+        ],
         "RelayClientOptions": [
           "contexts",
           "host",
@@ -4329,6 +4792,8 @@
           "baseUrl",
           "delete",
           "get",
+          "getRedirectLocation",
+          "getText",
           "patch",
           "post",
           "put"
@@ -4433,8 +4898,10 @@
           "registry",
           "shortCodes",
           "sipProfile",
+          "space",
           "verifiedCallers",
-          "video"
+          "video",
+          "whatsapp"
         ],
         "DatasphereNamespace": [
           "documents"
@@ -4442,14 +4909,17 @@
         "FabricNamespace": [
           "addresses",
           "aiAgents",
+          "aliasAddresses",
           "callFlows",
           "conferenceRooms",
           "cxmlApplications",
           "cxmlScripts",
           "cxmlWebhooks",
           "freeswitchConnectors",
+          "phoneNumberAddresses",
           "relayApplications",
           "resources",
+          "sipAddresses",
           "sipEndpoints",
           "sipGateways",
           "subscribers",
@@ -4472,6 +4942,18 @@
           "numbers",
           "orders"
         ],
+        "SpaceNamespace": [
+          "balance",
+          "billingProfile",
+          "billingStatements",
+          "geographicPermissions",
+          "lowBalanceSetting",
+          "members",
+          "paymentHistory",
+          "paymentMethods",
+          "settings",
+          "usage"
+        ],
         "VideoNamespace": [
           "conferenceTokens",
           "conferences",
@@ -4480,6 +4962,11 @@
           "roomTokens",
           "rooms",
           "streams"
+        ],
+        "WhatsappNamespace": [
+          "businesses",
+          "numbers",
+          "templates"
         ],
         "_GeneratedResourceTree": [
           "addresses",
@@ -4502,12 +4989,19 @@
           "registry",
           "shortCodes",
           "sipProfile",
+          "space",
           "verifiedCallers",
-          "video"
+          "video",
+          "whatsapp"
         ],
         "Calling": [
           "aiHold",
           "aiMessage",
+          "aiSidecar",
+          "aiSidecarAsk",
+          "aiSidecarPoke",
+          "aiSidecarStatus",
+          "aiSidecarStop",
           "aiStop",
           "aiUnhold",
           "collect",
@@ -4549,141 +5043,289 @@
         ],
         "AIObject": [
           "SWAIG",
+          "agent",
+          "engine",
           "global_data",
           "hints",
           "languages",
+          "multilingual",
           "params",
           "post_prompt",
+          "post_prompt_auth_password",
+          "post_prompt_auth_user",
           "post_prompt_url",
           "prompt",
-          "pronounce"
+          "pronounce",
+          "voice"
         ],
         "AIParams": [
           "acknowledge_interruptions",
+          "acoustic_eot_gate_prob",
+          "acoustic_eot_trust_prob",
           "ai_model",
           "ai_name",
           "ai_volume",
           "app_name",
           "asr_diarize",
+          "asr_params",
           "asr_smart_format",
           "asr_speaker_affinity",
+          "attention_escalate_prompt",
           "attention_timeout",
           "attention_timeout_prompt",
+          "auth_token",
+          "auto_correct",
+          "azure_stream_first",
+          "azure_tts_key",
           "background_file",
           "background_file_loops",
           "background_file_volume",
           "barge_functions",
           "barge_match_string",
           "barge_min_words",
+          "bill_all_tts",
+          "cache",
+          "call_uuid",
+          "cartesia_key",
+          "cartesia_model",
+          "cartesia_stream_first",
+          "confidence",
           "conscience",
           "conversation_id",
           "conversation_sliding_window",
           "convo",
-          "debug",
           "debug_webhook_level",
           "debug_webhook_url",
+          "deepgram_key_override",
+          "deepgram_stream_first",
+          "deepgram_tts_key",
+          "deepgram_url_override",
+          "developer_prompt",
           "digit_terminators",
           "digit_timeout",
           "direction",
+          "double_turn_filler_every_n",
+          "double_turn_filler_min_ms",
+          "double_turn_model",
+          "double_turn_prompt",
+          "double_turn_wait_ms",
+          "double_turns",
+          "eleven_labs_key",
+          "eleven_labs_model",
           "eleven_labs_similarity",
           "eleven_labs_stability",
+          "eleven_labs_stream_first",
           "enable_barge",
           "enable_inner_dialog",
           "enable_pause",
+          "enable_text_normalization",
           "enable_thinking",
           "enable_turn_detection",
           "enable_vision",
           "end_of_speech_timeout",
           "energy_level",
+          "escalate_after_ms",
+          "escalate_after_turns",
+          "event_webhook_url",
+          "ext",
           "first_word_timeout",
+          "fish_key",
+          "fish_model",
+          "function_filler_sequence_gap_ms",
           "function_wait_for_talking",
           "functions_on_no_response",
+          "grok_key",
+          "groq_tts_key",
           "hard_stop_prompt",
           "hard_stop_time",
           "hold_music",
           "hold_on_process",
           "inactivity_timeout",
           "initial_sleep_ms",
+          "inner_dialog",
           "inner_dialog_model",
           "inner_dialog_prompt",
-          "inner_dialog_synced",
+          "inner_dialog_scorecard",
           "input_poll_freq",
           "interrupt_on_noise",
           "interrupt_prompt",
+          "inworld_apikey",
+          "inworld_key",
+          "inworld_model",
+          "language",
           "languages_enabled",
+          "lipsync_debug",
           "llm_diarize_aware",
           "local_tz",
           "max_emotion",
           "max_response_tokens",
+          "min_utterance_ms",
+          "minimax_key",
+          "minimax_model",
+          "mistral_key",
+          "mistral_model",
+          "model",
           "openai_asr_engine",
+          "openai_azure",
+          "openai_gcloud_version",
+          "openai_stream_first",
+          "openai_tts_key",
+          "openai_tts_url",
           "outbound_attention_timeout",
+          "pcm_channels",
+          "pcm_rate",
           "persist_global_data",
           "pom_format",
+          "provider",
+          "pvt_params",
+          "realtime",
+          "redact_prompt",
+          "rime_apikey",
+          "rime_key",
+          "rime_model",
+          "rime_stream_first",
+          "sample_rate",
           "save_conversation",
+          "send_single_llm_response",
+          "similarity",
+          "smallest_key",
+          "smallest_model",
           "speak_when_spoken_to",
+          "speaker",
           "speech_event_timeout",
           "speech_gen_quick_stops",
           "speech_timeout",
+          "speechify_key",
+          "speechify_loudness_normalization",
+          "speechify_model",
+          "speechify_output_format",
+          "speechify_stream_first",
+          "speechify_text_normalization",
+          "speed",
+          "stability",
           "start_paused",
           "static_greeting",
           "static_greeting_no_barge",
+          "stream_first",
+          "streaming",
+          "strict_mode",
           "summary_mode",
           "swaig_allow_settings",
           "swaig_allow_swml",
           "swaig_post_conversation",
           "swaig_post_swml_vars",
           "swaig_set_global_data",
+          "target_first_segment_ms",
+          "text_normalization_far_dir",
           "thinking_model",
+          "tool_result_distill",
           "transfer_summary",
           "transparent_barge",
           "transparent_barge_max_time",
           "tts_number_format",
+          "turn_detection",
+          "turn_detection_min_length",
           "turn_detection_timeout",
+          "turn_filler_every_n",
+          "turn_filler_min_ms",
+          "turn_filler_sources",
+          "url",
+          "utility_model",
           "vad_config",
+          "video_fps",
           "video_idle_file",
           "video_listening_file",
+          "video_scale",
           "video_talking_file",
           "vision_model",
+          "voice_name",
+          "vol",
           "wait_for_user",
           "wake_prefix"
         ],
-        "AIPostPromptPom": [
-          "confidence",
+        "AIPostPrompt": [
           "frequency_penalty",
+          "max_completion_tokens",
           "max_tokens",
+          "model",
           "pom",
           "presence_penalty",
+          "reasoning_effort",
           "temperature",
-          "top_p"
+          "text",
+          "top_p",
+          "verbosity"
+        ],
+        "AIPostPromptPom": [
+          "frequency_penalty",
+          "max_completion_tokens",
+          "max_tokens",
+          "model",
+          "pom",
+          "presence_penalty",
+          "reasoning_effort",
+          "temperature",
+          "text",
+          "top_p",
+          "verbosity"
         ],
         "AIPostPromptText": [
-          "confidence",
           "frequency_penalty",
+          "max_completion_tokens",
           "max_tokens",
-          "presence_penalty",
-          "temperature",
-          "text",
-          "top_p"
-        ],
-        "AIPromptPom": [
-          "confidence",
-          "contexts",
-          "frequency_penalty",
-          "max_tokens",
+          "model",
           "pom",
           "presence_penalty",
-          "temperature",
-          "top_p"
-        ],
-        "AIPromptText": [
-          "confidence",
-          "contexts",
-          "frequency_penalty",
-          "max_tokens",
-          "presence_penalty",
+          "reasoning_effort",
           "temperature",
           "text",
-          "top_p"
+          "top_p",
+          "verbosity"
+        ],
+        "AIPrompt": [
+          "contexts",
+          "frequency_penalty",
+          "max_completion_tokens",
+          "max_tokens",
+          "model",
+          "pom",
+          "presence_penalty",
+          "reasoning_effort",
+          "steps",
+          "temperature",
+          "text",
+          "top_p",
+          "verbosity"
+        ],
+        "AIPromptPom": [
+          "contexts",
+          "frequency_penalty",
+          "max_completion_tokens",
+          "max_tokens",
+          "model",
+          "pom",
+          "presence_penalty",
+          "reasoning_effort",
+          "steps",
+          "temperature",
+          "text",
+          "top_p",
+          "verbosity"
+        ],
+        "AIPromptText": [
+          "contexts",
+          "frequency_penalty",
+          "max_completion_tokens",
+          "max_tokens",
+          "model",
+          "pom",
+          "presence_penalty",
+          "reasoning_effort",
+          "steps",
+          "temperature",
+          "text",
+          "top_p",
+          "verbosity"
         ],
         "AllOfProperty": [
           "allOf"
@@ -4693,11 +5335,17 @@
         ],
         "AmazonBedrockObject": [
           "SWAIG",
+          "app_name",
+          "assistant_name",
+          "assistant_prompt",
+          "conversation_id",
           "global_data",
+          "greeting_prompt",
           "params",
           "post_prompt",
           "post_prompt_url",
-          "prompt"
+          "prompt",
+          "transcript_webhook_url"
         ],
         "Answer": [
           "answer"
@@ -4714,6 +5362,8 @@
         ],
         "BedrockParams": [
           "attention_timeout",
+          "compact_conversation_time",
+          "compact_strategy",
           "hard_stop_prompt",
           "hard_stop_time",
           "inactivity_timeout",
@@ -4721,11 +5371,29 @@
           "video_listening_file",
           "video_talking_file"
         ],
+        "BedrockPostPrompt": [
+          "pom",
+          "text"
+        ],
+        "BedrockPrompt": [
+          "pom",
+          "temperature",
+          "text",
+          "top_p",
+          "voice_id"
+        ],
         "BedrockSWAIG": [
           "defaults",
-          "functions",
-          "includes",
-          "native_functions"
+          "functions"
+        ],
+        "BedrockSWAIGFunction": [
+          "data_map",
+          "description",
+          "function",
+          "meta_data",
+          "meta_data_token",
+          "parameters",
+          "web_hook_url"
         ],
         "BooleanProperty": [
           "default",
@@ -4749,23 +5417,42 @@
         "CallCreateParamsSWML": [
           "caller_id",
           "codecs",
+          "custom_variables",
           "fallback_url",
           "from",
+          "headers",
+          "max_price_per_minute",
+          "password",
+          "region",
+          "send_digits",
           "status_events",
           "status_url",
           "swml",
+          "timeout",
           "to",
-          "url_method"
+          "to_script",
+          "url_method",
+          "username"
         ],
         "CallCreateParamsURL": [
           "caller_id",
+          "codecs",
+          "custom_variables",
           "fallback_url",
           "from",
+          "headers",
+          "max_price_per_minute",
+          "password",
+          "region",
+          "send_digits",
           "status_events",
           "status_url",
+          "timeout",
           "to",
+          "to_script",
           "url",
-          "url_method"
+          "url_method",
+          "username"
         ],
         "CallCreateRequest": [
           "command",
@@ -4792,6 +5479,7 @@
           "from",
           "id",
           "parent_id",
+          "qos_metrics",
           "source",
           "status",
           "to",
@@ -4928,6 +5616,31 @@
           "id",
           "params"
         ],
+        "CallAISidecarRequest": [
+          "command",
+          "id",
+          "params"
+        ],
+        "CallAISidecarAskRequest": [
+          "command",
+          "id",
+          "params"
+        ],
+        "CallAISidecarPokeRequest": [
+          "command",
+          "id",
+          "params"
+        ],
+        "CallAISidecarStopRequest": [
+          "command",
+          "id",
+          "params"
+        ],
+        "CallAISidecarStatusRequest": [
+          "command",
+          "id",
+          "params"
+        ],
         "CallSendFaxStopRequest": [
           "command",
           "id",
@@ -4942,6 +5655,34 @@
           "command",
           "id",
           "params"
+        ],
+        "VideoRoomCallLeg": [
+          "charge",
+          "charge_details",
+          "created_at",
+          "direction",
+          "duration",
+          "duration_ms",
+          "from",
+          "id",
+          "source",
+          "status",
+          "to",
+          "type",
+          "url"
+        ],
+        "DialogflowCallLeg": [
+          "charge",
+          "charge_details",
+          "created_at",
+          "duration",
+          "from",
+          "id",
+          "source",
+          "status",
+          "to",
+          "type",
+          "url"
         ],
         "CallTransferRequest": [
           "command",
@@ -4977,10 +5718,66 @@
           "params"
         ],
         "ChangeContextAction": [
-          "change_context"
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
+          "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait_for_user"
         ],
         "ChangeStepAction": [
-          "change_step"
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
+          "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait_for_user"
         ],
         "ChargeDetails": [
           "charge",
@@ -4990,7 +5787,14 @@
           "cond"
         ],
         "CondElse": [
-          "else"
+          "else",
+          "then",
+          "when"
+        ],
+        "CondParams": [
+          "else",
+          "then",
+          "when"
         ],
         "CondReg": [
           "else",
@@ -4999,100 +5803,6 @@
         ],
         "Connect": [
           "connect"
-        ],
-        "ConnectDeviceParallel": [
-          "answer_on_bridge",
-          "call_state_events",
-          "call_state_url",
-          "codecs",
-          "confirm",
-          "confirm_timeout",
-          "encryption",
-          "from",
-          "headers",
-          "max_duration",
-          "parallel",
-          "password",
-          "result",
-          "ringback",
-          "session_timeout",
-          "status_url",
-          "timeout",
-          "transfer_after_bridge",
-          "username",
-          "webrtc_media"
-        ],
-        "ConnectDeviceSerial": [
-          "answer_on_bridge",
-          "call_state_events",
-          "call_state_url",
-          "codecs",
-          "confirm",
-          "confirm_timeout",
-          "encryption",
-          "from",
-          "headers",
-          "max_duration",
-          "password",
-          "result",
-          "ringback",
-          "serial",
-          "session_timeout",
-          "status_url",
-          "timeout",
-          "transfer_after_bridge",
-          "username",
-          "webrtc_media"
-        ],
-        "ConnectDeviceSerialParallel": [
-          "answer_on_bridge",
-          "call_state_events",
-          "call_state_url",
-          "codecs",
-          "confirm",
-          "confirm_timeout",
-          "encryption",
-          "from",
-          "headers",
-          "max_duration",
-          "password",
-          "result",
-          "ringback",
-          "serial_parallel",
-          "session_timeout",
-          "status_url",
-          "timeout",
-          "transfer_after_bridge",
-          "username",
-          "webrtc_media"
-        ],
-        "ConnectDeviceSingle": [
-          "answer_on_bridge",
-          "authorization_bearer_token",
-          "call_state_events",
-          "call_state_url",
-          "codec",
-          "codecs",
-          "confirm",
-          "confirm_timeout",
-          "custom_parameters",
-          "encryption",
-          "from",
-          "headers",
-          "max_duration",
-          "name",
-          "password",
-          "realtime",
-          "result",
-          "ringback",
-          "session_timeout",
-          "status_url",
-          "status_url_method",
-          "timeout",
-          "to",
-          "transfer_after_bridge",
-          "username",
-          "webrtc_media"
         ],
         "ConnectHeaders": [
           "name",
@@ -5126,9 +5836,6 @@
           "valid_contexts",
           "valid_steps"
         ],
-        "Contexts": [
-          "default"
-        ],
         "ContextsPOMObject": [
           "enter_fillers",
           "exit_fillers",
@@ -5146,7 +5853,9 @@
         "ConversationMessage": [
           "content",
           "lang",
-          "role"
+          "role",
+          "tool_call_id",
+          "tool_calls"
         ],
         "Denoise": [
           "denoise"
@@ -5158,11 +5867,12 @@
           "enter_queue"
         ],
         "EnterQueueObject": [
+          "execute_after_queue",
           "queue_name",
           "status_url",
-          "transfer_after_bridge",
           "wait_time",
-          "wait_url"
+          "wait_url",
+          "whisper_url"
         ],
         "Execute": [
           "execute"
@@ -5173,6 +5883,7 @@
           "variable"
         ],
         "Expression": [
+          "expr",
           "output",
           "pattern",
           "string"
@@ -5190,10 +5901,59 @@
           "type",
           "url"
         ],
+        "FunctionFillers": [
+          "auto",
+          "default"
+        ],
         "FunctionParameters": [
+          "additionalProperties",
+          "allOf",
+          "anyOf",
+          "const",
+          "contains",
+          "default",
+          "dependentRequired",
+          "dependentSchemas",
+          "deprecated",
+          "description",
+          "else",
+          "enum",
+          "example",
+          "examples",
+          "exclusiveMaximum",
+          "exclusiveMinimum",
+          "format",
+          "if",
+          "items",
+          "maxContains",
+          "maxItems",
+          "maxLength",
+          "maxProperties",
+          "maximum",
+          "minContains",
+          "minItems",
+          "minLength",
+          "minProperties",
+          "minimum",
+          "multipleOf",
+          "not",
+          "nullable",
+          "oneOf",
+          "pattern",
+          "patternProperties",
+          "prefixItems",
           "properties",
+          "propertyNames",
+          "propertyOrdering",
+          "readOnly",
           "required",
-          "type"
+          "then",
+          "title",
+          "type",
+          "unevaluatedItems",
+          "unevaluatedProperties",
+          "uniqueItems",
+          "writeOnly"
         ],
         "Goto": [
           "goto"
@@ -5213,13 +5973,44 @@
           "wait_file",
           "wait_file_loops",
           "wait_for_fillers",
+          "web_hook_auth_pass",
+          "web_hook_auth_password",
+          "web_hook_auth_user",
           "web_hook_url"
         ],
         "Hangup": [
           "hangup"
         ],
         "HangupAction": [
-          "hangup"
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
+          "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait_for_user"
         ],
         "Hint": [
           "hint",
@@ -5243,21 +6034,30 @@
         "JoinConferenceObject": [
           "beep",
           "coach",
+          "emit_call_quality",
           "end_on_exit",
           "max_participants",
+          "meta",
+          "min_participants",
           "muted",
           "name",
           "record",
           "recording_status_callback",
           "recording_status_callback_event",
+          "recording_status_callback_event_type",
           "recording_status_callback_method",
           "region",
-          "result",
           "start_on_enter",
           "status_callback",
           "status_callback_event",
+          "status_callback_event_type",
           "status_callback_method",
+          "stream",
           "trim",
+          "video",
+          "video_layout",
+          "video_preview",
+          "video_quality",
           "wait_url"
         ],
         "JoinRoom": [
@@ -5267,30 +6067,65 @@
           "label"
         ],
         "LanguageParams": [
-          "similarity",
-          "stability"
-        ],
-        "LanguagesWithFillers": [
-          "code",
           "emotion",
+          "pitch",
+          "similarity",
+          "speakingRate",
+          "speed",
+          "stability",
+          "streaming",
+          "temperature",
+          "vol"
+        ],
+        "Languages": [
+          "auto_emotion",
+          "auto_speed",
+          "code",
+          "double_turn_fillers",
           "engine",
+          "fillers",
           "function_fillers",
+          "listen_language",
           "model",
           "name",
           "params",
+          "pronounce",
           "speech_fillers",
-          "speed",
+          "turn_fillers",
+          "voice"
+        ],
+        "LanguagesWithFillers": [
+          "auto_emotion",
+          "auto_speed",
+          "code",
+          "double_turn_fillers",
+          "engine",
+          "fillers",
+          "function_fillers",
+          "listen_language",
+          "model",
+          "name",
+          "params",
+          "pronounce",
+          "speech_fillers",
+          "turn_fillers",
           "voice"
         ],
         "LanguagesWithSoloFillers": [
+          "auto_emotion",
+          "auto_speed",
           "code",
-          "emotion",
+          "double_turn_fillers",
           "engine",
           "fillers",
+          "function_fillers",
+          "listen_language",
           "model",
           "name",
           "params",
-          "speed",
+          "pronounce",
+          "speech_fillers",
+          "turn_fillers",
           "voice"
         ],
         "LiveTranscribe": [
@@ -5338,7 +6173,16 @@
         ],
         "Output": [
           "action",
+          "post_process",
           "response"
+        ],
+        "POM": [
+          "body",
+          "bullets",
+          "numbered",
+          "numberedBullets",
+          "subsections",
+          "title"
         ],
         "Pay": [
           "pay"
@@ -5346,6 +6190,10 @@
         "PayParameters": [
           "name",
           "value"
+        ],
+        "PayPromptAction": [
+          "phrase",
+          "type"
         ],
         "PayPromptPlayAction": [
           "phrase",
@@ -5357,34 +6205,68 @@
         ],
         "PayPrompts": [
           "actions",
-          "attempts",
+          "attempt",
           "card_type",
           "error_type",
-          "for"
+          "for",
+          "play",
+          "require_matching_inputs"
         ],
         "Play": [
           "play"
         ],
         "PlayWithURL": [
           "auto_answer",
+          "loop",
           "say_gender",
           "say_language",
           "say_voice",
           "status_url",
           "url",
+          "urls",
           "volume"
         ],
         "PlayWithURLS": [
           "auto_answer",
+          "loop",
           "say_gender",
           "say_language",
           "say_voice",
           "status_url",
+          "url",
           "urls",
           "volume"
         ],
         "PlaybackBGAction": [
-          "playback_bg"
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
+          "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait_for_user"
         ],
         "PomSectionBodyContent": [
           "body",
@@ -5431,7 +6313,9 @@
         "SMSWithBody": [
           "body",
           "from_number",
+          "media",
           "region",
+          "status_callback",
           "tags",
           "to_number"
         ],
@@ -5440,20 +6324,50 @@
           "from_number",
           "media",
           "region",
+          "status_callback",
           "tags",
           "to_number"
         ],
         "SWAIG": [
           "defaults",
           "functions",
+          "hooks",
           "includes",
           "internal_fillers",
+          "mcp_servers",
           "native_functions"
         ],
         "SWAIGDefaults": [
+          "meta_data",
+          "meta_data_token",
+          "web_hook_auth_pass",
+          "web_hook_auth_password",
+          "web_hook_auth_user",
+          "web_hook_url"
+        ],
+        "SWAIGFunction": [
+          "active",
+          "argument",
+          "data_map",
+          "description",
+          "fillers",
+          "function",
+          "meta_data",
+          "meta_data_token",
+          "parameters",
+          "purpose",
+          "skip_fillers",
+          "wait_file",
+          "wait_file_loops",
+          "wait_for_fillers",
+          "web_hook_auth_pass",
+          "web_hook_auth_password",
+          "web_hook_auth_user",
           "web_hook_url"
         ],
         "SWAIGIncludes": [
+          "auth_password",
+          "auth_user",
           "functions",
           "meta_data",
           "url"
@@ -5464,20 +6378,76 @@
           "check_time",
           "get_ideal_strategy",
           "get_visual_input",
-          "hangup",
           "next_step",
+          "pause_conversation",
           "wait_for_user",
           "wait_seconds"
         ],
         "SWMLAction": [
-          "SWML"
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
+          "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait_for_user"
         ],
         "SWMLObject": [
           "sections",
           "version"
         ],
         "SayAction": [
-          "say"
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
+          "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait_for_user"
         ],
         "SendDigits": [
           "send_digits"
@@ -5492,10 +6462,66 @@
           "set"
         ],
         "SetGlobalDataAction": [
-          "set_global_data"
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
+          "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait_for_user"
         ],
         "SetMetaDataAction": [
-          "set_meta_data"
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
+          "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait_for_user"
         ],
         "Sleep": [
           "sleep"
@@ -5518,16 +6544,75 @@
           "wait_file",
           "wait_file_loops",
           "wait_for_fillers",
+          "web_hook_auth_pass",
+          "web_hook_auth_password",
+          "web_hook_auth_user",
           "web_hook_url"
         ],
         "StopAction": [
-          "stop"
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
+          "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait_for_user"
         ],
         "StopDenoise": [
           "stop_denoise"
         ],
         "StopPlaybackBGAction": [
-          "stop_playback_bg"
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
+          "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait_for_user"
         ],
         "StopRecordCall": [
           "stop_record_call"
@@ -5562,6 +6647,9 @@
           "wait_file",
           "wait_file_loops",
           "wait_for_fillers",
+          "web_hook_auth_pass",
+          "web_hook_auth_password",
+          "web_hook_auth_user",
           "web_hook_url"
         ],
         "Switch": [
@@ -5571,7 +6659,35 @@
           "tap"
         ],
         "ToggleFunctionsAction": [
-          "toggle_functions"
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
+          "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait_for_user"
         ],
         "TranscribeStartAction": [
           "start"
@@ -5605,16 +6721,100 @@
           "unset"
         ],
         "UnsetGlobalDataAction": [
-          "unset_global_data"
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
+          "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait_for_user"
         ],
         "UnsetMetaDataAction": [
-          "unset_meta_data"
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
+          "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait_for_user"
         ],
         "UserEvent": [
           "user_event"
         ],
         "UserInputAction": [
-          "user_input"
+          "SWML",
+          "add_dynamic_hints",
+          "back_to_back_functions",
+          "change_context",
+          "change_step",
+          "change_voice",
+          "clear_dynamic_hints",
+          "context_switch",
+          "end_of_speech_timeout",
+          "extensive_data",
+          "functions_on_speaker_timeout",
+          "hangup",
+          "hold",
+          "playback_bg",
+          "replace_in_history",
+          "say",
+          "set_global_data",
+          "set_meta_data",
+          "settings",
+          "speech_event_timeout",
+          "stop",
+          "stop_playback_bg",
+          "toggle_functions",
+          "transfer",
+          "unset_global_data",
+          "unset_meta_data",
+          "user_event",
+          "user_input",
+          "wait_for_user"
         ],
         "UserSWAIGFunction": [
           "active",
@@ -5631,12 +6831,16 @@
           "wait_file",
           "wait_file_loops",
           "wait_for_fillers",
+          "web_hook_auth_pass",
+          "web_hook_auth_password",
+          "web_hook_auth_user",
           "web_hook_url"
         ],
         "Webhook": [
           "error_keys",
           "expressions",
           "foreach",
+          "form_param",
           "headers",
           "input_args_as_params",
           "method",
@@ -5644,6 +6848,240 @@
           "params",
           "require_args",
           "url"
+        ],
+        "TranscribeStop": [
+          "transcribe_stop"
+        ],
+        "Transcribe": [
+          "transcribe"
+        ],
+        "Stream": [
+          "created_at",
+          "fps",
+          "height",
+          "id",
+          "stream",
+          "stream_type",
+          "updated_at",
+          "url",
+          "width"
+        ],
+        "StopStream": [
+          "stop_stream"
+        ],
+        "SetMeta": [
+          "set_meta"
+        ],
+        "SetCapabilities": [
+          "set_capabilities"
+        ],
+        "RingbackConfig": [
+          "url",
+          "urls",
+          "volume"
+        ],
+        "Ring": [
+          "ring"
+        ],
+        "PromptPomSection": [
+          "body",
+          "bullets",
+          "numbered",
+          "numberedBullets",
+          "subsections",
+          "title"
+        ],
+        "JsonSchema": [
+          "additionalProperties",
+          "allOf",
+          "anyOf",
+          "const",
+          "contains",
+          "default",
+          "dependentRequired",
+          "dependentSchemas",
+          "deprecated",
+          "description",
+          "else",
+          "enum",
+          "examples",
+          "exclusiveMaximum",
+          "exclusiveMinimum",
+          "format",
+          "if",
+          "items",
+          "maxContains",
+          "maxItems",
+          "maxLength",
+          "maxProperties",
+          "maximum",
+          "minContains",
+          "minItems",
+          "minLength",
+          "minProperties",
+          "minimum",
+          "multipleOf",
+          "not",
+          "oneOf",
+          "pattern",
+          "patternProperties",
+          "prefixItems",
+          "properties",
+          "propertyNames",
+          "readOnly",
+          "required",
+          "then",
+          "title",
+          "type",
+          "unevaluatedItems",
+          "unevaluatedProperties",
+          "uniqueItems",
+          "writeOnly"
+        ],
+        "Foreach": [
+          "append",
+          "input_key",
+          "max",
+          "output_key"
+        ],
+        "ExecuteRpc": [
+          "execute_rpc"
+        ],
+        "Echo": [
+          "echo"
+        ],
+        "ConnectDevice": [
+          "authorization_bearer_token",
+          "call_state_events",
+          "call_state_url",
+          "codec",
+          "codecs",
+          "confirm",
+          "confirm_timeout",
+          "custom_parameters",
+          "encryption",
+          "from",
+          "from_name",
+          "headers",
+          "name",
+          "password",
+          "realtime",
+          "session_timeout",
+          "status_url",
+          "status_url_method",
+          "timeout",
+          "to",
+          "username",
+          "webrtc_media"
+        ],
+        "ClearDigitBindings": [
+          "clear_digit_bindings"
+        ],
+        "CallDeviceStream": [
+          "authorization_bearer_token",
+          "codec",
+          "custom_parameters",
+          "name",
+          "realtime",
+          "status_url",
+          "status_url_method",
+          "url"
+        ],
+        "BindDigit": [
+          "bind_digit"
+        ],
+        "AiSidecar": [
+          "ai_sidecar"
+        ],
+        "RelayIsReset": [
+          "full_reset",
+          "system_prompt",
+          "user_prompt"
+        ],
+        "RelayCallPlayAudio": [
+          "url"
+        ],
+        "RelayCallPlayTts": [
+          "gender",
+          "language",
+          "text",
+          "voice"
+        ],
+        "RelayCallPlaySilence": [
+          "duration"
+        ],
+        "RelayCallPlayRingtone": [
+          "duration",
+          "name"
+        ],
+        "RelayCallRecordInner": [
+          "audio"
+        ],
+        "RelayCallRecordAudio": [
+          "beep",
+          "direction",
+          "end_silence_timeout",
+          "format",
+          "initial_timeout",
+          "input_sensitivity",
+          "max_length",
+          "stereo",
+          "terminators"
+        ],
+        "RelayCallCollectDigitsInner": [
+          "digit_timeout",
+          "max",
+          "terminators"
+        ],
+        "RelayCallCollectSpeechInner": [
+          "end_silence_timeout",
+          "engine",
+          "hints",
+          "language",
+          "model",
+          "speech_timeout"
+        ],
+        "RelayCallDetectFax": [
+          "tone"
+        ],
+        "RelayCallDetectMachine": [
+          "detect_interruptions",
+          "detect_message_end",
+          "end_silence_timeout",
+          "initial_timeout",
+          "machine_ready_timeout",
+          "machine_voice_threshold",
+          "machine_words_threshold"
+        ],
+        "RelayCallDetectDigit": [
+          "digits"
+        ],
+        "RelayCallTapDeviceRtp": [
+          "addr",
+          "codec",
+          "port",
+          "ptime"
+        ],
+        "RelayCallTapDeviceWs": [
+          "codec",
+          "uri"
+        ],
+        "RelayTap": [
+          "params",
+          "type"
+        ],
+        "RelayAudioTapParams": [
+          "direction"
+        ],
+        "RelayCallReferDevice": [
+          "params",
+          "type"
+        ],
+        "RelayCallReferDeviceSip": [
+          "from",
+          "password",
+          "to",
+          "username"
         ],
         "Chat": [
           "createToken"
@@ -5761,7 +7199,32 @@
         "UpdateStatusCode422": [
           "errors"
         ],
+        "AliasAddresses": [
+          "create",
+          "delete",
+          "get",
+          "list",
+          "paginate",
+          "update"
+        ],
+        "SipAddresses": [
+          "create",
+          "delete",
+          "get",
+          "list",
+          "paginate",
+          "update"
+        ],
+        "PhoneNumberAddresses": [
+          "create",
+          "delete",
+          "get",
+          "list",
+          "paginate",
+          "update"
+        ],
         "FabricAddresses": [
+          "delete",
           "get",
           "list",
           "paginate"
@@ -5769,6 +7232,8 @@
         "GenericResources": [
           "assignDomainApplication",
           "assignPhoneRoute",
+          "assignSipEndpoint",
+          "assignWhatsappNumber",
           "delete",
           "get",
           "list",
@@ -5780,6 +7245,8 @@
           "get",
           "list",
           "listAddresses",
+          "listConversationLogs",
+          "listVoices",
           "paginate",
           "update"
         ],
@@ -5899,7 +7366,6 @@
         "FabricTokens": [
           "createEmbedToken",
           "createGuestToken",
-          "createInviteToken",
           "createSubscriberToken",
           "refreshSubscriberToken"
         ],
@@ -5915,6 +7381,7 @@
           "global_data",
           "hints",
           "languages",
+          "multilingual",
           "name",
           "params",
           "post_prompt",
@@ -5922,19 +7389,73 @@
           "prompt",
           "pronounce"
         ],
+        "AIAgentLanguage": [
+          "auto_emotion",
+          "auto_speed",
+          "code",
+          "double_turn_fillers",
+          "engine",
+          "fillers",
+          "function_fillers",
+          "id",
+          "listen_language",
+          "model",
+          "name",
+          "params",
+          "pronounce",
+          "provider",
+          "speech_fillers",
+          "turn_fillers",
+          "voice"
+        ],
+        "AIAgentSWAIG": [
+          "defaults",
+          "functions",
+          "hooks",
+          "includes",
+          "internal_fillers",
+          "mcp_servers",
+          "native_functions"
+        ],
+        "AIAgentSWAIGInclude": [
+          "functions",
+          "id",
+          "url"
+        ],
         "AIAgentAddressListResponse": [
           "data",
           "links"
         ],
+        "AIAgentVoice": [
+          "id",
+          "language",
+          "language_code",
+          "premium",
+          "provider",
+          "voice"
+        ],
+        "AIAgentConversationLogListResponse": [
+          "data",
+          "links"
+        ],
+        "AIAgentConversationLog": [
+          "caller_id_number",
+          "duration_in_seconds",
+          "id",
+          "messages",
+          "redacted_at"
+        ],
         "AIAgentCreateRequest": [
           "SWAIG",
-          "agent_id",
           "global_data",
           "hints",
           "languages",
+          "multilingual",
           "name",
           "params",
           "post_prompt",
+          "post_prompt_auth_password",
+          "post_prompt_auth_user",
           "post_prompt_url",
           "prompt",
           "pronounce"
@@ -5963,13 +7484,15 @@
         ],
         "AIAgentUpdateRequest": [
           "SWAIG",
-          "agent_id",
           "global_data",
           "hints",
           "languages",
+          "multilingual",
           "name",
           "params",
           "post_prompt",
+          "post_prompt_auth_password",
+          "post_prompt_auth_user",
           "post_prompt_url",
           "prompt",
           "pronounce"
@@ -5977,52 +7500,14 @@
         "AIAgentUpdateStatusCode422": [
           "errors"
         ],
-        "AIPostPromptPomUpdate": [
-          "confidence",
-          "frequency_penalty",
-          "max_tokens",
-          "pom",
-          "presence_penalty",
-          "temperature",
-          "top_p"
-        ],
-        "AIPostPromptTextUpdate": [
-          "confidence",
-          "frequency_penalty",
-          "max_tokens",
-          "presence_penalty",
-          "temperature",
-          "text",
-          "top_p"
-        ],
-        "AIPromptPomUpdate": [
-          "confidence",
-          "contexts",
-          "frequency_penalty",
-          "max_tokens",
-          "pom",
-          "presence_penalty",
-          "temperature",
-          "top_p"
-        ],
-        "AIPromptTextUpdate": [
-          "confidence",
-          "contexts",
-          "frequency_penalty",
-          "max_tokens",
-          "presence_penalty",
-          "temperature",
-          "text",
-          "top_p"
-        ],
         "AudioChannel": [
           "audio"
         ],
         "CXMLScript": [
           "contents",
-          "display_name",
           "id",
           "last_accessed_at",
+          "name",
           "request_count",
           "request_url",
           "script_type",
@@ -6041,7 +7526,8 @@
         ],
         "CXMLScriptCreateRequest": [
           "contents",
-          "display_name",
+          "name",
+          "script_type",
           "status_callback_method",
           "status_callback_url"
         ],
@@ -6055,15 +7541,16 @@
         "CXMLScriptResponse": [
           "created_at",
           "cxml_script",
+          "display_name",
           "id",
-          "name",
           "project_id",
           "type",
           "updated_at"
         ],
         "CXMLScriptUpdateRequest": [
           "contents",
-          "display_name",
+          "name",
+          "script_type",
           "status_callback_method",
           "status_callback_url"
         ],
@@ -6154,6 +7641,8 @@
           "self"
         ],
         "CallFlowCreateRequest": [
+          "flow_data",
+          "relayml",
           "title"
         ],
         "CallFlowCreateStatusCode422": [
@@ -6174,6 +7663,8 @@
         ],
         "CallFlowUpdateRequest": [
           "document_version",
+          "flow_data",
+          "relayml",
           "title"
         ],
         "CallFlowUpdateStatusCode422": [
@@ -6181,11 +7672,11 @@
         ],
         "CallFlowVersion": [
           "created_at",
+          "document_version",
           "flow_data",
           "id",
           "relayml",
-          "updated_at",
-          "version"
+          "updated_at"
         ],
         "CallFlowVersionDeployByDocumentVersion": [
           "document_version"
@@ -6279,7 +7770,6 @@
           "updated_at"
         ],
         "ConferenceRoomUpdateRequest": [
-          "description",
           "display_name",
           "enable_room_previews",
           "join_from",
@@ -6287,39 +7777,20 @@
           "layout",
           "max_members",
           "meta",
-          "name",
           "quality",
           "record_on_start",
           "remove_after_seconds_elapsed",
           "remove_at",
-          "room_join_video_off",
-          "sync_audio_video",
-          "tone_on_entry_and_exit",
-          "user_join_video_off"
+          "sync_audio_video"
         ],
         "ConferenceRoomUpdateStatusCode422": [
           "errors"
         ],
-        "ContextsPOMObjectUpdate": [
-          "enter_fillers",
-          "exit_fillers",
-          "isolated",
-          "pom",
-          "steps"
-        ],
-        "ContextsTextObjectUpdate": [
-          "enter_fillers",
-          "exit_fillers",
-          "isolated",
-          "steps",
-          "text"
-        ],
-        "ContextsUpdate": [
-          "default"
-        ],
         "CxmlApplication": [
+          "api_version",
           "friendly_name",
           "id",
+          "message_status_callback",
           "project_id",
           "sms_fallback_method",
           "sms_fallback_url",
@@ -6329,6 +7800,7 @@
           "sms_url",
           "status_callback",
           "status_callback_method",
+          "uri",
           "voice_fallback_method",
           "voice_fallback_url",
           "voice_method",
@@ -6364,20 +7836,19 @@
           "updated_at"
         ],
         "CxmlApplicationUpdateRequest": [
-          "account_sid",
-          "display_name",
-          "sms_fallback_method",
-          "sms_fallback_url",
-          "sms_method",
-          "sms_status_callback",
-          "sms_status_callback_method",
-          "sms_url",
-          "status_callback",
-          "status_callback_method",
-          "voice_fallback_method",
-          "voice_fallback_url",
-          "voice_method",
-          "voice_url"
+          "call_fallback_method",
+          "call_fallback_url",
+          "call_request_method",
+          "call_request_url",
+          "call_status_method",
+          "call_status_url",
+          "message_fallback_method",
+          "message_fallback_url",
+          "message_request_method",
+          "message_request_url",
+          "message_status_method",
+          "message_status_url",
+          "name"
         ],
         "CxmlApplicationUpdateStatusCode422": [
           "errors"
@@ -6455,7 +7926,6 @@
           "ciphers",
           "codecs",
           "cover_url",
-          "created_at",
           "display_name",
           "domain",
           "encryption",
@@ -6466,6 +7936,7 @@
           "locked",
           "name",
           "preview_url",
+          "resource_id",
           "type",
           "user"
         ],
@@ -6481,34 +7952,34 @@
         "FabricAddress": [
           "channels",
           "cover_url",
-          "created_at",
           "display_name",
           "id",
           "locked",
           "name",
           "preview_url",
+          "resource_id",
           "type"
         ],
         "FabricAddressApp": [
           "channels",
           "cover_url",
-          "created_at",
           "display_name",
           "id",
           "locked",
           "name",
           "preview_url",
+          "resource_id",
           "type"
         ],
         "FabricAddressCall": [
           "channels",
           "cover_url",
-          "created_at",
           "display_name",
           "id",
           "locked",
           "name",
           "preview_url",
+          "resource_id",
           "type"
         ],
         "FabricAddressPaginationResponse": [
@@ -6520,27 +7991,28 @@
         "FabricAddressRoom": [
           "channels",
           "cover_url",
-          "created_at",
           "display_name",
           "id",
           "locked",
           "name",
           "preview_url",
+          "resource_id",
           "type"
         ],
         "FabricAddressSubscriber": [
           "channels",
           "cover_url",
-          "created_at",
           "display_name",
           "id",
           "locked",
           "name",
           "preview_url",
+          "resource_id",
           "type"
         ],
-        "FabricAddressesResponse": [
+        "FabricAddressListResponse": [
           "data",
+          "items_count",
           "links"
         ],
         "FreeswitchConectorPaginationResponse": [
@@ -6596,9 +8068,6 @@
         "GuestTokenCreateStatusCode422": [
           "errors"
         ],
-        "InviteTokenCreateStatusCode422": [
-          "errors"
-        ],
         "MessagingChannel": [
           "messaging"
         ],
@@ -6612,12 +8081,12 @@
         "PhoneRouteResponse": [
           "channels",
           "cover_url",
-          "created_at",
           "display_name",
           "id",
           "locked",
           "name",
           "preview_url",
+          "resource_id",
           "type"
         ],
         "RefreshTokenStatusCode422": [
@@ -6820,37 +8289,11 @@
         "ResourceSipEndpointCreateStatusCode422": [
           "errors"
         ],
-        "ResourceSipEndpointResponse": [
-          "channels",
-          "cover_url",
-          "id",
-          "name",
-          "preview_url",
-          "type"
-        ],
         "ResourceSipEndpointUpdateStatusCode422": [
           "errors"
         ],
         "ResourceSubSipEndpointCreateStatusCode422": [
           "errors"
-        ],
-        "SWAIGInternalFillerUpdate": [
-          "adjust_response_latency",
-          "change_context",
-          "check_time",
-          "get_ideal_strategy",
-          "get_visual_input",
-          "hangup",
-          "next_step",
-          "wait_for_user",
-          "wait_seconds"
-        ],
-        "SWAIGUpdate": [
-          "defaults",
-          "functions",
-          "includes",
-          "internal_fillers",
-          "native_functions"
         ],
         "SWMLScriptAddressListResponse": [
           "data",
@@ -6966,7 +8409,7 @@
           "ciphers",
           "codecs",
           "encryption",
-          "id",
+          "password",
           "send_as",
           "username"
         ],
@@ -7022,6 +8465,7 @@
           "ciphers",
           "codecs",
           "encryption",
+          "password",
           "send_as",
           "username"
         ],
@@ -7091,8 +8535,7 @@
           "id",
           "job_title",
           "last_name",
-          "region",
-          "timezone"
+          "time_zone"
         ],
         "SubscriberAddressPaginationResponse": [
           "first",
@@ -7109,17 +8552,24 @@
         ],
         "SubscriberGuestTokenCreateRequest": [
           "allowed_addresses",
-          "expire_at"
+          "ch",
+          "company_name",
+          "country",
+          "display_name",
+          "email",
+          "expire_at",
+          "first_name",
+          "job_title",
+          "last_name",
+          "region",
+          "time_zone"
         ],
         "SubscriberGuestTokenCreateResponse": [
+          "address_uri",
+          "expires_at",
+          "expires_in",
+          "issued_at",
           "refresh_token",
-          "token"
-        ],
-        "SubscriberInviteTokenCreateRequest": [
-          "address_id",
-          "expires_at"
-        ],
-        "SubscriberInviteTokenCreateResponse": [
           "token"
         ],
         "SubscriberListResponse": [
@@ -7148,8 +8598,18 @@
           "job_title",
           "last_name",
           "password",
-          "region",
-          "timezone"
+          "time_zone"
+        ],
+        "SubscriberUpdateRequest": [
+          "company_name",
+          "country",
+          "display_name",
+          "email",
+          "first_name",
+          "job_title",
+          "last_name",
+          "password",
+          "time_zone"
         ],
         "SubscriberResponse": [
           "created_at",
@@ -7199,16 +8659,19 @@
         ],
         "SubscriberTokenRequest": [
           "application_id",
+          "ch",
           "company_name",
           "country",
           "display_name",
           "expire_at",
+          "fingerprint",
           "first_name",
           "job_title",
           "last_name",
           "password",
           "reference",
           "region",
+          "scope",
           "time_zone"
         ],
         "SubscriberTokenResponse": [
@@ -7227,12 +8690,14 @@
           "display_name",
           "id",
           "request_url",
+          "script_type",
           "status_callback_method",
           "status_callback_url"
         ],
         "SwmlScriptCreateRequest": [
           "contents",
           "name",
+          "script_type",
           "status_callback_url"
         ],
         "SwmlScriptCreateStatusCode422": [
@@ -7259,7 +8724,8 @@
         ],
         "SwmlScriptUpdateRequest": [
           "contents",
-          "display_name",
+          "name",
+          "script_type",
           "status_callback_url"
         ],
         "SwmlScriptUpdateStatusCode422": [
@@ -7279,6 +8745,184 @@
         ],
         "VideoChannel": [
           "video"
+        ],
+        "AliasAddress": [
+          "channels",
+          "codecs",
+          "context",
+          "created_at",
+          "display_name",
+          "display_type",
+          "id",
+          "name",
+          "resource_id",
+          "type",
+          "updated_at",
+          "uri"
+        ],
+        "AliasAddressCreateRequest": [
+          "channels",
+          "codecs",
+          "context",
+          "display_name",
+          "name",
+          "resource_id"
+        ],
+        "AliasAddressUpdateRequest": [
+          "channels",
+          "codecs",
+          "context",
+          "display_name",
+          "name"
+        ],
+        "SipAddress": [
+          "calling_handler_resource_id",
+          "ciphers",
+          "codecs",
+          "context",
+          "created_at",
+          "display_name",
+          "encryption",
+          "id",
+          "ip_auth",
+          "ip_auth_enabled",
+          "name",
+          "resource_id",
+          "type",
+          "updated_at",
+          "uri",
+          "user"
+        ],
+        "SipAddressCreateRequest": [
+          "calling_handler_resource_id",
+          "ciphers",
+          "codecs",
+          "context_id",
+          "encryption",
+          "ip_auth",
+          "ip_auth_enabled",
+          "name",
+          "password",
+          "user"
+        ],
+        "SipAddressUpdateRequest": [
+          "ciphers",
+          "codecs",
+          "context_id",
+          "encryption",
+          "ip_auth",
+          "ip_auth_enabled",
+          "name",
+          "password",
+          "user"
+        ],
+        "PhoneNumberAddress": [
+          "created_at",
+          "handler_type",
+          "id",
+          "name",
+          "phone_number",
+          "phone_number_id",
+          "resource_id",
+          "type",
+          "updated_at"
+        ],
+        "PhoneNumberAddressCreateRequest": [
+          "handler_type",
+          "number",
+          "phone_number_id",
+          "resource_id"
+        ],
+        "PhoneNumberAddressUpdateRequest": [
+          "name",
+          "resource_id"
+        ],
+        "AliasAddressListResponse": [
+          "data",
+          "items_count",
+          "links"
+        ],
+        "SipAddressListResponse": [
+          "data",
+          "items_count",
+          "links"
+        ],
+        "PhoneNumberAddressListResponse": [
+          "data",
+          "items_count",
+          "links"
+        ],
+        "WhatsappNumberAssignRequest": [
+          "handler",
+          "whatsapp_number_id"
+        ],
+        "WhatsappNumberAddressResponse": [
+          "channels",
+          "cover_url",
+          "display_name",
+          "id",
+          "locked",
+          "name",
+          "preview_url",
+          "resource_id",
+          "type"
+        ],
+        "AIAgentPrompt": [
+          "contexts",
+          "frequency_penalty",
+          "max_completion_tokens",
+          "max_tokens",
+          "model",
+          "pom",
+          "presence_penalty",
+          "reasoning_effort",
+          "steps",
+          "temperature",
+          "text",
+          "top_p",
+          "verbosity"
+        ],
+        "AIAgentPostPrompt": [
+          "frequency_penalty",
+          "max_completion_tokens",
+          "max_tokens",
+          "model",
+          "pom",
+          "presence_penalty",
+          "reasoning_effort",
+          "temperature",
+          "text",
+          "top_p",
+          "verbosity"
+        ],
+        "AIAgentSWAIGFunction": [
+          "active",
+          "argument",
+          "arguments",
+          "data_map",
+          "description",
+          "fillers",
+          "function",
+          "id",
+          "meta_data",
+          "meta_data_token",
+          "parameters",
+          "purpose",
+          "skip_fillers",
+          "wait_file",
+          "wait_file_loops",
+          "wait_for_fillers",
+          "web_hook_auth_pass",
+          "web_hook_auth_password",
+          "web_hook_auth_user",
+          "web_hook_url"
+        ],
+        "AIAgentPronounce": [
+          "id",
+          "ignore_case",
+          "replace",
+          "replace_with",
+          "with"
         ],
         "FaxLogs": [
           "get",
@@ -7403,11 +9047,29 @@
           "list",
           "paginate"
         ],
+        "WhatsappNumbers": [
+          "get",
+          "list",
+          "paginate"
+        ],
+        "WhatsappBusinesses": [
+          "list"
+        ],
+        "WhatsappTemplates": [
+          "create",
+          "delete",
+          "get",
+          "list",
+          "paginate",
+          "update"
+        ],
         "LogRetrieveResponse": [
           "charge",
           "charge_details",
           "created_at",
           "direction",
+          "error_code",
+          "error_message",
           "from",
           "id",
           "kind",
@@ -7423,6 +9085,8 @@
           "charge_details",
           "created_at",
           "direction",
+          "error_code",
+          "error_message",
           "from",
           "id",
           "kind",
@@ -7439,17 +9103,96 @@
         "MessageLogsListStatusCode422": [
           "errors"
         ],
+        "WhatsappBusiness": [
+          "business_name",
+          "business_portfolio_id",
+          "created_at",
+          "updated_at",
+          "waba_id",
+          "whatsapp_business_id"
+        ],
+        "WhatsappBusinessListResponse": [
+          "data"
+        ],
+        "WhatsappNumber": [
+          "business_name",
+          "business_phone_number_id",
+          "calling_handler_resource_id",
+          "created_at",
+          "id",
+          "messaging_handler_resource_id",
+          "phone_number",
+          "updated_at",
+          "voice_capable",
+          "voice_enabled",
+          "waba_id",
+          "whatsapp_business_id"
+        ],
+        "WhatsappNumberListResponse": [
+          "data"
+        ],
+        "WhatsappTemplate": [
+          "category",
+          "components",
+          "created_at",
+          "discarded_at",
+          "id",
+          "language",
+          "name",
+          "parameter_format",
+          "template_id",
+          "template_status",
+          "updated_at",
+          "whatsapp_business_id"
+        ],
+        "WhatsappTemplateListResponse": [
+          "data"
+        ],
+        "CreateWhatsappTemplateRequest": [
+          "category",
+          "components",
+          "language",
+          "name",
+          "parameter_format",
+          "whatsapp_business_id"
+        ],
+        "UpdateWhatsappTemplateRequest": [
+          "category",
+          "components"
+        ],
+        "WhatsappTemplateDeleteResponse": [
+          "errors",
+          "success"
+        ],
+        "WhatsappStatusCode422": [
+          "errors"
+        ],
+        "WhatsappTemplateErrorItem": [
+          "code",
+          "detail",
+          "status",
+          "subcode",
+          "title"
+        ],
+        "WhatsappTemplateStatusCode422": [
+          "errors"
+        ],
         "Messages": [
           "create",
           "update"
         ],
         "CreateMessageRequest": [
           "body",
+          "body_template_parameters",
+          "button_template_parameters",
           "custom_variables",
           "from",
+          "header_template_parameters",
           "media",
+          "message_type",
           "send_as_mms",
           "status_callback",
+          "template_id",
           "to"
         ],
         "UpdateMessageRequest": [
@@ -7469,6 +9212,7 @@
         "CreateTokenRequest": [
           "name",
           "permissions",
+          "project_id",
           "subproject_id"
         ],
         "TokenResponse": [
@@ -7476,6 +9220,11 @@
           "name",
           "permissions",
           "token"
+        ],
+        "TokenUpdateResponse": [
+          "id",
+          "name",
+          "permissions"
         ],
         "TokenStatusCode422": [
           "errors"
@@ -7502,11 +9251,18 @@
           "protect_fax_media",
           "protect_message_media",
           "protect_recordings",
-          "region_preference",
           "subproject",
           "updated_at"
         ],
         "ProjectCreate": [
+          "force_https_requests",
+          "name",
+          "parent_project_id",
+          "protect_fax_media",
+          "protect_message_media",
+          "protect_recordings"
+        ],
+        "ProjectUpdate": [
           "force_https_requests",
           "name",
           "protect_fax_media",
@@ -7547,7 +9303,8 @@
           "create",
           "delete",
           "get",
-          "list"
+          "list",
+          "update"
         ],
         "ImportedNumbers": [
           "create"
@@ -7573,11 +9330,16 @@
           "update"
         ],
         "PhoneNumbers": [
+          "assignE911Address",
+          "clearCnam",
           "create",
           "delete",
           "get",
+          "getCnam",
           "list",
           "paginate",
+          "removeE911Address",
+          "requestCnam",
           "search",
           "setAiAgent",
           "setCallFlow",
@@ -7601,6 +9363,7 @@
         ],
         "Recordings": [
           "delete",
+          "download",
           "get",
           "list"
         ],
@@ -7609,7 +9372,8 @@
           "createCampaign",
           "get",
           "list",
-          "listCampaigns"
+          "listCampaigns",
+          "update"
         ],
         "RegistryCampaigns": [
           "createOrder",
@@ -7651,6 +9415,7 @@
           "address_type",
           "city",
           "country",
+          "emergency_enabled",
           "first_name",
           "id",
           "label",
@@ -7659,6 +9424,8 @@
           "state",
           "street_name",
           "street_number",
+          "validated",
+          "validated_at",
           "zip_code"
         ],
         "AddressListResponse": [
@@ -7670,6 +9437,7 @@
           "address_type",
           "city",
           "country",
+          "emergency_enabled",
           "first_name",
           "id",
           "label",
@@ -7678,6 +9446,8 @@
           "state",
           "street_name",
           "street_number",
+          "validated",
+          "validated_at",
           "zip_code"
         ],
         "AssignedNumber": [
@@ -7686,6 +9456,7 @@
           "id",
           "phone_number",
           "state",
+          "status_callback_url",
           "updated_at"
         ],
         "AssignedNumberListResponse": [
@@ -7695,14 +9466,14 @@
         "AssignedPhoneNumber": [
           "id",
           "name",
-          "number",
-          "status_callback_url"
+          "number"
         ],
         "AvailablePhoneNumber": [
           "capabilities",
-          "city",
-          "lata",
-          "number",
+          "country_code",
+          "e164",
+          "international_number_formatted",
+          "national_number_formatted",
           "rate_center",
           "region"
         ],
@@ -7714,7 +9485,6 @@
           "company_address",
           "company_name",
           "company_vertical",
-          "company_website",
           "contact_email",
           "contact_phone",
           "created_at",
@@ -7723,8 +9493,11 @@
           "ein",
           "ein_issuing_country",
           "id",
+          "large_message_limit",
           "legal_entity_type",
           "name",
+          "number_pooling_for_company",
+          "signalwire_contact_emails",
           "state",
           "status_callback_url",
           "updated_at"
@@ -7737,7 +9510,6 @@
           "company_address",
           "company_name",
           "company_vertical",
-          "company_website",
           "contact_email",
           "contact_phone",
           "created_at",
@@ -7746,8 +9518,11 @@
           "ein",
           "ein_issuing_country",
           "id",
+          "large_message_limit",
           "legal_entity_type",
           "name",
+          "number_pooling_for_company",
+          "signalwire_contact_emails",
           "state",
           "status_callback_url",
           "updated_at"
@@ -7757,9 +9532,10 @@
           "campaign_verify_token",
           "created_at",
           "csp_campaign_reference",
+          "daily_messages_per_number",
           "description",
           "direct_lending",
-          "dynamic_templates",
+          "dynamic_messages",
           "embedded_link",
           "embedded_phone",
           "help_keywords",
@@ -7769,16 +9545,19 @@
           "message_flow",
           "name",
           "number_pooling_per_campaign",
-          "number_pooling_required",
           "opt_in_keywords",
           "opt_in_message",
           "opt_out_keywords",
           "opt_out_message",
+          "privacy_policy_link",
+          "purchase_or_port_numbers",
+          "requested_throughput",
           "sample1",
           "sample2",
           "sample3",
           "sample4",
           "sample5",
+          "signalwire_contact_emails",
           "sms_use_case",
           "state",
           "status_callback_url",
@@ -7794,9 +9573,10 @@
           "campaign_verify_token",
           "created_at",
           "csp_campaign_reference",
+          "daily_messages_per_number",
           "description",
           "direct_lending",
-          "dynamic_templates",
+          "dynamic_messages",
           "embedded_link",
           "embedded_phone",
           "help_keywords",
@@ -7806,16 +9586,19 @@
           "message_flow",
           "name",
           "number_pooling_per_campaign",
-          "number_pooling_required",
           "opt_in_keywords",
           "opt_in_message",
           "opt_out_keywords",
           "opt_out_message",
+          "privacy_policy_link",
+          "purchase_or_port_numbers",
+          "requested_throughput",
           "sample1",
           "sample2",
           "sample3",
           "sample4",
           "sample5",
+          "signalwire_contact_emails",
           "sms_use_case",
           "state",
           "status_callback_url",
@@ -7824,6 +9607,7 @@
         ],
         "CarrierLookupInfo": [
           "city",
+          "dnc",
           "jurisdiction",
           "lata",
           "lec",
@@ -7839,8 +9623,10 @@
         "CreateAddressRequest": [
           "address_number",
           "address_type",
+          "auto_correct_address",
           "city",
           "country",
+          "emergency_enabled",
           "first_name",
           "label",
           "last_name",
@@ -7853,6 +9639,7 @@
           "csp_brand_reference",
           "csp_self_registered",
           "name",
+          "signalwire_contact_emails",
           "status_callback_url"
         ],
         "CreateDomainApplicationRequest": [
@@ -7868,6 +9655,7 @@
           "call_relay_context",
           "call_relay_context_status_callback_url",
           "call_relay_script_url",
+          "call_relay_script_url_method",
           "call_relay_topic",
           "call_relay_topic_status_callback_url",
           "call_request_method",
@@ -7891,16 +9679,18 @@
           "company_website",
           "contact_email",
           "contact_phone",
+          "csp_brand_reference",
           "ein",
           "ein_issuing_country",
           "legal_entity_type",
           "name",
+          "signalwire_contact_emails",
           "status_callback_url"
         ],
         "CreateManagedCampaignRequest": [
           "age_gated_content",
-          "brand_id",
           "campaign_verify_token",
+          "csp_campaign_reference",
           "description",
           "direct_lending",
           "dynamic_messages",
@@ -7922,6 +9712,7 @@
           "sample3",
           "sample4",
           "sample5",
+          "signalwire_contact_emails",
           "sms_use_case",
           "status_callback_url",
           "sub_use_cases",
@@ -7936,9 +9727,9 @@
           "status_callback_url"
         ],
         "CreatePartnerCampaignRequest": [
-          "brand_id",
           "csp_campaign_reference",
           "name",
+          "signalwire_contact_emails",
           "status_callback_url"
         ],
         "CreateQueueRequest": [
@@ -7958,6 +9749,7 @@
           "call_relay_context",
           "call_relay_context_status_callback_url",
           "call_relay_script_url",
+          "call_relay_script_url_method",
           "call_relay_topic",
           "call_relay_topic_status_callback_url",
           "call_request_method",
@@ -8077,8 +9869,11 @@
           "sticky_sender"
         ],
         "Order": [
+          "brand_id",
+          "campaign_id",
           "created_at",
           "id",
+          "phone_numbers",
           "processed_at",
           "state",
           "status_callback_url",
@@ -8089,8 +9884,11 @@
           "links"
         ],
         "OrderResponse": [
+          "brand_id",
+          "campaign_id",
           "created_at",
           "id",
+          "phone_numbers",
           "processed_at",
           "state",
           "status_callback_url",
@@ -8125,9 +9923,11 @@
           "call_video_room_id",
           "calling_handler_resource_id",
           "capabilities",
+          "cnam",
           "country_code",
           "created_at",
           "e911_address_id",
+          "e911_status",
           "id",
           "message_fallback_method",
           "message_fallback_url",
@@ -8192,9 +9992,11 @@
           "call_video_room_id",
           "calling_handler_resource_id",
           "capabilities",
+          "cnam",
           "country_code",
           "created_at",
           "e911_address_id",
+          "e911_status",
           "id",
           "message_fallback_method",
           "message_fallback_url",
@@ -8228,7 +10030,8 @@
           "url"
         ],
         "PurchasePhoneNumberRequest": [
-          "number"
+          "number",
+          "number_type"
         ],
         "Queue": [
           "average_wait_time",
@@ -8277,6 +10080,22 @@
           "max_size",
           "project_id",
           "uri"
+        ],
+        "RelayConferenceRecording": [
+          "byte_size",
+          "created_at",
+          "duration_in_seconds",
+          "error_code",
+          "id",
+          "price",
+          "price_unit",
+          "project_id",
+          "relay_conference_id",
+          "status",
+          "stereo",
+          "track",
+          "updated_at",
+          "url"
         ],
         "RecordingListResponse": [
           "data",
@@ -8330,6 +10149,7 @@
           "default_ciphers",
           "default_codecs",
           "default_encryption",
+          "default_outbound_policy",
           "default_send_as",
           "domain",
           "domain_identifier"
@@ -8360,7 +10180,9 @@
           "errors"
         ],
         "UpdateCampaignRequest": [
-          "name"
+          "name",
+          "signalwire_contact_emails",
+          "status_callback_url"
         ],
         "UpdateDomainApplicationRequest": [
           "call_ai_agent_id",
@@ -8375,6 +10197,7 @@
           "call_relay_context",
           "call_relay_context_status_callback_url",
           "call_relay_script_url",
+          "call_relay_script_url_method",
           "call_relay_topic",
           "call_relay_topic_status_callback_url",
           "call_request_method",
@@ -8410,6 +10233,7 @@
           "call_relay_context",
           "call_relay_context_status_callback_url",
           "call_relay_script_url",
+          "call_relay_script_url_method",
           "call_relay_topic",
           "call_relay_topic_status_callback_url",
           "call_request_method",
@@ -8457,6 +10281,7 @@
           "call_relay_context",
           "call_relay_context_status_callback_url",
           "call_relay_script_url",
+          "call_relay_script_url_method",
           "call_relay_topic",
           "call_relay_topic_status_callback_url",
           "call_request_method",
@@ -8476,6 +10301,7 @@
           "default_ciphers",
           "default_codecs",
           "default_encryption",
+          "default_outbound_policy",
           "default_send_as",
           "domain_identifier"
         ],
@@ -8525,6 +10351,338 @@
           "updated_at",
           "url"
         ],
+        "UpdateAddressRequest": [
+          "address_number",
+          "address_type",
+          "auto_correct_address",
+          "city",
+          "country",
+          "emergency_enabled",
+          "first_name",
+          "label",
+          "last_name",
+          "postal_code",
+          "state",
+          "street_name",
+          "street_number"
+        ],
+        "AddressCandidate": [
+          "city",
+          "postal_code",
+          "state",
+          "street_name",
+          "street_number"
+        ],
+        "AddressValidationError": [
+          "candidates",
+          "errors"
+        ],
+        "UpdateBrandRequest": [
+          "company_address",
+          "company_name",
+          "company_vertical",
+          "company_website",
+          "contact_email",
+          "contact_phone",
+          "csp_brand_reference",
+          "ein",
+          "ein_issuing_country",
+          "legal_entity_type",
+          "name",
+          "signalwire_contact_emails",
+          "status_callback_url"
+        ],
+        "BrandUpdateStatusCode422": [
+          "errors"
+        ],
+        "AssignE911AddressRequest": [
+          "e911_address_id"
+        ],
+        "CreatePhoneNumberCnamRequest": [
+          "name"
+        ],
+        "PhoneNumberCnamResponse": [
+          "created_at",
+          "id",
+          "name",
+          "phone_number_id",
+          "reason",
+          "required_action",
+          "status",
+          "type",
+          "updated_at"
+        ],
+        "SpaceSettings": [
+          "get",
+          "update"
+        ],
+        "SpaceGeographicPermissions": [
+          "get",
+          "update"
+        ],
+        "SpaceBillingProfile": [
+          "get",
+          "update"
+        ],
+        "SpaceBillingStatements": [
+          "get",
+          "getCsv",
+          "getPdf",
+          "list"
+        ],
+        "SpaceUsage": [
+          "get"
+        ],
+        "SpacePaymentHistory": [
+          "list"
+        ],
+        "SpaceMembers": [
+          "create",
+          "delete",
+          "disableProject",
+          "enableProject",
+          "get",
+          "list",
+          "listProjects",
+          "paginate",
+          "update"
+        ],
+        "SpaceBalance": [
+          "createTopUp",
+          "get"
+        ],
+        "SpaceLowBalanceSetting": [
+          "get",
+          "update"
+        ],
+        "SpacePaymentMethods": [
+          "delete",
+          "list"
+        ],
+        "Space": [
+          "created_at",
+          "id",
+          "name",
+          "subdomain",
+          "trial",
+          "type",
+          "updated_at",
+          "verified"
+        ],
+        "SpaceUpdate": [
+          "name"
+        ],
+        "GeographicPermission": [
+          "countries",
+          "supported_countries",
+          "type"
+        ],
+        "GeographicPermissionUpdate": [
+          "countries"
+        ],
+        "BillingProfile": [
+          "address_city",
+          "address_country",
+          "address_line1",
+          "address_line2",
+          "address_state",
+          "address_zip",
+          "company_name",
+          "contact_email",
+          "contact_name",
+          "contact_phone",
+          "monthly_invoices",
+          "monthly_invoices_locked",
+          "tax_id_number",
+          "tax_id_number_required",
+          "type"
+        ],
+        "BillingProfileUpdate": [
+          "address_city",
+          "address_country",
+          "address_line1",
+          "address_line2",
+          "address_state",
+          "address_zip",
+          "company_name",
+          "contact_email",
+          "contact_name",
+          "contact_phone",
+          "monthly_invoices",
+          "tax_id_number"
+        ],
+        "BillingStatementPeriod": [
+          "formats",
+          "month",
+          "type",
+          "uri"
+        ],
+        "BillingStatementPeriodList": [
+          "data"
+        ],
+        "BillingStatement": [
+          "month",
+          "projects",
+          "summary",
+          "type",
+          "usage_by_kind"
+        ],
+        "BillingStatementSummary": [
+          "adjustments",
+          "carrier_fees_in_dollars",
+          "carrier_fees_in_microdollars",
+          "taxes_in_dollars",
+          "taxes_in_microdollars",
+          "usage_in_dollars",
+          "usage_in_microdollars"
+        ],
+        "AmountByKind": [
+          "amount_in_dollars",
+          "amount_in_microdollars",
+          "description",
+          "kind"
+        ],
+        "ProjectUsage": [
+          "amount_in_dollars",
+          "amount_in_microdollars",
+          "id",
+          "name",
+          "usage_by_kind"
+        ],
+        "Usage": [
+          "month",
+          "projects",
+          "total_in_dollars",
+          "total_in_microdollars",
+          "type",
+          "usage_by_kind"
+        ],
+        "BalanceAdjustment": [
+          "amount",
+          "amount_in_microdollars",
+          "created_at",
+          "id",
+          "kind",
+          "payment_method_last4",
+          "type"
+        ],
+        "PaymentHistoryList": [
+          "data",
+          "links"
+        ],
+        "Member": [
+          "activated",
+          "created_at",
+          "email",
+          "id",
+          "job_title",
+          "last_logged_in",
+          "name",
+          "role",
+          "type",
+          "updated_at"
+        ],
+        "MemberList": [
+          "data",
+          "links"
+        ],
+        "MemberCreate": [
+          "email",
+          "name",
+          "role"
+        ],
+        "MemberUpdate": [
+          "job_title",
+          "name",
+          "role"
+        ],
+        "SpaceProject": [
+          "created_at",
+          "id",
+          "name",
+          "type",
+          "updated_at"
+        ],
+        "MemberProject": [
+          "created_at",
+          "id",
+          "name",
+          "subprojects",
+          "type",
+          "updated_at"
+        ],
+        "MemberProjectList": [
+          "data",
+          "links"
+        ],
+        "Balance": [
+          "auto_topup_enabled",
+          "balance_in_microdollars",
+          "current_balance",
+          "low_balance_threshold",
+          "low_balance_threshold_in_microdollars",
+          "type"
+        ],
+        "TopUpCreate": [
+          "amount_in_microdollars",
+          "payment_method_id"
+        ],
+        "LowBalanceSetting": [
+          "send_email",
+          "send_topup",
+          "send_webhook",
+          "threshold",
+          "threshold_in_microdollars",
+          "topup_amount",
+          "topup_amount_in_microdollars",
+          "topup_payment_method_id",
+          "type",
+          "webhook_method",
+          "webhook_url"
+        ],
+        "LowBalanceSettingUpdate": [
+          "send_email",
+          "send_topup",
+          "send_webhook",
+          "threshold_in_microdollars",
+          "topup_amount_in_microdollars",
+          "topup_payment_method_id",
+          "webhook_method",
+          "webhook_url"
+        ],
+        "PaymentMethod": [
+          "auto_topup_source",
+          "brand",
+          "country",
+          "expires_month",
+          "expires_year",
+          "id",
+          "last4",
+          "type"
+        ],
+        "SpacePaginationLinks": [
+          "first",
+          "next",
+          "prev",
+          "self"
+        ],
+        "SpaceStatusCode422": [
+          "errors"
+        ],
+        "SpaceUnverifiedError": [
+          "message"
+        ],
+        "TopUpMessageError": [
+          "message"
+        ],
+        "TopUpDeclinedError": [
+          "decline_code",
+          "message"
+        ],
+        "TopUpDepositFailedError": [
+          "code",
+          "message"
+        ],
         "VideoConferenceTokens": [
           "get",
           "reset"
@@ -8542,6 +10700,7 @@
         ],
         "VideoRoomRecordings": [
           "delete",
+          "download",
           "get",
           "list",
           "listEvents"
@@ -8573,7 +10732,8 @@
           "update"
         ],
         "ActiveSession": [
-          "audio_video_sync",
+          "cost_in_dollars",
+          "created_at",
           "display_name",
           "duration",
           "enable_room_previews",
@@ -8583,19 +10743,57 @@
           "join_from",
           "join_until",
           "layout",
+          "locked",
+          "locked_cover",
           "max_members",
           "name",
           "preview_url",
+          "prioritize_handraise",
           "quality",
           "record_on_start",
           "remove_after_seconds_elapsed",
           "remove_at",
           "room_id",
+          "room_join_video_off",
           "start_time",
-          "status"
+          "status",
+          "sync_audio_video",
+          "tone_on_entry_and_exit",
+          "updated_at",
+          "user_join_video_off"
         ],
         "Conference": [
           "active_session",
+          "created_at",
+          "dark_background",
+          "dark_foreground",
+          "dark_negative",
+          "dark_primary",
+          "dark_success",
+          "description",
+          "display_name",
+          "enable_chat",
+          "enable_room_previews",
+          "id",
+          "join_from",
+          "join_until",
+          "layout",
+          "light_background",
+          "light_foreground",
+          "light_negative",
+          "light_primary",
+          "light_success",
+          "meta",
+          "name",
+          "quality",
+          "record_on_start",
+          "room_join_video_off",
+          "size",
+          "tone_on_entry_and_exit",
+          "updated_at",
+          "user_join_video_off"
+        ],
+        "ConferenceMutationResponse": [
           "created_at",
           "dark_background",
           "dark_foreground",
@@ -8795,6 +10993,30 @@
           "updated_at",
           "user_join_video_off"
         ],
+        "RoomMutationResponse": [
+          "created_at",
+          "description",
+          "display_name",
+          "enable_room_previews",
+          "fps",
+          "id",
+          "join_from",
+          "join_until",
+          "layout",
+          "max_members",
+          "meta",
+          "name",
+          "prioritize_handraise",
+          "quality",
+          "record_on_start",
+          "remove_after_seconds_elapsed",
+          "remove_at",
+          "room_join_video_off",
+          "sync_audio_video",
+          "tone_on_entry_and_exit",
+          "updated_at",
+          "user_join_video_off"
+        ],
         "RoomSession": [
           "cost_in_dollars",
           "created_at",
@@ -8877,16 +11099,6 @@
         ],
         "RoomTokenResponse": [
           "token"
-        ],
-        "Stream": [
-          "created_at",
-          "fps",
-          "height",
-          "id",
-          "stream_type",
-          "updated_at",
-          "url",
-          "width"
         ],
         "UpdateConferenceRequest": [
           "dark_background",
@@ -8983,6 +11195,25 @@
           "data"
         ],
         "RelayVoiceLog": [
+          "audio_in_dtmf_packet_count",
+          "audio_in_flush_packet_count",
+          "audio_in_jitter_max",
+          "audio_in_jitter_min",
+          "audio_in_largest_jb_size",
+          "audio_in_mean_interval",
+          "audio_in_media_packet_count",
+          "audio_in_mos",
+          "audio_in_skip_packet_count",
+          "audio_out_dtmf_packet_count",
+          "audio_out_jitter_avg",
+          "audio_out_jitter_max",
+          "audio_out_jitter_min",
+          "audio_out_lost",
+          "audio_out_media_packet_count",
+          "audio_out_packet_count",
+          "audio_rtt_avg",
+          "audio_rtt_max",
+          "audio_rtt_min",
           "billing_ms",
           "charge",
           "charge_details",
@@ -9024,6 +11255,7 @@
         "ClientOptions": [
           "fetchImpl",
           "host",
+          "personalAccessToken",
           "project",
           "requestOptions",
           "token"
@@ -9888,12 +12120,9 @@
         ],
         "TransferConfig": [
           "address",
-          "dest",
           "final",
           "from_addr",
           "message",
-          "meta",
-          "params",
           "post_process",
           "return_message",
           "url"
@@ -10078,107 +12307,141 @@
           "validateEnvVars",
           "validatePackages"
         ],
-        "OmitPropertiesBedrockPostPomptTextOmittedPromptProps": [
-          "confidence",
-          "frequency_penalty",
-          "max_tokens",
-          "presence_penalty",
-          "temperature",
-          "text",
-          "top_p"
+        "CallPayParameters": [
+          "name",
+          "value"
         ],
-        "OmitPropertiesBedrockPostPromptPomOmittedPromptProps": [
-          "confidence",
-          "frequency_penalty",
-          "max_tokens",
-          "pom",
-          "presence_penalty",
-          "temperature",
-          "top_p"
+        "CallPayPrompts": [
+          "actions",
+          "attempt",
+          "card_type",
+          "error_type",
+          "for",
+          "play",
+          "require_matching_inputs"
         ],
-        "OmitPropertiesBedrockPromptTextOmittedPromptProps": [
-          "confidence",
-          "frequency_penalty",
-          "max_tokens",
-          "presence_penalty",
-          "temperature",
-          "text",
-          "top_p",
-          "voice_id"
+        "CallPayPromptsActions": [
+          "phrase",
+          "type"
         ],
-        "OmitPropertiesBedrockPromptPomOmittedPromptProps": [
-          "confidence",
-          "frequency_penalty",
-          "max_tokens",
-          "pom",
-          "presence_penalty",
-          "temperature",
-          "top_p",
-          "voice_id"
+        "ConnectSipHeader": [
+          "name",
+          "value"
         ],
-        "PickPropertiesUserSWAIGFunctionPickedSWAIGFunctionProps": [
-          "active",
-          "data_map",
+        "Dial": [
+          "dial"
+        ],
+        "Eval": [
+          "eval"
+        ],
+        "If": [
+          "if"
+        ],
+        "JsonSchemaUnion": [
+          "additionalProperties",
+          "allOf",
+          "anyOf",
+          "const",
+          "contains",
+          "default",
+          "dependentRequired",
+          "dependentSchemas",
+          "deprecated",
           "description",
-          "function",
-          "meta_data",
-          "meta_data_token",
-          "parameters",
-          "web_hook_url"
+          "else",
+          "enum",
+          "example",
+          "examples",
+          "exclusiveMaximum",
+          "exclusiveMinimum",
+          "format",
+          "if",
+          "items",
+          "maxContains",
+          "maxItems",
+          "maxLength",
+          "maxProperties",
+          "maximum",
+          "minContains",
+          "minItems",
+          "minLength",
+          "minProperties",
+          "minimum",
+          "multipleOf",
+          "not",
+          "nullable",
+          "oneOf",
+          "pattern",
+          "patternProperties",
+          "prefixItems",
+          "properties",
+          "propertyNames",
+          "propertyOrdering",
+          "readOnly",
+          "required",
+          "then",
+          "title",
+          "type",
+          "unevaluatedItems",
+          "unevaluatedProperties",
+          "uniqueItems",
+          "writeOnly"
         ],
-        "PickPropertiesStartUpHookSWAIGFunctionPickedSWAIGFunctionProps": [
-          "active",
-          "data_map",
-          "description",
-          "function",
-          "meta_data",
-          "meta_data_token",
-          "parameters",
-          "web_hook_url"
+        "BindDigitConfig": [
+          "digits",
+          "max_triggers",
+          "method",
+          "params",
+          "realm"
         ],
-        "PickPropertiesHangUpHookSWAIGFunctionPickedSWAIGFunctionProps": [
-          "active",
-          "data_map",
-          "description",
-          "function",
-          "meta_data",
-          "meta_data_token",
-          "parameters",
-          "web_hook_url"
-        ],
-        "PickPropertiesSummarizeConversationSWAIGFunctionPickedSWAIGFunctionProps": [
-          "active",
-          "data_map",
-          "description",
-          "function",
-          "meta_data",
-          "meta_data_token",
-          "parameters",
-          "web_hook_url"
-        ],
-        "AiSidecar": [
-          "ai_sidecar"
-        ],
-        "RingbackConfig": [
-          "auto_answer",
-          "loop",
-          "say_gender",
-          "say_language",
-          "say_voice",
-          "status_url",
-          "url",
-          "urls",
-          "volume"
+        "ClearDigitBindingsConfig": [
+          "realm"
         ],
         "ConnectConfig": [
+          "answer_on_bridge",
+          "authorization_bearer_token",
+          "call_state_events",
+          "call_state_url",
+          "codec",
+          "codecs",
+          "confirm",
+          "confirm_timeout",
+          "custom_parameters",
+          "encryption",
+          "execute_after_queue",
+          "from",
+          "from_name",
+          "headers",
+          "max_duration",
+          "name",
+          "parallel",
+          "password",
+          "realtime",
+          "result",
+          "ringback",
+          "serial",
+          "serial_parallel",
+          "session_timeout",
+          "status_url",
+          "status_url_method",
+          "stop_all_on_reject",
+          "timeout",
+          "to",
+          "username",
+          "webrtc_media"
+        ],
+        "DialConfig": [
           "answer_on_bridge",
           "call_state_events",
           "call_state_url",
           "codecs",
           "confirm",
           "confirm_timeout",
+          "dest_swml",
           "encryption",
+          "execute_after_queue",
           "from",
+          "from_name",
           "headers",
           "max_duration",
           "parallel",
@@ -10188,170 +12451,21 @@
           "serial",
           "serial_parallel",
           "session_timeout",
+          "status_url",
+          "stop_all_on_reject",
           "timeout",
           "to",
-          "transfer_after_bridge",
           "username",
           "webrtc_media"
         ],
-        "ExecuteConfig": [
-          "dest",
-          "meta",
-          "on_return",
-          "params",
-          "result"
-        ],
-        "GotoConfig": [
-          "label",
-          "max",
-          "when"
-        ],
-        "LiveTranscribeConfig": [
-          "action"
-        ],
-        "AiSidecarConfig": [
-          "SWAIG",
-          "action",
-          "customer_role",
-          "direction",
-          "global_data",
-          "hints",
-          "lang",
-          "model",
-          "params",
-          "permissions",
-          "prompt",
-          "url"
-        ],
-        "LiveTranslateConfig": [
-          "action"
-        ],
-        "JoinRoomConfig": [
-          "name"
-        ],
-        "PromptConfig": [
-          "digit_timeout",
-          "initial_timeout",
-          "max_digits",
-          "play",
-          "say_gender",
-          "say_language",
-          "say_voice",
-          "speech_end_timeout",
-          "speech_engine",
-          "speech_hints",
-          "speech_language",
-          "speech_timeout",
-          "status_url",
-          "terminators",
-          "volume"
-        ],
-        "ReceiveFaxConfig": [
-          "status_url"
-        ],
-        "RecordConfig": [
-          "beep",
-          "direction",
-          "end_silence_timeout",
-          "format",
-          "initial_timeout",
-          "input_sensitivity",
-          "max_length",
-          "status_url",
-          "stereo",
-          "terminators"
-        ],
-        "RecordCallConfig": [
-          "beep",
-          "control_id",
-          "direction",
-          "end_silence_timeout",
-          "format",
-          "initial_timeout",
-          "input_sensitivity",
-          "max_length",
-          "status_url",
-          "stereo",
-          "terminators"
-        ],
-        "RequestConfig": [
+        "SendSmsConfig": [
           "body",
-          "connect_timeout",
-          "headers",
-          "method",
-          "save_variables",
-          "timeout",
-          "url"
-        ],
-        "SendDigitsConfig": [
-          "digits"
-        ],
-        "SendFaxConfig": [
-          "document",
-          "header_info",
-          "identity",
-          "status_url"
-        ],
-        "SipReferConfig": [
-          "password",
-          "status_url",
-          "to_uri",
-          "username"
-        ],
-        "StopRecordCallConfig": [
-          "control_id"
-        ],
-        "StopTapConfig": [
-          "control_id"
-        ],
-        "SwitchConfig": [
-          "case",
-          "default",
-          "variable"
-        ],
-        "TapConfig": [
-          "codec",
-          "control_id",
-          "direction",
-          "rtp_ptime",
-          "status_url",
-          "uri"
-        ],
-        "PayConfig": [
-          "charge_amount",
-          "currency",
-          "description",
-          "input",
-          "language",
-          "max_attempts",
-          "min_postal_code_length",
-          "parameters",
-          "payment_connector_url",
-          "payment_method",
-          "postal_code",
-          "prompts",
-          "security_code",
-          "status_url",
-          "timeout",
-          "token_type",
-          "valid_card_types",
-          "voice"
-        ],
-        "DetectMachineConfig": [
-          "detect_message_end",
-          "detectors",
-          "end_silence_timeout",
-          "initial_timeout",
-          "machine_ready_timeout",
-          "machine_voice_threshold",
-          "machine_words_threshold",
-          "status_url",
-          "timeout",
-          "tone",
-          "wait"
-        ],
-        "UserEventConfig": [
-          "event"
+          "from_number",
+          "media",
+          "region",
+          "status_callback",
+          "tags",
+          "to_number"
         ],
         "AgentOptions": [
           "agentId",

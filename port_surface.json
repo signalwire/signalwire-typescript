@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 19dec67cc61416c7f59734d1982ebed1584274f4",
+  "generated_from": "signalwire-typescript @ dd5098be100b38ecd40a798eb37a22358a74ec6d",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -982,6 +982,7 @@
     },
     "signalwire.core.swaig_actions_generated": {
       "classes": {
+        "ChangeVoiceAction": [],
         "ContextSwitchAction": [],
         "HoldAction": [],
         "PlaybackBgAction": [],
@@ -1126,118 +1127,116 @@
     },
     "signalwire.core.swml_verbs_generated": {
       "classes": {
-        "Section": [
-          "main"
-        ],
-        "SWMLMethod": [],
-        "Answer": [],
         "AI": [],
+        "AiSidecar": [],
         "AmazonBedrock": [],
-        "Cond": [
-          "cond"
-        ],
+        "Answer": [],
+        "BindDigit": [],
+        "CallDeviceStream": [],
+        "CallPayParameters": [],
+        "CallPayPrompts": [],
+        "CallPayPromptsActions": [],
+        "ClearDigitBindings": [],
+        "Cond": [],
         "Connect": [],
+        "ConnectDevice": [
+          "headers"
+        ],
+        "ConnectSerialParallel": [],
+        "ConnectSipHeader": [],
+        "Context": [
+          "pom",
+          "steps"
+        ],
+        "DataMap": [
+          "output"
+        ],
         "Denoise": [],
+        "DetectMachine": [],
+        "Dial": [],
+        "Echo": [],
         "EnterQueue": [],
+        "Eval": [],
         "Execute": [],
+        "ExecuteRpc": [],
+        "Expression": [
+          "output"
+        ],
+        "Foreach": [],
         "Goto": [],
+        "Hangup": [],
+        "If": [],
+        "JoinConference": [],
+        "JoinRoom": [],
+        "JsonSchema": [
+          "allOf",
+          "anyOf",
+          "oneOf",
+          "prefixItems"
+        ],
+        "JsonSchemaUnion": [
+          "allOf",
+          "anyOf",
+          "oneOf",
+          "prefixItems"
+        ],
         "Label": [],
         "LiveTranscribe": [],
         "LiveTranslate": [],
-        "Hangup": [],
-        "JoinRoom": [],
-        "JoinConference": [],
+        "Pay": [],
         "Play": [],
         "Prompt": [],
+        "PromptPomSection": [
+          "subsections"
+        ],
         "ReceiveFax": [],
         "Record": [],
         "RecordCall": [],
         "Request": [],
         "Return": [],
+        "Ring": [],
+        "RingbackConfig": [],
+        "SIPRefer": [],
+        "SWMLMethod": [],
+        "Section": [
+          "main"
+        ],
         "SendDigits": [],
         "SendFax": [],
         "SendSMS": [],
         "Set": [],
+        "SetCapabilities": [],
+        "SetMeta": [],
         "Sleep": [],
-        "SIPRefer": [],
+        "Step": [
+          "pom"
+        ],
         "StopDenoise": [],
         "StopRecordCall": [],
+        "StopStream": [],
         "StopTap": [],
+        "Stream": [],
         "Switch": [],
         "Tap": [],
+        "Transcribe": [],
+        "TranscribeStop": [],
         "Transfer": [],
         "Unset": [],
-        "Pay": [],
-        "DetectMachine": [],
         "UserEvent": [],
-        "ConnectDeviceSingle": [],
-        "ConnectDeviceSerial": [],
-        "ConnectDeviceParallel": [],
-        "ConnectDeviceSerialParallel": [],
-        "TranslateAction": [],
-        "ValidConfirmMethods": [],
-        "CallStatus": [],
-        "TranscribeSummarizeActionUnion": [],
-        "SummarizeActionUnion": [],
-        "Direction": [],
-        "SWAIGNativeFunction": [],
-        "OmitPropertiesBedrockPostPomptTextOmittedPromptProps": [],
-        "OmitPropertiesBedrockPostPromptPomOmittedPromptProps": [],
-        "OmitPropertiesBedrockPromptTextOmittedPromptProps": [],
-        "OmitPropertiesBedrockPromptPomOmittedPromptProps": [],
-        "TranscribeDirection": [],
-        "SpeechEngine": [],
-        "TranslationFilterPreset": [],
-        "TranslateDirection": [],
-        "ConversationRole": [],
-        "Contexts": [],
-        "PickPropertiesUserSWAIGFunctionPickedSWAIGFunctionProps": [],
-        "PickPropertiesStartUpHookSWAIGFunctionPickedSWAIGFunctionProps": [],
-        "PickPropertiesHangUpHookSWAIGFunctionPickedSWAIGFunctionProps": [],
-        "PickPropertiesSummarizeConversationSWAIGFunctionPickedSWAIGFunctionProps": [],
-        "ContextsObject": [],
-        "DataMap": [
-          "output"
-        ],
-        "SchemaType": [],
-        "Expression": [
-          "output"
-        ],
         "Webhook": [
+          "foreach",
           "output"
         ],
-        "ContextSteps": [],
-        "StringFormat": [],
-        "AiSidecar": [],
-        "RingbackConfig": [],
+        "BindDigitConfig": [],
+        "ClearDigitBindingsConfig": [],
         "ConnectConfig": [
           "headers",
           "parallel",
           "serial",
           "serial_parallel"
         ],
-        "ExecuteConfig": [],
-        "GotoConfig": [],
-        "LiveTranscribeConfig": [],
-        "AiSidecarConfig": [],
-        "LiveTranslateConfig": [],
-        "JoinRoomConfig": [],
-        "PromptConfig": [],
-        "ReceiveFaxConfig": [],
-        "RecordConfig": [],
-        "RecordCallConfig": [],
-        "RequestConfig": [],
-        "SendDigitsConfig": [],
-        "SendFaxConfig": [],
-        "SipReferConfig": [],
-        "StopRecordCallConfig": [],
-        "StopTapConfig": [],
-        "SwitchConfig": [],
-        "TapConfig": [],
-        "TransferConfig": [],
-        "PayConfig": [],
-        "DetectMachineConfig": [],
-        "UserEventConfig": []
+        "DialConfig": [],
+        "SendSmsConfig": []
       },
       "functions": []
     },
@@ -2021,7 +2020,16 @@
         "SignalwireDisconnectResult": [],
         "SignalwireExecuteResult": [],
         "SignalwirePingResult": [],
-        "SignalwireReauthenticateResult": []
+        "SignalwireReauthenticateResult": [],
+        "VertoAnswerResult": [],
+        "VertoAttachResult": [],
+        "VertoBroadcastResult": [],
+        "VertoByeResult": [],
+        "VertoInfoResult": [],
+        "VertoInviteResult": [],
+        "VertoModifyResult": [],
+        "VertoPongResult": [],
+        "VertoSubscribeResult": []
       },
       "functions": []
     },
@@ -2031,6 +2039,8 @@
           "__init__",
           "delete",
           "get",
+          "get_redirect_location",
+          "get_text",
           "patch",
           "post",
           "put"
@@ -2116,8 +2126,10 @@
           "registry",
           "short_codes",
           "sip_profile",
+          "space",
           "verified_callers",
-          "video"
+          "video",
+          "whatsapp"
         ]
       },
       "functions": []
@@ -2132,14 +2144,17 @@
           "__init__",
           "addresses",
           "ai_agents",
+          "alias_addresses",
           "call_flows",
           "conference_rooms",
           "cxml_applications",
           "cxml_scripts",
           "cxml_webhooks",
           "freeswitch_connectors",
+          "phone_number_addresses",
           "relay_applications",
           "resources",
+          "sip_addresses",
           "sip_endpoints",
           "sip_gateways",
           "subscribers",
@@ -2165,6 +2180,19 @@
           "numbers",
           "orders"
         ],
+        "SpaceNamespace": [
+          "__init__",
+          "balance",
+          "billing_profile",
+          "billing_statements",
+          "geographic_permissions",
+          "low_balance_setting",
+          "members",
+          "payment_history",
+          "payment_methods",
+          "settings",
+          "usage"
+        ],
         "VideoNamespace": [
           "__init__",
           "conference_tokens",
@@ -2174,6 +2202,12 @@
           "room_tokens",
           "rooms",
           "streams"
+        ],
+        "WhatsappNamespace": [
+          "__init__",
+          "businesses",
+          "numbers",
+          "templates"
         ]
       },
       "functions": []
@@ -2184,6 +2218,11 @@
           "__init__",
           "ai_hold",
           "ai_message",
+          "ai_sidecar",
+          "ai_sidecar_ask",
+          "ai_sidecar_poke",
+          "ai_sidecar_status",
+          "ai_sidecar_stop",
           "ai_stop",
           "ai_unhold",
           "collect",
@@ -2284,12 +2323,18 @@
         "CallTranscribeRequest": [],
         "CallTranscribeStopRequest": [],
         "CallAIStopRequest": [],
+        "CallAISidecarRequest": [],
+        "CallAISidecarAskRequest": [],
+        "CallAISidecarPokeRequest": [],
+        "CallAISidecarStopRequest": [],
+        "CallAISidecarStatusRequest": [],
         "CallSendFaxStopRequest": [],
         "CallReceiveFaxStopRequest": [],
         "CallReferRequest": [],
         "CallResponse": [],
+        "VideoRoomCallLeg": [],
+        "DialogflowCallLeg": [],
         "CallResponseStatus": [],
-        "CallStatus": [],
         "CallTransferRequest": [],
         "CallUnholdRequest": [],
         "CallUpdateCurrentCallRequest": [],
@@ -2304,10 +2349,6 @@
         "CondParams": [],
         "CondReg": [],
         "Connect": [],
-        "ConnectDeviceParallel": [],
-        "ConnectDeviceSerial": [],
-        "ConnectDeviceSerialParallel": [],
-        "ConnectDeviceSingle": [],
         "ConnectHeaders": [],
         "ConnectSwitch": [],
         "ConstProperty": [],
@@ -2320,11 +2361,9 @@
         "ContextsPOMObject": [],
         "ContextsTextObject": [],
         "ConversationMessage": [],
-        "ConversationRole": [],
         "DataMap": [],
         "Denoise": [],
         "DetectMachine": [],
-        "Direction": [],
         "EnterQueue": [],
         "EnterQueueObject": [],
         "Execute": [],
@@ -2392,7 +2431,6 @@
         "SWAIGFunction": [],
         "SWAIGIncludes": [],
         "SWAIGInternalFiller": [],
-        "SWAIGNativeFunction": [],
         "SWMLAction": [],
         "SWMLMethod": [],
         "SWMLObject": [],
@@ -2443,7 +2481,48 @@
         "UserSWAIGFunction": [],
         "ValidConfirmMethods": [],
         "Webhook": [],
-        "Stream": []
+        "TranscribeStop": [],
+        "Transcribe": [],
+        "Stream": [],
+        "StopStream": [],
+        "Step": [],
+        "SetMeta": [],
+        "SetCapabilities": [],
+        "RingbackConfig": [],
+        "Ring": [],
+        "PromptPomSection": [],
+        "JsonSchema": [],
+        "Foreach": [],
+        "ExecuteRpc": [],
+        "Echo": [],
+        "Context": [],
+        "ConnectSerialParallel": [],
+        "ConnectDevice": [],
+        "ClearDigitBindings": [],
+        "CallDeviceStream": [],
+        "BindDigit": [],
+        "AiSidecar": [],
+        "RelayIsReset": [],
+        "RelayCallPlayInner": [],
+        "RelayCallPlayAudio": [],
+        "RelayCallPlayTts": [],
+        "RelayCallPlaySilence": [],
+        "RelayCallPlayRingtone": [],
+        "RelayCallRecordInner": [],
+        "RelayCallRecordAudio": [],
+        "RelayCallCollectDigitsInner": [],
+        "RelayCallCollectSpeechInner": [],
+        "RelayCallDetectInner": [],
+        "RelayCallDetectFax": [],
+        "RelayCallDetectMachine": [],
+        "RelayCallDetectDigit": [],
+        "RelayCallTapDevice": [],
+        "RelayCallTapDeviceRtp": [],
+        "RelayCallTapDeviceWs": [],
+        "RelayTap": [],
+        "RelayAudioTapParams": [],
+        "RelayCallReferDevice": [],
+        "RelayCallReferDeviceSip": []
       },
       "functions": []
     },
@@ -2512,13 +2591,31 @@
     },
     "signalwire.rest.namespaces.fabric_resources_generated": {
       "classes": {
+        "AliasAddresses": [
+          "__init__",
+          "create",
+          "update"
+        ],
+        "SipAddresses": [
+          "__init__",
+          "create",
+          "update"
+        ],
+        "PhoneNumberAddresses": [
+          "__init__",
+          "create",
+          "update"
+        ],
         "FabricAddresses": [
-          "__init__"
+          "__init__",
+          "delete"
         ],
         "GenericResources": [
           "__init__",
           "assign_domain_application",
           "assign_phone_route",
+          "assign_sip_endpoint",
+          "assign_whatsapp_number",
           "delete",
           "get",
           "list",
@@ -2527,6 +2624,8 @@
         "AiAgents": [
           "__init__",
           "create",
+          "list_conversation_logs",
+          "list_voices",
           "update"
         ],
         "CallFlows": [
@@ -2605,7 +2704,6 @@
           "__init__",
           "create_embed_token",
           "create_guest_token",
-          "create_invite_token",
           "create_subscriber_token",
           "refresh_subscriber_token"
         ]
@@ -2616,7 +2714,13 @@
       "classes": {
         "AIAddressPaginationResponse": [],
         "AIAgent": [],
+        "AIAgentLanguage": [],
+        "AIAgentSWAIG": [],
+        "AIAgentSWAIGInclude": [],
         "AIAgentAddressListResponse": [],
+        "AIAgentVoice": [],
+        "AIAgentConversationLogListResponse": [],
+        "AIAgentConversationLog": [],
         "AIAgentCreateRequest": [],
         "AIAgentCreateStatusCode422": [],
         "AIAgentListResponse": [],
@@ -2624,12 +2728,6 @@
         "AIAgentResponse": [],
         "AIAgentUpdateRequest": [],
         "AIAgentUpdateStatusCode422": [],
-        "AIPostPromptPomUpdate": [],
-        "AIPostPromptTextUpdate": [],
-        "AIPostPromptUpdate": [],
-        "AIPromptPomUpdate": [],
-        "AIPromptTextUpdate": [],
-        "AIPromptUpdate": [],
         "AddressChannel": [],
         "AudioChannel": [],
         "CXMLScript": [],
@@ -2668,7 +2766,6 @@
         "CallFlowVersionListResponse": [],
         "CallFlowVersionsPaginationResponse": [],
         "CallHandlerType": [],
-        "CallStatus": [],
         "Ciphers": [],
         "Codecs": [],
         "ConferenceRoom": [],
@@ -2680,18 +2777,7 @@
         "ConferenceRoomResponse": [],
         "ConferenceRoomUpdateRequest": [],
         "ConferenceRoomUpdateStatusCode422": [],
-        "ConnectDeviceParallel": [],
-        "ConnectDeviceSerial": [],
-        "ConnectDeviceSerialParallel": [],
-        "ConnectDeviceSingle": [],
-        "ContextSteps": [],
         "Contexts": [],
-        "ContextsObject": [],
-        "ContextsObjectUpdate": [],
-        "ContextsPOMObjectUpdate": [],
-        "ContextsTextObjectUpdate": [],
-        "ContextsUpdate": [],
-        "ConversationRole": [],
         "CxmlApplication": [],
         "CxmlApplicationAddressListResponse": [],
         "CxmlApplicationAddressPaginationResponse": [],
@@ -2708,7 +2794,6 @@
         "DialogflowAgentResponse": [],
         "DialogflowAgentUpdateRequest": [],
         "DialogflowAgentUpdateStatusCode422": [],
-        "Direction": [],
         "DisplayTypes": [],
         "DomainApplicationAssignRequest": [],
         "DomainApplicationCreateStatusCode422": [],
@@ -2717,13 +2802,15 @@
         "EmbedsTokensRequest": [],
         "EmbedsTokensResponse": [],
         "Encryption": [],
+        "SipGatewayEncryption": [],
         "FabricAddress": [],
         "FabricAddressApp": [],
         "FabricAddressCall": [],
         "FabricAddressPaginationResponse": [],
         "FabricAddressRoom": [],
         "FabricAddressSubscriber": [],
-        "FabricAddressesResponse": [],
+        "FabricAddressItem": [],
+        "FabricAddressListResponse": [],
         "FreeswitchConectorPaginationResponse": [],
         "FreeswitchConnector": [],
         "FreeswitchConnectorAddressListResponse": [],
@@ -2734,9 +2821,7 @@
         "FreeswitchConnectorResponse": [],
         "FreeswitchConnectorUpdateRequest": [],
         "FreeswitchConnectorUpdateStatusCode422": [],
-        "FunctionFillersUpdate": [],
         "GuestTokenCreateStatusCode422": [],
-        "InviteTokenCreateStatusCode422": [],
         "Layout": [],
         "MessagingChannel": [],
         "PhoneRouteAssignRequest": [],
@@ -2773,13 +2858,8 @@
         "ResourceResponseSubscriber": [],
         "ResourceSipEndpointAssignRequest": [],
         "ResourceSipEndpointCreateStatusCode422": [],
-        "ResourceSipEndpointResponse": [],
         "ResourceSipEndpointUpdateStatusCode422": [],
         "ResourceSubSipEndpointCreateStatusCode422": [],
-        "SWAIGInternalFillerUpdate": [],
-        "SWAIGNativeFunction": [],
-        "SWAIGUpdate": [],
-        "SWMLMethod": [],
         "SWMLScriptAddressListResponse": [],
         "SWMLScriptAddressPaginationResponse": [],
         "SWMLWebhook": [],
@@ -2790,7 +2870,6 @@
         "SWMLWebhookPaginationResponse": [],
         "SWMLWebhookResponse": [],
         "SWMLWebhookUpdateRequest": [],
-        "SchemaType": [],
         "SipEndpoint": [],
         "SipEndpointAddressListResponse": [],
         "SipEndpointAddressPaginationResponse": [],
@@ -2810,21 +2889,18 @@
         "SipGatewayRequest": [],
         "SipGatewayRequestUpdate": [],
         "SipGatewayResponse": [],
-        "SpeechEngine": [],
-        "StringFormat": [],
         "Subscriber": [],
         "SubscriberAddressPaginationResponse": [],
         "SubscriberAddressesResponse": [],
         "SubscriberCreateStatusCode422": [],
         "SubscriberGuestTokenCreateRequest": [],
         "SubscriberGuestTokenCreateResponse": [],
-        "SubscriberInviteTokenCreateRequest": [],
-        "SubscriberInviteTokenCreateResponse": [],
         "SubscriberListResponse": [],
         "SubscriberPaginationResponse": [],
         "SubscriberRefreshTokenRequest": [],
         "SubscriberRefreshTokenResponse": [],
         "SubscriberRequest": [],
+        "SubscriberUpdateRequest": [],
         "SubscriberResponse": [],
         "SubscriberSIPEndpoint": [],
         "SubscriberSipEndpointListResponse": [],
@@ -2835,7 +2911,6 @@
         "SubscriberTokenResponse": [],
         "SubscriberTokenStatusCode422": [],
         "SubscriberUpdateStatusCode422": [],
-        "SummarizeActionUnion": [],
         "SwmlScript": [],
         "SwmlScriptCreateRequest": [],
         "SwmlScriptCreateStatusCode422": [],
@@ -2846,19 +2921,30 @@
         "SwmlScriptUpdateStatusCode422": [],
         "SwmlWebhookCreateStatusCode422": [],
         "SwmlWebhookUpdateStatusCode422": [],
-        "TranscribeDirection": [],
-        "TranscribeSummarizeActionUnion": [],
-        "TranslateAction": [],
-        "TranslateDirection": [],
-        "TranslationFilterPreset": [],
         "Types_StatusCodes_StatusCode403": [],
         "Types_StatusCodes_StatusCode422": [],
+        "CxmlWebhookUsedForType": [],
         "UsedForType": [],
-        "ValidConfirmMethods": [],
         "VideoChannel": [],
-        "ListSipEndpointsResponse": [],
-        "ListSubscriberAddressesResponse": [],
-        "ListSwmlScriptsResponse": []
+        "AliasAddress": [],
+        "AliasAddressCreateRequest": [],
+        "AliasAddressUpdateRequest": [],
+        "SipAddress": [],
+        "SipAddressCreateRequest": [],
+        "SipAddressUpdateRequest": [],
+        "PhoneNumberAddress": [],
+        "PhoneNumberAddressCreateRequest": [],
+        "PhoneNumberAddressUpdateRequest": [],
+        "AliasAddressListResponse": [],
+        "SipAddressListResponse": [],
+        "PhoneNumberAddressListResponse": [],
+        "WhatsappNumberAssignRequest": [],
+        "WhatsappNumberAddressResponse": [],
+        "AIAgentPrompt": [],
+        "AIAgentPostPrompt": [],
+        "AIAgentSWAIGFunction": [],
+        "AIAgentPronounce": [],
+        "ListAiAgentVoicesResponse": []
       },
       "functions": []
     },
@@ -2906,6 +2992,18 @@
       "classes": {
         "MessageLogs": [
           "__init__"
+        ],
+        "WhatsappNumbers": [
+          "__init__"
+        ],
+        "WhatsappBusinesses": [
+          "__init__",
+          "list"
+        ],
+        "WhatsappTemplates": [
+          "__init__",
+          "create",
+          "update"
         ]
       },
       "functions": []
@@ -2915,7 +3013,22 @@
         "LogRetrieveResponse": [],
         "MessageLog": [],
         "MessageLogShowStatusCode422": [],
-        "MessageLogsListStatusCode422": []
+        "MessageLogsListStatusCode422": [],
+        "WhatsappBusiness": [],
+        "WhatsappBusinessListResponse": [],
+        "WhatsappNumber": [],
+        "WhatsappNumberListResponse": [],
+        "WhatsappTemplateCategory": [],
+        "WhatsappTemplateParameterFormat": [],
+        "WhatsappTemplateStatus": [],
+        "WhatsappTemplate": [],
+        "WhatsappTemplateListResponse": [],
+        "CreateWhatsappTemplateRequest": [],
+        "UpdateWhatsappTemplateRequest": [],
+        "WhatsappTemplateDeleteResponse": [],
+        "WhatsappStatusCode422": [],
+        "WhatsappTemplateErrorItem": [],
+        "WhatsappTemplateStatusCode422": []
       },
       "functions": []
     },
@@ -2958,6 +3071,7 @@
         "CreateTokenRequest": [],
         "TokenPermission": [],
         "TokenResponse": [],
+        "TokenUpdateResponse": [],
         "TokenStatusCode422": [],
         "UpdateTokenRequest": []
       },
@@ -3013,7 +3127,8 @@
           "create",
           "delete",
           "get",
-          "list"
+          "list",
+          "update"
         ],
         "ImportedNumbers": [
           "__init__",
@@ -3040,7 +3155,12 @@
         ],
         "PhoneNumbers": [
           "__init__",
+          "assign_e911_address",
+          "clear_cnam",
           "create",
+          "get_cnam",
+          "remove_e911_address",
+          "request_cnam",
           "search",
           "set_ai_agent",
           "set_call_flow",
@@ -3062,6 +3182,7 @@
         "Recordings": [
           "__init__",
           "delete",
+          "download",
           "get",
           "list"
         ],
@@ -3071,7 +3192,8 @@
           "create_campaign",
           "get",
           "list",
-          "list_campaigns"
+          "list_campaigns",
+          "update"
         ],
         "RegistryCampaigns": [
           "__init__",
@@ -3114,6 +3236,7 @@
       "classes": {
         "AddNumberGroupMembershipRequest": [],
         "Address": [],
+        "AddressCountryCode": [],
         "AddressListResponse": [],
         "AddressResponse": [],
         "AddressType": [],
@@ -3184,6 +3307,7 @@
         "QueueMemberResponse": [],
         "QueueResponse": [],
         "Recording": [],
+        "RelayConferenceRecording": [],
         "RecordingListResponse": [],
         "ShortCode": [],
         "ShortCodeCapability": [],
@@ -3210,10 +3334,118 @@
         "VerifiedCallerIDResponse": [],
         "VerifyCallerIDRequest": [],
         "WebRtcRecording": [],
-        "GetRecordingResponse": [],
+        "UpdateAddressRequest": [],
+        "AddressCandidate": [],
+        "AddressValidationError": [],
+        "UpdateBrandRequest": [],
+        "BrandUpdateStatusCode422": [],
+        "AssignE911AddressRequest": [],
+        "PhoneNumberE911Status": [],
+        "CreatePhoneNumberCnamRequest": [],
+        "PhoneNumberCnamStatus": [],
+        "PhoneNumberCnamReason": [],
+        "PhoneNumberCnamResponse": [],
         "CreateBrandRequest": [],
         "CreateCampaignRequest": [],
         "PhoneCallHandler": []
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.space_resources_generated": {
+      "classes": {
+        "SpaceSettings": [
+          "__init__",
+          "get",
+          "update"
+        ],
+        "SpaceGeographicPermissions": [
+          "__init__",
+          "get",
+          "update"
+        ],
+        "SpaceBillingProfile": [
+          "__init__",
+          "get",
+          "update"
+        ],
+        "SpaceBillingStatements": [
+          "__init__",
+          "get",
+          "get_csv",
+          "get_pdf",
+          "list"
+        ],
+        "SpaceUsage": [
+          "__init__",
+          "get"
+        ],
+        "SpacePaymentHistory": [
+          "__init__",
+          "list"
+        ],
+        "SpaceMembers": [
+          "__init__",
+          "create",
+          "disable_project",
+          "enable_project",
+          "list_projects",
+          "update"
+        ],
+        "SpaceBalance": [
+          "__init__",
+          "create_top_up",
+          "get"
+        ],
+        "SpaceLowBalanceSetting": [
+          "__init__",
+          "get",
+          "update"
+        ],
+        "SpacePaymentMethods": [
+          "__init__",
+          "delete",
+          "list"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.rest.namespaces.space_types_generated": {
+      "classes": {
+        "Space": [],
+        "SpaceUpdate": [],
+        "GeographicPermission": [],
+        "GeographicPermissionUpdate": [],
+        "BillingProfile": [],
+        "BillingProfileUpdate": [],
+        "AddressCountryCode": [],
+        "BillingStatementPeriod": [],
+        "BillingStatementPeriodList": [],
+        "BillingStatement": [],
+        "BillingStatementSummary": [],
+        "AmountByKind": [],
+        "ProjectUsage": [],
+        "Usage": [],
+        "BalanceAdjustment": [],
+        "PaymentHistoryList": [],
+        "Member": [],
+        "MemberList": [],
+        "MemberCreate": [],
+        "MemberUpdate": [],
+        "SpaceProject": [],
+        "MemberProject": [],
+        "MemberProjectList": [],
+        "Balance": [],
+        "TopUpCreate": [],
+        "LowBalanceSetting": [],
+        "LowBalanceSettingUpdate": [],
+        "PaymentMethod": [],
+        "SpacePaginationLinks": [],
+        "SpaceStatusCode422": [],
+        "SpaceUnverifiedError": [],
+        "TopUpMessageError": [],
+        "TopUpDeclinedError": [],
+        "TopUpDepositFailedError": [],
+        "ListPaymentMethodsResponse": []
       },
       "functions": []
     },
@@ -3251,6 +3483,7 @@
         "VideoRoomRecordings": [
           "__init__",
           "delete",
+          "download",
           "get",
           "list",
           "list_events"
@@ -3285,6 +3518,7 @@
       "classes": {
         "ActiveSession": [],
         "Conference": [],
+        "ConferenceMutationResponse": [],
         "ConferenceSize": [],
         "ConferenceToken": [],
         "CreateConferenceRequest": [],
@@ -3313,6 +3547,7 @@
         "RoomRecording": [],
         "RoomRecordingStatus": [],
         "RoomResponse": [],
+        "RoomMutationResponse": [],
         "RoomSession": [],
         "RoomSessionEvent": [],
         "RoomSessionMember": [],
@@ -3353,6 +3588,7 @@
         "VideoRoomVoiceType": [],
         "VoiceDirection": [],
         "VoiceLog": [],
+        "VoiceLogListItem": [],
         "VoiceLogStatus": [],
         "VoiceLogsListStatusCode422": [],
         "VoiceSources": []
