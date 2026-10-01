@@ -721,7 +721,7 @@ agent.setDynamicConfigCallback(async (queryParams, bodyParams, headers, copy) =>
 
   // Customize from the request body
   const callerId = bodyParams.call?.from;
-  if (callerId) {
+  if (typeof callerId === 'string') {
     const customer = await lookupCustomer(callerId);
     copy.updateGlobalData({ customer_name: customer.name });
   }
