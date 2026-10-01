@@ -406,6 +406,11 @@ const SKIP_METHOD_NAMES = new Set([
 // (Set the env var UNFOLD_ALL=1 to unfold every options-object method — a build
 // aid for deriving this list; never used in CI.)
 const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
+  // REST HttpClient per-call `headers` — Python's are keyword-only after
+  // request_options (`get/post/get_text(…, request_options=None, *, headers=None)`).
+  'signalwire.rest._base.HttpClient.get',
+  'signalwire.rest._base.HttpClient.post',
+  'signalwire.rest._base.HttpClient.get_text',
   // Context.add_step — Python keyword-only step config (task/bullets/criteria/…).
   'signalwire.core.contexts.Context.add_step',
   // AgentBase.mount — Python's prefix/name are keyword-only (`*, prefix, name`).
@@ -999,6 +1004,9 @@ function loadReferenceFieldAccessors(): Map<string, Set<string>> {
  *   5. If a class/interface from the SDK, emit class:<canonical>.
  *   6. Otherwise fail loud.
  */
+/** Set while enumerating generated payload interfaces (see translateType). */
+let preserveRecordValues = false;
+
 function translateType(
   type: ts.Type,
   checker: ts.TypeChecker,
@@ -1139,6 +1147,25 @@ function translateType(
   // consult the symbol or use the typeStr regex.
   const symbol = type.getSymbol();
   const symbolName = symbol ? symbol.getName() : '';
+
+  // `Record<K, V>` is a type ALIAS of a mapped type, so the checker exposes its
+  // arguments as `aliasTypeArguments` (not `typeArguments`) — without this branch
+  // it falls through to the `^Record<…>` string match below and loses the value
+  // type (`Record<string, Context>` → `dict<string,any>` where the reference
+  // records `dict<string,class:…Context>`). Scoped to the GENERATED payload
+  // interfaces (see collectInterface), whose value types come from the same spec
+  // the reference generator reads; hand-written SDK maps keep the legacy fold.
+  const aliasArgs = type.aliasTypeArguments;
+  if (
+    preserveRecordValues &&
+    type.aliasSymbol?.getName() === 'Record' &&
+    aliasArgs &&
+    aliasArgs.length === 2
+  ) {
+    const k = translateType(aliasArgs[0]!, checker, aliases, context);
+    const v = translateType(aliasArgs[1]!, checker, aliases, context);
+    return `dict<${k},${v}>`;
+  }
 
   // Generic instantiations: Array<T>, ReadonlyArray<T>, Map<K,V>,
   // Record<K,V>, Promise<T>, ReturnType<...>, etc.
@@ -1774,7 +1801,16 @@ function collectInterface(
 
   const methods: Record<string, CanonicalSignature> = {};
   for (const m of iface.members) {
-    if (!ts.isPropertySignature(m) || !m.name || !ts.isIdentifier(m.name)) continue;
+    // A wire key that is not a TS identifier (`'nomatch-output'`) is a quoted
+    // property name; the reference records it verbatim too (a functional-form
+    // TypedDict key), so it is a field like any other.
+    if (
+      !ts.isPropertySignature(m) ||
+      !m.name ||
+      !(ts.isIdentifier(m.name) || ts.isStringLiteral(m.name))
+    ) {
+      continue;
+    }
     const native = m.name.text;
     if (native.startsWith('_')) continue;
     // NOTE: no ALL-CAPS filter here, deliberately. The Python enumerator drops an
@@ -2001,8 +2037,10 @@ function reclassifyGeneratedResourceParams(
       out.push({ name: 'extra', kind: 'var_keyword', type: 'any', required: false, default: {} });
       continue;
     }
-    if (p.name === 'params') {
-      // The GET query object → the reference's `**params` (var_keyword) tail.
+    if (p.name === 'params' && !keywordFields.has('params')) {
+      // The GET query object → the reference's `**params` (var_keyword) tail. (A
+      // command param literally NAMED `params` — calling.ai_sidecar's — is an
+      // exploded body field, recorded in keywordFields, and stays a keyword.)
       out.push({ name: 'params', kind: 'var_keyword', type: 'any', required: false, default: {} });
       continue;
     }
@@ -2014,6 +2052,24 @@ function reclassifyGeneratedResourceParams(
       continue;
     }
     out.push(p);
+  }
+  // Exploded body fields the port takes POSITIONALLY (required, or pinned to a
+  // published positional order) are keyword-only in the reference, where their
+  // order is the spec's. The generator writes the `_fields` literal in that
+  // reference order, so re-sequence the contiguous keyword run it covers by it.
+  const order = [...keywordFields];
+  const idx = (p: CanonicalParam): number => order.indexOf(p.name);
+  let i = 0;
+  while (i < out.length) {
+    if (out[i]!.kind !== 'keyword' || idx(out[i]!) === -1) {
+      i++;
+      continue;
+    }
+    let j = i;
+    while (j < out.length && out[j]!.kind === 'keyword' && idx(out[j]!) !== -1) j++;
+    const run = out.slice(i, j).sort((a, b) => idx(a) - idx(b));
+    out.splice(i, j - i, ...run);
+    i = j;
   }
   sig.params = out;
 }
@@ -2036,6 +2092,21 @@ function keywordFieldNames(m: ts.Node): Set<string> {
       for (const prop of node.properties) {
         if (ts.isShorthandPropertyAssignment(prop) && ts.isIdentifier(prop.name)) {
           names.add(camelToSnake(prop.name.text));
+        }
+      }
+    }
+    // `const _headers = { 'Idempotency-Key': idempotency_key }` — a declared
+    // header param, keyword-only in the reference (`*, idempotency_key`).
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === '_headers' &&
+      node.initializer &&
+      ts.isObjectLiteralExpression(node.initializer)
+    ) {
+      for (const prop of node.initializer.properties) {
+        if (ts.isPropertyAssignment(prop) && ts.isIdentifier(prop.initializer)) {
+          names.add(camelToSnake(prop.initializer.text));
         }
       }
     }
@@ -2090,6 +2161,23 @@ function generatedAliasFromNode(
     return `union<${parts.join(',')}>`;
   }
   // Primitive keyword members (for union reconstruction above).
+  if (node.kind === ts.SyntaxKind.UnknownKeyword || node.kind === ts.SyntaxKind.AnyKeyword) {
+    return 'any';
+  }
+  // `Record<K, V>` written in a generated payload → `dict<k,v>`, each argument
+  // through this same written-node path so a named alias value keeps its name.
+  if (
+    ts.isTypeReferenceNode(node) &&
+    ts.isIdentifier(node.typeName) &&
+    node.typeName.text === 'Record' &&
+    node.typeArguments?.length === 2
+  ) {
+    const k = generatedAliasFromNode(node.typeArguments[0], checker);
+    const v = generatedAliasFromNode(node.typeArguments[1], checker);
+    return k && v ? `dict<${k},${v}>` : null;
+  }
+  // A parenthesized member (`(string | SWMLVar)[]`'s element) → its inner type.
+  if (ts.isParenthesizedTypeNode(node)) return generatedAliasFromNode(node.type, checker);
   if (node.kind === ts.SyntaxKind.StringKeyword) return 'string';
   if (node.kind === ts.SyntaxKind.NumberKeyword) return 'float';
   if (node.kind === ts.SyntaxKind.BooleanKeyword) return 'bool';
@@ -2747,6 +2835,10 @@ function signatureFromMethod(
       } else {
         param.default = null;
       }
+    } else if (p.dotDotDotToken) {
+      // A rest parameter (`...args`) may receive zero arguments — the reference
+      // records a `*args` variadic as not required.
+      param.required = false;
     } else {
       param.required = true;
     }
@@ -2845,7 +2937,17 @@ function hoistRequestOptionsBeforeVarKeyword(sig: CanonicalSignature): void {
   // Exploded-body methods (keyword fields + `extras`) must KEEP `extras` before
   // `request_options` (the reference has `…, extras, request_options`), so hoist
   // only past the `**kwargs` var_keyword tail there.
-  const singleBody = rest.some((p) => p.name === 'body' && p.kind !== 'var_keyword');
+  // (A body FIELD literally named `body` — Messages.update's — is an exploded
+  // keyword, not the single typed `body` param.)
+  const singleBody = rest.some(
+    (p) => p.name === 'body' && p.kind !== 'var_keyword' && p.kind !== 'keyword',
+  );
+  const isTrailerParam = (p: CanonicalParam): boolean =>
+    p.kind === 'var_keyword' || (singleBody && p.kind === 'keyword' && p.name === 'extras');
+  // A request_options the source already places BEFORE a real (non-trailer) param
+  // — HttpClient's `(…, requestOptions, options{headers})`, the reference's
+  // `(…, request_options=None, *, headers=None)` — is already in reference order.
+  if (ps.slice(roIdx + 1).some((p) => !isTrailerParam(p))) return;
 
   let insertAt = rest.length;
   for (let i = rest.length - 1; i >= 0; i--) {
@@ -2963,7 +3065,12 @@ function main(): number {
         // Generated-payload interfaces (SwaigContracts.generated, swml_verbs_generated):
         // enumerate their class-typed fields as members to match Python's TypedDict
         // field surface. Restricted to those files so no other interface leaks in.
-        collectInterface(node, rel, checker, aliases, doc, failures);
+        preserveRecordValues = true;
+        try {
+          collectInterface(node, rel, checker, aliases, doc, failures);
+        } finally {
+          preserveRecordValues = false;
+        }
       } else if (ts.isFunctionDeclaration(node) && node.name) {
         const mods = ts.getCombinedModifierFlags(node);
         if (mods & ts.ModifierFlags.Export) {

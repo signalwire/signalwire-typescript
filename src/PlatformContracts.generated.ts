@@ -9,8 +9,8 @@
 export interface SwmlRequestData {
   call?: SwmlRequestCall;
   vars?: Record<string, unknown>;
-  envs?: Record<string, unknown>;
-  params?: Record<string, unknown>;
+  envs?: unknown;
+  params?: unknown;
   [key: string]: unknown;
 }
 

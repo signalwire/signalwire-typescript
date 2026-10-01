@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ eab8b371b7a820e86fddf93163cdbc790ab9ba23",
+  "generated_from": "signalwire-typescript @ 7ba2efe001726a852542405db9e02c0cdafb0d70",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -1167,6 +1167,7 @@
         "Execute": [],
         "ExecuteRpc": [],
         "Expression": [
+          "nomatch-output",
           "output"
         ],
         "Foreach": [],
@@ -1177,14 +1178,20 @@
         "JsonSchema": [
           "allOf",
           "anyOf",
+          "dependentSchemas",
           "oneOf",
-          "prefixItems"
+          "patternProperties",
+          "prefixItems",
+          "properties"
         ],
         "JsonSchemaUnion": [
           "allOf",
           "anyOf",
+          "dependentSchemas",
           "oneOf",
-          "prefixItems"
+          "patternProperties",
+          "prefixItems",
+          "properties"
         ],
         "Label": [],
         "LiveTranscribe": [],
@@ -1326,6 +1333,7 @@
         ],
         "AiPostPromptPomItem": [],
         "AiPrompt": [
+          "contexts",
           "pom",
           "steps"
         ],
@@ -1382,7 +1390,9 @@
           "else",
           "then"
         ],
-        "ConnectResult": [],
+        "ConnectResult": [
+          "case"
+        ],
         "ConnectResultDefault": [],
         "ConnectResultCaseValue": [],
         "ConnectDeviceConfirm": [],
@@ -1395,7 +1405,9 @@
           "else",
           "then"
         ],
-        "ExecuteResult": [],
+        "ExecuteResult": [
+          "case"
+        ],
         "ExecuteResultDefault": [],
         "ExecuteResultCaseValue": [],
         "ExecuteRpcConfig": [],
@@ -1433,7 +1445,9 @@
         "StopStreamConfig": [],
         "StopTapConfig": [],
         "StreamConfig": [],
-        "SwitchConfig": [],
+        "SwitchConfig": [
+          "case"
+        ],
         "SwitchDefault": [],
         "SwitchCaseValue": [],
         "TapConfig": [],
@@ -2734,7 +2748,6 @@
         "ChatChannel": [],
         "ChatPermissionWithRead": [],
         "ChatPermissionWithWrite": [],
-        "ChatState": [],
         "ChatToken": [],
         "ChatToken422Error": [],
         "NewChatToken": []
@@ -3308,7 +3321,6 @@
         "PubSubChannels": [],
         "PubSubPermissionWithRead": [],
         "PubSubPermissionWithWrite": [],
-        "PubSubState": [],
         "PubSubToken": [],
         "PubSubToken422Error": []
       },

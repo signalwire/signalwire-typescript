@@ -867,8 +867,8 @@ export class RegistryCampaigns extends BaseResource {
 
   async createOrder(
     id: string,
-    options?: {
-      phone_numbers?: string[];
+    options: {
+      phone_numbers: string[];
       status_callback_url?: string;
       extras?: Record<string, unknown>;
     },
@@ -876,7 +876,7 @@ export class RegistryCampaigns extends BaseResource {
   ): Promise<OrderResponse> {
     const body: Record<string, unknown> = {};
     const _fields = {
-      phone_numbers: options?.phone_numbers,
+      phone_numbers: options.phone_numbers,
       status_callback_url: options?.status_callback_url,
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;

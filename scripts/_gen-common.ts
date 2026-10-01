@@ -345,8 +345,113 @@ export function resolveCrossFileRef(ref: string): string {
 
 // ---- schema → TS type expression ------------------------------------------
 
+// ---- scalar allOf intersection (SWML only) --------------------------------
+//
+// The engine-derived SWML schema expresses a verb's bare-scalar shorthand as
+// `allOf[anyOf[string, number], anyOf[<param type>, SWMLVar]]`. The reference
+// generator types such an allOf as the INTERSECTION of its scalar kinds
+// (`_scalar_allof_intersection`), with `$ref` arms resolved through the SWML
+// `$defs`. Enabled only while the SWML generator runs (setScalarKindDefs), so
+// every other document keeps its historical allOf rendering byte-for-byte.
+let _kindDefs: Record<string, Schema> | null = null;
+
+/** Enable (defs) / disable (null) the scalar allOf intersection. */
+export function setScalarKindDefs(defs: Record<string, Schema> | null): void {
+  _kindDefs = defs;
+}
+
+const SCALAR_KIND: Record<string, string> = {
+  string: 'string',
+  integer: 'integer',
+  number: 'number',
+  boolean: 'boolean',
+  null: 'null',
+};
+
+/** The JSON scalar kinds a schema admits, or null when it admits a non-scalar. */
+function scalarKinds(schema: unknown, depth = 0): Set<string> | null {
+  if (!schema || typeof schema !== 'object' || Array.isArray(schema) || depth > 8) return null;
+  const sch = schema as Schema & Record<string, unknown>;
+  if (sch.$ref) {
+    if (_kindDefs === null) return null;
+    return scalarKinds(_kindDefs[sch.$ref.split('/').pop()!], depth + 1);
+  }
+  const union = sch.anyOf ?? sch.oneOf;
+  if (union) {
+    const out = new Set<string>();
+    for (const arm of union) {
+      const k = scalarKinds(arm, depth + 1);
+      if (k === null) return null;
+      for (const x of k) out.add(x);
+    }
+    return out;
+  }
+  const keys = Object.keys(sch);
+  if (keys.every((k) => k === 'description' || k === 'title')) return new Set(['*']);
+  const types = Array.isArray(sch.type) ? sch.type : sch.type ? [sch.type] : [];
+  const kinds = types.map((t) => SCALAR_KIND[String(t)]);
+  if (types.length === 0 || kinds.some((k) => k === undefined)) return null;
+  return new Set(kinds as string[]);
+}
+
+function kindsOverlap(arm: Set<string>, allowed: Set<string>): boolean {
+  if (allowed.has('*') || [...arm].some((k) => allowed.has(k))) return true;
+  return arm.has('integer') && allowed.has('number');
+}
+
+/** Type an allOf of SCALAR constraints as their intersection, or null. */
+function scalarAllOfIntersection(members: Schema[]): string | null {
+  if (_kindDefs === null || members.length < 2) return null;
+  const memberKinds = members.map((m) => scalarKinds(m));
+  if (memberKinds.some((k) => k === null)) return null;
+  const armsOf = (m: Schema): Schema[] => m.anyOf ?? m.oneOf ?? [m];
+  const candidates: Schema[] = [];
+  for (const arm of armsOf(members[members.length - 1]!)) {
+    const k = scalarKinds(arm);
+    if (k && k.size === 1 && k.has('*')) {
+      for (const m of members.slice(0, -1)) candidates.push(...armsOf(m));
+    } else {
+      candidates.push(arm);
+    }
+  }
+  const kept: string[] = [];
+  for (const arm of candidates) {
+    const ak = scalarKinds(arm);
+    if (ak === null) return null;
+    if (memberKinds.every((k) => k === null || kindsOverlap(ak, k))) {
+      const t = tsType(arm);
+      if (!kept.includes(t)) kept.push(t);
+    }
+  }
+  return kept.length ? kept.join(' | ') : null;
+}
+
+/** Split a TS type expression on its TOP-LEVEL ` | ` (not inside `{}`/`()`/`[]`/`<>`). */
+function splitTopUnion(t: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let cur = '';
+  for (let i = 0; i < t.length; i++) {
+    const ch = t[i]!;
+    if ('{([<'.includes(ch)) depth++;
+    else if ('})]>'.includes(ch)) depth--;
+    if (depth === 0 && t.startsWith(' | ', i)) {
+      out.push(cur.trim());
+      cur = '';
+      i += 2;
+      continue;
+    }
+    cur += ch;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
+}
+
 export function tsType(schema: Schema | undefined, indent = 0): string {
   if (!schema) return 'unknown';
+  // The empty schema `{}` admits ANY value (the reference's py_type -> `Any`),
+  // not just an object.
+  if (Object.keys(schema).length === 0) return 'unknown';
 
   // Field-markup overrides (the SWML schema's formulaic-enrichment vocabulary,
   // mirrored from the Python generator's py_type). REST specs never set these.
@@ -390,7 +495,10 @@ export function tsType(schema: Schema | undefined, indent = 0): string {
   // allOf: single ref (wrapper for description) → the ref; multiple → intersection
   if (schema.allOf && schema.allOf.length) {
     const parts = schema.allOf.map((s) => tsType(s, indent));
-    return parts.length === 1 ? parts[0] : parts.map((p) => `(${p})`).join(' & ');
+    if (parts.length === 1) return parts[0];
+    const narrowed = scalarAllOfIntersection(schema.allOf);
+    if (narrowed !== null) return narrowed;
+    return parts.map((p) => `(${p})`).join(' & ');
   }
 
   // oneOf / anyOf → union (null members collapse to `| null`)
@@ -423,6 +531,19 @@ export function tsType(schema: Schema | undefined, indent = 0): string {
     case 'null':
       return 'null';
     case 'array': {
+      // A tuple-form array (draft-2020-12 `prefixItems`, no `items`) — e.g. a SWML
+      // verb's positional-array body — types its elements as the union of the
+      // prefix item types rather than `unknown` (the reference's py_type does the
+      // same): every element the schema admits is one of them.
+      const prefix = (schema as { prefixItems?: Schema[] }).prefixItems;
+      if (Array.isArray(prefix) && prefix.length && !schema.items) {
+        const elems: string[] = [];
+        for (const p of prefix) {
+          for (const t of splitTopUnion(tsType(p, indent))) if (!elems.includes(t)) elems.push(t);
+        }
+        const u = elems.join(' | ');
+        return wrapNull(`${elems.length > 1 ? `(${u})` : u}[]`);
+      }
       // Parenthesize a union/intersection item type before `[]` — otherwise
       // `A | B | C[]` binds as `A | B | (C[])` (only the last member an array)
       // instead of the intended `(A | B | C)[]`.

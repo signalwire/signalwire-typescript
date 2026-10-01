@@ -230,10 +230,28 @@ const CONTROL_CHAR_RE = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g;
  * Strip control characters from all string values in a data record to prevent
  * log injection attacks. Processes nested objects and arrays recursively.
  *
+ * Accepts the event record alone (`stripControlChars(eventDict)`) or a
+ * structlog-style processor call `(logger, methodName, eventDict)`: the LAST
+ * argument is the event record, as in the reference.
+ *
  * @param eventDict - The log event record whose string values should be sanitized.
  * @returns A shallow copy of `eventDict` with control characters removed from strings.
  */
-export function stripControlChars<T extends Record<string, unknown>>(eventDict: T): T {
+export function stripControlChars<T extends Record<string, unknown>>(eventDict: T): T;
+/**
+ * Processor-call form: `(logger, methodName, eventDict)` — the last argument is
+ * the event record.
+ * @param args - The processor arguments; the last one is the event record.
+ * @returns A shallow copy of the event record with control characters removed.
+ */
+export function stripControlChars(...args: unknown[]): Record<string, unknown>;
+export function stripControlChars(...args: unknown[]): Record<string, unknown> {
+  if (args.length === 0) throw new TypeError('stripControlChars() requires the event dict');
+  return stripRecord(args[args.length - 1] as Record<string, unknown>);
+}
+
+/** The recursive body of {@link stripControlChars} over one record. */
+function stripRecord<T extends Record<string, unknown>>(eventDict: T): T {
   const result = {} as T;
   for (const key of Object.keys(eventDict) as (keyof T)[]) {
     const value = eventDict[key];
@@ -244,11 +262,11 @@ export function stripControlChars<T extends Record<string, unknown>>(eventDict: 
         typeof item === 'string'
           ? item.replace(CONTROL_CHAR_RE, '')
           : item !== null && typeof item === 'object' && !Array.isArray(item)
-            ? stripControlChars(item as Record<string, unknown>)
+            ? stripRecord(item as Record<string, unknown>)
             : item,
       ) as T[keyof T];
     } else if (value !== null && typeof value === 'object') {
-      result[key] = stripControlChars(value as Record<string, unknown>) as T[keyof T];
+      result[key] = stripRecord(value as Record<string, unknown>) as T[keyof T];
     } else {
       result[key] = value;
     }

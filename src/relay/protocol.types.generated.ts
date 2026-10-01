@@ -20,10 +20,10 @@ export interface CallingAiHoldParams {
 export interface CallingAiMessageParams {
   async?: boolean | null;
   call_id: string;
-  global_data?: Record<string, unknown>;
+  global_data?: unknown;
   message_text?: string;
   node_id: string;
-  reset?: Record<string, unknown>;
+  reset?: unknown;
   role?: string;
   swml?: boolean | null;
   [key: string]: unknown;
@@ -41,15 +41,15 @@ export interface CallingAiUnholdParams {
 
 /** Wire schema for the JSON payload of `calling.amazon_bedrock` (params). Extracted from switchblade `PublicCallAmazonBedrockParams.cs`. */
 export interface CallingAmazonBedrockParams {
-  SWAIG?: Record<string, unknown>;
+  SWAIG?: unknown;
   async?: boolean | null;
   call_id: string;
-  global_data?: Record<string, unknown>;
+  global_data?: unknown;
   node_id: string;
-  params?: Record<string, unknown>;
-  post_prompt?: Record<string, unknown>;
+  params?: unknown;
+  post_prompt?: unknown;
   post_prompt_url?: string;
-  prompt?: Record<string, unknown>;
+  prompt?: unknown;
   swml?: boolean | null;
   [key: string]: unknown;
 }
@@ -65,7 +65,7 @@ export interface CallingAnswerParams {
 /** Wire schema for the JSON payload of `calling.begin` (params). Extracted from switchblade `PublicCallBeginParams.cs`. */
 export interface CallingBeginParams {
   device: {
-    params?: Record<string, unknown>;
+    params?: unknown;
     type: string;
   };
   max_duration?: number | null;
@@ -82,7 +82,7 @@ export interface CallingBindDigitParams {
   digits: string;
   max_triggers?: number | null;
   node_id: string;
-  params?: Record<string, unknown>;
+  params?: unknown;
   realm?: string;
   swml?: boolean | null;
   [key: string]: unknown;
@@ -148,7 +148,7 @@ export type CallingConferenceParams = Record<string, unknown>;
 export interface CallingConnectParams {
   call_id: string;
   devices: {
-    params?: Record<string, unknown>;
+    params?: unknown;
     type: string;
   }[][];
   max_duration?: number | null;
@@ -201,7 +201,7 @@ export interface CallingDetectStopParams {
 /** Wire schema for the JSON payload of `calling.dial` (params). Extracted from switchblade `PublicCallDialParams.cs`. */
 export interface CallingDialParams {
   devices: {
-    params?: Record<string, unknown>;
+    params?: unknown;
     type: string;
   }[][];
   max_price_per_minute?: number | null;
@@ -259,7 +259,7 @@ export interface CallingJoinConferenceParams {
   status_callback_event?: string;
   status_callback_event_type?: string;
   status_callback_method?: string;
-  stream?: Record<string, unknown>;
+  stream?: unknown;
   swml?: boolean | null;
   trim?: string;
   wait_url?: string;
@@ -297,7 +297,7 @@ export interface CallingLeaveRoomParams {
 
 /** Wire schema for the JSON payload of `calling.live_transcribe` (params). Extracted from switchblade `PublicCallLiveTranscribeParams.cs`. */
 export interface CallingLiveTranscribeParams {
-  action: Record<string, unknown>;
+  action: unknown;
   async?: boolean | null;
   call_id: string;
   node_id: string;
@@ -307,7 +307,7 @@ export interface CallingLiveTranscribeParams {
 
 /** Wire schema for the JSON payload of `calling.live_translate` (params). Extracted from switchblade `PublicCallLiveTranslateParams.cs`. */
 export interface CallingLiveTranslateParams {
-  action: Record<string, unknown>;
+  action: unknown;
   async?: boolean | null;
   call_id: string;
   node_id: string;
@@ -325,13 +325,13 @@ export interface CallingPassParams {
 
 /** Wire schema for the JSON payload of `calling.pay` (params). Extracted from switchblade `PublicCallPayParams.cs`. */
 export interface CallingPayParams {
-  bank_account_type?: Record<string, unknown>;
+  bank_account_type?: unknown;
   call_id: string;
   charge_amount?: string;
   control_id: string;
   currency?: string;
   description?: string;
-  input?: Record<string, unknown>;
+  input?: unknown;
   language?: string;
   max_attempts?: string;
   min_postal_code_length?: string;
@@ -341,23 +341,23 @@ export interface CallingPayParams {
     value: string;
   }[];
   payment_connector_url: string;
-  payment_method?: Record<string, unknown>;
+  payment_method?: unknown;
   postal_code?: string;
   prompts?: {
     actions?: {
       phrase: string;
-      type: Record<string, unknown>;
+      type: unknown;
     }[];
     attempt?: string;
     card_type?: string;
     error_type?: string;
-    for: Record<string, unknown>;
+    for: unknown;
     require_matching_inputs?: string;
   }[];
   security_code?: string;
   status_url?: string;
   timeout?: string;
-  token_type?: Record<string, unknown>;
+  token_type?: unknown;
   valid_card_types?: string;
   voice?: string;
   [key: string]: unknown;
@@ -595,7 +595,7 @@ export interface CallingStreamParams {
   call_id: string;
   codec?: string;
   control_id: string;
-  custom_parameters?: Record<string, unknown>;
+  custom_parameters?: unknown;
   name?: string;
   node_id: string;
   status_url?: string;
@@ -621,13 +621,13 @@ export interface CallingTapParams {
   call_id: string;
   control_id: string;
   device: {
-    params?: Record<string, unknown>;
+    params?: unknown;
     type: string;
   };
   node_id: string;
   tap: {
     params: Record<string, unknown>;
-    type: Record<string, unknown>;
+    type: unknown;
   };
   [key: string]: unknown;
 }
@@ -652,7 +652,7 @@ export interface CallingTransferParams {
 export interface CallingUserEventParams {
   async?: boolean | null;
   call_id: string;
-  event: Record<string, unknown>;
+  event: unknown;
   node_id: string;
   swml?: boolean | null;
   [key: string]: unknown;
@@ -698,7 +698,7 @@ export interface SignalwireDisconnectParams {
 export interface SignalwireExecuteParams {
   attempted?: string[];
   method: string;
-  params?: Record<string, unknown>;
+  params?: unknown;
   protocol: string;
   requester_identity?: string;
   requester_nodeid?: string;
@@ -725,7 +725,7 @@ export interface SignalwireReauthenticateParams {
 export interface CallingAiHoldResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -734,7 +734,7 @@ export interface CallingAiHoldResult {
 export interface CallingAiMessageResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -743,7 +743,7 @@ export interface CallingAiMessageResult {
 export interface CallingAiUnholdResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -752,7 +752,7 @@ export interface CallingAiUnholdResult {
 export interface CallingAmazonBedrockResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -760,7 +760,7 @@ export interface CallingAmazonBedrockResult {
 /** Wire schema for the JSON payload of `calling.answer` (result). Extracted from switchblade `PublicCallAnswerResult.cs`. */
 export interface CallingAnswerResult {
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -769,9 +769,9 @@ export interface CallingAnswerResult {
 export interface CallingBeginResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
-  message_data?: Record<string, unknown>;
+  message_data?: unknown;
   node_id?: string;
   [key: string]: unknown;
 }
@@ -780,7 +780,7 @@ export interface CallingBeginResult {
 export interface CallingBindDigitResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -791,7 +791,7 @@ export type CallingCallResult = Record<string, unknown>;
 export interface CallingClearDigitBindingsResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -801,7 +801,7 @@ export interface CallingCollectResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -811,7 +811,7 @@ export interface CallingCollectStartInputTimersResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -821,7 +821,7 @@ export interface CallingCollectStopResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -831,9 +831,9 @@ export type CallingConferenceResult = Record<string, unknown>;
 /** Wire schema for the JSON payload of `calling.connect` (result). Extracted from switchblade `PublicCallConnectResult.cs`. */
 export interface CallingConnectResult {
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
-  message_data?: Record<string, unknown>;
+  message_data?: unknown;
   [key: string]: unknown;
 }
 
@@ -841,7 +841,7 @@ export interface CallingConnectResult {
 export interface CallingDenoiseResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -850,7 +850,7 @@ export interface CallingDenoiseResult {
 export interface CallingDenoiseStopResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -860,7 +860,7 @@ export interface CallingDetectResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -870,7 +870,7 @@ export interface CallingDetectStopResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -878,16 +878,16 @@ export interface CallingDetectStopResult {
 /** Wire schema for the JSON payload of `calling.dial` (result). Extracted from switchblade `PublicCallDialResult.cs`. */
 export interface CallingDialResult {
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
-  message_data?: Record<string, unknown>;
+  message_data?: unknown;
   [key: string]: unknown;
 }
 
 /** Wire schema for the JSON payload of `calling.disconnect` (result). Extracted from switchblade `PublicCallDisconnectResult.cs`. */
 export interface CallingDisconnectResult {
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -896,7 +896,7 @@ export interface CallingDisconnectResult {
 export interface CallingEchoResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -904,7 +904,7 @@ export interface CallingEchoResult {
 /** Wire schema for the JSON payload of `calling.end` (result). Extracted from switchblade `PublicCallEndResult.cs`. */
 export interface CallingEndResult {
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -914,7 +914,7 @@ export interface CallingJoinConferenceResult {
   call_id?: string;
   code: string;
   conference_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -923,7 +923,7 @@ export interface CallingJoinConferenceResult {
 export interface CallingJoinRoomResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -932,7 +932,7 @@ export interface CallingJoinRoomResult {
 export interface CallingLeaveConferenceResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -941,7 +941,7 @@ export interface CallingLeaveConferenceResult {
 export interface CallingLeaveRoomResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -950,7 +950,7 @@ export interface CallingLeaveRoomResult {
 export interface CallingLiveTranscribeResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -959,7 +959,7 @@ export interface CallingLiveTranscribeResult {
 export interface CallingLiveTranslateResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -968,7 +968,7 @@ export interface CallingLiveTranslateResult {
 export interface CallingPassResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -978,7 +978,7 @@ export interface CallingPayResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -988,7 +988,7 @@ export interface CallingPayStopResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -998,7 +998,7 @@ export interface CallingPlayResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1008,7 +1008,7 @@ export interface CallingPlayPauseResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1018,7 +1018,7 @@ export interface CallingPlayResumeResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1028,7 +1028,7 @@ export interface CallingPlayStopResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1038,7 +1038,7 @@ export interface CallingPlayVolumeResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1048,7 +1048,7 @@ export interface CallingPlayAndCollectResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1058,7 +1058,7 @@ export interface CallingPlayAndCollectStopResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1068,7 +1068,7 @@ export interface CallingPlayAndCollectVolumeResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1078,7 +1078,7 @@ export interface CallingQueueEnterResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1088,7 +1088,7 @@ export interface CallingQueueLeaveResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1105,7 +1105,7 @@ export interface CallingReceiveFaxResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1115,7 +1115,7 @@ export interface CallingReceiveFaxStopResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1125,7 +1125,7 @@ export interface CallingRecordResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   url?: string;
   [key: string]: unknown;
@@ -1136,7 +1136,7 @@ export interface CallingRecordPauseResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1146,7 +1146,7 @@ export interface CallingRecordResumeResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1156,7 +1156,7 @@ export interface CallingRecordStopResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1164,7 +1164,7 @@ export interface CallingRecordStopResult {
 /** Wire schema for the JSON payload of `calling.refer` (result). Extracted from switchblade `PublicCallReferResult.cs`. */
 export interface CallingReferResult {
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1174,7 +1174,7 @@ export interface CallingSendDigitsResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1184,7 +1184,7 @@ export interface CallingSendFaxResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1194,7 +1194,7 @@ export interface CallingSendFaxStopResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1204,7 +1204,7 @@ export interface CallingStreamResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1214,7 +1214,7 @@ export interface CallingStreamStopResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1224,10 +1224,10 @@ export interface CallingTapResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   source_device?: {
-    params?: Record<string, unknown>;
+    params?: unknown;
     type: string;
   };
   [key: string]: unknown;
@@ -1238,7 +1238,7 @@ export interface CallingTapStopResult {
   call_id?: string;
   code: string;
   control_id?: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1247,7 +1247,7 @@ export interface CallingTapStopResult {
 export interface CallingTransferResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1256,7 +1256,7 @@ export interface CallingTransferResult {
 export interface CallingUserEventResult {
   call_id?: string;
   code: string;
-  data?: Record<string, unknown>;
+  data?: unknown;
   message?: string;
   [key: string]: unknown;
 }
@@ -1280,14 +1280,14 @@ export interface SignalwireConnectResult {
     authorization: Record<string, unknown>;
   }[];
   host?: string;
-  ice_servers?: Record<string, unknown>[];
+  ice_servers?: unknown[];
   identity?: string;
   master_nodeid: string;
   nodeid: string;
   protocol?: string;
   protocols?: Record<string, unknown>[];
   protocols_uncertified?: string[];
-  result?: Record<string, unknown>;
+  result?: unknown;
   session_restored: boolean;
   sessionid: string;
   subscriptions?: {
@@ -1308,7 +1308,7 @@ export interface SignalwireDisconnectResult {
 export interface SignalwireExecuteResult {
   requester_nodeid: string;
   responder_nodeid: string;
-  result?: Record<string, unknown>;
+  result?: unknown;
   [key: string]: unknown;
 }
 
@@ -1323,7 +1323,7 @@ export interface SignalwirePingResult {
 export interface SignalwireReauthenticateResult {
   authentication?: string;
   authorization?: Record<string, unknown>;
-  ice_servers?: Record<string, unknown>[];
+  ice_servers?: unknown[];
   result?: Record<string, unknown>;
   [key: string]: unknown;
 }

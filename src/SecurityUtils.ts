@@ -48,8 +48,8 @@ const SENSITIVE_HEADERS = new Set([
  * @param headers - Original header record.
  * @returns A new record with sensitive headers removed.
  */
-export function filterSensitiveHeaders(headers: Record<string, string>): Record<string, string> {
-  const result: Record<string, string> = {};
+export function filterSensitiveHeaders<V = string>(headers: Record<string, V>): Record<string, V> {
+  const result: Record<string, V> = {};
   for (const [k, v] of Object.entries(headers)) {
     if (!SENSITIVE_HEADERS.has(k.toLowerCase())) {
       result[k] = v;

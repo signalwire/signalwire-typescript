@@ -300,7 +300,7 @@
                 },
                 {
                   "name": "modifications",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -1612,7 +1612,7 @@
                 },
                 {
                   "name": "overrides",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,string>>",
                   "required": false,
                   "default": {}
                 }
@@ -2340,7 +2340,7 @@
                 },
                 {
                   "name": "contexts",
-                  "type": "dict<string,any>",
+                  "type": "union<dict<string,any>,dict<string,any>>",
                   "required": true
                 }
               ],
@@ -2759,7 +2759,7 @@
                 },
                 {
                   "name": "config",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -2798,7 +2798,7 @@
                 },
                 {
                   "name": "config",
-                  "type": "union<float,dict<string,any>>",
+                  "type": "union<dict<string,any>,float>",
                   "required": true
                 }
               ],
@@ -2817,7 +2817,7 @@
                 },
                 {
                   "name": "config",
-                  "type": "union<float,dict<string,any>>",
+                  "type": "union<dict<string,any>,float>",
                   "required": true
                 }
               ],
@@ -2851,7 +2851,7 @@
                 },
                 {
                   "name": "params",
-                  "type": "dict<string,any>",
+                  "type": "dict<string,string>",
                   "required": true
                 }
               ],
@@ -3085,12 +3085,12 @@
                 },
                 {
                   "name": "headers",
-                  "type": "dict<string,any>",
+                  "type": "dict<string,string>",
                   "required": true
                 },
                 {
                   "name": "body",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -3246,7 +3246,7 @@
                 },
                 {
                   "name": "modifications",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -3280,7 +3280,7 @@
                 },
                 {
                   "name": "context",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 },
@@ -3455,7 +3455,7 @@
                 },
                 {
                   "name": "headers",
-                  "type": "dict<string,any>",
+                  "type": "dict<string,string>",
                   "required": true
                 }
               ],
@@ -4153,7 +4153,7 @@
                 },
                 {
                   "name": "fillers",
-                  "type": "dict<string,any>",
+                  "type": "dict<string,list<string>>",
                   "required": true
                 }
               ],
@@ -4167,7 +4167,7 @@
                 },
                 {
                   "name": "fillers",
-                  "type": "dict<string,any>",
+                  "type": "dict<string,list<string>>",
                   "required": true
                 }
               ],
@@ -5346,7 +5346,7 @@
                 },
                 {
                   "name": "headers",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,string>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -5412,7 +5412,7 @@
             },
             {
               "name": "parameters",
-              "type": "dict<string,any>",
+              "type": "optional<dict<string,dict<string,any>>>",
               "required": false,
               "kind": "keyword"
             },
@@ -5448,7 +5448,7 @@
             },
             {
               "name": "parameters",
-              "type": "dict<string,any>",
+              "type": "optional<dict<string,dict<string,any>>>",
               "required": false,
               "kind": "keyword"
             },
@@ -5460,13 +5460,13 @@
             },
             {
               "name": "headers",
-              "type": "dict<string,any>",
+              "type": "optional<dict<string,string>>",
               "required": false,
               "kind": "keyword"
             },
             {
               "name": "body",
-              "type": "dict<string,any>",
+              "type": "optional<dict<string,any>>",
               "required": false,
               "kind": "keyword"
             },
@@ -5736,7 +5736,7 @@
                 },
                 {
                   "name": "params",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -5770,7 +5770,7 @@
                 },
                 {
                   "name": "swml_content",
-                  "type": "union<string,dict<string,any>>",
+                  "type": "union<string,dict<string,any>,dict<string,any>>",
                   "required": true
                 },
                 {
@@ -5933,7 +5933,7 @@
                 },
                 {
                   "name": "result",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -6298,7 +6298,7 @@
                 },
                 {
                   "name": "global_data",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -6866,12 +6866,13 @@
         "strip_control_chars": {
           "params": [
             {
-              "name": "event_dict",
-              "type": "any",
-              "required": true
+              "name": "args",
+              "type": "list<any>",
+              "kind": "var_positional",
+              "required": false
             }
           ],
-          "returns": "any"
+          "returns": "dict<string,any>"
         }
       }
     },
@@ -6897,7 +6898,7 @@
                 },
                 {
                   "name": "meta_data",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -6988,7 +6989,7 @@
                 },
                 {
                   "name": "function_fillers",
-                  "type": "union<list<string>,dict<string,any>>",
+                  "type": "optional<union<list<string>,dict<string,dict<string,list<string>>>>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -7006,13 +7007,13 @@
                 },
                 {
                   "name": "params",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
                 {
                   "name": "fillers",
-                  "type": "union<list<string>,dict<string,any>>",
+                  "type": "optional<union<list<string>,dict<string,list<string>>>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -7045,7 +7046,7 @@
                 },
                 {
                   "name": "headers",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,string>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -7057,7 +7058,7 @@
                 },
                 {
                   "name": "resource_vars",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,string>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -7219,7 +7220,7 @@
                 },
                 {
                   "name": "internal_fillers",
-                  "type": "dict<string,any>",
+                  "type": "dict<string,dict<string,list<string>>>",
                   "required": true
                 }
               ],
@@ -7442,7 +7443,7 @@
                 },
                 {
                   "name": "headers",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,string>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -7454,7 +7455,7 @@
                 },
                 {
                   "name": "resource_vars",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,string>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -7965,7 +7966,7 @@
                 },
                 {
                   "name": "_raw_data",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -10075,7 +10076,7 @@
           "params": [
             {
               "name": "parameters",
-              "type": "dict<string,any>",
+              "type": "optional<dict<string,any>>",
               "required": true
             },
             {
@@ -10307,13 +10308,13 @@
                 },
                 {
                   "name": "prompt_pom",
-                  "type": "list<dict<string,any>>",
+                  "type": "optional<list<dict<string,any>>>",
                   "required": false,
                   "kind": "keyword"
                 },
                 {
                   "name": "contexts",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -10331,7 +10332,7 @@
                 },
                 {
                   "name": "swaig",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -10563,7 +10564,7 @@
                 },
                 {
                   "name": "_query_params",
-                  "type": "dict<string,any>",
+                  "type": "dict<string,string>",
                   "required": true
                 },
                 {
@@ -10573,7 +10574,7 @@
                 },
                 {
                   "name": "_headers",
-                  "type": "dict<string,any>",
+                  "type": "dict<string,string>",
                   "required": true
                 },
                 {
@@ -10733,12 +10734,12 @@
                 },
                 {
                   "name": "headers",
-                  "type": "dict<string,any>",
+                  "type": "dict<string,string>",
                   "required": true
                 },
                 {
                   "name": "body",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -10955,7 +10956,7 @@
                 },
                 {
                   "name": "_modifications",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -11263,19 +11264,19 @@
                 },
                 {
                   "name": "_chat_ctx",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "_tools",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "_model_settings",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 }
@@ -11308,13 +11309,13 @@
                 },
                 {
                   "name": "_turn_ctx",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "_new_message",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 }
@@ -11338,13 +11339,13 @@
                 },
                 {
                   "name": "_audio",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "_model_settings",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 }
@@ -11359,13 +11360,13 @@
                 },
                 {
                   "name": "_text",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 },
                 {
                   "name": "_model_settings",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 }
@@ -11425,7 +11426,7 @@
                 },
                 {
                   "name": "_opts",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 }
@@ -11577,7 +11578,7 @@
                 },
                 {
                   "name": "_opts",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 }
@@ -11614,7 +11615,7 @@
                 },
                 {
                   "name": "_opts",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 }
@@ -11633,7 +11634,7 @@
                 },
                 {
                   "name": "_opts",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 }
@@ -11713,7 +11714,7 @@
                 },
                 {
                   "name": "_opts",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 }
@@ -11732,7 +11733,7 @@
                 },
                 {
                   "name": "_opts",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 }
@@ -11800,7 +11801,7 @@
                 },
                 {
                   "name": "_opts",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 }
@@ -11819,7 +11820,7 @@
                 },
                 {
                   "name": "_opts",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 }
@@ -11838,7 +11839,7 @@
                 },
                 {
                   "name": "_opts",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -11886,7 +11887,7 @@
                 },
                 {
                   "name": "_opts",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 }
@@ -11923,7 +11924,7 @@
                 },
                 {
                   "name": "_opts",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 }
@@ -11993,7 +11994,7 @@
                 },
                 {
                   "name": "items",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 },
@@ -12025,7 +12026,7 @@
                 },
                 {
                   "name": "extra",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -12111,7 +12112,7 @@
                 },
                 {
                   "name": "extra",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -12137,7 +12138,7 @@
                 },
                 {
                   "name": "extra",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -12168,7 +12169,7 @@
                 },
                 {
                   "name": "extra",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -12225,7 +12226,7 @@
                   "name": "names",
                   "type": "list<string>",
                   "kind": "var_positional",
-                  "required": true
+                  "required": false
                 }
               ],
               "returns": "any"
@@ -12249,7 +12250,7 @@
                 },
                 {
                   "name": "extra",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -12372,7 +12373,7 @@
               "params": [
                 {
                   "name": "json_data",
-                  "type": "any",
+                  "type": "union<string,any>",
                   "required": true
                 }
               ],
@@ -12382,7 +12383,7 @@
               "params": [
                 {
                   "name": "yaml_data",
-                  "type": "any",
+                  "type": "union<string,any>",
                   "required": true
                 }
               ],
@@ -12789,7 +12790,7 @@
                 },
                 {
                   "name": "summary",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": true
                 },
                 {
@@ -12887,7 +12888,7 @@
                 },
                 {
                   "name": "summary",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": true
                 },
                 {
@@ -13110,7 +13111,7 @@
                 },
                 {
                   "name": "_summary",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": true
                 },
                 {
@@ -13227,7 +13228,7 @@
                 },
                 {
                   "name": "summary",
-                  "type": "union<string,dict<string,any>>",
+                  "type": "union<dict<string,any>,string>",
                   "required": true
                 },
                 {
@@ -13480,13 +13481,13 @@
                 },
                 {
                   "name": "prompt",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
                 {
                   "name": "post_prompt",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -13510,13 +13511,13 @@
                 },
                 {
                   "name": "global_data",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
                 {
                   "name": "pronounce",
-                  "type": "list<dict<string,any>>",
+                  "type": "optional<list<dict<string,any>>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -13528,19 +13529,19 @@
                 },
                 {
                   "name": "languages",
-                  "type": "list<dict<string,any>>",
+                  "type": "optional<list<dict<string,any>>>",
                   "required": false,
                   "kind": "keyword"
                 },
                 {
                   "name": "swaig",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
                 {
                   "name": "ai_params",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -13608,13 +13609,13 @@
                 },
                 {
                   "name": "reset",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
                 {
                   "name": "global_data",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -13658,31 +13659,31 @@
                 },
                 {
                   "name": "prompt",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "kind": "keyword"
                 },
                 {
                   "name": "swaig",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
                 {
                   "name": "ai_params",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
                 {
                   "name": "global_data",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
                 {
                   "name": "post_prompt",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -13710,7 +13711,7 @@
                 },
                 {
                   "name": "extra",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -13735,7 +13736,7 @@
                 },
                 {
                   "name": "bind_params",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -14313,7 +14314,7 @@
                 },
                 {
                   "name": "stream",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -14367,7 +14368,7 @@
                 },
                 {
                   "name": "extra",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -14382,7 +14383,7 @@
                 },
                 {
                   "name": "extra",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -14402,7 +14403,7 @@
                 },
                 {
                   "name": "extra",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -14582,13 +14583,13 @@
                 },
                 {
                   "name": "parameters",
-                  "type": "list<dict<string,any>>",
+                  "type": "optional<list<dict<string,any>>>",
                   "required": false,
                   "kind": "keyword"
                 },
                 {
                   "name": "prompts",
-                  "type": "list<dict<string,any>>",
+                  "type": "optional<list<dict<string,any>>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -15249,7 +15250,7 @@
                 },
                 {
                   "name": "custom_parameters",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "kind": "keyword"
                 },
@@ -15369,7 +15370,7 @@
                 },
                 {
                   "name": "extra",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null
                 }
@@ -19381,17 +19382,24 @@
                   "default": null
                 },
                 {
-                  "name": "headers",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                },
-                {
                   "name": "request_options",
                   "kind": "keyword",
                   "type": "optional<class:signalwire.rest._request_options.RequestOptions>",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "headers",
+                  "type": "optional<dict<string,string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -19409,12 +19417,6 @@
                 },
                 {
                   "name": "params",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                },
-                {
-                  "name": "headers",
                   "type": "dict<string,any>",
                   "required": false,
                   "default": null
@@ -19447,17 +19449,24 @@
                   "default": null
                 },
                 {
-                  "name": "headers",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                },
-                {
                   "name": "request_options",
                   "kind": "keyword",
                   "type": "optional<class:signalwire.rest._request_options.RequestOptions>",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "headers",
+                  "type": "optional<dict<string,string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "string"
@@ -19475,7 +19484,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 },
@@ -19502,7 +19511,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 },
@@ -19513,17 +19522,24 @@
                   "default": null
                 },
                 {
-                  "name": "headers",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null
-                },
-                {
                   "name": "request_options",
                   "kind": "keyword",
                   "type": "optional<class:signalwire.rest._request_options.RequestOptions>",
                   "required": false,
                   "default": null
+                },
+                {
+                  "name": "headers",
+                  "type": "optional<dict<string,string>>",
+                  "required": false,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -19541,7 +19557,7 @@
                 },
                 {
                   "name": "body",
-                  "type": "any",
+                  "type": "optional<any>",
                   "required": false,
                   "default": null
                 },
@@ -19678,7 +19694,7 @@
                 },
                 {
                   "name": "headers",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,string>>",
                   "required": false,
                   "default": null
                 }
@@ -20764,7 +20780,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -20799,7 +20815,7 @@
                 },
                 {
                   "name": "global_data",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -20827,7 +20843,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -20868,14 +20884,14 @@
                 },
                 {
                   "name": "swaig",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "action",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -20889,14 +20905,14 @@
                 },
                 {
                   "name": "direction",
-                  "type": "list<string>",
+                  "type": "optional<list<union<string,string>>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "global_data",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -20917,21 +20933,21 @@
                 },
                 {
                   "name": "params",
-                  "kind": "var_keyword",
-                  "type": "any",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
-                  "default": {}
+                  "default": null,
+                  "kind": "keyword"
                 },
                 {
                   "name": "permissions",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "prompt",
-                  "type": "union<string,dict<string,any>>",
+                  "type": "optional<union<dict<string,any>,string>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -20945,7 +20961,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -20986,7 +21002,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21027,7 +21043,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21062,7 +21078,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21097,7 +21113,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21139,7 +21155,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21181,7 +21197,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21286,7 +21302,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21327,7 +21343,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21368,7 +21384,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21403,7 +21419,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21438,7 +21454,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21500,7 +21516,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21541,7 +21557,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21605,7 +21621,7 @@
                 },
                 {
                   "name": "status_events",
-                  "type": "list<string>",
+                  "type": "optional<list<union<string,string,string,string,string,string>>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21626,7 +21642,7 @@
                 },
                 {
                   "name": "to_script",
-                  "type": "union<string,dict<string,any>>",
+                  "type": "optional<union<string,dict<string,any>>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21675,14 +21691,14 @@
                 },
                 {
                   "name": "headers",
-                  "type": "list<dict<string,any>>",
+                  "type": "optional<list<dict<string,any>>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "custom_variables",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,string>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21703,7 +21719,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21738,7 +21754,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21780,7 +21796,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21821,14 +21837,14 @@
                 },
                 {
                   "name": "hints",
-                  "type": "list<dict<string,any>>",
+                  "type": "optional<list<any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21876,7 +21892,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -21973,7 +21989,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22014,7 +22030,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22055,7 +22071,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22096,7 +22112,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22143,7 +22159,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22184,7 +22200,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22247,7 +22263,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22295,7 +22311,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22336,7 +22352,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22377,7 +22393,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22425,7 +22441,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22466,7 +22482,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22528,7 +22544,7 @@
                 },
                 {
                   "name": "custom_parameters",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22563,7 +22579,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22604,7 +22620,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22638,14 +22654,14 @@
                   "required": true
                 },
                 {
-                  "name": "tap",
-                  "type": "class:signalwire.rest.namespaces.calling_types_generated.RelayTap",
+                  "name": "device",
+                  "type": "class:signalwire.rest.namespaces.calling_types_generated.RelayCallTapDevice",
                   "required": true,
                   "kind": "keyword"
                 },
                 {
-                  "name": "device",
-                  "type": "class:signalwire.rest.namespaces.calling_types_generated.RelayCallTapDevice",
+                  "name": "tap",
+                  "type": "class:signalwire.rest.namespaces.calling_types_generated.RelayTap",
                   "required": true,
                   "kind": "keyword"
                 },
@@ -22665,7 +22681,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22706,7 +22722,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22755,7 +22771,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22796,7 +22812,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22837,7 +22853,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22908,7 +22924,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -22949,7 +22965,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -23027,7 +23043,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -23091,7 +23107,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -23256,7 +23272,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -23303,7 +23319,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -23369,7 +23385,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -23433,7 +23449,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.fabric_types_generated.AIAgentVoice"
+              "returns": "list<class:signalwire.rest.namespaces.fabric_types_generated.AIAgentVoice>"
             },
             "update": {
               "params": [
@@ -23460,7 +23476,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -23522,7 +23538,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -23562,7 +23578,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -23624,7 +23640,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -23664,7 +23680,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -23760,7 +23776,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -23822,7 +23838,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -23890,7 +23906,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -24136,7 +24152,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -24196,7 +24212,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -24236,7 +24252,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -24298,7 +24314,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -24338,7 +24354,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -24463,7 +24479,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -24577,7 +24593,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -24711,7 +24727,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -24747,7 +24763,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -24807,7 +24823,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -24847,7 +24863,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -24908,7 +24924,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -24955,7 +24971,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -24996,7 +25012,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -25043,7 +25059,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -25203,7 +25219,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -25243,7 +25259,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -25305,7 +25321,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -25345,7 +25361,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -25407,7 +25423,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -25447,7 +25463,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -25509,7 +25525,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -25549,7 +25565,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -25611,7 +25627,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -25651,7 +25667,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -25713,7 +25729,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -25788,7 +25804,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -25922,7 +25938,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -26004,7 +26020,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -26073,7 +26089,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -26113,7 +26129,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -26175,7 +26191,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -26215,7 +26231,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -26515,7 +26531,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -26555,7 +26571,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -26649,7 +26665,7 @@
                 },
                 {
                   "name": "custom_variables",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,string>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -26670,14 +26686,14 @@
                 },
                 {
                   "name": "header_template_parameters",
-                  "type": "union<string,dict<string,any>,list<any>>",
+                  "type": "optional<union<dict<string,any>,list<any>,string>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "body_template_parameters",
-                  "type": "union<dict<string,any>,list<any>>",
+                  "type": "optional<union<dict<string,any>,list<any>>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -26690,18 +26706,18 @@
                   "kind": "keyword"
                 },
                 {
+                  "name": "extras",
+                  "type": "optional<dict<string,any>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
                   "name": "request_options",
                   "kind": "keyword",
                   "type": "optional<class:signalwire.rest._request_options.RequestOptions>",
                   "required": false,
                   "default": null
-                },
-                {
-                  "name": "extras",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null,
-                  "kind": "keyword"
                 },
                 {
                   "name": "kwargs",
@@ -26732,18 +26748,18 @@
                   "kind": "keyword"
                 },
                 {
+                  "name": "extras",
+                  "type": "optional<dict<string,any>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
                   "name": "request_options",
                   "kind": "keyword",
                   "type": "optional<class:signalwire.rest._request_options.RequestOptions>",
                   "required": false,
                   "default": null
-                },
-                {
-                  "name": "extras",
-                  "type": "dict<string,any>",
-                  "required": false,
-                  "default": null,
-                  "kind": "keyword"
                 },
                 {
                   "name": "kwargs",
@@ -26811,7 +26827,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -26881,7 +26897,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -26945,7 +26961,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -27006,7 +27022,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -27086,7 +27102,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -27220,7 +27236,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -27418,7 +27434,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -27478,14 +27494,14 @@
                 },
                 {
                   "name": "capabilities",
-                  "type": "list<string>",
+                  "type": "optional<list<union<string,string,string,string>>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -27627,7 +27643,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -27705,7 +27721,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -27746,7 +27762,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -27805,7 +27821,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -27847,7 +27863,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -27964,7 +27980,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -28025,7 +28041,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -28088,7 +28104,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -28171,7 +28187,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -28496,7 +28512,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -28558,7 +28574,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -28687,7 +28703,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -28867,7 +28883,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -28907,7 +28923,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -29105,7 +29121,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -29158,9 +29174,8 @@
                 },
                 {
                   "name": "phone_numbers",
-                  "type": "optional<list<string>>",
-                  "required": false,
-                  "default": null,
+                  "type": "list<string>",
+                  "required": true,
                   "kind": "keyword"
                 },
                 {
@@ -29172,7 +29187,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -29312,7 +29327,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -29557,7 +29572,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -29670,7 +29685,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -29730,7 +29745,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -29785,7 +29800,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -29832,7 +29847,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -29887,7 +29902,8 @@
                 {
                   "name": "idempotency_key",
                   "type": "string",
-                  "required": true
+                  "required": true,
+                  "kind": "keyword"
                 },
                 {
                   "name": "amount_in_microdollars",
@@ -29903,7 +29919,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -30072,7 +30088,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -30259,7 +30275,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -30386,7 +30402,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -30446,7 +30462,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -30566,7 +30582,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -30691,7 +30707,7 @@
                   "default": {}
                 }
               ],
-              "returns": "class:signalwire.rest.namespaces.space_types_generated.PaymentMethod"
+              "returns": "list<class:signalwire.rest.namespaces.space_types_generated.PaymentMethod>"
             }
           }
         },
@@ -30749,7 +30765,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -30921,7 +30937,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -30955,7 +30971,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -31058,7 +31074,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -31490,14 +31506,14 @@
                 },
                 {
                   "name": "room_meta",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
                 },
                 {
                   "name": "meta",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -31511,7 +31527,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -31571,7 +31587,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -31605,7 +31621,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -31680,7 +31696,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -31791,7 +31807,7 @@
                 },
                 {
                   "name": "extras",
-                  "type": "dict<string,any>",
+                  "type": "optional<dict<string,any>>",
                   "required": false,
                   "default": null,
                   "kind": "keyword"
@@ -33504,7 +33520,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -35656,7 +35672,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.AiConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.AiConfig,list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -35705,7 +35721,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<union<string,class:signalwire.swml_verbs_generated.AiHintsItem>>"
+              "returns": "list<union<class:signalwire.swml_verbs_generated.AiHintsItem,string>>"
             },
             "languages": {
               "params": [
@@ -36166,7 +36182,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "default": {
               "params": [
@@ -36175,7 +36191,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -36188,7 +36204,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "default": {
               "params": [
@@ -36197,7 +36213,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -36210,7 +36226,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -38208,7 +38224,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "max_completion_tokens": {
               "params": [
@@ -38253,7 +38269,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "reasoning_effort": {
               "params": [
@@ -38369,7 +38385,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "dict<string,class:signalwire.swml_verbs_generated.Context>"
             },
             "frequency_penalty": {
               "params": [
@@ -38378,7 +38394,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "max_completion_tokens": {
               "params": [
@@ -38423,7 +38439,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "reasoning_effort": {
               "params": [
@@ -38646,7 +38662,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "meta_data_token": {
               "params": [
@@ -38870,7 +38886,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "default": {
               "params": [
@@ -38879,7 +38895,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -39058,7 +39074,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "default": {
               "params": [
@@ -39067,7 +39083,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -39214,7 +39230,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "default": {
               "params": [
@@ -39223,7 +39239,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -39236,7 +39252,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "default": {
               "params": [
@@ -39245,7 +39261,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -39258,7 +39274,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "default": {
               "params": [
@@ -39267,7 +39283,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -39280,7 +39296,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "default": {
               "params": [
@@ -39289,7 +39305,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -39302,7 +39318,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "default": {
               "params": [
@@ -39311,7 +39327,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -39324,7 +39340,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "default": {
               "params": [
@@ -39333,7 +39349,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -39346,7 +39362,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "default": {
               "params": [
@@ -39355,7 +39371,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -39368,7 +39384,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "default": {
               "params": [
@@ -39377,7 +39393,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -39390,7 +39406,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "default": {
               "params": [
@@ -39399,7 +39415,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -39578,7 +39594,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "default": {
               "params": [
@@ -39587,7 +39603,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -39640,7 +39656,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.AiSidecarConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.AiSidecarConfig,list<any>,float,string>"
             }
           }
         },
@@ -39662,7 +39678,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<dict<string,any>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "customer_role": {
               "params": [
@@ -39680,7 +39696,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<string>>"
+              "returns": "union<list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "global_data": {
               "params": [
@@ -39689,7 +39705,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<dict<string,any>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "hints": {
               "params": [
@@ -39698,7 +39714,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<string>>"
+              "returns": "union<list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "lang": {
               "params": [
@@ -40002,7 +40018,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<union<string,class:signalwire.swml_verbs_generated.AiSidecarSWAIGFunctionsItem>>>"
+              "returns": "union<list<union<class:signalwire.swml_verbs_generated.AiSidecarSWAIGFunctionsItem,class:signalwire.swml_verbs_generated.SWMLVar>>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "mcp_servers": {
               "params": [
@@ -40011,7 +40027,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<any>>"
+              "returns": "union<list<any>,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -40140,7 +40156,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.AmazonBedrockConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.AmazonBedrockConfig,list<any>,float,string>"
             }
           }
         },
@@ -40661,7 +40677,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.AnswerConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.AnswerConfig,list<union<float,class:signalwire.swml_verbs_generated.SWMLVar>>,float,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -40674,7 +40690,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<string>>"
+              "returns": "union<string,list<union<string,string,string,string,string,string,string,string>>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "max_duration": {
               "params": [
@@ -40794,7 +40810,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "name": {
               "params": [
@@ -40874,7 +40890,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<union<string,class:signalwire.swml_verbs_generated.CallPayPromptsActions>>>"
+              "returns": "union<list<union<class:signalwire.swml_verbs_generated.CallPayPromptsActions,class:signalwire.swml_verbs_generated.SWMLVar>>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "attempt": {
               "params": [
@@ -40919,7 +40935,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<union<string,class:signalwire.swml_verbs_generated.RingbackConfig>>>"
+              "returns": "union<list<union<class:signalwire.swml_verbs_generated.RingbackConfig,class:signalwire.swml_verbs_generated.SWMLVar>>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "require_matching_inputs": {
               "params": [
@@ -41091,7 +41107,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<dict<string,any>>>"
+              "returns": "union<string,list<any>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "confirm": {
               "params": [
@@ -41118,7 +41134,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<dict<string,string>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "encryption": {
               "params": [
@@ -41226,7 +41242,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,bool,list<any>,class:signalwire.swml_verbs_generated.RingbackConfig>"
+              "returns": "union<bool,string,list<string>,class:signalwire.swml_verbs_generated.RingbackConfig>"
             },
             "serial": {
               "params": [
@@ -41280,7 +41296,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,bool,list<dict<string,any>>>"
+              "returns": "union<list<any>,bool,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "timeout": {
               "params": [
@@ -41338,7 +41354,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -41387,7 +41403,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<dict<string,any>>>"
+              "returns": "union<string,list<any>>"
             },
             "confirm": {
               "params": [
@@ -41414,7 +41430,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<dict<string,string>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "encryption": {
               "params": [
@@ -41562,7 +41578,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -41575,7 +41591,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "dict<string,union<list<class:signalwire.swml_verbs_generated.SWMLMethod>,class:signalwire.swml_verbs_generated.ConnectResultCaseValue>>"
             },
             "default": {
               "params": [
@@ -41615,7 +41631,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -41637,7 +41653,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -41904,7 +41920,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.DetectMachineConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.DetectMachineConfig,list<any>,float,string>"
             }
           }
         },
@@ -42020,7 +42036,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.EchoConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.EchoConfig,list<union<float,class:signalwire.swml_verbs_generated.SWMLVar>>,float,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -42046,7 +42062,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.EnterQueueConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.EnterQueueConfig,list<any>,float,string>"
             }
           }
         },
@@ -42117,7 +42133,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.ExecuteConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.ExecuteConfig,list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -42157,7 +42173,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<dict<string,any>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "result": {
               "params": [
@@ -42188,7 +42204,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -42201,7 +42217,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "dict<string,union<list<class:signalwire.swml_verbs_generated.SWMLMethod>,class:signalwire.swml_verbs_generated.ExecuteResultCaseValue>>"
             },
             "default": {
               "params": [
@@ -42241,7 +42257,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -42263,7 +42279,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -42307,7 +42323,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.ExecuteRpcConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.ExecuteRpcConfig,list<any>,float,string>"
             }
           }
         },
@@ -42347,7 +42363,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<dict<string,any>,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -42361,6 +42377,15 @@
                 }
               ],
               "returns": "string"
+            },
+            "nomatch-output": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "class:signalwire.swaig_actions.generated.SwaigResponse"
             },
             "output": {
               "params": [
@@ -42440,7 +42465,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.GotoConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.GotoConfig,list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -42484,7 +42509,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.HangupConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.HangupConfig,list<union<string,string,string,string,string,string,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string,string,string,string,string,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -42510,7 +42535,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.JoinConferenceConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.JoinConferenceConfig,list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -42770,7 +42795,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "public": {
               "params": [
@@ -42779,7 +42804,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -42792,7 +42817,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.JoinRoomConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.JoinRoomConfig,list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -42827,7 +42852,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<union<bool,class:signalwire.swml_verbs_generated.JsonSchema>>"
+              "returns": "list<union<class:signalwire.swml_verbs_generated.JsonSchema,bool>>"
             },
             "anyOf": {
               "params": [
@@ -42836,7 +42861,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<union<bool,class:signalwire.swml_verbs_generated.JsonSchema>>"
+              "returns": "list<union<class:signalwire.swml_verbs_generated.JsonSchema,bool>>"
             },
             "const": {
               "params": [
@@ -42845,7 +42870,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "contains": {
               "params": [
@@ -42863,7 +42888,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "dependentRequired": {
               "params": [
@@ -42872,7 +42897,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "dict<string,list<string>>"
             },
             "dependentSchemas": {
               "params": [
@@ -42881,7 +42906,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "dict<string,union<class:signalwire.swml_verbs_generated.JsonSchema,bool>>"
             },
             "deprecated": {
               "params": [
@@ -43088,7 +43113,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<union<bool,class:signalwire.swml_verbs_generated.JsonSchema>>"
+              "returns": "list<union<class:signalwire.swml_verbs_generated.JsonSchema,bool>>"
             },
             "pattern": {
               "params": [
@@ -43106,7 +43131,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "dict<string,union<class:signalwire.swml_verbs_generated.JsonSchema,bool>>"
             },
             "prefixItems": {
               "params": [
@@ -43115,7 +43140,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<union<bool,class:signalwire.swml_verbs_generated.JsonSchema>>"
+              "returns": "list<union<class:signalwire.swml_verbs_generated.JsonSchema,bool>>"
             },
             "properties": {
               "params": [
@@ -43124,7 +43149,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "dict<string,union<class:signalwire.swml_verbs_generated.JsonSchema,bool>>"
             },
             "propertyNames": {
               "params": [
@@ -43236,7 +43261,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<union<bool,class:signalwire.swml_verbs_generated.JsonSchemaUnion>>"
+              "returns": "list<union<class:signalwire.swml_verbs_generated.JsonSchemaUnion,bool>>"
             },
             "anyOf": {
               "params": [
@@ -43245,7 +43270,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<union<bool,class:signalwire.swml_verbs_generated.JsonSchemaUnion>>"
+              "returns": "list<union<class:signalwire.swml_verbs_generated.JsonSchemaUnion,bool>>"
             },
             "const": {
               "params": [
@@ -43254,7 +43279,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "contains": {
               "params": [
@@ -43272,7 +43297,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "dependentRequired": {
               "params": [
@@ -43281,7 +43306,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "dict<string,list<string>>"
             },
             "dependentSchemas": {
               "params": [
@@ -43290,7 +43315,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "dict<string,union<class:signalwire.swml_verbs_generated.JsonSchemaUnion,bool>>"
             },
             "deprecated": {
               "params": [
@@ -43335,7 +43360,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "examples": {
               "params": [
@@ -43515,7 +43540,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<union<bool,class:signalwire.swml_verbs_generated.JsonSchemaUnion>>"
+              "returns": "list<union<class:signalwire.swml_verbs_generated.JsonSchemaUnion,bool>>"
             },
             "pattern": {
               "params": [
@@ -43533,7 +43558,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "dict<string,union<class:signalwire.swml_verbs_generated.JsonSchemaUnion,bool>>"
             },
             "prefixItems": {
               "params": [
@@ -43542,7 +43567,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<union<bool,class:signalwire.swml_verbs_generated.JsonSchemaUnion>>"
+              "returns": "list<union<class:signalwire.swml_verbs_generated.JsonSchemaUnion,bool>>"
             },
             "properties": {
               "params": [
@@ -43551,7 +43576,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "dict<string,union<class:signalwire.swml_verbs_generated.JsonSchemaUnion,bool>>"
             },
             "propertyNames": {
               "params": [
@@ -43663,7 +43688,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.LabelConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.LabelConfig,list<string>,float,string>"
             }
           }
         },
@@ -43689,7 +43714,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.LiveTranscribeConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.LiveTranscribeConfig,list<any>,float,string>"
             }
           }
         },
@@ -43711,7 +43736,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "summarize": {
               "params": [
@@ -43778,7 +43803,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<string>>"
+              "returns": "union<list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "hints": {
               "params": [
@@ -43787,7 +43812,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<string>>"
+              "returns": "union<list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "lang": {
               "params": [
@@ -43921,7 +43946,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<union<string,class:signalwire.swml_verbs_generated.LiveTranscribeHintsItem>>>"
+              "returns": "union<list<union<class:signalwire.swml_verbs_generated.LiveTranscribeHintsItem,string,class:signalwire.swml_verbs_generated.SWMLVar>>,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -43974,7 +43999,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.LiveTranslateConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.LiveTranslateConfig,list<any>,float,string>"
             }
           }
         },
@@ -44005,7 +44030,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             },
             "summarize": {
               "params": [
@@ -44094,7 +44119,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<string>>"
+              "returns": "union<list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "filter_from": {
               "params": [
@@ -44139,7 +44164,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<dict<string,any>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "live_events": {
               "params": [
@@ -44202,7 +44227,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<dict<string,any>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "translation_model": {
               "params": [
@@ -44220,7 +44245,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<dict<string,any>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "vad_silence_ms": {
               "params": [
@@ -44304,7 +44329,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.PayConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.PayConfig,list<union<any,string,string,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string>"
             }
           }
         },
@@ -44389,7 +44414,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<union<string,class:signalwire.swml_verbs_generated.CallPayParameters>>>"
+              "returns": "union<list<union<class:signalwire.swml_verbs_generated.CallPayParameters,class:signalwire.swml_verbs_generated.SWMLVar>>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "payment_connector_url": {
               "params": [
@@ -44425,7 +44450,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<union<string,class:signalwire.swml_verbs_generated.CallPayPrompts>>>"
+              "returns": "union<list<union<class:signalwire.swml_verbs_generated.CallPayPrompts,class:signalwire.swml_verbs_generated.SWMLVar>>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "say_voice": {
               "params": [
@@ -44501,7 +44526,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.PlayConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.PlayConfig,list<string>,float,string>"
             }
           }
         },
@@ -44599,7 +44624,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.PromptConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.PromptConfig,list<union<string,float,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string>"
             }
           }
         },
@@ -44639,7 +44664,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<any>,class:signalwire.swml_verbs_generated.RingbackConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.RingbackConfig,list<string>,string>"
             },
             "say_gender": {
               "params": [
@@ -44818,7 +44843,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.ReceiveFaxConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.ReceiveFaxConfig,list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -44844,7 +44869,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.RecordConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.RecordConfig,list<any>,float,string>"
             }
           }
         },
@@ -44857,7 +44882,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.RecordCallConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.RecordCallConfig,list<any>,float,string>"
             }
           }
         },
@@ -45067,7 +45092,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.RequestConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.RequestConfig,list<any>,float,string>"
             }
           }
         },
@@ -45080,7 +45105,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,bool,dict<string,any>,list<dict<string,any>>>"
+              "returns": "union<string,float,bool,dict<string,any>,list<any>>"
             },
             "connect_timeout": {
               "params": [
@@ -45204,7 +45229,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.SipReferConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.SipReferConfig,list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -45230,7 +45255,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.SendDigitsConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.SendDigitsConfig,list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -45256,7 +45281,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.SendFaxConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.SendFaxConfig,list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -45402,7 +45427,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.SetCapabilitiesConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.SetCapabilitiesConfig,list<any>,float,string>"
             }
           }
         },
@@ -45415,7 +45440,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,list<string>>"
+              "returns": "union<list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -45428,7 +45453,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.SetMetaConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.SetMetaConfig,list<any>,float,string>"
             }
           }
         },
@@ -45441,7 +45466,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<dict<string,any>,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "public": {
               "params": [
@@ -45450,7 +45475,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<dict<string,any>,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -45512,7 +45537,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.SleepConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.SleepConfig,list<union<float,class:signalwire.swml_verbs_generated.SWMLVar>>,float,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -45672,7 +45697,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.StopRecordCallConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.StopRecordCallConfig,list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -45698,7 +45723,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.StopStreamConfig,dict<string,any>>"
+              "returns": "union<class:signalwire.swml_verbs_generated.StopStreamConfig,list<union<any,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -45711,7 +45736,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<any,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -45724,7 +45749,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,dict<string,any>,class:signalwire.swml_verbs_generated.StopTapConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.StopTapConfig,list<union<any,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -45737,7 +45762,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<any,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -45750,7 +45775,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.StreamConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.StreamConfig,list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -45781,7 +45806,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<any,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "custom_parameters": {
               "params": [
@@ -45848,7 +45873,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.SwitchConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.SwitchConfig,list<any>,float,string>"
             }
           }
         },
@@ -45870,7 +45895,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -45883,7 +45908,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "dict<string,union<list<class:signalwire.swml_verbs_generated.SWMLMethod>,class:signalwire.swml_verbs_generated.SwitchCaseValue>>"
             },
             "default": {
               "params": [
@@ -45923,7 +45948,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "any"
             }
           }
         },
@@ -45936,7 +45961,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.TapConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.TapConfig,list<union<string,class:signalwire.swml_verbs_generated.SWMLVar,string,string,string>>,float,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -45958,7 +45983,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<any,class:signalwire.swml_verbs_generated.SWMLVar>"
             },
             "direction": {
               "params": [
@@ -46007,7 +46032,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.TranscribeConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.TranscribeConfig,list<any>,float,string>"
             }
           }
         },
@@ -46046,7 +46071,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.TransferConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.TransferConfig,list<union<string,class:signalwire.swml_verbs_generated.SWMLVar>>,float,string,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -46077,7 +46102,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<dict<string,any>,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -46103,7 +46128,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,float,list<any>,class:signalwire.swml_verbs_generated.UserEventConfig>"
+              "returns": "union<class:signalwire.swml_verbs_generated.UserEventConfig,list<any>,float,string>"
             }
           }
         },
@@ -46116,7 +46141,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<string,dict<string,any>>"
+              "returns": "union<dict<string,any>,class:signalwire.swml_verbs_generated.SWMLVar>"
             }
           }
         },
@@ -46962,7 +46987,7 @@
     "signalwire.cli.simulation.ServerlessSimulator": {
       "params": {
         "overrides": {
-          "type": "dict<string,any>",
+          "type": "optional<dict<string,string>>",
           "required": false
         },
         "platform": {
@@ -47334,11 +47359,11 @@
           "required": false
         },
         "extra_fields": {
-          "type": "dict<string,any>",
+          "type": "optional<dict<string,any>>",
           "required": false
         },
         "fillers": {
-          "type": "dict<string,any>",
+          "type": "optional<dict<string,list<string>>>",
           "required": false
         },
         "handler": {
@@ -47358,7 +47383,7 @@
           "required": false
         },
         "parameters": {
-          "type": "dict<string,any>",
+          "type": "optional<dict<string,any>>",
           "required": false
         },
         "required": {
@@ -47446,7 +47471,7 @@
           "required": false
         },
         "chat_ctx": {
-          "type": "any",
+          "type": "optional<any>",
           "required": false
         },
         "instructions": {
@@ -47454,7 +47479,7 @@
           "required": false
         },
         "llm": {
-          "type": "any",
+          "type": "optional<any>",
           "required": false
         },
         "max_endpointing_delay": {
@@ -47462,7 +47487,7 @@
           "required": false
         },
         "mcp_servers": {
-          "type": "any",
+          "type": "optional<any>",
           "required": false
         },
         "min_endpointing_delay": {
@@ -47470,7 +47495,7 @@
           "required": false
         },
         "stt": {
-          "type": "any",
+          "type": "optional<any>",
           "required": false
         },
         "tools": {
@@ -47478,11 +47503,11 @@
           "required": false
         },
         "tts": {
-          "type": "any",
+          "type": "optional<any>",
           "required": false
         },
         "turn_detection": {
-          "type": "any",
+          "type": "optional<any>",
           "required": false
         },
         "user_data": {
@@ -47490,7 +47515,7 @@
           "required": false
         },
         "vad": {
-          "type": "any",
+          "type": "optional<any>",
           "required": false
         }
       }
@@ -47502,7 +47527,7 @@
           "required": false
         },
         "llm": {
-          "type": "any",
+          "type": "optional<any>",
           "required": false
         },
         "max_endpointing_delay": {
@@ -47514,7 +47539,7 @@
           "required": false
         },
         "mcp_servers": {
-          "type": "any",
+          "type": "optional<any>",
           "required": false
         },
         "min_endpointing_delay": {
@@ -47530,7 +47555,7 @@
           "required": false
         },
         "stt": {
-          "type": "any",
+          "type": "optional<any>",
           "required": false
         },
         "tools": {
@@ -47538,11 +47563,11 @@
           "required": false
         },
         "tts": {
-          "type": "any",
+          "type": "optional<any>",
           "required": false
         },
         "turn_detection": {
-          "type": "any",
+          "type": "optional<any>",
           "required": false
         },
         "user_data": {
@@ -47550,7 +47575,7 @@
           "required": false
         },
         "vad": {
-          "type": "any",
+          "type": "optional<any>",
           "required": false
         }
       }
@@ -47566,7 +47591,7 @@
     "signalwire.livewire.RunContext": {
       "params": {
         "function_call": {
-          "type": "any",
+          "type": "optional<any>",
           "required": false
         },
         "session": {
@@ -47574,7 +47599,7 @@
           "required": false
         },
         "speech_handle": {
-          "type": "any",
+          "type": "optional<any>",
           "required": false
         }
       }
@@ -47658,11 +47683,11 @@
     "signalwire.prefabs.concierge.ConciergeAgent": {
       "params": {
         "amenities": {
-          "type": "dict<string,any>",
+          "type": "dict<string,dict<string,string>>",
           "required": true
         },
         "hours_of_operation": {
-          "type": "dict<string,any>",
+          "type": "optional<dict<string,string>>",
           "required": false
         },
         "name": {
@@ -49038,7 +49063,7 @@
           "required": true
         },
         "headers": {
-          "type": "dict<string,any>",
+          "type": "optional<dict<string,string>>",
           "required": false
         },
         "method": {
@@ -49762,7 +49787,7 @@
           "required": false
         },
         "directories": {
-          "type": "dict<string,any>",
+          "type": "optional<dict<string,string>>",
           "required": false
         },
         "enable_cors": {

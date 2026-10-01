@@ -287,6 +287,10 @@ interface ParamSpec {
   required: boolean;
   /** Rendered as a leading positional (required, or pinned by POSITIONAL_COMPAT). */
   positional?: boolean;
+  /** Rendered as a REQUIRED options member (a pinned method's non-pinned required field). */
+  requiredOption?: boolean;
+  /** The field's position in the spec (before any pin reordering). */
+  specIndex?: number;
 }
 
 // ---- published-release positional compatibility ----------------------------
@@ -324,7 +328,10 @@ const usedPositionalCompat = new Set<string>();
  * render order (pinned, then the rest in spec order).
  */
 function applyPositionalCompat(key: string, bodyParams: ParamSpec[]): ParamSpec[] {
-  for (const p of bodyParams) p.positional = p.required;
+  bodyParams.forEach((p, i) => {
+    p.positional = p.required;
+    p.specIndex = i;
+  });
   const pins = POSITIONAL_COMPAT[key];
   if (!pins) return bodyParams;
   usedPositionalCompat.add(key);
@@ -338,7 +345,12 @@ function applyPositionalCompat(key: string, bodyParams: ParamSpec[]): ParamSpec[
     return p;
   });
   const rest = bodyParams.filter((p) => !pins.includes(p.name));
-  for (const p of rest) p.positional = false;
+  for (const p of rest) {
+    // A field the spec requires but the release took through `options` stays an
+    // options member — now a REQUIRED one, so the type states the requirement.
+    if (p.required) p.requiredOption = true;
+    p.positional = false;
+  }
   return [...pinned, ...rest];
 }
 
@@ -393,10 +405,11 @@ function renderSignature(
  */
 function renderOptionsObject(opt: ParamSpec[], extras: boolean): string {
   const members: string[] = [];
-  for (const p of opt) members.push(`${p.name}?: ${p.ann}`);
+  for (const p of opt) members.push(`${p.name}${p.requiredOption ? '' : '?'}: ${p.ann}`);
   if (extras) members.push('extras?: Record<string, unknown>');
   if (members.length === 0) return '';
-  return `options?: { ${members.join('; ')} }`;
+  const required = opt.some((p) => p.requiredOption);
+  return `options${required ? '' : '?'}: { ${members.join('; ')} }`;
 }
 
 /**
@@ -433,9 +446,16 @@ function renderBodyAssembly(bodyParams: ParamSpec[], extras: boolean, varName = 
   // Required fields are named leading positionals; optional fields come from
   // `options?.<name>`. Both funnel through one `_fields` object so unset (===
   // undefined) values are dropped uniformly.
+  // The positional fields are listed in the REFERENCE's keyword order — required
+  // first, each group in spec order — not in a pinned published positional order:
+  // the signature enumerator reads this literal for the reference order.
+  const specIdx = new Map(bodyParams.map((p, i) => [p, i]));
+  const canonical = (p: ParamSpec): number =>
+    (p.required ? 0 : 1) * 1e6 + (p.specIndex ?? specIdx.get(p) ?? 0);
+  const reqOrdered = [...req].sort((a, b) => canonical(a) - canonical(b));
   const entries = [
-    ...req.map((p) => `      ${p.name},`),
-    ...opt.map((p) => `      ${p.name}: options?.${p.name},`),
+    ...reqOrdered.map((p) => `      ${p.name},`),
+    ...opt.map((p) => `      ${p.name}: options${p.requiredOption ? '' : '?'}.${p.name},`),
   ].join('\n');
   let src = `    const ${varName}: Record<string, unknown> = {};\n`;
   src += `    const _fields = {\n${entries}\n    };\n`;
@@ -527,8 +547,14 @@ function emitOperationMethod(
         `${responseKind} success on ${httpVerb.toUpperCase()}; only GET is supported`,
     );
   }
+  // An array response returns a list of its item type (the reference's list[T]).
+  const resIsArray = !resSchema.$ref && resSchema.type === 'array' && Boolean(resRef);
   const returnT =
-    responseKind !== 'json' ? 'string' : resRef ? leafName(resRef) : 'Record<string, unknown>';
+    responseKind !== 'json'
+      ? 'string'
+      : resRef
+        ? `${leafName(resRef)}${resIsArray ? '[]' : ''}`
+        : 'Record<string, unknown>';
   if (resRef && responseKind === 'json') {
     for (const t of referencedTypes(returnT, schemaNames)) refs.add(t);
   }
@@ -656,12 +682,14 @@ function emitOperationMethod(
     const fixed = headerEntries.filter(([, e]) => !e.startsWith('options?.'));
     const optional = headerEntries.filter(([, e]) => e.startsWith('options?.'));
     const init = fixed.map(([w, e]) => `${keyTok(w)}: ${valTok(e, annOf(w))}`).join(', ');
-    preamble += `    const _headers: Record<string, string> = { ${init} };\n`;
+    // Ahead of the body assembly: the reference takes the header args first.
+    let hdrSrc = `    const _headers: Record<string, string> = { ${init} };\n`;
     for (const [w, e] of optional) {
       const access = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(w) ? `.${w}` : `[${JSON.stringify(w)}]`;
-      preamble += `    if (${e} !== undefined) _headers${access} = ${valTok(e, annOf(w))};\n`;
+      hdrSrc += `    if (${e} !== undefined) _headers${access} = ${valTok(e, annOf(w))};\n`;
     }
-    hdrArg = ', _headers';
+    preamble = hdrSrc + preamble;
+    hdrArg = ', { headers: _headers }';
   }
   if (hasBody) {
     call =
@@ -671,7 +699,14 @@ function emitOperationMethod(
   } else if (responseKind === 'text') {
     call = `this._http.getText(${target}, params, requestOptions${hdrArg})`;
   } else if (responseKind === 'redirect') {
-    call = `this._http.getRedirectLocation(${target}, params, requestOptions${hdrArg})`;
+    // The reference's get_redirect_location takes no headers.
+    if (hdrArg) {
+      throw new Error(
+        `x-sdk-resource on ${collection}: methods.${methodName} (${opId}) declares a header ` +
+          `on a redirect-answer GET; the redirect transport carries no per-call headers`,
+      );
+    }
+    call = `this._http.getRedirectLocation(${target}, params, requestOptions)`;
   } else if (httpVerb === 'get') {
     call = `this._http.get<${returnT}>(${target}, params, requestOptions${hdrArg})`;
   } else if (httpVerb === 'delete') {

@@ -388,8 +388,8 @@ export class AiAgents extends FabricResource<
   async listVoices(
     params?: QueryParams,
     requestOptions?: RequestOptionsInit,
-  ): Promise<AIAgentVoice> {
-    return this._http.get<AIAgentVoice>(this._path('voices'), params, requestOptions);
+  ): Promise<AIAgentVoice[]> {
+    return this._http.get<AIAgentVoice[]>(this._path('voices'), params, requestOptions);
   }
 
   async listConversationLogs(

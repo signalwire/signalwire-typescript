@@ -8,7 +8,7 @@
 // same lint bar as hand source.
 
 export interface ChangeVoiceAction {
-  voice?: Record<string, unknown>;
+  voice?: unknown;
   [key: string]: unknown;
 }
 

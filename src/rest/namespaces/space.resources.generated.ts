@@ -156,12 +156,9 @@ export class SpaceBillingStatements extends BaseResource {
 
   async getCsv(params?: QueryParams, requestOptions?: RequestOptionsInit): Promise<string> {
     const _headers: Record<string, string> = { Accept: 'text/csv' };
-    return this._http.getText(
-      this._path('billing_statement.csv'),
-      params,
-      requestOptions,
-      _headers,
-    );
+    return this._http.getText(this._path('billing_statement.csv'), params, requestOptions, {
+      headers: _headers,
+    });
   }
 
   /**
@@ -282,6 +279,7 @@ export class SpaceBalance extends BaseResource {
     options?: { extras?: Record<string, unknown> },
     requestOptions?: RequestOptionsInit,
   ): Promise<BalanceAdjustment> {
+    const _headers: Record<string, string> = { 'Idempotency-Key': idempotency_key };
     const body: Record<string, unknown> = {};
     const _fields = {
       amount_in_microdollars,
@@ -289,13 +287,12 @@ export class SpaceBalance extends BaseResource {
     };
     for (const [k, v] of Object.entries(_fields)) if (v !== undefined) body[k] = v;
     if (options?.extras) Object.assign(body, options.extras);
-    const _headers: Record<string, string> = { 'Idempotency-Key': idempotency_key };
     return this._http.post<BalanceAdjustment>(
       this._path('top_ups'),
       body,
       undefined,
       requestOptions,
-      _headers,
+      { headers: _headers },
     );
   }
 }
@@ -345,8 +342,8 @@ export class SpacePaymentMethods extends BaseResource {
     super(http, '/api/space/payment_methods');
   }
 
-  async list(params?: QueryParams, requestOptions?: RequestOptionsInit): Promise<PaymentMethod> {
-    return this._http.get<PaymentMethod>(this._basePath, params, requestOptions);
+  async list(params?: QueryParams, requestOptions?: RequestOptionsInit): Promise<PaymentMethod[]> {
+    return this._http.get<PaymentMethod[]>(this._basePath, params, requestOptions);
   }
 
   async delete(id: string, requestOptions?: RequestOptionsInit): Promise<Record<string, unknown>> {

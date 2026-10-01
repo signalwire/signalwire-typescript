@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ eab8b371b7a820e86fddf93163cdbc790ab9ba23",
+  "generated_from": "signalwire-typescript @ 7ba2efe001726a852542405db9e02c0cdafb0d70",
   "typescript_version": "6.0.3",
   "note": "TS-native camelCase surface — used by audit_docs.py to verify doc/example references. NOT a substitute for port_surface.json (which is Python-translated for Layer B diffing).",
   "modules": {

@@ -324,7 +324,7 @@ export class HttpClient {
    * @param path - Absolute URL or path relative to {@link HttpClient.baseUrl}.
    * @param params - Optional query parameters; `undefined` values are skipped.
    * @param requestOptions - Optional per-request transport envelope override.
-   * @param headers - Optional per-call request headers.
+   * @param options - Per-call extras: `headers` are added to the request.
    * @returns The parsed JSON body, or `{}` on `204 No Content`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
@@ -332,9 +332,11 @@ export class HttpClient {
     path: string,
     params?: QueryParams,
     requestOptions?: RequestOptionsInit,
-    headers?: Record<string, string>,
+    options?: { headers?: Record<string, string> },
   ): Promise<T> {
-    return this._request<T>('GET', path, undefined, params, requestOptions, { headers });
+    return this._request<T>('GET', path, undefined, params, requestOptions, {
+      headers: options?.headers,
+    });
   }
 
   /**
@@ -345,7 +347,7 @@ export class HttpClient {
    * @param path - Absolute URL or path relative to {@link HttpClient.baseUrl}.
    * @param params - Optional query parameters; `undefined` values are skipped.
    * @param requestOptions - Optional per-request transport envelope override.
-   * @param headers - Optional per-call request headers.
+   * @param options - Per-call extras: `headers` are added to the request.
    * @returns The response body as text.
    * @throws {RestError} On any non-2xx HTTP response.
    */
@@ -353,10 +355,10 @@ export class HttpClient {
     path: string,
     params?: QueryParams,
     requestOptions?: RequestOptionsInit,
-    headers?: Record<string, string>,
+    options?: { headers?: Record<string, string> },
   ): Promise<string> {
     return this._request<string>('GET', path, undefined, params, requestOptions, {
-      headers,
+      headers: options?.headers,
       response: 'text',
     });
   }
@@ -369,7 +371,6 @@ export class HttpClient {
    * @param path - Absolute URL or path relative to {@link HttpClient.baseUrl}.
    * @param params - Optional query parameters; `undefined` values are skipped.
    * @param requestOptions - Optional per-request transport envelope override.
-   * @param headers - Optional per-call request headers.
    * @returns The redirect target URL.
    * @throws {RestError} On an error status, or a success that is not a redirect.
    */
@@ -377,10 +378,8 @@ export class HttpClient {
     path: string,
     params?: QueryParams,
     requestOptions?: RequestOptionsInit,
-    headers?: Record<string, string>,
   ): Promise<string> {
     return this._request<string>('GET', path, undefined, params, requestOptions, {
-      headers,
       response: 'redirect',
     });
   }
@@ -393,7 +392,7 @@ export class HttpClient {
    * @param body - JSON-serialisable request body. Omit to send no body.
    * @param params - Optional query parameters appended to the URL.
    * @param requestOptions - Optional per-request transport envelope override.
-   * @param headers - Optional per-call request headers.
+   * @param options - Per-call extras: `headers` are added to the request.
    * @returns The parsed JSON body, or `{}` on `204 No Content`.
    * @throws {RestError} On any non-2xx HTTP response.
    */
@@ -402,9 +401,11 @@ export class HttpClient {
     body?: unknown,
     params?: QueryParams,
     requestOptions?: RequestOptionsInit,
-    headers?: Record<string, string>,
+    options?: { headers?: Record<string, string> },
   ): Promise<T> {
-    return this._request<T>('POST', path, body, params, requestOptions, { headers });
+    return this._request<T>('POST', path, body, params, requestOptions, {
+      headers: options?.headers,
+    });
   }
 
   /**

@@ -38,6 +38,7 @@ import {
   objectBody,
   pascal,
   resolvePortingSdk,
+  setScalarKindDefs,
   tsName,
   tsType,
 } from './_gen-common.js';
@@ -399,6 +400,8 @@ async function generateSwmlVerbs(
   const doc = { $defs: defs } as unknown as OpenApiDoc;
 
   const decls: string[] = [];
+  // The scalar allOf intersection resolves `$ref` arms through these $defs.
+  setScalarKindDefs(defs);
   // 1. One declaration per $defs schema (so every $ref resolves) — except the SWAIG
   //    envelope types (and the objects hoisted out of them), which SwaigActions
   //    .generated.ts declares and this module imports.
@@ -448,6 +451,7 @@ async function generateSwmlVerbs(
   const envelopeImport = used.length
     ? `import type { ${used.join(', ')} } from './SwaigActions.generated.js';\n\n`
     : '';
+  setScalarKindDefs(null);
   const formatted = await formatTs(header + envelopeImport + body, outPath);
   emitFile(outPath, formatted);
   return decls.length;

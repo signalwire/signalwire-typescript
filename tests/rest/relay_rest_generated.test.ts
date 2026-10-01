@@ -754,7 +754,7 @@ describe('relay-rest wire (generated)', () => {
   });
 
   it('campaigns_createOrder success', async () => {
-    await client.registry.campaigns.createOrder('x');
+    await client.registry.campaigns.createOrder('x', { phone_numbers: [] });
     const last = await mock.last();
     expect(last.method).toBe('POST');
     expect(last.matched_route).toBe('relay-rest.create_order');
@@ -762,7 +762,9 @@ describe('relay-rest wire (generated)', () => {
 
   it('campaigns_createOrder error', async () => {
     await mock.pushScenario('relay-rest.create_order', 500, { error: 'x' });
-    await expect(client.registry.campaigns.createOrder('x')).rejects.toThrow(RestError);
+    await expect(client.registry.campaigns.createOrder('x', { phone_numbers: [] })).rejects.toThrow(
+      RestError,
+    );
     const last = await mock.last();
     expect(last.response_status).toBe(500);
   });

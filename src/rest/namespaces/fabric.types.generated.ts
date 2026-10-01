@@ -47,14 +47,14 @@ export interface AIAgent {
     fillers?:
       | unknown[]
       | {
-          default?: Record<string, unknown>;
-          auto?: Record<string, unknown>;
+          default?: unknown;
+          auto?: unknown;
         };
     function_fillers?:
       | unknown[]
       | {
-          default?: Record<string, unknown>;
-          auto?: Record<string, unknown>;
+          default?: unknown;
+          auto?: unknown;
         };
     languages?: unknown[];
     min_switch_words?: number;
@@ -64,7 +64,7 @@ export interface AIAgent {
     turn_fillers?:
       | unknown[]
       | {
-          default?: Record<string, unknown>;
+          default?: unknown;
         };
   };
 }
@@ -101,8 +101,8 @@ export interface AIAgentSWAIG {
     argument?: FunctionParameters;
     data_map?: DataMap;
     fillers?: {
-      default?: Record<string, unknown>;
-      auto?: Record<string, unknown>;
+      default?: unknown;
+      auto?: unknown;
     };
     function?: string;
     meta_data?: Record<string, unknown>;
@@ -211,14 +211,14 @@ export interface AIAgentCreateRequest {
     fillers?:
       | unknown[]
       | {
-          default?: Record<string, unknown>;
-          auto?: Record<string, unknown>;
+          default?: unknown;
+          auto?: unknown;
         };
     function_fillers?:
       | unknown[]
       | {
-          default?: Record<string, unknown>;
-          auto?: Record<string, unknown>;
+          default?: unknown;
+          auto?: unknown;
         };
     languages?: unknown[];
     min_switch_words?: number;
@@ -228,7 +228,7 @@ export interface AIAgentCreateRequest {
     turn_fillers?:
       | unknown[]
       | {
-          default?: Record<string, unknown>;
+          default?: unknown;
         };
   };
 }
@@ -306,14 +306,14 @@ export interface AIAgentUpdateRequest {
     fillers?:
       | unknown[]
       | {
-          default?: Record<string, unknown>;
-          auto?: Record<string, unknown>;
+          default?: unknown;
+          auto?: unknown;
         };
     function_fillers?:
       | unknown[]
       | {
-          default?: Record<string, unknown>;
-          auto?: Record<string, unknown>;
+          default?: unknown;
+          auto?: unknown;
         };
     languages?: unknown[];
     min_switch_words?: number;
@@ -323,7 +323,7 @@ export interface AIAgentUpdateRequest {
     turn_fillers?:
       | unknown[]
       | {
-          default?: Record<string, unknown>;
+          default?: unknown;
         };
   };
 }
@@ -579,7 +579,7 @@ export interface Action {
   change_voice?:
     | string
     | {
-        voice?: Record<string, unknown>;
+        voice?: unknown;
       };
   clear_dynamic_hints?: boolean | string;
   context_switch?:
@@ -1069,7 +1069,7 @@ export interface ConferenceRoom {
   /** Syncs the participants audio and video. */
   sync_audio_video: boolean | null;
   /** Metadata of the conference. */
-  meta: Record<string, Record<string, unknown>>;
+  meta: Record<string, unknown>;
   /** Indicator if the Conference Room will prioritize showing participants utilizing the hand raised feature. */
   prioritize_handraise: boolean;
 }
@@ -1118,7 +1118,7 @@ export interface ConferenceRoomCreateRequest {
   /** Enables live video room previews for the conference. */
   enable_room_previews?: boolean;
   /** Metadata of the conference. */
-  meta?: Record<string, Record<string, unknown>>;
+  meta?: Record<string, unknown>;
   /** Syncs the participants audio and video. */
   sync_audio_video?: boolean;
   /** Plays a tone when a participant joins or leaves the conference. */
@@ -1181,7 +1181,7 @@ export interface ConferenceRoomUpdateRequest {
   /** Enables live video room previews for the conference. */
   enable_room_previews?: boolean;
   /** Metadata of the conference. */
-  meta?: Record<string, Record<string, unknown>>;
+  meta?: Record<string, unknown>;
   /** Syncs the participants audio and video. */
   sync_audio_video?: boolean;
 }
@@ -1902,8 +1902,8 @@ export interface FreeswitchConnectorUpdateStatusCode422 {
 }
 
 export interface FunctionFillers {
-  default?: Record<string, unknown>;
-  auto?: Record<string, unknown>;
+  default?: unknown;
+  auto?: unknown;
 }
 
 /** A JSON Schema (draft 2020-12) that may also carry `example`, `nullable`, `propertyOrdering`: the value is forwarded verbatim to whichever model API the session resolves to, and those receivers do not accept one vocabulary, so a schema here must be able to express their UNION (vocabulary_union). The engine does not inspect it. */
@@ -1919,7 +1919,7 @@ export interface FunctionParameters {
     | 'object'
     | 'string'
     | ('array' | 'boolean' | 'integer' | 'null' | 'number' | 'object' | 'string')[];
-  const?: Record<string, unknown>;
+  const?: unknown;
   enum?: unknown[];
   format?: string;
   pattern?: string;
@@ -1933,7 +1933,7 @@ export interface FunctionParameters {
   maxItems?: number;
   minProperties?: number;
   maxProperties?: number;
-  default?: Record<string, unknown>;
+  default?: unknown;
   examples?: unknown[];
   deprecated?: boolean;
   nullable?: boolean;
@@ -1952,7 +1952,7 @@ export interface FunctionParameters {
   dependentRequired?: Record<string, string[]>;
   dependentSchemas?: Record<string, FunctionParameters | boolean>;
   else?: FunctionParameters | boolean;
-  example?: Record<string, unknown>;
+  example?: unknown;
   if?: FunctionParameters | boolean;
   maxContains?: number;
   minContains?: number;
@@ -2470,7 +2470,7 @@ export interface ResourceSubSipEndpointCreateStatusCode422 {
 }
 
 export interface SWAIGDefaults {
-  meta_data?: Record<string, unknown>;
+  meta_data?: unknown;
   meta_data_token?: string;
   web_hook_auth_pass?: string;
   web_hook_auth_password?: string;
@@ -2480,40 +2480,40 @@ export interface SWAIGDefaults {
 
 export interface SWAIGInternalFiller {
   adjust_response_latency?: {
-    default?: Record<string, unknown>;
-    auto?: Record<string, unknown>;
+    default?: unknown;
+    auto?: unknown;
   };
   change_context?: {
-    default?: Record<string, unknown>;
-    auto?: Record<string, unknown>;
+    default?: unknown;
+    auto?: unknown;
   };
   check_time?: {
-    default?: Record<string, unknown>;
-    auto?: Record<string, unknown>;
+    default?: unknown;
+    auto?: unknown;
   };
   get_ideal_strategy?: {
-    default?: Record<string, unknown>;
-    auto?: Record<string, unknown>;
+    default?: unknown;
+    auto?: unknown;
   };
   get_visual_input?: {
-    default?: Record<string, unknown>;
-    auto?: Record<string, unknown>;
+    default?: unknown;
+    auto?: unknown;
   };
   next_step?: {
-    default?: Record<string, unknown>;
-    auto?: Record<string, unknown>;
+    default?: unknown;
+    auto?: unknown;
   };
   pause_conversation?: {
-    default?: Record<string, unknown>;
-    auto?: Record<string, unknown>;
+    default?: unknown;
+    auto?: unknown;
   };
   wait_for_user?: {
-    default?: Record<string, unknown>;
-    auto?: Record<string, unknown>;
+    default?: unknown;
+    auto?: unknown;
   };
   wait_seconds?: {
-    default?: Record<string, unknown>;
-    auto?: Record<string, unknown>;
+    default?: unknown;
+    auto?: unknown;
   };
 }
 
@@ -3787,7 +3787,7 @@ export interface AIAgentSWAIGFunction {
         type?: string;
         description?: string;
         enum?: unknown[] | string;
-        default?: Record<string, unknown>;
+        default?: unknown;
       }
     >;
     required?: string[];
@@ -3815,7 +3815,7 @@ export interface AIAgentSWAIGFunction {
     description?: string;
     required?: 'true' | 'false';
     enum?: unknown[] | string;
-    default?: Record<string, unknown>;
+    default?: unknown;
     type?: string;
   }[];
 }

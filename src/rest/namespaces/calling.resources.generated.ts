@@ -245,7 +245,7 @@ export class Calling extends BaseResource {
             verbose_utterances?: boolean;
             webhook?: string;
           };
-          stop?: Record<string, unknown>;
+          stop?: unknown;
           summarize?: {
             ai_model?: string;
             prompt?: string;
@@ -253,7 +253,7 @@ export class Calling extends BaseResource {
             webhook?: string;
           };
         },
-    options?: { hints?: Record<string, unknown>[]; extras?: Record<string, unknown> },
+    options?: { hints?: unknown[]; extras?: Record<string, unknown> },
     requestOptions?: RequestOptionsInit,
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
@@ -308,7 +308,7 @@ export class Calling extends BaseResource {
             vad_thresh?: number;
             webhook?: string;
           };
-          stop?: Record<string, unknown>;
+          stop?: unknown;
           summarize?: {
             prompt?: string;
             summary_prompt?: string;
@@ -741,8 +741,8 @@ export class Calling extends BaseResource {
   ): Promise<CallResponse> {
     const params: Record<string, unknown> = {};
     const _fields = {
-      tap,
       device,
+      tap,
       control_id: options?.control_id,
       status_url: options?.status_url,
     };
