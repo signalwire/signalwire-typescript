@@ -6,6 +6,7 @@
  */
 
 import { FunctionResult, type SwaigResultDict } from './FunctionResult.js';
+import { applyGateFields, SemanticGate, type FillerPhrases } from './SemanticGate.js';
 
 const ENV_PATTERN = /\$\{ENV\.([^}]+)\}/g;
 
@@ -117,6 +118,8 @@ export class DataMap {
   private _webhooks: Record<string, unknown>[] = [];
   private _output: SwaigResultDict | null = null;
   private _errorKeys: string[] = [];
+  private _gates: Array<SemanticGate | Record<string, unknown>> = [];
+  private _gateFillers: FillerPhrases | undefined;
   private _expandEnv = false;
   private _allowedEnvPrefixes: string[] | null = null;
 
@@ -471,6 +474,36 @@ export class DataMap {
   }
 
   /**
+   * Add a semantic gate: a yes/no precondition a decision model checks right
+   * before the platform runs this function.
+   *
+   * Every gate must pass for the function to run. When one doesn't, the
+   * data_map doesn't run, and the model gets that gate's `on_fail` output.
+   * Call once per gate, up to 8. The gates are checked by the platform's rules
+   * when the function is built ({@link DataMap.toSwaigFunction}).
+   * @param gate - A {@link SemanticGate}, or a gate object.
+   * @returns This instance for chaining.
+   */
+  gate(gate: SemanticGate | Record<string, unknown>): this {
+    this._gates.push(gate);
+    return this;
+  }
+
+  /**
+   * Set what the AI says while this function's gates are checked.
+   *
+   * Shaped like a function's fillers: phrases keyed by language code,
+   * `"auto"` or `"default"`. Without them, the AI says nothing while the gates
+   * are checked. Only for a function with gates.
+   * @param fillers - Phrases by language.
+   * @returns This instance for chaining.
+   */
+  gateFillers(fillers: FillerPhrases): this {
+    this._gateFillers = fillers;
+    return this;
+  }
+
+  /**
    * Register this DataMap tool with an AgentBase instance.
    * @param agent - An object with a registerSwaigFunction method (typically an AgentBase).
    * @returns This instance for chaining.
@@ -483,6 +516,9 @@ export class DataMap {
   /**
    * Serialize this data map to a SWAIG function definition object.
    * @returns A plain object suitable for inclusion in the SWML SWAIG array.
+   * @throws {Error} For gates the platform would refuse, or gate fillers
+   *   without gates. They are checked after environment variables are
+   *   expanded, as they will be sent.
    */
   toSwaigFunction(): Record<string, unknown> {
     // Build parameter schema
@@ -514,11 +550,20 @@ export class DataMap {
       data_map: dataMap,
     };
 
+    // Gates become plain objects first, so ${ENV} expansion reaches their text
+    if (this._gates.length) {
+      result['gates'] = this._gates.map((g) => (g instanceof SemanticGate ? g.toDict() : g));
+    }
+    if (this._gateFillers !== undefined) result['gate_fillers'] = { ...this._gateFillers };
+
     if (this._expandEnv) {
       const prefixes = this._allowedEnvPrefixes ?? globalAllowedEnvPrefixes;
       result = expandEnvInObject(result, prefixes) as Record<string, unknown>;
     }
 
+    if ('gates' in result || 'gate_fillers' in result) {
+      applyGateFields(result, String(result['function']));
+    }
     return result;
   }
 }

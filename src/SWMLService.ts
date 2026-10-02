@@ -20,6 +20,7 @@ import { SslConfig } from './SslConfig.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import { getLogger, Logger } from './Logger.js';
 import { SwaigFunction, type SwaigFunctionOptions, type SwaigHandler } from './SwaigFunction.js';
+import { applyGateFields } from './SemanticGate.js';
 import type { ToolParameters, ToolArgs } from './ParameterSchema.js';
 import { FunctionResult } from './FunctionResult.js';
 import type { SwmlRequestData } from './PlatformContracts.js';
@@ -658,13 +659,29 @@ export class SWMLService {
     return this;
   }
 
-  /** Register a SwaigFunction instance or a raw function descriptor (DataMap). */
+  /**
+   * Register a SwaigFunction instance or a raw function descriptor (DataMap).
+   *
+   * A raw descriptor with `gates` or `gate_fillers` is checked by the
+   * platform's rules, and a normalized copy is stored; the caller's object is
+   * left as it was.
+   * @param fn - The function, or its raw SWAIG definition.
+   * @returns This service, for chaining.
+   * @throws {Error} For gates the platform would refuse, or gate fillers
+   *   without gates.
+   */
   registerSwaigFunction(fn: SwaigFunction | Record<string, unknown>): this {
     if (fn instanceof SwaigFunction) {
       this.toolRegistry.set(fn.name, fn);
     } else {
       const name = fn['function'] as string;
-      if (name) this.toolRegistry.set(name, fn);
+      let entry = fn;
+      if ('gates' in fn || 'gate_fillers' in fn) {
+        // A shallow copy: applyGateFields replaces gates with fresh objects.
+        entry = { ...fn };
+        applyGateFields(entry, typeof name === 'string' && name ? name : '(unnamed)');
+      }
+      if (name) this.toolRegistry.set(name, entry);
     }
     return this;
   }
