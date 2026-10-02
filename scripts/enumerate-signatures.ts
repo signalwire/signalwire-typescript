@@ -385,9 +385,7 @@ const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
   // AgentBase.mount — Python's prefix/name are keyword-only (`*, prefix, name`).
   'signalwire.core.agent_base.AgentBase.mount',
   // set_semantic_gates(enabled=None, timeout_ms=None, history=None) — keyword set.
-  'signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_semantic_gates',
-  // SemanticGate(question, threshold, on_fail, *, id, true_means, false_means).
-  'signalwire.core.semantic_gate.SemanticGate.__init__',
+  'signalwire.core.agent_base.AgentBase.set_semantic_gates',
   // dialogue_turns — Python's roles/drop_echo are keyword-only.
   'signalwire.core.post_prompt.dialogue_turns',
   'signalwire.ai_chat.gateway.ChatGateway.prepare',
