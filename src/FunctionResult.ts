@@ -471,6 +471,29 @@ export class FunctionResult {
     return this.addAction('stop_playback_bg', true);
   }
 
+  /**
+   * Change the agent's voice for the rest of the call.
+   *
+   * The voice is an `engine.voice:model` spec — the same form a language's voice
+   * takes in the SWML `languages` list (e.g. `"elevenlabs.rachel"`); the
+   * `engine.` prefix and the `:model` suffix are optional. It replaces the voice
+   * of the language currently in use, and switching to a voice on a different
+   * TTS engine is allowed. The platform applies it at the next speech batch
+   * boundary (never mid-utterance), and it then persists for that language for
+   * the rest of the call. If the new voice cannot be opened, the platform falls
+   * back to its fallback voice. The platform ignores an empty spec, so the SDK
+   * refuses one.
+   * @param voice - Voice spec in `engine.voice:model` form.
+   * @returns This instance for chaining.
+   * @throws {Error} When `voice` is empty or only whitespace.
+   */
+  changeVoice(voice: string): this {
+    if (typeof voice !== 'string' || !voice.trim()) {
+      throw new Error('voice must be a non-empty string');
+    }
+    return this.addAction('change_voice', voice);
+  }
+
   // ── Speech ──────────────────────────────────────────────────────────
 
   /**
@@ -522,6 +545,22 @@ export class FunctionResult {
    */
   updateGlobalData(data: Record<string, unknown>): this {
     return this.addAction('set_global_data', data);
+  }
+
+  /**
+   * Set the semantic state the call's semantic gates judge, besides the
+   * dialogue.
+   *
+   * The state is `global_data.semantic_state`, and this replaces it as a whole:
+   * to change one field, send the whole state with that field changed, and
+   * send `{}` to reset it. Keep it to what the application has established,
+   * such as an order the caller confirmed, rather than what the caller claims;
+   * nothing else from the global data reaches the decision model.
+   * @param state - The semantic state.
+   * @returns This instance for chaining.
+   */
+  setSemanticState(state: Record<string, unknown>): this {
+    return this.updateGlobalData({ semantic_state: state });
   }
 
   /**

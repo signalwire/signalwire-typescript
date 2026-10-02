@@ -1188,6 +1188,48 @@ export class AgentBase extends SWMLService {
   }
 
   /**
+   * Set how the call checks its functions' semantic gates (see
+   * {@link SemanticGate}).
+   *
+   * Each option left out keeps the platform's default.
+   * @param opts - The gate settings.
+   * @param opts.enabled - `false` dispatches gated functions without checking
+   *   their gates. Default `true`. Sent as `semantic_gates_enabled`.
+   * @param opts.timeoutMs - The time one check may take, 500 to 10000
+   *   milliseconds, preparing the request and any retry included. A check that
+   *   runs out blocks the call. Default 2500. Sent as
+   *   `semantic_gate_timeout_ms`.
+   * @param opts.history - How many recent dialogue entries the decision model
+   *   sees, 0 to 100. Default 20. Sent as `semantic_gate_history`.
+   * @returns This agent instance for chaining.
+   * @throws {Error} When a value has the wrong type or is out of range.
+   */
+  setSemanticGates(opts: { enabled?: boolean; timeoutMs?: number; history?: number } = {}): this {
+    // Check every value before setting any, so a refused call changes nothing
+    const { enabled, timeoutMs, history } = opts;
+    if (enabled !== undefined && typeof enabled !== 'boolean') {
+      throw new Error(`enabled must be a boolean, got ${JSON.stringify(enabled)}`);
+    }
+    const ranges: Array<[string, string, unknown, number, number]> = [
+      ['semantic_gate_timeout_ms', 'timeout_ms', timeoutMs, 500, 10000],
+      ['semantic_gate_history', 'history', history, 0, 100],
+    ];
+    for (const [, name, value, low, high] of ranges) {
+      if (value === undefined) continue;
+      if (typeof value !== 'number' || !Number.isInteger(value) || value < low || value > high) {
+        throw new Error(
+          `${name} must be an integer from ${low} to ${high}, got ${JSON.stringify(value)}`,
+        );
+      }
+    }
+    if (enabled !== undefined) this.params['semantic_gates_enabled'] = enabled;
+    for (const [param, , value] of ranges) {
+      if (value !== undefined) this.params[param] = value;
+    }
+    return this;
+  }
+
+  /**
    * **MERGES** `data` into the global_data object passed into the AI
    * configuration. **Despite the name, this does NOT replace** the existing
    * object — existing keys are preserved and incoming keys overwrite only on
