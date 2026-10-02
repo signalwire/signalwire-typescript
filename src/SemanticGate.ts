@@ -41,6 +41,7 @@ const GATE_KEYS: ReadonlySet<string> = new Set([
   'on_fail',
 ]);
 const GATE_ID = /^[A-Za-z0-9_]{1,64}$/;
+const UNPAIRED_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
 /**
  * Hooks the platform calls itself, the function it intercepts by name, and the
@@ -208,28 +209,116 @@ function deepCopy<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+/**
+ * The platform looks keys up the way cJSON_GetObjectItem does: without regard
+ * to case, and the first match wins.
+ */
+function cjsonGet(object: Record<string, unknown>, key: string): unknown {
+  const wanted = key.toLowerCase();
+  for (const [name, value] of Object.entries(object)) {
+    if (name.toLowerCase() === wanted) return value;
+  }
+  return undefined;
+}
+
+function cjsonHas(object: Record<string, unknown>, key: string): boolean {
+  const wanted = key.toLowerCase();
+  return Object.keys(object).some((name) => name.toLowerCase() === wanted);
+}
+
+/** The bytes cJSON uses for one string, quotes included. */
+function cjsonStringLength(text: string): number {
+  let length = 2;
+  for (const char of text) {
+    const code = char.codePointAt(0)!;
+    if ('"\\\b\f\n\r\t'.includes(char)) length += 2;
+    else if (code < 32) length += 6;
+    else length += utf8Length(char);
+  }
+  return length;
+}
+
+/** The bytes cJSON uses for one number, as FreeSWITCH's cJSON prints it. */
+function cjsonNumberLength(value: number): number {
+  if (!Number.isFinite(value)) return 4; // "null"
+  // An integral value prints with %ld, any other with %lf (six decimals)
+  if (Number.isInteger(value)) return BigInt(value).toString().length;
+  return value.toFixed(6).length;
+}
+
+/**
+ * How many bytes cJSON_PrintUnformatted gives the JSON value, as the platform
+ * measures it. Exported for tests; the emitted values aren't changed.
+ */
+export function _cjsonPrintedLength(value: unknown): number {
+  if (value === null || value === undefined) return 4;
+  if (typeof value === 'boolean') return value ? 4 : 5;
+  if (typeof value === 'number') return cjsonNumberLength(value);
+  if (typeof value === 'string') return cjsonStringLength(value);
+  if (Array.isArray(value)) {
+    const items = value.map(_cjsonPrintedLength);
+    return 2 + items.reduce((sum, n) => sum + n, 0) + Math.max(0, items.length - 1);
+  }
+  const entries = Object.entries(value as Record<string, unknown>);
+  let length = 2 + Math.max(0, entries.length - 1);
+  for (const [key, item] of entries)
+    length += cjsonStringLength(key) + 1 + _cjsonPrintedLength(item);
+  return length;
+}
+
+/**
+ * Why a string can't reach the platform as written, or an empty string. C
+ * reads a string up to its first NUL, and cJSON refuses an unpaired surrogate,
+ * so the SDK refuses both rather than send a gate the platform reads
+ * differently.
+ */
+function checkText(value: unknown, where: string): string {
+  if (typeof value === 'string') {
+    if (value.includes('\0')) return `${where} contains a NUL character`;
+    if (UNPAIRED_SURROGATE.test(value)) return `${where} contains an unpaired surrogate`;
+    return '';
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const why = checkText(item, where);
+      if (why) return why;
+    }
+  } else if (isPlainObject(value)) {
+    for (const [key, item] of Object.entries(value)) {
+      const why = checkText(key, where) || checkText(item, where);
+      if (why) return why;
+    }
+  }
+  return '';
+}
+
 /** Why the platform would refuse `on_fail`, or an empty string. */
 function checkOnFail(onFail: unknown): string {
   if (!isPlainObject(onFail)) return 'on_fail must be an object';
-  const response = onFail['response'];
+  const response = cjsonGet(onFail, 'response');
   if (typeof response === 'string') {
     if (!response) return 'on_fail.response is empty';
   } else if (isPlainObject(response)) {
-    const toolResult = response['tool_result'];
+    const toolResult = cjsonGet(response, 'tool_result');
     if (typeof toolResult !== 'string' || !toolResult) {
       return 'on_fail.response.tool_result is missing or empty';
     }
-    if ('tool_prompt' in response && typeof response['tool_prompt'] !== 'string') {
+    if (
+      cjsonHas(response, 'tool_prompt') &&
+      typeof cjsonGet(response, 'tool_prompt') !== 'string'
+    ) {
       return 'on_fail.response.tool_prompt must be a string';
     }
   } else {
     return 'on_fail.response is missing';
   }
-  if ('action' in onFail && !Array.isArray(onFail['action'])) {
+  if (cjsonHas(onFail, 'action') && !Array.isArray(cjsonGet(onFail, 'action'))) {
     return 'on_fail.action must be an array';
   }
-  // Measured as the platform measures it: compact JSON, non-ASCII as UTF-8
-  if (utf8Length(JSON.stringify(onFail)) > MAX_ON_FAIL_BYTES) {
+  const textWhy = checkText(onFail, 'on_fail');
+  if (textWhy) return textWhy;
+  // Measured as the platform measures it: cJSON_PrintUnformatted of the JSON sent
+  if (_cjsonPrintedLength(deepCopy(onFail)) > MAX_ON_FAIL_BYTES) {
     return `on_fail is larger than ${MAX_ON_FAIL_BYTES} bytes`;
   }
   return '';
@@ -245,6 +334,8 @@ function checkCriteria(criteria: unknown): string {
       return `criteria has an unknown key '${key}'; only true and false are allowed`;
     }
     if (typeof value !== 'string' || !value) return `criteria.${key} must be a non-empty string`;
+    const textWhy = checkText(value, `criteria.${key}`);
+    if (textWhy) return textWhy;
     if (utf8Length(value) > MAX_CRITERIA_BYTES) {
       return `criteria.${key} is longer than ${MAX_CRITERIA_BYTES} bytes`;
     }
@@ -260,6 +351,8 @@ function checkGate(gate: unknown): string {
   }
   const question = gate['question'];
   if (typeof question !== 'string' || !question) return 'question is missing or empty';
+  const questionWhy = checkText(question, 'question');
+  if (questionWhy) return questionWhy;
   if (utf8Length(question) > MAX_QUESTION_BYTES) {
     return `question is longer than ${MAX_QUESTION_BYTES} bytes`;
   }
@@ -290,14 +383,14 @@ function checkGate(gate: unknown): string {
 /**
  * Return a function's gates as the platform reads them.
  *
- * Internal: tools call this through {@link _applyGateFields}.
+ * Every way to define a tool runs this through {@link applyGateFields}.
  * @param gates - SemanticGate objects or gate objects, 1 to 8.
  * @param functionName - The function's name.
  * @returns Each gate as a plain object, deep-copied.
  * @throws {Error} For anything that would make the platform refuse the
  *   function, with the platform's reason.
  */
-export function _gateDefinitions(gates: unknown, functionName: string): Record<string, unknown>[] {
+export function gateDefinitions(gates: unknown, functionName: string): Record<string, unknown>[] {
   if (RESERVED_FUNCTION_NAMES.has(functionName)) {
     throw new Error(`gates are not supported on ${functionName}, a hook or built-in function name`);
   }
@@ -332,18 +425,18 @@ export function _gateDefinitions(gates: unknown, functionName: string): Record<s
  * place.
  *
  * `fields` is a function definition, or the extra fields of one. Its `gates`
- * become the objects the platform reads; a null or undefined `gates` or
- * `gate_fillers` is removed.
- *
- * Internal: every way to define a tool calls it.
+ * become the objects the platform reads. A `gates` left out is fine; one given
+ * as `null` is refused, because the platform refuses the whole function rather
+ * than run it ungated. A `gate_fillers` left out or `null` is removed, as the
+ * platform ignores it.
  * @param fields - The function definition or its extra fields.
  * @param functionName - The function's name.
  * @throws {Error} For gates the platform would refuse, or `gate_fillers` on a
  *   function without gates, which the platform ignores.
  */
-export function _applyGateFields(fields: Record<string, unknown>, functionName: string): void {
-  if (fields['gates'] !== undefined && fields['gates'] !== null) {
-    fields['gates'] = _gateDefinitions(fields['gates'], functionName);
+export function applyGateFields(fields: Record<string, unknown>, functionName: string): void {
+  if ('gates' in fields && fields['gates'] !== undefined) {
+    fields['gates'] = gateDefinitions(fields['gates'], functionName);
   } else {
     delete fields['gates'];
   }
@@ -362,6 +455,43 @@ export function _applyGateFields(fields: Record<string, unknown>, functionName: 
     throw new Error(
       `${functionName}: gate_fillers must map a language code, 'auto' or ` +
         "'default' to a list of phrases",
+    );
+  }
+}
+
+/**
+ * Check a gated function as it will be sent, after every merge and expansion.
+ *
+ * Besides its gates, the platform needs a gated function to have a name, a
+ * description (`description` or `purpose`), and a `web_hook_url` or a
+ * `data_map`; a function without them isn't registered at all. The SWAIG
+ * `defaults.web_hook_url` counts as its URL.
+ *
+ * Internal: AgentBase calls it on each function it renders.
+ * @param definition - The function definition as it will be sent.
+ * @param defaultWebhookUrl - The SWAIG defaults `web_hook_url`, if any.
+ * @throws {Error} For gates the platform would refuse, or a gated function
+ *   the platform wouldn't register.
+ */
+export function _checkGatedFunction(
+  definition: Record<string, unknown>,
+  defaultWebhookUrl?: string,
+): void {
+  if (!('gates' in definition) && !('gate_fillers' in definition)) return;
+  const name = typeof definition['function'] === 'string' ? definition['function'] : '';
+  applyGateFields(definition, name || '(unnamed)');
+  if (!('gates' in definition)) return;
+  const description = definition['description'] ?? definition['purpose'];
+  const hasUrl = Boolean(definition['web_hook_url']) || Boolean(defaultWebhookUrl);
+  if (
+    !name ||
+    typeof description !== 'string' ||
+    !description ||
+    (!hasUrl && !definition['data_map'])
+  ) {
+    throw new Error(
+      `${name || '(unnamed)'}: a gated function needs a name, a description, and a ` +
+        'web_hook_url or data_map',
     );
   }
 }
