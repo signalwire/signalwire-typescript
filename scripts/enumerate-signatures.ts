@@ -265,6 +265,7 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
       'set_post_prompt_llm_params',
       'set_prompt_llm_params',
       'set_pronunciations',
+      'set_semantic_gates',
       'update_global_data',
     ],
   ],
@@ -384,7 +385,7 @@ const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
   // AgentBase.mount — Python's prefix/name are keyword-only (`*, prefix, name`).
   'signalwire.core.agent_base.AgentBase.mount',
   // set_semantic_gates(enabled=None, timeout_ms=None, history=None) — keyword set.
-  'signalwire.core.agent_base.AgentBase.set_semantic_gates',
+  'signalwire.core.mixins.ai_config_mixin.AIConfigMixin.set_semantic_gates',
   // SemanticGate(question, threshold, on_fail, *, id, true_means, false_means).
   'signalwire.core.semantic_gate.SemanticGate.__init__',
   // dialogue_turns — Python's roles/drop_echo are keyword-only.

@@ -156,7 +156,7 @@ describe('the platform rules', () => {
     [[gate(), gate({ id: 'gate_1' })], "gate 2: id 'gate_1' is already used by gate 1"],
     [['not a gate'], 'gate 1: must be an object'],
   ])('refuses %#: %s', (gates, reason) => {
-    expect(() => gateDefinitions(gates, 'refund')).toThrow(reason);
+    expect(() => gateDefinitions(gates as never, 'refund')).toThrow(reason);
   });
 
   it('prefixes each refusal with the function name', () => {
@@ -164,7 +164,9 @@ describe('the platform rules', () => {
   });
 
   it('refuses gates that are not a list', () => {
-    expect(() => gateDefinitions(gate(), 'refund')).toThrow('refund: gates must be a list');
+    expect(() => gateDefinitions(gate() as never, 'refund')).toThrow(
+      'refund: gates must be a list',
+    );
   });
 
   it('accepts the limits themselves', () => {

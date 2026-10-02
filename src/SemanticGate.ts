@@ -390,7 +390,10 @@ function checkGate(gate: unknown): string {
  * @throws {Error} For anything that would make the platform refuse the
  *   function, with the platform's reason.
  */
-export function gateDefinitions(gates: unknown, functionName: string): Record<string, unknown>[] {
+export function gateDefinitions(
+  gates: ReadonlyArray<SemanticGate | Record<string, unknown>>,
+  functionName: string,
+): Record<string, unknown>[] {
   if (RESERVED_FUNCTION_NAMES.has(functionName)) {
     throw new Error(`gates are not supported on ${functionName}, a hook or built-in function name`);
   }
@@ -436,7 +439,11 @@ export function gateDefinitions(gates: unknown, functionName: string): Record<st
  */
 export function applyGateFields(fields: Record<string, unknown>, functionName: string): void {
   if ('gates' in fields && fields['gates'] !== undefined) {
-    fields['gates'] = gateDefinitions(fields['gates'], functionName);
+    // Raw definitions carry anything; gateDefinitions checks it at run time
+    fields['gates'] = gateDefinitions(
+      fields['gates'] as ReadonlyArray<SemanticGate | Record<string, unknown>>,
+      functionName,
+    );
   } else {
     delete fields['gates'];
   }
