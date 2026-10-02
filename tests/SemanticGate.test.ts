@@ -489,3 +489,41 @@ describe('the package exports', () => {
     expect(sdk.MAX_GATES).toBe(8);
   });
 });
+
+describe('whole definitions, as JSON leaves them', () => {
+  it('skips a key left undefined, which JSON drops, and finds the next spelling', () => {
+    expect(() =>
+      applyGateFields(
+        { description: undefined, Description: 'Refund', gates: [gate()] },
+        'refund',
+        { definition: true },
+      ),
+    ).not.toThrow();
+    const fields: Record<string, unknown> = {
+      Gates: undefined,
+      gates: [gate()],
+      gate_fillers: { default: ['One moment.'] },
+    };
+    expect(() =>
+      applyGateFields({ description: 'Refund', ...fields }, 'refund', { definition: true }),
+    ).not.toThrow();
+  });
+
+  it('removes every spelling of gate_fillers when the first is null, as the platform ignores them all', () => {
+    const fields: Record<string, unknown> = {
+      description: 'Refund',
+      gates: [gate()],
+      Gate_Fillers: null,
+      gate_fillers: { default: ['Will proceed now'] },
+    };
+    applyGateFields(fields, 'refund', { definition: true });
+    expect(Object.keys(fields).some((k) => k.toLowerCase() === 'gate_fillers')).toBe(false);
+    const withList: Record<string, unknown> = {
+      description: 'Refund',
+      gates: [gate()],
+      Gate_Fillers: null,
+      gate_fillers: [],
+    };
+    expect(() => applyGateFields(withList, 'refund', { definition: true })).not.toThrow();
+  });
+});

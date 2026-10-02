@@ -228,9 +228,14 @@ function isAscii(text: string): boolean {
   return true;
 }
 
-function firstKey(object: Record<string, unknown>, key: string): string | undefined {
+function sameKey(name: string, key: string): boolean {
   // cJSON compares ASCII letters without case and every other byte exactly
-  return Object.keys(object).find((name) => isAscii(name) && name.toLowerCase() === key);
+  return isAscii(name) && name.toLowerCase() === key;
+}
+
+function firstKey(object: Record<string, unknown>, key: string): string | undefined {
+  // A key left undefined isn't in the JSON sent, so the platform never sees it
+  return Object.keys(object).find((name) => object[name] !== undefined && sameKey(name, key));
 }
 
 function cjsonGet(object: Record<string, unknown>, key: string): unknown {
@@ -521,7 +526,11 @@ export function applyGateFields(
   if (fillersKey === undefined) return;
   const gateFillers = fields[fillersKey];
   if (gateFillers === undefined || gateFillers === null) {
-    delete fields[fillersKey];
+    // The platform reads only the first match and ignores a null one, so in a
+    // whole definition every spelling goes, lest a later one take effect
+    for (const name of Object.keys(fields)) {
+      if (definition ? sameKey(name, 'gate_fillers') : name === fillersKey) delete fields[name];
+    }
     return;
   }
   if (!gated) {
