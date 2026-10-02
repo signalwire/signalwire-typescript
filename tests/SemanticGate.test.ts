@@ -229,10 +229,45 @@ describe('applyGateFields', () => {
     expect(fields).toEqual({ other: 1 });
   });
 
-  it('refuses gates: null, which the platform refuses rather than run the function ungated', () => {
-    expect(() => applyGateFields({ gates: null }, 'refund')).toThrow(
-      'refund: gates must be a list',
+  it('refuses gates: null in a whole definition, which the platform refuses rather than run ungated', () => {
+    expect(() =>
+      applyGateFields({ description: 'Refund', gates: null }, 'refund', { definition: true }),
+    ).toThrow('refund: gates must be a list');
+  });
+
+  it('takes a null gates among extra fields as no gates, as an option left out', () => {
+    const fields: Record<string, unknown> = { gates: null };
+    applyGateFields(fields, 'refund');
+    expect(fields).toEqual({});
+  });
+
+  it("finds a definition's gates and gate_fillers keys without regard to case, as the platform does", () => {
+    expect(() =>
+      applyGateFields({ description: 'Refund', Gates: [gate({ threshold: 5 })] }, 'refund', {
+        definition: true,
+      }),
+    ).toThrow('refund: gate 1: threshold must be');
+    const fields: Record<string, unknown> = {
+      description: 'Refund',
+      GATES: [gate()],
+      Gate_Fillers: { default: ['One moment.'] },
+    };
+    applyGateFields(fields, 'refund', { definition: true });
+    expect((fields['GATES'] as unknown[]).length).toBe(1);
+    expect(() =>
+      applyGateFields({ description: 'Refund', GATE_FILLERS: { default: ['x'] } }, 'refund', {
+        definition: true,
+      }),
+    ).toThrow('gate_fillers needs gates');
+  });
+
+  it('needs a description on a gated definition, read as the platform reads it', () => {
+    expect(() => applyGateFields({ gates: [gate()] }, 'refund', { definition: true })).toThrow(
+      'refund: a gated function needs a description',
     );
+    expect(() =>
+      applyGateFields({ Purpose: '', gates: [gate()] }, 'refund', { definition: true }),
+    ).not.toThrow();
   });
 
   it('refuses gate_fillers without gates', () => {
@@ -378,16 +413,23 @@ describe('_checkGatedFunction', () => {
     expect(() => _checkGatedFunction(fn({ description: 5, purpose: 'Refund' }))).not.toThrow();
   });
 
-  it.each<[Record<string, unknown>]>([
-    [{ description: undefined }],
-    [{ description: 5 }],
-    [{ web_hook_url: undefined }],
-    [{ function: undefined }],
-  ])('refuses a gated function the platform would not register: %j', (overrides) => {
-    expect(() => _checkGatedFunction(fn(overrides))).toThrow(
-      'a gated function needs a name, a description, and a web_hook_url or data_map',
-    );
-  });
+  it.each<[Record<string, unknown>]>([[{ description: undefined }], [{ description: 5 }]])(
+    'refuses a gated function without a description: %j',
+    (overrides) => {
+      expect(() => _checkGatedFunction(fn(overrides))).toThrow(
+        'a gated function needs a description',
+      );
+    },
+  );
+
+  it.each<[Record<string, unknown>]>([[{ web_hook_url: undefined }], [{ function: undefined }]])(
+    'refuses a gated function the platform would not register: %j',
+    (overrides) => {
+      expect(() => _checkGatedFunction(fn(overrides))).toThrow(
+        'a gated function needs a name, a description, and a web_hook_url or data_map',
+      );
+    },
+  );
 
   it('checks the gates under the name that is sent', () => {
     expect(() => _checkGatedFunction(fn({ function: 'end_call' }))).toThrow(
@@ -409,6 +451,12 @@ describe('gates as they are sent', () => {
     expect(() => gateDefinitions(sparse as never, 'refund')).toThrow(
       'refund: gate 2: must be an object',
     );
+  });
+
+  it('puts a SemanticGate in its sent form too', () => {
+    const g = new SemanticGate('Q?', 0.5, 'Not run.', { trueMeans: 'Yes', falseMeans: 'No' });
+    g.criteria.false = undefined;
+    expect(gateDefinitions([g], 'refund')[0]!['criteria']).toEqual({ true: 'Yes' });
   });
 
   it.each<[string, Record<string, unknown>]>([

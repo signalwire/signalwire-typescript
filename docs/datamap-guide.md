@@ -5,13 +5,14 @@ This page is the reference for the `DataMap` class in the SignalWire AI Agents T
 <!-- snippet-setup -->
 ```ts
 export {}; // treat each runnable example as a module
-// Shared context the examples assume: `DataMap`/`FunctionResult` (imported once and
-// reused), `agent` (an AgentBase), and `tool` (the DataMap built in the current example).
-// Declared as ambient globals so each fragment resolves without repeating the boilerplate.
-// A block that constructs or imports its own `const tool`/`DataMap` shadows these.
+// Shared context the examples assume: `DataMap`/`FunctionResult`/`SemanticGate` (imported
+// once and reused), `agent` (an AgentBase), and `tool` (the DataMap built in the current
+// example). Declared as ambient globals so each fragment resolves without repeating the
+// boilerplate. A block that constructs or imports its own `const tool`/`DataMap` shadows these.
 declare global {
   const DataMap: typeof import('@signalwire/sdk').DataMap;
   const FunctionResult: typeof import('@signalwire/sdk').FunctionResult;
+  const SemanticGate: typeof import('@signalwire/sdk').SemanticGate;
   const agent: import('@signalwire/sdk').AgentBase;
   const tool: import('@signalwire/sdk').DataMap;
 }
@@ -647,7 +648,7 @@ gate(gate: SemanticGate | Record<string, unknown>): this
 
 `toSwaigFunction()` checks the gates by the platform's rules, after environment variables are expanded, and throws for one the platform would refuse. This tool places an order only once the caller has confirmed it:
 
-<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
+<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` and `SemanticGate` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 const placeOrder = new DataMap('place_order')
   .purpose('Place the order the caller confirmed')

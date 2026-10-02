@@ -223,17 +223,35 @@ function wireForm(value: unknown): unknown {
  * The platform looks keys up the way cJSON_GetObjectItem does: without regard
  * to case, and the first match wins.
  */
+function isAscii(text: string): boolean {
+  for (let i = 0; i < text.length; i++) if (text.charCodeAt(i) > 0x7f) return false;
+  return true;
+}
+
+function firstKey(object: Record<string, unknown>, key: string): string | undefined {
+  // cJSON compares ASCII letters without case and every other byte exactly
+  return Object.keys(object).find((name) => isAscii(name) && name.toLowerCase() === key);
+}
+
 function cjsonGet(object: Record<string, unknown>, key: string): unknown {
-  const wanted = key.toLowerCase();
-  for (const [name, value] of Object.entries(object)) {
-    if (name.toLowerCase() === wanted) return value;
-  }
-  return undefined;
+  const found = firstKey(object, key);
+  return found === undefined ? undefined : object[found];
 }
 
 function cjsonHas(object: Record<string, unknown>, key: string): boolean {
-  const wanted = key.toLowerCase();
-  return Object.keys(object).some((name) => name.toLowerCase() === wanted);
+  return firstKey(object, key) !== undefined;
+}
+
+/**
+ * Whether a function definition has a `gates` or `gate_fillers` key, found as
+ * the platform finds it: without regard to ASCII case.
+ *
+ * Internal: AgentBase and SWMLService use it to decide what to check.
+ * @param fields - A function definition.
+ * @returns True when either key is present.
+ */
+export function _hasGateFields(fields: Record<string, unknown>): boolean {
+  return cjsonHas(fields, 'gates') || cjsonHas(fields, 'gate_fillers');
 }
 
 /** The bytes cJSON uses for one string, quotes included. */
@@ -418,7 +436,7 @@ export function gateDefinitions(
   // Every index, holes included: a hole is sent as null, which the platform refuses
   for (let index = 0; index < gates.length; index++) {
     const gate: unknown = gates[index];
-    const definition = gate instanceof SemanticGate ? gate.toDict() : wireForm(gate);
+    const definition = wireForm(gate instanceof SemanticGate ? gate.toDict() : gate);
     const why = checkGate(definition);
     if (why) throw new Error(`${functionName}: gate ${index + 1}: ${why}`);
     const gateDefinition = definition as Record<string, unknown>;
@@ -435,36 +453,78 @@ export function gateDefinitions(
   return definitions;
 }
 
+/** Options for {@link applyGateFields}. */
+export interface ApplyGateFieldsOptions {
+  /**
+   * True when `fields` is a whole function definition sent as written, such as
+   * a DataMap's or a raw one. Then its `gates` and `gate_fillers` keys are
+   * found as the platform finds them, without regard to case; `gates: null` is
+   * refused, as the platform refuses the function for a JSON null; and a gated
+   * function needs a description. Otherwise a null or undefined `gates` means
+   * no gates, as an option left out does.
+   */
+  definition?: boolean;
+}
+
 /**
  * Check and normalize `gates` and `gate_fillers` in a function's fields, in
  * place.
  *
  * `fields` is a function definition, or the extra fields of one. Its `gates`
- * become the objects the platform reads. A `gates` left out is fine; one given
- * as `null` is refused, because the platform refuses the whole function rather
- * than run it ungated. A `gate_fillers` left out or `null` is removed, as the
- * platform ignores it.
+ * become the objects the platform reads. A `gate_fillers` left out or `null`
+ * is removed, as the platform ignores it.
  * @param fields - The function definition or its extra fields.
  * @param functionName - The function's name.
- * @throws {Error} For gates the platform would refuse, or `gate_fillers` on a
- *   function without gates, which the platform ignores.
+ * @param opts - Whether `fields` is a whole definition (see
+ *   {@link ApplyGateFieldsOptions.definition}).
+ * @throws {Error} For gates the platform would refuse, `gate_fillers` on a
+ *   function without gates, which the platform ignores, or a gated
+ *   definition without a description.
  */
-export function applyGateFields(fields: Record<string, unknown>, functionName: string): void {
-  if ('gates' in fields && fields['gates'] !== undefined) {
-    // Raw definitions carry anything; gateDefinitions checks it at run time
-    fields['gates'] = gateDefinitions(
-      fields['gates'] as ReadonlyArray<SemanticGate | Record<string, unknown>>,
-      functionName,
-    );
-  } else {
-    delete fields['gates'];
+export function applyGateFields(
+  fields: Record<string, unknown>,
+  functionName: string,
+  opts: ApplyGateFieldsOptions = {},
+): void {
+  const definition = opts.definition ?? false;
+  const gatesKey = definition ? firstKey(fields, 'gates') : 'gates' in fields ? 'gates' : undefined;
+  let gated = false;
+  if (gatesKey !== undefined) {
+    const gates = fields[gatesKey];
+    if (gates === undefined || (gates === null && !definition)) {
+      delete fields[gatesKey];
+    } else {
+      // Raw definitions carry anything; gateDefinitions checks it at run time
+      fields[gatesKey] = gateDefinitions(
+        gates as ReadonlyArray<SemanticGate | Record<string, unknown>>,
+        functionName,
+      );
+      gated = true;
+    }
   }
-  const gateFillers = fields['gate_fillers'];
+  if (gated && definition) {
+    // The platform reads purpose, then description; any string counts
+    if (
+      typeof cjsonGet(fields, 'purpose') !== 'string' &&
+      typeof cjsonGet(fields, 'description') !== 'string'
+    ) {
+      throw new Error(
+        `${functionName}: a gated function needs a description; the platform refuses it without one`,
+      );
+    }
+  }
+  const fillersKey = definition
+    ? firstKey(fields, 'gate_fillers')
+    : 'gate_fillers' in fields
+      ? 'gate_fillers'
+      : undefined;
+  if (fillersKey === undefined) return;
+  const gateFillers = fields[fillersKey];
   if (gateFillers === undefined || gateFillers === null) {
-    delete fields['gate_fillers'];
+    delete fields[fillersKey];
     return;
   }
-  if (!('gates' in fields)) {
+  if (!gated) {
     throw new Error(
       `${functionName}: gate_fillers needs gates; the platform ignores them on a ` +
         'function without gates',
@@ -496,20 +556,18 @@ export function _checkGatedFunction(
   definition: Record<string, unknown>,
   defaultWebhookUrl?: string,
 ): void {
-  if (!('gates' in definition) && !('gate_fillers' in definition)) return;
+  if (!_hasGateFields(definition)) return;
   const name = typeof definition['function'] === 'string' ? definition['function'] : '';
-  applyGateFields(definition, name || '(unnamed)');
-  if (!('gates' in definition)) return;
-  // As the platform reads them: `purpose`, else `description`; any string
-  // counts, an empty one included, as does any data_map.
-  const purpose = definition['purpose'];
-  const description = typeof purpose === 'string' ? purpose : definition['description'];
-  const hasUrl = typeof definition['web_hook_url'] === 'string' || Boolean(defaultWebhookUrl);
-  const hasDataMap = definition['data_map'] !== undefined && definition['data_map'] !== null;
+  applyGateFields(definition, name || '(unnamed)', { definition: true });
+  if (!cjsonHas(definition, 'gates')) return;
+  // As the platform reads them: any string counts, an empty one included, as
+  // does any data_map; the SWAIG defaults' URL counts as the function's.
+  const hasUrl =
+    typeof cjsonGet(definition, 'web_hook_url') === 'string' || Boolean(defaultWebhookUrl);
+  const dataMap = cjsonGet(definition, 'data_map');
   if (
     typeof definition['function'] !== 'string' ||
-    typeof description !== 'string' ||
-    (!hasUrl && !hasDataMap)
+    (!hasUrl && (dataMap === undefined || dataMap === null))
   ) {
     throw new Error(
       `${name || '(unnamed)'}: a gated function needs a name, a description, and a ` +

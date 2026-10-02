@@ -849,7 +849,7 @@ const result = new FunctionResult('The customer record is loaded.')
 
 ### setSemanticState
 
-Set the state the call's semantic gates judge, besides the dialogue: `global_data.semantic_state` (sent as `set_global_data`). It replaces the state as a whole: to change one field, send the whole state with that field changed, and send `{}` to reset it. Keep it to what the application has established, such as an order the caller confirmed, rather than what the caller claims; nothing else from the global data reaches the decision model. See [Semantic gates](api-reference.md#semantic-gates).
+Set the state the call's semantic gates judge, besides the dialogue: `global_data.semantic_state` (sent as `set_global_data`). It replaces the state as a whole: to change one field, send the whole state with that field changed, and send `{}` to reset it. Keep it to what the application has established, such as an order the caller confirmed, rather than what the caller claims. It's the only global data copied into the decision model's state; a gate question can still bring in other global data with a `${global_data.x}` template. See [Semantic gates](api-reference.md#semantic-gates).
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript

@@ -401,7 +401,7 @@ agent.defineTool({
 
 A semantic gate is a yes/no question a decision model answers about the call right before the platform dispatches the function. Every gate on the function must pass for it to run. When one doesn't, the function isn't dispatched, and the model gets that gate's `on_fail` output instead, as if a data_map had returned it. The function's `fillers` and `wait_file` start only once its gates pass, so a blocked call never sounds as if the action were under way.
 
-Semantic gates need a platform release that supports them. One that doesn't ignores `gates` with a warning and runs the function ungated, so don't rely on a gate to protect a function until your platform supports them.
+Semantic gates need a platform release that supports them. One that doesn't runs the function ungated, and may or may not log a warning about the unknown key, so don't rely on a gate to protect a function until your platform supports them.
 
 The decision model sees three things, under these names: `conversation`, the recent dialogue; `semantic_state`, the call's `global_data.semantic_state`, which [`FunctionResult.setSemanticState()`](#data-actions) sets; and `proposed_function`, the function's name, description and arguments. Write each question as one proposition, and name what it's about with those names in backticks. The model reads literally: it doesn't do arithmetic or compare dates, so put a computed result in `semantic_state` instead of asking for it.
 
@@ -666,7 +666,7 @@ setParams(params: Record<string, unknown>): this
 
 #### `setSemanticGates(opts?)`
 
-Set how the call checks its functions' [semantic gates](#semantic-gates). Each option left out keeps the platform's default.
+Set how the call checks its functions' [semantic gates](#semantic-gates). Each option left out leaves its current setting as it is; the platform's default applies to a setting that was never set.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts

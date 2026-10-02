@@ -1191,7 +1191,8 @@ export class AgentBase extends SWMLService {
    * Set how the call checks its functions' semantic gates (see
    * {@link SemanticGate}).
    *
-   * Each option left out keeps the platform's default.
+   * Each option left out leaves its current setting as it is; the platform's
+   * default applies to a setting that was never set.
    * @param opts - The gate settings.
    * @param opts.enabled - `false` dispatches gated functions without checking
    *   their gates. Default `true`. Sent as `semantic_gates_enabled`.

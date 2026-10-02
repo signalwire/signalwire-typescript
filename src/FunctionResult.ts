@@ -554,8 +554,10 @@ export class FunctionResult {
    * The state is `global_data.semantic_state`, and this replaces it as a whole:
    * to change one field, send the whole state with that field changed, and
    * send `{}` to reset it. Keep it to what the application has established,
-   * such as an order the caller confirmed, rather than what the caller claims;
-   * nothing else from the global data reaches the decision model.
+   * such as an order the caller confirmed, rather than what the caller claims.
+   * It's the only global data copied into the decision model's state; a gate
+   * question can still bring in other global data with a `${global_data.x}`
+   * template.
    * @param state - The semantic state.
    * @returns This instance for chaining.
    */

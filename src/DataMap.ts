@@ -6,7 +6,12 @@
  */
 
 import { FunctionResult, type SwaigResultDict } from './FunctionResult.js';
-import { applyGateFields, SemanticGate, type FillerPhrases } from './SemanticGate.js';
+import {
+  applyGateFields,
+  _hasGateFields,
+  SemanticGate,
+  type FillerPhrases,
+} from './SemanticGate.js';
 
 const ENV_PATTERN = /\$\{ENV\.([^}]+)\}/g;
 
@@ -561,8 +566,8 @@ export class DataMap {
       result = expandEnvInObject(result, prefixes) as Record<string, unknown>;
     }
 
-    if ('gates' in result || 'gate_fillers' in result) {
-      applyGateFields(result, String(result['function']));
+    if (_hasGateFields(result)) {
+      applyGateFields(result, String(result['function']), { definition: true });
     }
     return result;
   }

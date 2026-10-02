@@ -188,12 +188,21 @@ describe('a raw function definition', () => {
     ).toThrow('refund: gates must be a list');
   });
 
-  it('refuses a gated function the platform would not register', () => {
-    const a = agent();
-    a.registerSwaigFunction({ function: 'refund', data_map: {}, gates: [rawGate()] });
-    expect(() => a.renderSwml()).toThrow(
-      'refund: a gated function needs a name, a description, and a web_hook_url or data_map',
-    );
+  it('refuses a gated definition without a description when it is registered', () => {
+    expect(() =>
+      agent().registerSwaigFunction({ function: 'refund', data_map: {}, gates: [rawGate()] }),
+    ).toThrow('refund: a gated function needs a description');
+  });
+
+  it('checks a definition whose gates key is written in another case, as the platform reads it', () => {
+    expect(() =>
+      agent().registerSwaigFunction({
+        function: 'refund',
+        description: 'Refund',
+        data_map: {},
+        Gates: [rawGate({ threshold: 0 })],
+      }),
+    ).toThrow('refund: gate 1: threshold must be');
   });
 });
 

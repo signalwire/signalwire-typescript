@@ -20,7 +20,7 @@ import { SslConfig } from './SslConfig.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import { getLogger, Logger } from './Logger.js';
 import { SwaigFunction, type SwaigFunctionOptions, type SwaigHandler } from './SwaigFunction.js';
-import { applyGateFields } from './SemanticGate.js';
+import { applyGateFields, _hasGateFields } from './SemanticGate.js';
 import type { ToolParameters, ToolArgs } from './ParameterSchema.js';
 import { FunctionResult } from './FunctionResult.js';
 import type { SwmlRequestData } from './PlatformContracts.js';
@@ -676,10 +676,12 @@ export class SWMLService {
     } else {
       const name = fn['function'] as string;
       let entry = fn;
-      if ('gates' in fn || 'gate_fillers' in fn) {
+      if (_hasGateFields(fn)) {
         // A shallow copy: applyGateFields replaces gates with fresh objects.
         entry = { ...fn };
-        applyGateFields(entry, typeof name === 'string' && name ? name : '(unnamed)');
+        applyGateFields(entry, typeof name === 'string' && name ? name : '(unnamed)', {
+          definition: true,
+        });
       }
       if (name) this.toolRegistry.set(name, entry);
     }
