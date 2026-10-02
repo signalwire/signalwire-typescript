@@ -43,6 +43,9 @@ The page has these sections:
   - [fallbackOutput](#fallbackoutput)
   - [errorKeys](#errorkeys)
   - [globalErrorKeys](#globalerrorkeys)
+- [Semantic Gates](#semantic-gates)
+  - [gate](#gate)
+  - [gateFillers](#gatefillers)
 - [Iteration](#iteration)
   - [foreach](#foreach)
 - [Environment Variables](#environment-variables)
@@ -626,6 +629,49 @@ const tool = new DataMap('find_store')
 ```
 
 With a ZIP code, the platform requests the first webhook. With only a city, it skips the first webhook and requests the second. If the webhook it requests fails, the fallback output answers.
+
+---
+
+## Semantic Gates
+
+A semantic gate is a yes/no question a decision model answers about the call right before the platform runs the function. When a gate fails, the data_map doesn't run at all: no expression or webhook is tried, and the model gets the gate's `on_fail` output. The [API reference](api-reference.md#semantic-gates) describes gates and their limits. They need a platform release that supports them; one that doesn't runs the function ungated.
+
+### gate
+
+This method adds a gate. Call it once per gate, up to 8.
+
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
+```typescript
+gate(gate: SemanticGate | Record<string, unknown>): this
+```
+
+`toSwaigFunction()` checks the gates by the platform's rules, after environment variables are expanded, and throws for one the platform would refuse. This tool places an order only once the caller has confirmed it:
+
+<!-- snippet: no-run illustrative fragment: references the assumed `DataMap` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
+```typescript
+const placeOrder = new DataMap('place_order')
+  .purpose('Place the order the caller confirmed')
+  .webhook('POST', 'https://orders.example.com/orders')
+  .params({ item: '${args.item}' })
+  .output(new FunctionResult('The order is placed.'))
+  .gate(
+    new SemanticGate(
+      'Has the caller confirmed the order in `conversation`?',
+      0.9,
+      'place_order was not run.',
+    ),
+  )
+  .gateFillers({ default: ['Let me check that.'] });
+```
+
+### gateFillers
+
+This method sets what the AI says while the gates are checked, shaped like a function's fillers: phrases keyed by language code, `auto` or `default`. It's only for a function with gates.
+
+<!-- snippet: no-compile API signature / illustrative fragment, not runnable -->
+```typescript
+gateFillers(fillers: FillerPhrases): this
+```
 
 ---
 
