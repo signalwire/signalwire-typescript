@@ -222,6 +222,37 @@ describe('a skill', () => {
     expect(fns['skill_gate']!['gates'].map((g: Json) => g['id'])).toEqual(['skill_level']);
   });
 
+  it("keeps a tool's own extraFields, gates and webhook credentials included", async () => {
+    class ExtraFieldsSkill extends SkillBase {
+      static override SKILL_NAME = 'extra_fields_skill';
+      static override SKILL_DESCRIPTION = 'Tools with their own extra fields';
+      getTools(): SkillToolDefinition[] {
+        const tool = {
+          name: 'refund',
+          description: 'Refund an order',
+          handler,
+          extraFields: {
+            gates: [rawGate({ id: 'own' })],
+            web_hook_auth_user: 'external_user',
+            web_hook_auth_password: 'external_password',
+          },
+        };
+        return [tool as SkillToolDefinition];
+      }
+    }
+    const a = agent();
+    await a.addSkill(
+      new ExtraFieldsSkill({
+        swaig_fields: { web_hook_auth_user: 'skill_user', meta_data_token: 't' },
+      }),
+    );
+    const fn = rendered(a)['refund']!;
+    expect(fn['gates'].map((g: Json) => g['id'])).toEqual(['own']);
+    expect(fn['web_hook_auth_user']).toBe('external_user');
+    expect(fn['web_hook_auth_password']).toBe('external_password');
+    expect(fn['meta_data_token']).toBe('t');
+  });
+
   it('refuses a skill default the platform would refuse', async () => {
     await expect(
       agent().addSkill(new GatedSkill({ swaig_fields: { gates: [rawGate({ threshold: 0 })] } })),

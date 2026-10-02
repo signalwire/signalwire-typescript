@@ -370,10 +370,19 @@ describe('_checkGatedFunction', () => {
     ).not.toThrow();
   });
 
+  it('reads purpose before description, and takes any string, as the platform does', () => {
+    expect(() =>
+      _checkGatedFunction(fn({ description: '', purpose: 'Refund an order' })),
+    ).not.toThrow();
+    expect(() => _checkGatedFunction(fn({ description: '' }))).not.toThrow();
+    expect(() => _checkGatedFunction(fn({ description: 5, purpose: 'Refund' }))).not.toThrow();
+  });
+
   it.each<[Record<string, unknown>]>([
     [{ description: undefined }],
-    [{ description: '' }],
+    [{ description: 5 }],
     [{ web_hook_url: undefined }],
+    [{ function: undefined }],
   ])('refuses a gated function the platform would not register: %j', (overrides) => {
     expect(() => _checkGatedFunction(fn(overrides))).toThrow(
       'a gated function needs a name, a description, and a web_hook_url or data_map',
@@ -390,5 +399,45 @@ describe('_checkGatedFunction', () => {
     const plain = { function: 'refund', description: 'Refund' };
     _checkGatedFunction(plain);
     expect(plain).toEqual({ function: 'refund', description: 'Refund' });
+  });
+});
+
+describe('gates as they are sent', () => {
+  it('refuses a hole in the gates array, which is sent as null', () => {
+    // eslint-disable-next-line no-sparse-arrays -- the hole is the point
+    const sparse = [gate(), , gate({ id: 'third' })];
+    expect(() => gateDefinitions(sparse as never, 'refund')).toThrow(
+      'refund: gate 2: must be an object',
+    );
+  });
+
+  it.each<[string, Record<string, unknown>]>([
+    ['on_fail.action', { on_fail: { response: 'Not run.', action: undefined } }],
+    [
+      'on_fail.response.tool_prompt',
+      { on_fail: { response: { tool_result: 'Not run.', tool_prompt: undefined } } },
+    ],
+    ['id', { id: undefined }],
+    ['criteria', { criteria: undefined }],
+  ])('accepts an optional %s left undefined, which JSON leaves out', (_, overrides) => {
+    const [out] = gateDefinitions([gate(overrides)], 'refund');
+    expect(JSON.stringify(out)).not.toContain('undefined');
+  });
+
+  it('still refuses an explicit null, which JSON keeps', () => {
+    expect(() => gateDefinitions([gate({ id: null })], 'refund')).toThrow('id must be 1 to 64');
+    expect(() => gateDefinitions([gate({ criteria: null })], 'refund')).toThrow(
+      'criteria must be an object',
+    );
+  });
+});
+
+describe('the package exports', () => {
+  it('exports SemanticGate and its helpers from the SDK entry point', async () => {
+    const sdk = await import('../src/index.js');
+    expect(typeof sdk.SemanticGate).toBe('function');
+    expect(typeof sdk.gateDefinitions).toBe('function');
+    expect(typeof sdk.applyGateFields).toBe('function');
+    expect(sdk.MAX_GATES).toBe(8);
   });
 });

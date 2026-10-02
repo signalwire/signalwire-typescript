@@ -210,6 +210,16 @@ function deepCopy<T>(value: T): T {
 }
 
 /**
+ * A value as the platform receives it: the JSON the SDK sends, so an optional
+ * key set to undefined is absent, while an explicit null stays null. A value
+ * JSON can't carry at the top level (undefined) is kept as is, for the checks
+ * to refuse.
+ */
+function wireForm(value: unknown): unknown {
+  return value === undefined ? undefined : (JSON.parse(JSON.stringify(value)) as unknown);
+}
+
+/**
  * The platform looks keys up the way cJSON_GetObjectItem does: without regard
  * to case, and the first match wins.
  */
@@ -405,8 +415,10 @@ export function gateDefinitions(
   }
   const definitions: Record<string, unknown>[] = [];
   const ids: string[] = [];
-  gates.forEach((gate: unknown, index: number) => {
-    const definition = gate instanceof SemanticGate ? gate.toDict() : gate;
+  // Every index, holes included: a hole is sent as null, which the platform refuses
+  for (let index = 0; index < gates.length; index++) {
+    const gate: unknown = gates[index];
+    const definition = gate instanceof SemanticGate ? gate.toDict() : wireForm(gate);
     const why = checkGate(definition);
     if (why) throw new Error(`${functionName}: gate ${index + 1}: ${why}`);
     const gateDefinition = definition as Record<string, unknown>;
@@ -418,8 +430,8 @@ export function gateDefinitions(
       );
     }
     ids.push(id);
-    definitions.push(deepCopy(gateDefinition));
-  });
+    definitions.push(gateDefinition);
+  }
   return definitions;
 }
 
@@ -488,13 +500,16 @@ export function _checkGatedFunction(
   const name = typeof definition['function'] === 'string' ? definition['function'] : '';
   applyGateFields(definition, name || '(unnamed)');
   if (!('gates' in definition)) return;
-  const description = definition['description'] ?? definition['purpose'];
-  const hasUrl = Boolean(definition['web_hook_url']) || Boolean(defaultWebhookUrl);
+  // As the platform reads them: `purpose`, else `description`; any string
+  // counts, an empty one included, as does any data_map.
+  const purpose = definition['purpose'];
+  const description = typeof purpose === 'string' ? purpose : definition['description'];
+  const hasUrl = typeof definition['web_hook_url'] === 'string' || Boolean(defaultWebhookUrl);
+  const hasDataMap = definition['data_map'] !== undefined && definition['data_map'] !== null;
   if (
-    !name ||
+    typeof definition['function'] !== 'string' ||
     typeof description !== 'string' ||
-    !description ||
-    (!hasUrl && !definition['data_map'])
+    (!hasUrl && !hasDataMap)
   ) {
     throw new Error(
       `${name || '(unnamed)'}: a gated function needs a name, a description, and a ` +

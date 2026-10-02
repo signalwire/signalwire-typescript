@@ -2022,6 +2022,10 @@ export class AgentBase extends SWMLService {
       // skill's default gates never replace a tool's own.
       const extraFields: Record<string, unknown> = {};
       safeAssign(extraFields, skillExtraFields);
+      // A tool may carry its own extra fields (getTools() can return
+      // SwaigFunctionOptions); they win over the skill's defaults.
+      const ownExtraFields = (toolDef as { extraFields?: Record<string, unknown> }).extraFields;
+      if (ownExtraFields) safeAssign(extraFields, ownExtraFields);
       if (toolDef.wait_for_fillers !== undefined) {
         extraFields['wait_for_fillers'] = toolDef.wait_for_fillers;
       }

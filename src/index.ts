@@ -84,6 +84,8 @@ export type { PaymentPrompt, PaymentAction, PaymentParameter } from './FunctionR
 export { SwaigFunction } from './SwaigFunction.js';
 export {
   SemanticGate,
+  gateDefinitions,
+  applyGateFields,
   MAX_GATES,
   MAX_QUESTION_BYTES,
   MAX_CRITERIA_BYTES,
