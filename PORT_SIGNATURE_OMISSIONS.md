@@ -310,6 +310,10 @@ signalwire.livewire.SileroVAD.load: reference-oracle gap: signalwire.livewire is
 signalwire.livewire.run_app: reference-oracle gap: signalwire.livewire is absent from python_signatures.json (a known griffe enumeration gap that php and go also hit). The port implements the LiveWire compatibility shim, so these methods enumerate on the port side with no reference signature to compare.
 signalwire.livewire.tool: reference-oracle gap: signalwire.livewire is absent from python_signatures.json (a known griffe enumeration gap that php and go also hit). The port implements the LiveWire compatibility shim, so these methods enumerate on the port side with no reference signature to compare.
 
+## Reference-oracle gap: a module-level type alias recorded by name
+
+signalwire.core.data_map.DataMap.gate_fillers: the reference annotates fillers with its module-level type alias FillerPhrases (Mapping[str, Sequence[str | Sequence[str]]]); main's signature enumerator records an alias defined in the SDK as class:signalwire.core.semantic_gate.FillerPhrases instead of expanding it, so it can't match the port's dict. The port's FillerPhrases is the same Record<string, (string | string[])[]>; same wire. The enumerator on porting-sdk's wave6 branch expands aliases, and there this matches with no entry, so remove this line when that lands.
+
 ## Reference-oracle gap: per-skill get_parameter_schema (no class in the oracle)
 
 signalwire.skills.api_ninjas_trivia.skill.ApiNinjasTriviaSkill.get_parameter_schema: reference-oracle gap: the Python signatures oracle records no class for this skill module, so the port's static get_parameter_schema accessor has no reference method to compare (same shape as the SwmlTransferSkill.get_parameter_schema entry already carried).
