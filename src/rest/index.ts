@@ -6,7 +6,11 @@
 
 import { getLogger } from '../Logger.js';
 import { HttpClient } from './HttpClient.js';
-import type { ClientOptions } from './types.js';
+import type {
+  ClientCredentials,
+  ClientOptions,
+  ClientTransportOptions,
+} from './types.js';
 
 // The generated resource tree (flat resources + namespace containers), wired
 // from each resource's spec placement (RULES §8). RestClient composes it and
@@ -46,13 +50,28 @@ export class RestClient extends _GeneratedResourceTree {
   // spec-derivable below.
 
   /**
-   * Create a new REST client.
+   * Create a REST client that reads all credentials from the environment
+   * (`SIGNALWIRE_PROJECT_ID` / `SIGNALWIRE_API_TOKEN` / `SIGNALWIRE_SPACE`).
+   * Optionally pass a custom `fetchImpl` (tests / audit harnesses).
    *
-   * @param options - Connection options. `project`, `token`, and `host` are
-   *   required. If any are omitted they fall back to `SIGNALWIRE_PROJECT_ID`,
-   *   `SIGNALWIRE_API_TOKEN`, and `SIGNALWIRE_SPACE` environment variables.
-   * @throws {Error} When `project`, `token`, or `host` is missing from both
-   *   the options and the environment.
+   * @throws {Error} When any of the three env vars is unset/empty.
+   */
+  constructor(options?: ClientTransportOptions);
+  /**
+   * Create a REST client with explicit credentials. All three of `project`,
+   * `token`, and `host` are required — passing a partial object (e.g. forgetting
+   * `host`) is a compile-time error, not a runtime throw.
+   *
+   * @param options - Credentials plus an optional custom `fetchImpl`.
+   */
+  constructor(options: ClientCredentials & ClientTransportOptions);
+  /**
+   * Implementation signature (loose). Not part of the public overload set — the
+   * two overloads above are what callers see; this accepts the union of both and
+   * still applies the runtime guard for JS callers / partially-set environments.
+   *
+   * @throws {Error} When `project`, `token`, or `host` is missing from both the
+   *   options and the environment.
    */
   constructor(options: ClientOptions = {}) {
     super();
@@ -120,6 +139,9 @@ export type { RequestOptionsInit } from './RequestOptions.js';
 // Types
 export type {
   ClientOptions,
+  ClientCredentials,
+  ClientTransportOptions,
+  FetchOption,
   HttpClientOptions,
   PaginatedResponse,
   LamlPaginatedResponse,
