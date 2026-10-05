@@ -3,7 +3,10 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 3.6.0 (2026-10-05)
+
+Parity with signalwire-python 3.6.0: semantic gates, `changeVoice()`, and
+the settings and state they use.
 
 ### Added
 
