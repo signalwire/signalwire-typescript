@@ -33,9 +33,10 @@ export interface SkillToolDefinition {
   secure?: boolean;
   /**
    * Phrases the AI says while the tool runs, keyed by language code, `"auto"`
-   * or `"default"`; an entry may be a list of phrases, a wait script.
+   * or `"default"`; an entry may also be a list of phrases, a wait script
+   * (the type predates wait scripts, so one needs a cast).
    */
-  fillers?: FillerPhrases;
+  fillers?: Record<string, string[]>;
   /** List of parameter names that are required. */
   required?: string[];
   /** If true, wait for any in-flight fillers to complete before executing the tool. */

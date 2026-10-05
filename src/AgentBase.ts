@@ -1812,7 +1812,7 @@ export class AgentBase extends SWMLService {
     handler: TypedToolHandler;
     secure?: boolean;
     /** Phrases the AI says while the function runs (see `SwaigFunctionOptions.fillers`). */
-    fillers?: FillerPhrases;
+    fillers?: Record<string, string[]>;
     waitFile?: string;
     waitFileLoops?: number;
     required?: string[];

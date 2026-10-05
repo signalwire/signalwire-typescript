@@ -190,10 +190,11 @@ export interface SwaigFunctionOptions {
   /**
    * Phrases the AI says while the function runs, keyed by language code,
    * `"auto"` (translated into the call's language on first use) or
-   * `"default"`. An entry may be a list of phrases, a wait script, spoken one
-   * at a time while the call waits.
+   * `"default"`. An entry may also be a list of phrases, a wait script, spoken
+   * one at a time while the call waits; the type predates wait scripts, so one needs a cast (the platform
+   * accepts it). {@link gateFillers} is typed for both.
    */
-  fillers?: FillerPhrases;
+  fillers?: Record<string, string[]>;
   /** Audio file URL to play while waiting for the tool to complete. */
   waitFile?: string;
   /** Number of times to loop the wait file. */
@@ -294,7 +295,7 @@ export class SwaigFunction {
   /** Whether this tool requires session token authentication. */
   secure: boolean;
   /** Phrases the AI says while the function runs (see {@link SwaigFunctionOptions.fillers}). */
-  fillers?: FillerPhrases;
+  fillers?: Record<string, string[]>;
   /** Audio file URL to play while waiting for the tool to complete. */
   waitFile?: string;
   /** Number of times to loop the wait file. */

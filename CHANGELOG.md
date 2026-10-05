@@ -23,9 +23,11 @@ follows [Semantic Versioning](https://semver.org/).
 - `FunctionResult.changeVoice()` changes the AI's voice for the rest of the
   call (`change_voice`), from the next batch of speech on. It throws on an
   empty or whitespace-only voice, which the platform would ignore.
-- Function fillers are typed as `FillerPhrases` and documented with the
-  `auto` key, translated into the call's language on first use, and wait
-  scripts, lists of phrases spoken one at a time while the call waits.
+- Function fillers are documented with the `auto` key, translated into the
+  call's language on first use, and wait scripts, lists of phrases spoken one
+  at a time while the call waits. `gateFillers` is typed for both (the
+  exported `FillerPhrases`); `fillers` keeps its type, so a wait script there
+  needs a cast.
 
 ### Changed
 

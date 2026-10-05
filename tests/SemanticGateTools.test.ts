@@ -117,10 +117,11 @@ describe('defineTool', () => {
       name: 'lookup',
       description: 'Look up an order',
       handler,
+      // The fillers type predates wait scripts, so one needs a cast
       fillers: {
         auto: ['One moment.', ['Still looking.', 'Almost there.']],
         default: ['Hold on.'],
-      },
+      } as unknown as Record<string, string[]>,
     });
     expect(rendered(a)['lookup']!['fillers']).toEqual({
       auto: ['One moment.', ['Still looking.', 'Almost there.']],

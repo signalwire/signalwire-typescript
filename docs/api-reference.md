@@ -364,7 +364,7 @@ When `parameters` is a flat map of property definitions written inline, TypeScri
 | `parameters` | `Record<string, unknown>` | `{}` | Property definitions, or a full JSON Schema object |
 | `handler` | function | (required) | Called with `(args, rawData, agent)` |
 | `secure` | `boolean` | `true` | Require a per-call token. The rendered SWML gives the tool its own `web_hook_url` with a `__token` for that function and call. Pass `false` to let the tool run without a token. |
-| `fillers` | `FillerPhrases` | none | Phrases the AI says while the function runs, keyed by language code, `auto` or `default`, emitted as the function's `fillers`. The current language's own key is used; without one, the `auto` phrases are translated into that language on first use; without either, `default`. An entry may be a list of phrases, a wait script, spoken one at a time while the call waits |
+| `fillers` | `Record<string, string[]>` | none | Phrases the AI says while the function runs, keyed by language code, `auto` or `default`, emitted as the function's `fillers`. The current language's own key is used; without one, the `auto` phrases are translated into that language on first use; without either, `default`. An entry may also be a list of phrases, a wait script, spoken one at a time while the call waits; the type predates wait scripts, so one needs a cast |
 | `waitFile` | `string` | none | Audio URL, emitted as `wait_file` |
 | `waitFileLoops` | `number` | none | Emitted as `wait_file_loops` |
 | `required` | `string[]` | `[]` | Required parameter names, used when `parameters` is a flat map |
@@ -465,7 +465,7 @@ defineTypedTool(opts: {
   parameters?: Record<string, unknown>;
   handler: TypedToolHandler;
   secure?: boolean;
-  fillers?: FillerPhrases;
+  fillers?: Record<string, string[]>;
   waitFile?: string;
   waitFileLoops?: number;
   required?: string[];
@@ -3428,7 +3428,7 @@ interface SwaigFunctionOptions
 | `description` | `string` | (required) | Description the model reads |
 | `parameters` | `Record<string, unknown>` | `{}` | Property definitions or a full JSON Schema object |
 | `secure` | `boolean` | `true` | Require a per-call token; `false` lets the tool run without one |
-| `fillers` | `FillerPhrases` | none | Phrases said while the function runs, keyed by language code, `auto` or `default`; an entry may be a wait script |
+| `fillers` | `Record<string, string[]>` | none | Phrases said while the function runs, keyed by language code, `auto` or `default`; an entry may also be a wait script, with a cast |
 | `waitFile` | `string` | none | Wait audio URL |
 | `waitFileLoops` | `number` | none | Wait audio loop count |
 | `webhookUrl` | `string` | none | External URL that runs the tool |
