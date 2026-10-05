@@ -43,6 +43,7 @@ The reference groups the methods by what they do:
   - [say](#say)
   - [playBackgroundFile](#playbackgroundfile)
   - [stopBackgroundFile](#stopbackgroundfile)
+  - [changeVoice](#changevoice)
 - [Speech](#speech)
   - [addDynamicHints](#adddynamichints)
   - [clearDynamicHints](#cleardynamichints)
@@ -51,6 +52,7 @@ The reference groups the methods by what they do:
 - [Data Management](#data-management)
   - [updateGlobalData](#updateglobaldata)
   - [removeGlobalData](#removeglobaldata)
+  - [setSemanticState](#setsemanticstate)
   - [setMetadata](#setmetadata)
   - [removeMetadata](#removemetadata)
 - [SWML Actions](#swml-actions)
@@ -702,6 +704,29 @@ const result = new FunctionResult('The music is stopped.')
   .stopBackgroundFile();
 ```
 
+### changeVoice
+
+Change the AI's voice for the rest of the call (`change_voice`). The voice takes the `engine.voice:model` form a language's voice takes, and may be on another engine. It replaces the current language's voice from the next batch of speech on, never mid-utterance, and stays for that language for the rest of the call. A voice that won't open falls back to the fallback voice.
+
+<!-- snippet: no-compile API signature reference, not runnable code -->
+```typescript
+changeVoice(voice: string): this
+```
+
+| Parameter | Type     | Description                                            |
+|-----------|----------|--------------------------------------------------------|
+| `voice`   | `string` | The voice as `engine.voice:model`, such as `elevenlabs.rachel`. |
+
+**Returns:** `this` for chaining.
+
+**Throws:** `Error` when `voice` is empty or only whitespace. The platform would ignore it.
+
+**Example:**
+
+```typescript
+const result = new FunctionResult('The voice is changed.').changeVoice('elevenlabs.rachel');
+```
+
 ## Speech
 
 ### addDynamicHints
@@ -820,6 +845,29 @@ updateGlobalData(data: Record<string, unknown>): this
 ```typescript
 const result = new FunctionResult('The customer record is loaded.')
   .updateGlobalData({ customer_id: 'C-123', tier: 'premium' });
+```
+
+### setSemanticState
+
+Set the state the call's semantic gates judge, besides the dialogue: `global_data.semantic_state` (sent as `set_global_data`). It replaces the state as a whole: to change one field, send the whole state with that field changed, and send `{}` to reset it. Keep it to what the application has established, such as an order the caller confirmed, rather than what the caller claims. It's the only global data copied into the decision model's state; a gate question can still bring in other global data with a `${global_data.x}` template. See [Semantic gates](api-reference.md#semantic-gates).
+
+<!-- snippet: no-compile API signature reference, not runnable code -->
+```typescript
+setSemanticState(state: Record<string, unknown>): this
+```
+
+| Parameter | Type                      | Description         |
+|-----------|---------------------------|---------------------|
+| `state`   | `Record<string, unknown>` | The semantic state. |
+
+**Returns:** `this` for chaining.
+
+**Example:**
+
+```typescript
+const result = new FunctionResult('The order is confirmed.').setSemanticState({
+  order: { item: 'large pepperoni', confirmed: true },
+});
 ```
 
 ### removeGlobalData

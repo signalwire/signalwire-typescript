@@ -197,6 +197,7 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/SessionManager.ts': 'signalwire.core.security.session_manager',
   'src/SslConfig.ts': 'signalwire.core.security_config',
   'src/SwaigFunction.ts': 'signalwire.core.swaig_function',
+  'src/SemanticGate.ts': 'signalwire.core.semantic_gate',
   'src/SwmlBuilder.ts': 'signalwire.core.swml_builder',
   'src/SWMLHandler.ts': 'signalwire.core.swml_handler',
   'src/SWMLService.ts': 'signalwire.core.swml_service',

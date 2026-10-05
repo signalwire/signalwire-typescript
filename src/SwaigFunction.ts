@@ -7,6 +7,12 @@ import { FunctionResult, type SwaigResultDict } from './FunctionResult.js';
 import { getLogger } from './Logger.js';
 import type { SwaigRequest } from './SwaigContracts.js';
 import type { AgentBase } from './AgentBase.js';
+import {
+  applyGateFields,
+  _checkGatedFunction,
+  type FillerPhrases,
+  type SemanticGate,
+} from './SemanticGate.js';
 
 const ajv = new Ajv({ allErrors: true });
 
@@ -181,12 +187,33 @@ export interface SwaigFunctionOptions {
    * `secure=True`.
    */
   secure?: boolean;
-  /** Language-keyed filler phrases spoken while the tool executes. */
+  /**
+   * Phrases the AI says while the function runs, keyed by language code,
+   * `"auto"` (translated into the call's language on first use) or
+   * `"default"`. An entry may also be a list of phrases, a wait script, spoken
+   * one at a time while the call waits; the type predates wait scripts, so one needs a cast (the platform
+   * accepts it). {@link gateFillers} is typed for both.
+   */
   fillers?: Record<string, string[]>;
   /** Audio file URL to play while waiting for the tool to complete. */
   waitFile?: string;
   /** Number of times to loop the wait file. */
   waitFileLoops?: number;
+  /**
+   * Semantic gates, 1 to 8 {@link SemanticGate} objects or gate objects:
+   * yes/no preconditions a decision model checks right before the platform
+   * dispatches the function. When one fails, the function doesn't run and the
+   * model gets that gate's `on_fail` output. The fillers and wait file start
+   * only once the gates pass. Checked by the platform's rules when the tool is
+   * defined. A platform release without semantic gates runs the function
+   * ungated.
+   */
+  gates?: ReadonlyArray<SemanticGate | Record<string, unknown>>;
+  /**
+   * Phrases the AI says while the gates are checked, shaped like
+   * {@link fillers}. Only with {@link gates}.
+   */
+  gateFillers?: FillerPhrases;
   /** External webhook URL; makes this an externally-hosted tool. */
   webhookUrl?: string;
   /** List of required parameter names. */
@@ -267,7 +294,7 @@ export class SwaigFunction {
   parameters: Record<string, unknown>;
   /** Whether this tool requires session token authentication. */
   secure: boolean;
-  /** Language-keyed filler phrases spoken while the tool executes. */
+  /** Phrases the AI says while the function runs (see {@link SwaigFunctionOptions.fillers}). */
   fillers?: Record<string, string[]>;
   /** Audio file URL to play while waiting for the tool to complete. */
   waitFile?: string;
@@ -296,7 +323,11 @@ export class SwaigFunction {
    *   (e.g. `meta_data_token`, `web_hook_auth_user`, `web_hook_auth_password`).
    *   This mirrors the Python constructor's `**extra_swaig_fields` kwargs:
    *   both are merged directly into the serialized SWAIG definition, so the
-   *   wire format is identical — only the call-site syntax differs.
+   *   wire format is identical — only the call-site syntax differs. `gates`
+   *   and `gate_fillers` there are checked like `opts.gates` and
+   *   `opts.gateFillers`.
+   * @throws {Error} For gates the platform would refuse, or gate fillers
+   *   without gates.
    */
   constructor(opts: SwaigFunctionOptions) {
     this.name = opts.name;
@@ -313,7 +344,15 @@ export class SwaigFunction {
     this.waitFileLoops = opts.waitFileLoops;
     this.webhookUrl = opts.webhookUrl;
     this.required = opts.required ?? [];
-    this.extraFields = opts.extraFields ?? {};
+    // Gates given as options, or among the extra fields, are checked by the
+    // platform's rules under the name the function is sent with.
+    this.extraFields = { ...(opts.extraFields ?? {}) };
+    if (opts.gates !== undefined) this.extraFields['gates'] = opts.gates;
+    if (opts.gateFillers !== undefined) this.extraFields['gate_fillers'] = opts.gateFillers;
+    if ('gates' in this.extraFields || 'gate_fillers' in this.extraFields) {
+      const sentName = this.extraFields['function'];
+      applyGateFields(this.extraFields, typeof sentName === 'string' ? sentName : this.name);
+    }
     this.isTypedHandler = opts.isTypedHandler ?? false;
     this.isExternal = opts.webhookUrl !== undefined;
     this.onError = opts.onError;
@@ -484,6 +523,7 @@ export class SwaigFunction {
     if (this.waitFile) def['wait_file'] = this.waitFile;
     if (this.waitFileLoops !== undefined) def['wait_file_loops'] = this.waitFileLoops;
     Object.assign(def, this.extraFields);
+    _checkGatedFunction(def);
     return def;
   }
 }

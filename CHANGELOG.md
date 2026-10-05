@@ -3,6 +3,42 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## 3.6.0 (2026-10-05)
+
+Parity with signalwire-python 3.6.0: semantic gates, `changeVoice()`, and
+the settings and state they use.
+
+### Added
+
+- Semantic gates: `SemanticGate`, and `gates` and `gateFillers` on
+  `defineTool()`, `defineTypedTool()`, `SwaigFunction`, a skill's tools and
+  raw function definitions, and `gate()` and `gateFillers()` on DataMap. A
+  gate is a yes/no question a decision model answers about the call before
+  the platform runs the function; when one fails, the function doesn't run
+  and the model gets the gate's `on_fail` output. Gates are checked by the
+  platform's rules when the tool is defined and again when the SWML is
+  rendered, since the platform refuses a function with an invalid gate. They
+  need a platform release with semantic gates: one without them runs the
+  function ungated.
+- `AgentBase.setSemanticGates()` sets `semantic_gates_enabled`,
+  `semantic_gate_timeout_ms` and `semantic_gate_history`, and
+  `FunctionResult.setSemanticState()` sets the state gates judge.
+- `FunctionResult.changeVoice()` changes the AI's voice for the rest of the
+  call (`change_voice`), from the next batch of speech on. It throws on an
+  empty or whitespace-only voice, which the platform would ignore.
+- Function fillers are documented with the `auto` key, translated into the
+  call's language on first use, and wait scripts, lists of phrases spoken one
+  at a time while the call waits. `gateFillers` is typed for both (the
+  exported `FillerPhrases`); `fillers` keeps its type, so a wait script there
+  needs a cast.
+
+### Changed
+
+- `addSkill()` merges a skill's `swaig_fields` and each tool's own fields
+  before it builds the tool, so the merged definition is what gets checked;
+  a tool's own fields still win. It used to copy `swaig_fields` onto the
+  tool afterwards.
+
 ## 3.5.0 (2026-09-29)
 
 Brings the TypeScript SDK to parity with signalwire-python 3.5.1: the

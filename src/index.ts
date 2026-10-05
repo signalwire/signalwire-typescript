@@ -82,6 +82,17 @@ export { FunctionResult } from './FunctionResult.js';
 export { FunctionResult as SwaigFunctionResult } from './FunctionResult.js';
 export type { PaymentPrompt, PaymentAction, PaymentParameter } from './FunctionResult.js';
 export { SwaigFunction } from './SwaigFunction.js';
+export {
+  SemanticGate,
+  gateDefinitions,
+  applyGateFields,
+  MAX_GATES,
+  MAX_QUESTION_BYTES,
+  MAX_CRITERIA_BYTES,
+  MAX_ON_FAIL_BYTES,
+  RESERVED_FUNCTION_NAMES,
+} from './SemanticGate.js';
+export type { SemanticGateOptions, FillerPhrases } from './SemanticGate.js';
 export type { SwaigHandler, SwaigFunctionOptions } from './SwaigFunction.js';
 
 // Typed SWAIG tool-parameter builder (Tier-2 flagship affordance for the

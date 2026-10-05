@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 2cb112588965e1997d4fa4ae2b80aa5f4daeb4ee",
+  "generated_from": "signalwire-typescript @ 1885d839263539db552ca1f18ae08271c3f4e338",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -525,6 +525,8 @@
           "fallback_output",
           "foreach",
           "function_name",
+          "gate",
+          "gate_fillers",
           "global_error_keys",
           "output",
           "parameter",
@@ -551,6 +553,7 @@
           "add_action",
           "add_actions",
           "add_dynamic_hints",
+          "change_voice",
           "clear_dynamic_hints",
           "connect",
           "create_payment_action",
@@ -582,6 +585,7 @@
           "set_metadata",
           "set_post_process",
           "set_response",
+          "set_semantic_state",
           "set_speech_event_timeout",
           "set_tool_response",
           "simulate_user_input",
@@ -642,6 +646,7 @@
           "set_post_prompt_llm_params",
           "set_prompt_llm_params",
           "set_pronunciations",
+          "set_semantic_gates",
           "update_global_data"
         ]
       },
@@ -902,6 +907,22 @@
         ]
       },
       "functions": []
+    },
+    "signalwire.core.semantic_gate": {
+      "classes": {
+        "SemanticGate": [
+          "__init__",
+          "id",
+          "on_fail",
+          "question",
+          "threshold",
+          "to_dict"
+        ]
+      },
+      "functions": [
+        "apply_gate_fields",
+        "gate_definitions"
+      ]
     },
     "signalwire.core.skill_base": {
       "classes": {

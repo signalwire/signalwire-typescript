@@ -364,7 +364,7 @@ When `parameters` is a flat map of property definitions written inline, TypeScri
 | `parameters` | `Record<string, unknown>` | `{}` | Property definitions, or a full JSON Schema object |
 | `handler` | function | (required) | Called with `(args, rawData, agent)` |
 | `secure` | `boolean` | `true` | Require a per-call token. The rendered SWML gives the tool its own `web_hook_url` with a `__token` for that function and call. Pass `false` to let the tool run without a token. |
-| `fillers` | `Record<string, string[]>` | none | Filler phrases by language code, emitted as the function's `fillers` |
+| `fillers` | `Record<string, string[]>` | none | Phrases the AI says while the function runs, keyed by language code, `auto` or `default`, emitted as the function's `fillers`. The current language's own key is used; without one, the `auto` phrases are translated into that language on first use; without either, `default`. An entry may also be a list of phrases, a wait script, spoken one at a time while the call waits; the type predates wait scripts, so one needs a cast |
 | `waitFile` | `string` | none | Audio URL, emitted as `wait_file` |
 | `waitFileLoops` | `number` | none | Emitted as `wait_file_loops` |
 | `required` | `string[]` | `[]` | Required parameter names, used when `parameters` is a flat map |
@@ -373,6 +373,10 @@ When `parameters` is a flat map of property definitions written inline, TypeScri
 | `onError` | `SwaigErrorHandler` | none | Called when the handler throws; may return a `FunctionResult` to use as the response |
 | `errorMessage` | `string` | A generic apology | Response used when the handler throws and no error hook returns one |
 | `isTypedHandler` | `boolean` | `false` | Marks a handler that takes named parameters; `defineTypedTool()` sets it |
+| `gates` | `(SemanticGate \| Record<string, unknown>)[]` | none | Semantic gates, 1 to 8. See [Semantic gates](#semantic-gates) |
+| `gateFillers` | `FillerPhrases` | none | What the AI says while the gates are checked, shaped like `fillers`. Only with `gates` |
+
+**Throws:** `Error` for a gate the platform would refuse, or `gateFillers` without `gates`.
 
 The handler's third argument is the agent the request was configured on. With a dynamic config callback or `addPerCallConfig()`, that's the per-request copy. The handler's return value is the tool's response: context for the model, which decides what to say. See [SwaigHandler](#swaighandler) for how each return type is serialized.
 
@@ -393,6 +397,62 @@ agent.defineTool({
 });
 ```
 
+#### Semantic gates
+
+A semantic gate is a yes/no question a decision model answers about the call right before the platform dispatches the function. Every gate on the function must pass for it to run. When one doesn't, the function isn't dispatched, and the model gets that gate's `on_fail` output instead, as if a data_map had returned it. The function's `fillers` and `wait_file` start only once its gates pass, so a blocked call never sounds as if the action were under way.
+
+Semantic gates need a platform release that supports them. One that doesn't runs the function ungated, and may or may not log a warning about the unknown key, so don't rely on a gate to protect a function until your platform supports them.
+
+The decision model sees three things, under these names: `conversation`, the recent dialogue; `semantic_state`, the call's `global_data.semantic_state`, which [`FunctionResult.setSemanticState()`](#data-actions) sets; and `proposed_function`, the function's name, description and arguments. Write each question as one proposition, and name what it's about with those names in backticks. The model reads literally: it doesn't do arithmetic or compare dates, so put a computed result in `semantic_state` instead of asking for it.
+
+This tool runs only when the caller has explicitly asked to cancel:
+
+```ts
+import { FunctionResult, SemanticGate } from '@signalwire/sdk';
+
+agent.defineTool({
+  name: 'cancel_account',
+  description: "Cancel the caller's account.",
+  handler: () => new FunctionResult('The account is cancelled.'),
+  gates: [
+    new SemanticGate(
+      'Has the caller explicitly asked to cancel their account in `conversation`?',
+      0.95,
+      new FunctionResult()
+        .setToolResponse(
+          'cancel_account was not run.',
+          'Ask the caller to confirm that they want to cancel.',
+        )
+        .updateGlobalData({ cancel_attempted: true }),
+      {
+        id: 'explicit_request',
+        trueMeans: 'The caller says they want to cancel.',
+        falseMeans: 'The caller asked about cancelling, or said something else.',
+      },
+    ),
+  ],
+  gateFillers: { default: ['Let me verify that.'] },
+});
+```
+
+`new SemanticGate(question, threshold, onFail, opts?)` takes:
+
+| Argument | Type | Description |
+|----------|------|-------------|
+| `question` | `string` | The yes/no question, at most 8 KB. Its `${...}` variables are expanded from the call's global data when the gate is checked |
+| `threshold` | `number` | The probability of yes, above 0 and at most 1, at or above which the gate passes |
+| `onFail` | `string \| FunctionResult \| Record<string, unknown>` | What the model gets when this is the first gate that fails: the tool result text, a `FunctionResult`, whose response and actions are used, or a data_map output object. It needs a response, and in the `tool_result`/`tool_prompt` form a `tool_result`: a blocked call must never read as a success. The `tool_prompt` becomes a system message after the tool result; OpenAI Realtime agents don't use it, so put what they need in the `tool_result`. The actions run as written, without template expansion |
+| `opts.id` | `string` | 1 to 64 letters, digits or underscores, unique within the function. Default `gate_<n>`, 1-based |
+| `opts.trueMeans`, `opts.falseMeans` | `string` | What yes and no mean, at most 2 KB each |
+
+Gates are checked by the platform's rules when the tool is defined, and once more when the SWML is rendered. The platform refuses the whole function for an invalid gate, so the SDK throws instead. Gates aren't allowed on the hook names `startup_hook`, `hangup_hook` and `check_for_input`, on `end_call`, or on a built-in function's name. A gated function also needs a description, and a `web_hook_url` or `data_map`; tools the SDK builds always have them. A `gates` given as `null` is refused rather than dropped, since the platform refuses that function too.
+
+The SDK is stricter than the platform in two ways: it refuses `gateFillers` without `gates`, which the platform would ignore, and it refuses a NUL character or an unpaired surrogate in a gate, which the platform would read differently.
+
+When a gate check can't be completed, because the decision model timed out or failed, the call is blocked too, and the model is told the action couldn't be completed right now. [`setSemanticGates()`](#setsemanticgatesopts) sets the time a check may take.
+
+The SDK checks the functions it renders. Functions it doesn't build, such as those a `onSwmlRequest` hook writes into the SWML, remote function includes, and functions an MCP server provides, aren't checked.
+
 #### `defineTypedTool(opts)`
 
 Register a tool whose handler takes the arguments as named positional parameters instead of an `args` object. When `parameters` is omitted, the SDK infers a schema from the handler's parameter names and default values.
@@ -409,8 +469,12 @@ defineTypedTool(opts: {
   waitFile?: string;
   waitFileLoops?: number;
   required?: string[];
+  gates?: ReadonlyArray<SemanticGate | Record<string, unknown>>;
+  gateFillers?: FillerPhrases;
 }): this
 ```
+
+`gates` and `gateFillers` work as they do on [`defineTool()`](#semantic-gates).
 
 #### `getTools()`
 
@@ -441,7 +505,7 @@ getTool(name: string): SwaigFunction | undefined
 
 #### `registerSwaigFunction(fn)`
 
-Register a `SwaigFunction`, or a raw function definition such as the output of `DataMap.toSwaigFunction()`. A raw definition is registered under its `function` key and rendered as is.
+Register a `SwaigFunction`, or a raw function definition such as the output of `DataMap.toSwaigFunction()`. A raw definition is registered under its `function` key and rendered as is. A raw definition with `gates` or `gate_fillers` is checked by the platform's rules (see [Semantic gates](#semantic-gates)), and a normalized copy is registered; the object you pass is left as it was.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
@@ -598,6 +662,27 @@ Merge entries into `params`.
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 setParams(params: Record<string, unknown>): this
+```
+
+#### `setSemanticGates(opts?)`
+
+Set how the call checks its functions' [semantic gates](#semantic-gates). Each option left out leaves its current setting as it is; the platform's default applies to a setting that was never set.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+setSemanticGates(opts?: { enabled?: boolean; timeoutMs?: number; history?: number }): this
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | `boolean` | `true` | `false` dispatches gated functions without checking their gates. Sent as `semantic_gates_enabled` |
+| `timeoutMs` | `number` | `2500` | The time one check may take, 500 to 10000 milliseconds. A check that runs out blocks the call. Sent as `semantic_gate_timeout_ms` |
+| `history` | `number` | `20` | How many recent dialogue entries the decision model sees, 0 to 100. Sent as `semantic_gate_history` |
+
+**Throws:** `Error` for a value of the wrong type or out of range; a refused call changes nothing.
+
+```ts
+agent.setSemanticGates({ timeoutMs: 4000, history: 30 });
 ```
 
 #### `setGlobalData(data)`
@@ -1443,6 +1528,7 @@ console.log(JSON.stringify(result.toDict()));
 | `say` | `(text: string): this` | `{ say: text }` |
 | `playBackgroundFile` | `(filename: string, wait?: boolean): this` | `{ playback_bg: filename }`, or `{ playback_bg: { file, wait: true } }` when `wait` is `true` |
 | `stopBackgroundFile` | `(): this` | `{ stop_playback_bg: true }` |
+| `changeVoice` | `(voice: string): this` | `{ change_voice: voice }`. Changes the AI's voice for the rest of the call, from the next batch of speech on; `voice` is in the `engine.voice:model` form a language's voice takes. Throws on an empty voice |
 
 ### Speech Actions
 
@@ -1459,6 +1545,7 @@ console.log(JSON.stringify(result.toDict()));
 |--------|-----------|-------|
 | `updateGlobalData` | `(data: Record<string, unknown>): this` | `{ set_global_data: data }` |
 | `removeGlobalData` | `(keys: string \| string[]): this` | `{ unset_global_data: keys }` |
+| `setSemanticState` | `(state: Record<string, unknown>): this` | `{ set_global_data: { semantic_state: state } }`. Replaces the state [semantic gates](#semantic-gates) judge, as a whole; send `{}` to reset it |
 | `setMetadata` | `(data: Record<string, unknown>): this` | `{ set_meta_data: data }` |
 | `removeMetadata` | `(keys: string \| string[]): this` | `{ unset_meta_data: keys }` |
 
@@ -1789,6 +1876,24 @@ Set `error_keys` on the `data_map`. The platform reads `error_keys` only on a we
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 globalErrorKeys(keys: string[]): this
+```
+
+#### `gate(gate)`
+
+Add a [semantic gate](#semantic-gates), a yes/no precondition a decision model checks right before the platform runs the function. Call once per gate, up to 8. When a gate fails, the data_map doesn't run, and the model gets that gate's `on_fail` output. `toSwaigFunction()` throws for a gate the platform would refuse, checking it after environment variables are expanded.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+gate(gate: SemanticGate | Record<string, unknown>): this
+```
+
+#### `gateFillers(fillers)`
+
+Set what the AI says while the function's gates are checked, shaped like a function's fillers. Only for a function with gates.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+gateFillers(fillers: FillerPhrases): this
 ```
 
 ### DataMap Registration and Serialization
@@ -3323,7 +3428,7 @@ interface SwaigFunctionOptions
 | `description` | `string` | (required) | Description the model reads |
 | `parameters` | `Record<string, unknown>` | `{}` | Property definitions or a full JSON Schema object |
 | `secure` | `boolean` | `true` | Require a per-call token; `false` lets the tool run without one |
-| `fillers` | `Record<string, string[]>` | none | Filler phrases by language code |
+| `fillers` | `Record<string, string[]>` | none | Phrases said while the function runs, keyed by language code, `auto` or `default`; an entry may also be a wait script, with a cast |
 | `waitFile` | `string` | none | Wait audio URL |
 | `waitFileLoops` | `number` | none | Wait audio loop count |
 | `webhookUrl` | `string` | none | External URL that runs the tool |
@@ -3332,6 +3437,8 @@ interface SwaigFunctionOptions
 | `isTypedHandler` | `boolean` | `false` | Whether the handler takes named parameters |
 | `onError` | `SwaigErrorHandler` | none | Per-tool error hook |
 | `errorMessage` | `string` | A generic apology | Response when the handler throws and no hook returns one |
+| `gates` | `(SemanticGate \| Record<string, unknown>)[]` | none | [Semantic gates](#semantic-gates), 1 to 8 |
+| `gateFillers` | `FillerPhrases` | none | Phrases said while the gates are checked. Only with `gates` |
 
 ### AuthConfig
 

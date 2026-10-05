@@ -4952,6 +4952,34 @@
               ],
               "returns": "string"
             },
+            "gate": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "gate",
+                  "type": "union<dict<string,any>,class:signalwire.core.semantic_gate.SemanticGate>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "gate_fillers": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "fillers",
+                  "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "global_error_keys": {
               "params": [
                 {
@@ -5233,6 +5261,20 @@
                 {
                   "name": "hints",
                   "type": "list<union<string,dict<string,any>>>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "change_voice": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "voice",
+                  "type": "string",
                   "required": true
                 }
               ],
@@ -5754,6 +5796,20 @@
                 {
                   "name": "response",
                   "type": "string",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_semantic_state": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "state",
+                  "type": "dict<string,any>",
                   "required": true
                 }
               ],
@@ -6440,6 +6496,43 @@
                   "name": "rules",
                   "type": "list<class:signalwire.types.PronunciationRule>",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_semantic_gates": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "enabled",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "timeout_ms",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "history",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "any"
@@ -8243,6 +8336,135 @@
               "returns": "bool"
             }
           }
+        }
+      }
+    },
+    "signalwire.core.semantic_gate": {
+      "classes": {
+        "SemanticGate": {
+          "methods": {
+            "__init__": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "question",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "threshold",
+                  "type": "float",
+                  "required": true
+                },
+                {
+                  "name": "on_fail",
+                  "type": "union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult>",
+                  "required": true
+                },
+                {
+                  "name": "opts",
+                  "type": "class:signalwire.core.semantic_gate.SemanticGateOptions",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "void"
+            },
+            "id": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "on_fail": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
+            "question": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "threshold": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
+            },
+            "to_dict": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "dict<string,any>"
+            }
+          }
+        }
+      },
+      "functions": {
+        "apply_gate_fields": {
+          "params": [
+            {
+              "name": "fields",
+              "type": "dict<string,any>",
+              "required": true
+            },
+            {
+              "name": "function_name",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "definition",
+              "type": "optional<bool>",
+              "required": false,
+              "default": null,
+              "kind": "keyword"
+            },
+            {
+              "name": "kwargs",
+              "kind": "var_keyword",
+              "type": "any",
+              "required": false,
+              "default": {}
+            }
+          ],
+          "returns": "void"
+        },
+        "gate_definitions": {
+          "params": [
+            {
+              "name": "gates",
+              "type": "list<union<dict<string,any>,class:signalwire.core.semantic_gate.SemanticGate>>",
+              "required": true
+            },
+            {
+              "name": "function_name",
+              "type": "string",
+              "required": true
+            }
+          ],
+          "returns": "list<dict<string,any>>"
         }
       }
     },
@@ -33986,6 +34208,34 @@
         }
       }
     },
+    "signalwire.core.semantic_gate.SemanticGate": {
+      "params": {
+        "false_means": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "id": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "on_fail": {
+          "type": "union<string,dict<string,any>,class:signalwire.core.function_result.FunctionResult>",
+          "required": true
+        },
+        "question": {
+          "type": "string",
+          "required": true
+        },
+        "threshold": {
+          "type": "float",
+          "required": true
+        },
+        "true_means": {
+          "type": "optional<string>",
+          "required": false
+        }
+      }
+    },
     "signalwire.core.skill_base.SkillBase": {
       "params": {
         "params": {
@@ -34018,6 +34268,14 @@
         },
         "fillers": {
           "type": "dict<string,any>",
+          "required": false
+        },
+        "gate_fillers": {
+          "type": "dict<string,any>",
+          "required": false
+        },
+        "gates": {
+          "type": "list<union<dict<string,any>,class:signalwire.core.semantic_gate.SemanticGate>>",
           "required": false
         },
         "handler": {

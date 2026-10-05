@@ -173,6 +173,7 @@ signalwire.skills.spider.skill.SpiderSkill.session: impossible: Python exposes t
 signalwire.utils.schema_utils.SchemaUtils.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.web.web_service.WebService.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.rest._request_options.RequestOptions.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs (RequestOptions(init?: RequestOptionsInit) collapses the reference's timeout/retries/retry_on_status/retry_backoff/abort_signal positional-or-keyword params into one options-object init; same fields, same resolved values).
+signalwire.core.semantic_gate.SemanticGate.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs (new SemanticGate(question, threshold, onFail, opts?) collapses the reference's keyword-only id/true_means/false_means into one options object { id, trueMeans, falseMeans }; same fields, same toDict() output).
 
 ## Idiom: TS fluent API returns this
 
@@ -308,6 +309,10 @@ signalwire.livewire.JobContext.wait_for_participant: reference-oracle gap: signa
 signalwire.livewire.SileroVAD.load: reference-oracle gap: signalwire.livewire is absent from python_signatures.json (a known griffe enumeration gap that php and go also hit). The port implements the LiveWire compatibility shim, so these methods enumerate on the port side with no reference signature to compare.
 signalwire.livewire.run_app: reference-oracle gap: signalwire.livewire is absent from python_signatures.json (a known griffe enumeration gap that php and go also hit). The port implements the LiveWire compatibility shim, so these methods enumerate on the port side with no reference signature to compare.
 signalwire.livewire.tool: reference-oracle gap: signalwire.livewire is absent from python_signatures.json (a known griffe enumeration gap that php and go also hit). The port implements the LiveWire compatibility shim, so these methods enumerate on the port side with no reference signature to compare.
+
+## Reference-oracle gap: a module-level type alias recorded by name
+
+signalwire.core.data_map.DataMap.gate_fillers: the reference annotates fillers with its module-level type alias FillerPhrases (Mapping[str, Sequence[str | Sequence[str]]]); main's signature enumerator records an alias defined in the SDK as class:signalwire.core.semantic_gate.FillerPhrases instead of expanding it, so it can't match the port's dict. The port's FillerPhrases is the same Record<string, (string | string[])[]>; same wire. The enumerator on porting-sdk's wave6 branch expands aliases, and there this matches with no entry, so remove this line when that lands.
 
 ## Reference-oracle gap: per-skill get_parameter_schema (no class in the oracle)
 

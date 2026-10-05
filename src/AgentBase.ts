@@ -27,6 +27,7 @@ import {
   type SwaigHandler,
   type SwaigErrorHandler,
 } from './SwaigFunction.js';
+import { _checkGatedFunction, type FillerPhrases, type SemanticGate } from './SemanticGate.js';
 import { inferSchema, createTypedHandlerWrapper, type TypedToolHandler } from './TypeInference.js';
 import { FunctionResult, type SwaigResultDict } from './FunctionResult.js';
 import {
@@ -1187,6 +1188,49 @@ export class AgentBase extends SWMLService {
   }
 
   /**
+   * Set how the call checks its functions' semantic gates (see
+   * {@link SemanticGate}).
+   *
+   * Each option left out leaves its current setting as it is; the platform's
+   * default applies to a setting that was never set.
+   * @param opts - The gate settings.
+   * @param opts.enabled - `false` dispatches gated functions without checking
+   *   their gates. Default `true`. Sent as `semantic_gates_enabled`.
+   * @param opts.timeoutMs - The time one check may take, 500 to 10000
+   *   milliseconds, preparing the request and any retry included. A check that
+   *   runs out blocks the call. Default 2500. Sent as
+   *   `semantic_gate_timeout_ms`.
+   * @param opts.history - How many recent dialogue entries the decision model
+   *   sees, 0 to 100. Default 20. Sent as `semantic_gate_history`.
+   * @returns This agent instance for chaining.
+   * @throws {Error} When a value has the wrong type or is out of range.
+   */
+  setSemanticGates(opts: { enabled?: boolean; timeoutMs?: number; history?: number } = {}): this {
+    // Check every value before setting any, so a refused call changes nothing
+    const { enabled, timeoutMs, history } = opts;
+    if (enabled !== undefined && typeof enabled !== 'boolean') {
+      throw new Error(`enabled must be a boolean, got ${JSON.stringify(enabled)}`);
+    }
+    const ranges: Array<[string, string, unknown, number, number]> = [
+      ['semantic_gate_timeout_ms', 'timeout_ms', timeoutMs, 500, 10000],
+      ['semantic_gate_history', 'history', history, 0, 100],
+    ];
+    for (const [, name, value, low, high] of ranges) {
+      if (value === undefined) continue;
+      if (typeof value !== 'number' || !Number.isInteger(value) || value < low || value > high) {
+        throw new Error(
+          `${name} must be an integer from ${low} to ${high}, got ${JSON.stringify(value)}`,
+        );
+      }
+    }
+    if (enabled !== undefined) this.params['semantic_gates_enabled'] = enabled;
+    for (const [param, , value] of ranges) {
+      if (value !== undefined) this.params[param] = value;
+    }
+    return this;
+  }
+
+  /**
    * **MERGES** `data` into the global_data object passed into the AI
    * configuration. **Despite the name, this does NOT replace** the existing
    * object — existing keys are preserved and incoming keys overwrite only on
@@ -1767,10 +1811,15 @@ export class AgentBase extends SWMLService {
      */
     handler: TypedToolHandler;
     secure?: boolean;
+    /** Phrases the AI says while the function runs (see `SwaigFunctionOptions.fillers`). */
     fillers?: Record<string, string[]>;
     waitFile?: string;
     waitFileLoops?: number;
     required?: string[];
+    /** Semantic gates (see `SwaigFunctionOptions.gates`). */
+    gates?: ReadonlyArray<SemanticGate | Record<string, unknown>>;
+    /** Phrases said while the gates are checked (see `SwaigFunctionOptions.gateFillers`). */
+    gateFillers?: FillerPhrases;
   }): this {
     let params = opts.parameters;
     let required = opts.required ?? [];
@@ -1806,6 +1855,8 @@ export class AgentBase extends SWMLService {
       waitFileLoops: opts.waitFileLoops,
       required,
       isTypedHandler: true,
+      gates: opts.gates,
+      gateFillers: opts.gateFillers,
     });
     this.toolRegistry.set(opts.name, fn);
     return this;
@@ -1965,31 +2016,37 @@ export class AgentBase extends SWMLService {
     // and the other keys go into the SWAIG definition.
     const { secure: skillSecure, ...skillExtraFields } = skill.swaigFields;
     for (const toolDef of skill.getTools()) {
-      this.defineTool(
-        toolDef.secure === undefined && typeof skillSecure === 'boolean'
-          ? { ...toolDef, secure: skillSecure }
-          : toolDef,
-      );
-      const fn = this.toolRegistry.get(toolDef.name);
-      if (fn instanceof SwaigFunction) {
-        // Apply skill-level swaigFields as the base, then let tool-level filler
-        // flags override — matches Python skill_base.py:70-73 (swaig_fields base,
-        // explicit kwargs win) and SkillBase.defineTool() ({...swaigDefaults, ...toolDef}).
-        if (Object.keys(skillExtraFields).length > 0) {
-          safeAssign(fn.extraFields, skillExtraFields);
-        }
-        if (toolDef.wait_for_fillers !== undefined) {
-          fn.extraFields['wait_for_fillers'] = toolDef.wait_for_fillers;
-        }
-        if (toolDef.skip_fillers !== undefined) {
-          fn.extraFields['skip_fillers'] = toolDef.skip_fillers;
-        }
-        // Propagate is_hangup_hook so the SignalWire platform auto-fires this
-        // tool on call hangup (Python equivalent: is_hangup_hook=True in define_tool).
-        if (toolDef.isHangupHook) {
-          fn.extraFields['is_hangup_hook'] = true;
-        }
+      // Skill-level swaigFields are the base and the tool's own fields win —
+      // Python skill_base.py:70-73 (swaig_fields base, explicit kwargs win) and
+      // SkillBase.defineTool() ({...swaigDefaults, ...toolDef}). They are merged
+      // before the function is built, so the result is what's checked: a
+      // skill's default gates never replace a tool's own.
+      const extraFields: Record<string, unknown> = {};
+      safeAssign(extraFields, skillExtraFields);
+      // A tool may carry its own extra fields (getTools() can return
+      // SwaigFunctionOptions); they win over the skill's defaults.
+      const ownExtraFields = (toolDef as { extraFields?: Record<string, unknown> }).extraFields;
+      if (ownExtraFields) safeAssign(extraFields, ownExtraFields);
+      if (toolDef.wait_for_fillers !== undefined) {
+        extraFields['wait_for_fillers'] = toolDef.wait_for_fillers;
       }
+      if (toolDef.skip_fillers !== undefined) {
+        extraFields['skip_fillers'] = toolDef.skip_fillers;
+      }
+      // Propagate is_hangup_hook so the SignalWire platform auto-fires this
+      // tool on call hangup (Python equivalent: is_hangup_hook=True in define_tool).
+      if (toolDef.isHangupHook) {
+        extraFields['is_hangup_hook'] = true;
+      }
+      if (toolDef.gates !== undefined) extraFields['gates'] = toolDef.gates;
+      if (toolDef.gate_fillers !== undefined) extraFields['gate_fillers'] = toolDef.gate_fillers;
+      this.defineTool({
+        ...toolDef,
+        ...(toolDef.secure === undefined && typeof skillSecure === 'boolean'
+          ? { secure: skillSecure }
+          : {}),
+        extraFields,
+      });
     }
 
     // Register DataMap-style tools — skills that build their own SWAIG JSON
@@ -2896,10 +2953,15 @@ export class AgentBase extends SWMLService {
           entry['web_hook_url'] = this.buildWebhookUrl('swaig', urlParams);
         }
         safeAssign(entry, fn.extraFields);
+        // Gates are checked once more as sent: under the name the entry carries,
+        // with its URL or the defaults' URL (the platform drops a gated
+        // function it can't register).
+        _checkGatedFunction(entry, defaultWebhookUrl);
         functions.push(entry);
       } else {
         // Raw dict (DataMap) - use as-is
         const entry = { ...fn, function: name };
+        _checkGatedFunction(entry, defaultWebhookUrl);
         functions.push(entry);
       }
     }

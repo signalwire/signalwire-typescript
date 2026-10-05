@@ -7,6 +7,7 @@
 
 import { randomBytes } from 'node:crypto';
 import type { SwaigHandler } from '../SwaigFunction.js';
+import type { FillerPhrases, SemanticGate } from '../SemanticGate.js';
 import type { SwaigRequest } from '../SwaigContracts.js';
 import type { FunctionResult } from '../FunctionResult.js';
 import type { AgentBase } from '../AgentBase.js';
@@ -30,7 +31,11 @@ export interface SkillToolDefinition {
   handler: SwaigHandler;
   /** Whether the tool requires secure (authenticated) invocation. */
   secure?: boolean;
-  /** Filler phrases spoken while the tool executes, keyed by language. */
+  /**
+   * Phrases the AI says while the tool runs, keyed by language code, `"auto"`
+   * or `"default"`; an entry may also be a list of phrases, a wait script
+   * (the type predates wait scripts, so one needs a cast).
+   */
   fillers?: Record<string, string[]>;
   /** List of parameter names that are required. */
   required?: string[];
@@ -45,6 +50,14 @@ export interface SkillToolDefinition {
    * The flag is serialised as `"is_hangup_hook": true` in the SWAIG JSON.
    */
   isHangupHook?: boolean;
+  /**
+   * Semantic gates on the tool: yes/no preconditions a decision model checks
+   * right before the platform runs it (see {@link SemanticGate}). They win
+   * over gates in the skill's `swaig_fields`.
+   */
+  gates?: ReadonlyArray<SemanticGate | Record<string, unknown>>;
+  /** Phrases the AI says while the gates are checked, shaped like `fillers`. */
+  gate_fillers?: FillerPhrases;
 }
 
 /**

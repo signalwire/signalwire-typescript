@@ -245,6 +245,9 @@ agent.defineTool({
   call's SWML.
 - A tool call is a request from the model, not an authorization. Check
   identity, state and business rules in the handler.
+- \`gates: [new SemanticGate(...)]\` adds semantic gates: yes/no questions a
+  decision model answers about the call before the platform runs the tool.
+  A platform release without semantic gates runs the tool ungated.
 `,
   docs: [
     ['docs/swaig-reference.md', 'Every FunctionResult method and action'],
@@ -267,6 +270,7 @@ agent.defineTool({
     'FunctionResult.swmlChangeStep',
     'FunctionResult.setPostProcess',
     'SwaigRequest',
+    'SemanticGate',
   ],
   related: ['datamap', 'contexts', 'skills', 'security', 'pgi'],
 };

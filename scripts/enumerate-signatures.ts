@@ -88,6 +88,7 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/SessionManager.ts': 'signalwire.core.security.session_manager',
   'src/SslConfig.ts': 'signalwire.core.security_config',
   'src/SwaigFunction.ts': 'signalwire.core.swaig_function',
+  'src/SemanticGate.ts': 'signalwire.core.semantic_gate',
   'src/SwmlBuilder.ts': 'signalwire.core.swml_builder',
   'src/SWMLHandler.ts': 'signalwire.core.swml_handler',
   'src/SWMLService.ts': 'signalwire.core.swml_service',
@@ -264,6 +265,7 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
       'set_post_prompt_llm_params',
       'set_prompt_llm_params',
       'set_pronunciations',
+      'set_semantic_gates',
       'update_global_data',
     ],
   ],
@@ -382,6 +384,10 @@ const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
   'signalwire.core.contexts.Context.add_step',
   // AgentBase.mount — Python's prefix/name are keyword-only (`*, prefix, name`).
   'signalwire.core.agent_base.AgentBase.mount',
+  // set_semantic_gates(enabled=None, timeout_ms=None, history=None) — keyword set.
+  'signalwire.core.agent_base.AgentBase.set_semantic_gates',
+  // apply_gate_fields(fields, function, *, definition=False) — keyword-only.
+  'signalwire.core.semantic_gate.apply_gate_fields',
   // dialogue_turns — Python's roles/drop_echo are keyword-only.
   'signalwire.core.post_prompt.dialogue_turns',
   'signalwire.ai_chat.gateway.ChatGateway.prepare',
