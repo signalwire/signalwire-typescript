@@ -20,14 +20,15 @@ follows [Semantic Versioning](https://semver.org/).
 - `AgentBase.setSemanticGates()` sets `semantic_gates_enabled`,
   `semantic_gate_timeout_ms` and `semantic_gate_history`, and
   `FunctionResult.setSemanticState()` sets the state gates judge.
+- `FunctionResult.changeVoice()` changes the AI's voice for the rest of the
+  call (`change_voice`), from the next batch of speech on. It throws on an
+  empty or whitespace-only voice, which the platform would ignore.
 - Function fillers are typed as `FillerPhrases` and documented with the
   `auto` key, translated into the call's language on first use, and wait
   scripts, lists of phrases spoken one at a time while the call waits.
 
 ### Changed
 
-- `FunctionResult.changeVoice()` throws on an empty or whitespace-only
-  voice, which the platform would ignore.
 - `addSkill()` merges a skill's `swaig_fields` and each tool's own fields
   before it builds the tool, so the merged definition is what gets checked;
   a tool's own fields still win. It used to copy `swaig_fields` onto the
