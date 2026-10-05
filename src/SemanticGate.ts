@@ -458,19 +458,6 @@ export function gateDefinitions(
   return definitions;
 }
 
-/** Options for {@link applyGateFields}. */
-export interface ApplyGateFieldsOptions {
-  /**
-   * True when `fields` is a whole function definition sent as written, such as
-   * a DataMap's or a raw one. Then its `gates` and `gate_fillers` keys are
-   * found as the platform finds them, without regard to case; `gates: null` is
-   * refused, as the platform refuses the function for a JSON null; and a gated
-   * function needs a description. Otherwise a null or undefined `gates` means
-   * no gates, as an option left out does.
-   */
-  definition?: boolean;
-}
-
 /**
  * Check and normalize `gates` and `gate_fillers` in a function's fields, in
  * place.
@@ -480,8 +467,13 @@ export interface ApplyGateFieldsOptions {
  * is removed, as the platform ignores it.
  * @param fields - The function definition or its extra fields.
  * @param functionName - The function's name.
- * @param opts - Whether `fields` is a whole definition (see
- *   {@link ApplyGateFieldsOptions.definition}).
+ * @param opts - Options.
+ * @param opts.definition - True when `fields` is a whole function definition
+ *   sent as written, such as a DataMap's or a raw one. Then its `gates` and
+ *   `gate_fillers` keys are found as the platform finds them, without regard
+ *   to case; `gates: null` is refused, as the platform refuses the function
+ *   for a JSON null; and a gated function needs a description. Otherwise a
+ *   null or undefined `gates` means no gates, as an option left out does.
  * @throws {Error} For gates the platform would refuse, `gate_fillers` on a
  *   function without gates, which the platform ignores, or a gated
  *   definition without a description.
@@ -489,7 +481,7 @@ export interface ApplyGateFieldsOptions {
 export function applyGateFields(
   fields: Record<string, unknown>,
   functionName: string,
-  opts: ApplyGateFieldsOptions = {},
+  opts: { definition?: boolean } = {},
 ): void {
   const definition = opts.definition ?? false;
   const gatesKey = definition ? firstKey(fields, 'gates') : 'gates' in fields ? 'gates' : undefined;

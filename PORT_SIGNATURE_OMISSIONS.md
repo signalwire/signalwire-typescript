@@ -173,6 +173,7 @@ signalwire.skills.spider.skill.SpiderSkill.session: impossible: Python exposes t
 signalwire.utils.schema_utils.SchemaUtils.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.web.web_service.WebService.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.rest._request_options.RequestOptions.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs (RequestOptions(init?: RequestOptionsInit) collapses the reference's timeout/retries/retry_on_status/retry_backoff/abort_signal positional-or-keyword params into one options-object init; same fields, same resolved values).
+signalwire.core.semantic_gate.SemanticGate.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs (new SemanticGate(question, threshold, onFail, opts?) collapses the reference's keyword-only id/true_means/false_means into one options object { id, trueMeans, falseMeans }; same fields, same toDict() output).
 
 ## Idiom: TS fluent API returns this
 
