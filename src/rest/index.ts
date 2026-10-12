@@ -6,11 +6,7 @@
 
 import { getLogger } from '../Logger.js';
 import { HttpClient } from './HttpClient.js';
-import type {
-  ClientCredentials,
-  ClientOptions,
-  ClientTransportOptions,
-} from './types.js';
+import type { ClientCredentials, ClientOptions, ClientTransportOptions } from './types.js';
 
 // The generated resource tree (flat resources + namespace containers), wired
 // from each resource's spec placement (RULES §8). RestClient composes it and
@@ -58,6 +54,13 @@ export class RestClient extends _GeneratedResourceTree {
    */
   constructor(options?: ClientTransportOptions);
   /**
+   * Create a REST client for an explicit `host`, reading `project` and `token`
+   * from `SIGNALWIRE_PROJECT_ID` / `SIGNALWIRE_API_TOKEN`.
+   *
+   * @throws {Error} When either env var is unset/empty.
+   */
+  constructor(options: Pick<ClientCredentials, 'host'> & ClientTransportOptions);
+  /**
    * Create a REST client with explicit credentials. All three of `project`,
    * `token`, and `host` are required — passing a partial object (e.g. forgetting
    * `host`) is a compile-time error, not a runtime throw.
@@ -67,7 +70,7 @@ export class RestClient extends _GeneratedResourceTree {
   constructor(options: ClientCredentials & ClientTransportOptions);
   /**
    * Implementation signature (loose). Not part of the public overload set — the
-   * two overloads above are what callers see; this accepts the union of both and
+   * overloads above are what callers see; this accepts the union of them and
    * still applies the runtime guard for JS callers / partially-set environments.
    *
    * @throws {Error} When `project`, `token`, or `host` is missing from both the

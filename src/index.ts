@@ -371,8 +371,9 @@ import type {
 
 export function restClient(opts?: _ClientTransportOptions): _RestClient;
 export function restClient(
-  opts: _ClientCredentials & _ClientTransportOptions,
+  opts: Pick<_ClientCredentials, 'host'> & _ClientTransportOptions,
 ): _RestClient;
+export function restClient(opts: _ClientCredentials & _ClientTransportOptions): _RestClient;
 export function restClient(opts?: _ClientOptions): _RestClient {
   // Runtime back-compat: tolerate the legacy ``restClient([], { ...opts })``
   // shape (a leading positional array, with the real options as the second
