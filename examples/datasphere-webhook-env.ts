@@ -11,7 +11,7 @@
  * Run: npx tsx examples/datasphere-webhook-env.ts
  */
 
-import { AgentBase, DataSphereSkill, DateTimeSkill, MathSkill } from '../src/index.js';
+import { AgentBase, DataSphereSkill, DateTimeSkill, MathSkill } from '@signalwire/sdk';
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -49,9 +49,8 @@ await agent.addSkill(new MathSkill());
 await agent.addSkill(
   new DataSphereSkill({
     document_id: documentId,
-    max_results: count,
-    distance_threshold: distance,
-    mode: 'webhook',
+    count,
+    distance,
   }),
 );
 

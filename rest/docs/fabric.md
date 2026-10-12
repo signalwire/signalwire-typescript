@@ -1,23 +1,23 @@
 # Fabric Resources
 
-The Fabric API (`/api/fabric`) manages all resource types in your SignalWire project. Most resource types support CRUD operations and address listing. All methods are async — `await` them.
+The Fabric API (`/api/fabric`) manages the resources in your SignalWire project: AI agents, SWML scripts, subscribers, call flows and others. Most resource types support CRUD operations and address listing. Every method is async, so `await` it.
 
 <!-- snippet-setup -->
 ```ts
 export {}; // treat each example as a module so top-level `await` is allowed
-// Shared context the fragments below assume (constructed on the Getting Started page).
+// Shared context the fragments on this page assume (constructed on the Getting Started page).
 declare const client: import('@signalwire/sdk').RestClient;
 declare const pnId: string; // a phone-number SID
 ```
 
 ## Standard CRUD Pattern
 
-The resource types share the same methods:
+The CRUD resource types share the same methods. This example runs each of them on AI agents:
 
 ```typescript
 // List all resources of this type
 let items = await client.fabric.aiAgents.list();
-items = await client.fabric.aiAgents.list({ page: 2, page_size: 10 });
+items = await client.fabric.aiAgents.list({ page_number: 2, page_size: 10 });
 
 // Create a new resource
 const agent = await client.fabric.aiAgents.create({
@@ -38,11 +38,13 @@ await client.fabric.aiAgents.delete('agent-uuid');
 const addresses = await client.fabric.aiAgents.listAddresses('agent-uuid');
 ```
 
-`client.fabric` exposes 16 sub-resources. They split into two update conventions:
+`list()` returns one page. To walk every page, iterate `paginate()`, for example `for await (const agent of client.fabric.aiAgents.paginate())`. `cxmlApplications` and `resources` have no `paginate()`.
+
+`client.fabric` has 16 sub-resources. Thirteen are CRUD resource types, which use one of two update methods. The other three are `resources` (generic), `addresses` and `tokens`, covered later on this page.
 
 ### PUT-Update Resources
 
-These resources use `PUT` for updates (full replacement):
+These resources send `update()` as a `PUT` (full replacement):
 
 | Accessor | API Path |
 |-----------|----------|
@@ -58,38 +60,36 @@ These resources use `PUT` for updates (full replacement):
 
 ### PATCH-Update Resources
 
-These resources use `PATCH` for updates (partial update):
+These resources send `update()` as a `PATCH` (partial update):
 
 | Accessor | API Path | Notes |
 |-----------|----------|-------|
-| `fabric.swmlWebhooks` | `/api/fabric/resources/swml_webhooks` | **Auto-materialized.** Created as a side-effect of `phoneNumbers.setSwmlWebhook(sid, url)`. Do not create directly — see [phone-binding.md](phone-binding.md). |
-| `fabric.aiAgents` | `/api/fabric/resources/ai_agents` | Can be created directly, or bind an existing one with `phoneNumbers.setAiAgent(sid, agentId)`. |
+| `fabric.swmlWebhooks` | `/api/fabric/resources/swml_webhooks` | Also created by the platform when you call `phoneNumbers.setSwmlWebhook(sid, url)`. See [phone-binding.md](phone-binding.md). |
+| `fabric.aiAgents` | `/api/fabric/resources/ai_agents` | Create one directly, then bind a number to it with `phoneNumbers.setAiAgent(sid, agentId)`. |
 | `fabric.sipGateways` | `/api/fabric/resources/sip_gateways` | |
-| `fabric.cxmlWebhooks` | `/api/fabric/resources/cxml_webhooks` | **Auto-materialized** by `phoneNumbers.setCxmlWebhook(sid, { url })`. Note: this is the **cXML (Twilio-compat)** handler — despite the `laml_webhooks` wire name. |
+| `fabric.cxmlWebhooks` | `/api/fabric/resources/cxml_webhooks` | Also created by the platform when you call `phoneNumbers.setCxmlWebhook(sid, url)`. This is the cXML (Twilio-compatible) handler, although its `call_handler` wire value is `laml_webhooks`. |
 
-The remaining sub-resources are `resources` (generic), `addresses`, and `tokens`, covered below.
+## Call Flows: Extra Methods
 
-## Call Flows -- Extra Methods
-
-Call flows support version management:
+Call flows support version management. `deployVersion` takes either a `document_version` or a `call_flow_version_id`:
 
 ```typescript
 // List all versions of a call flow
 const versions = await client.fabric.callFlows.listVersions('call-flow-uuid');
 
-// Deploy a new version
+// Deploy a version
 await client.fabric.callFlows.deployVersion('call-flow-uuid', { document_version: 3 });
 ```
 
-## Subscribers -- SIP Endpoints
+## Subscribers: SIP Endpoints
 
-Subscribers have nested SIP endpoint management:
+Subscribers have nested SIP endpoint management. `createSipEndpoint` takes the username and password positionally:
 
 ```typescript
-// List subscriber's SIP endpoints
+// List a subscriber's SIP endpoints
 const endpoints = await client.fabric.subscribers.listSipEndpoints('subscriber-uuid');
 
-// Create a SIP endpoint for a subscriber (username, password are positional)
+// Create a SIP endpoint for a subscriber (username and password are positional)
 const endpoint = await client.fabric.subscribers.createSipEndpoint('subscriber-uuid', 'user1', 'secret', {
   caller_id: '+15551234567',
 });
@@ -108,20 +108,18 @@ await client.fabric.subscribers.deleteSipEndpoint('subscriber-uuid', 'endpoint-u
 
 ## cXML Applications
 
-cXML applications support list/get/update/delete but not create:
+cXML applications support list, get, update and delete. The class has no `create()` method, so a call to it fails to compile:
 
 ```typescript
 const apps = await client.fabric.cxmlApplications.list();
 const app = await client.fabric.cxmlApplications.get('app-uuid');
 await client.fabric.cxmlApplications.update('app-uuid', { voice_url: 'https://example.com/voice' });
 await client.fabric.cxmlApplications.delete('app-uuid');
-
-// Calling .create() on this resource throws — cXML applications cannot be created via this API.
 ```
 
 ## Generic Resources
 
-Operate on any resource type by ID:
+`client.fabric.resources` operates on a resource of any type by its ID:
 
 ```typescript
 // List all resources across all types
@@ -140,15 +138,13 @@ const addresses = await client.fabric.resources.listAddresses('resource-uuid');
 await client.fabric.resources.assignDomainApplication('resource-uuid', 'da-uuid');
 ```
 
-### `assignPhoneRoute` — narrow-use, not for the common case
+### `assignPhoneRoute` is not how you bind a phone number
 
-This SDK exposes `client.fabric.resources.assignPhoneRoute(resourceId, ...)` which posts to `/api/fabric/resources/{id}/phone_routes`. **This does not bind a phone number to an SWML/cXML webhook or AI agent.** Those bindings are configured on the phone number (see [phone-binding.md](phone-binding.md)) and the Fabric resource is materialized automatically.
-
-`assignPhoneRoute` applies only to a few legacy resource types that accept phone-route attachment as an explicit step; which types accept it is defined by the server and visible in `rest-apis/relay-rest/openapi.yaml`. Calling it against `swml_webhook` / `cxml_webhook` / `ai_agent` returns 404 or 422. The method still posts (for backwards compatibility) but emits a one-time deprecation warning on first call.
+`client.fabric.resources.assignPhoneRoute(id, phone_route_id, handler)` posts to `/api/fabric/resources/{id}/phone_routes`. The `handler` is `'calling'` or `'messaging'`. This method doesn't bind a phone number to an SWML webhook, a cXML webhook or an AI agent. You configure those bindings on the phone number, as [phone-binding.md](phone-binding.md) describes.
 
 ## Binding a phone number to a handler
 
-See **[phone-binding.md](phone-binding.md)** for the `PhoneCallHandler` enum, the mapping from each handler value to its auto-materialized Fabric resource, and the typed `phoneNumbers.set*` helpers. The one-liner summary:
+[phone-binding.md](phone-binding.md) covers the `PhoneCallHandler` values, the Fabric resource each one produces and the typed `phoneNumbers.set*` helpers. The common case routes a number to an SWML webhook:
 
 ```typescript
 // SWML webhook (your backend returns SWML per call)
@@ -157,10 +153,10 @@ await client.phoneNumbers.setSwmlWebhook(pnId, 'https://example.com/swml');
 
 ## Fabric Addresses
 
-Read-only access to all fabric addresses:
+`client.fabric.addresses` gives read-only access to all Fabric addresses. `list()` accepts filters such as `type`, `display_name` and `name`:
 
 ```typescript
-// List all addresses (filter by type or display_name)
+// List all addresses, filtered by type
 const addresses = await client.fabric.addresses.list({ type: 'room' });
 
 // Get a specific address
@@ -169,28 +165,28 @@ const address = await client.fabric.addresses.get('address-uuid');
 
 ## Tokens
 
-Create tokens for subscribers, guests, invites, and embeds:
+`client.fabric.tokens` creates tokens for subscribers, guests, invites and embeds. The `expire_at` and `expires_at` options are Unix times in seconds:
 
 ```typescript
-// Subscriber token — `reference` is positional; the rest are options
+// Subscriber token; `reference` is positional, and the rest are options
 const subscriberToken = await client.fabric.tokens.createSubscriberToken('user@example.com', {
-  password: 'secret',
+  password: 'a-long-random-password',
 });
 
-// Refresh a subscriber token — the refresh token is positional
+// Refresh a subscriber token; the refresh token is positional
 const refreshed = await client.fabric.tokens.refreshSubscriberToken('existing-refresh-token');
 
-// Guest token — `allowed_addresses` is positional; `expire_at` is a Unix timestamp (seconds)
+// Guest token; `allowed_addresses` is positional
 const guestToken = await client.fabric.tokens.createGuestToken(
   ['address-uuid-1', 'address-uuid-2'],
   { expire_at: 1767225599 },
 );
 
-// Subscriber invite token — `address_id` is positional; `expires_at` is a Unix timestamp
+// Subscriber invite token; `address_id` is positional
 const inviteToken = await client.fabric.tokens.createInviteToken('address-uuid', {
   expires_at: 1767225599,
 });
 
-// Click-to-call embed token — the source token is positional
+// Click-to-call embed token; the source token is positional
 const embedToken = await client.fabric.tokens.createEmbedToken('embed-source-token');
 ```

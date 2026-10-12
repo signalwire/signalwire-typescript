@@ -60,6 +60,8 @@ describe('JokeSkill', () => {
     const klass = JokeSkill as typeof SkillBase;
     expect(klass.SKILL_NAME).toBe('joke');
     expect(klass.SKILL_VERSION).toBe('1.0.0');
+    // The collection is offline (PORT_BEHAVIORAL_NOTES.md), so no API is named.
+    expect(klass.SKILL_DESCRIPTION).toBe('Tell jokes from a built-in collection');
   });
 
   it('should return a regular joke for type "jokes"', () => {
@@ -78,6 +80,14 @@ describe('JokeSkill', () => {
     expect(result).toBeInstanceOf(FunctionResult);
     expect(result.response).toContain('...');
     expect((result.response as string).length).toBeGreaterThan(5);
+  });
+
+  it('directs the model to tell the joke rather than handing it one', () => {
+    // Given only the joke, the model responds to it instead of relaying it.
+    const tool = new JokeSkill().getTools()[0]!;
+    const result = tool.handler({ type: 'jokes' }, {}) as FunctionResult;
+    expect(result.response).toMatch(/^Tell this joke to the user: .+ \.\.\. .+/);
+    expect(tool.description).toBe('Get a joke to tell the caller');
   });
 
   it('should have a parameter schema', () => {

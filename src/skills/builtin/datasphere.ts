@@ -63,7 +63,7 @@ interface DataSphereResponse {
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('datasphere', {
+ * await agent.addSkillByName('datasphere', {
  *   document_id: 'doc_abc123',
  *   count: 3,
  *   tags: ['faq'],

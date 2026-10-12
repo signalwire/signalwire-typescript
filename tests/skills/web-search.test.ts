@@ -7,6 +7,7 @@ import { WebSearchSkill, createWebSearchSkill } from '../../src/skills/builtin/i
 import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
+import { _setPublicFetchTransport } from '../../src/PublicFetch.js';
 
 beforeAll(() => {
   suppressAllLogs(true);
@@ -175,8 +176,18 @@ describe('WebSearchSkill — response_prefix/response_postfix wrapping', () => {
         headers: { 'Content-Type': 'text/html' },
       });
     }) as typeof fetch;
+    // Page scrapes go through _publicFetch's transport, not globalThis.fetch.
+    // The stub serves every page, so no address is reached: skip the address
+    // check, which would otherwise need real DNS for these made-up hostnames.
+    const stub = globalThis.fetch;
+    _setPublicFetchTransport((url, init) => stub(url, init));
+    const priorAllow = process.env['SWML_ALLOW_PRIVATE_URLS'];
+    process.env['SWML_ALLOW_PRIVATE_URLS'] = 'true';
     return () => {
+      if (priorAllow === undefined) delete process.env['SWML_ALLOW_PRIVATE_URLS'];
+      else process.env['SWML_ALLOW_PRIVATE_URLS'] = priorAllow;
       globalThis.fetch = originalFetch;
+      _setPublicFetchTransport(null);
     };
   }
 
@@ -397,8 +408,18 @@ describe('WebSearchSkill — latency control (deadline / per_page_timeout / snip
         signal ?? undefined,
       );
     }) as typeof fetch;
+    // Page scrapes go through _publicFetch's transport, not globalThis.fetch.
+    // The stub serves every page, so no address is reached: skip the address
+    // check, which would otherwise need real DNS for these made-up hostnames.
+    const stub = globalThis.fetch;
+    _setPublicFetchTransport((url, init) => stub(url, init));
+    const priorAllow = process.env['SWML_ALLOW_PRIVATE_URLS'];
+    process.env['SWML_ALLOW_PRIVATE_URLS'] = 'true';
     return () => {
+      if (priorAllow === undefined) delete process.env['SWML_ALLOW_PRIVATE_URLS'];
+      else process.env['SWML_ALLOW_PRIVATE_URLS'] = priorAllow;
       globalThis.fetch = original;
+      _setPublicFetchTransport(null);
     };
   }
 

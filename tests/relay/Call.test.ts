@@ -544,6 +544,16 @@ describe('Call', () => {
       expect(client.execCalls[0]!.method).toBe('calling.user_event');
     });
 
+    it('userEvent sends its other fields too, as the reference does', async () => {
+      const client = mockClient();
+      const call = makeCall(client);
+      await call.userEvent({ event: 'order_placed', order_id: '12345' });
+      expect(client.execCalls[0]!.params).toMatchObject({
+        event: 'order_placed',
+        order_id: '12345',
+      });
+    });
+
     it('queueEnter/queueLeave send correct methods', async () => {
       const client = mockClient();
       const call = makeCall(client);

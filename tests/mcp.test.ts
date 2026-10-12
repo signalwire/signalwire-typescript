@@ -248,7 +248,7 @@ describe('MCP Integration', () => {
     const app = agent.getApp();
     const res = await app.request('/mcp', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: BASIC_UP },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping' }),
     });
     expect(res.status).toBe(200);
@@ -256,4 +256,93 @@ describe('MCP Integration', () => {
     expect(body.jsonrpc).toBe('2.0');
     expect(body.result).toBeDefined();
   });
+
+  // ── MCP endpoint authentication ────────────────────────────
+
+  /** An agent with a secure tool that records whether its handler ran. */
+  function createSecuredAgent() {
+    const agent = new AgentBase({ name: 'test', route: '/', basicAuth: ['u', 'p'] });
+    agent.enableMcpServer();
+    const calls: string[] = [];
+    agent.defineTool({
+      name: 'secret',
+      description: 'A secure tool',
+      parameters: {},
+      secure: true,
+      handler: () => {
+        calls.push('secret');
+        return new FunctionResult('ran secret');
+      },
+    });
+    return { agent, calls };
+  }
+
+  function mcpCall(authorization?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (authorization) headers['Authorization'] = authorization;
+    return {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name: 'secret', arguments: {} },
+      }),
+    };
+  }
+
+  it('/mcp refuses a request without basic auth and does not run the tool', async () => {
+    const { agent, calls } = createSecuredAgent();
+    const res = await agent.getApp().request('/mcp', mcpCall());
+    expect(res.status).toBe(401);
+    expect(calls).toEqual([]);
+  });
+
+  it('/mcp refuses wrong basic auth credentials', async () => {
+    const { agent, calls } = createSecuredAgent();
+    const wrong = 'Basic ' + Buffer.from('u:wrong').toString('base64');
+    const res = await agent.getApp().request('/mcp', mcpCall(wrong));
+    expect(res.status).toBe(401);
+    expect(calls).toEqual([]);
+  });
+
+  it('/mcp runs the tool with the agent basic auth credentials', async () => {
+    const { agent, calls } = createSecuredAgent();
+    const res = await agent.getApp().request('/mcp', mcpCall(BASIC_UP));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.result.content[0].text).toBe('ran secret');
+    expect(calls).toEqual(['secret']);
+  });
+
+  // ── MCP exposes only tools the agent runs itself ───────────
+
+  it('tools/list and tools/call exclude externally hosted webhook tools', async () => {
+    const agent = createAgentWithTool();
+    agent.defineTool({
+      name: 'remote_lookup',
+      description: 'Runs on another server',
+      parameters: {},
+      webhookUrl: 'https://tools.example.com/lookup',
+      handler: () => new FunctionResult('should not run here'),
+    });
+
+    const list = await agent.handleMcpRequest({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
+    const names = ((list['result'] as { tools: { name: string }[] }).tools ?? []).map(
+      (t) => t.name,
+    );
+    expect(names).toContain('get_weather');
+    expect(names).not.toContain('remote_lookup');
+
+    const call = await agent.handleMcpRequest({
+      jsonrpc: '2.0',
+      id: 2,
+      method: 'tools/call',
+      params: { name: 'remote_lookup', arguments: {} },
+    });
+    expect((call['error'] as { message: string }).message).toBe('Unknown tool: remote_lookup');
+  });
 });
+
+const BASIC_UP = 'Basic ' + Buffer.from('u:p').toString('base64');

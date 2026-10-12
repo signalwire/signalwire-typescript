@@ -245,6 +245,34 @@ export class PomBuilder {
   private sectionMap: Map<string, PomSection> = new Map();
 
   /**
+   * A deep copy of this builder: every section at every depth, with its own
+   * bullet list and all of its fields. For a per-request copy of an agent,
+   * so a change to the copy's prompt never reaches this one.
+   * @internal
+   */
+  _clone(): PomBuilder {
+    const copies = new Map<PomSection, PomSection>();
+    const cloneSection = (section: PomSection): PomSection => {
+      const copy = new PomSection({
+        title: section.title,
+        body: section.body,
+        bullets: [...section.bullets],
+        numbered: section.numbered,
+        numberedBullets: section.numberedBullets,
+      });
+      copy.subsections = section.subsections.map(cloneSection);
+      copies.set(section, copy);
+      return copy;
+    };
+    const builder = new PomBuilder();
+    builder.sections = this.sections.map(cloneSection);
+    for (const [title, section] of this.sectionMap) {
+      builder.sectionMap.set(title, copies.get(section) ?? cloneSection(section));
+    }
+    return builder;
+  }
+
+  /**
    * Clears all sections, returning the builder to its initial empty state.
    * @returns This builder for chaining.
    */

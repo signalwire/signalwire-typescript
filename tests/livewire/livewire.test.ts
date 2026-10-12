@@ -712,11 +712,32 @@ describe('AgentSession alignment gaps', () => {
     expect(session.getSwAgent()).toBeDefined();
   });
 
-  it('maps allowInterruptions=false to barge_confidence', async () => {
+  it('turns barge-in off with enable_barge when allowInterruptions is false', async () => {
+    // barge_confidence isn't in the schema and the platform ignores it;
+    // enable_barge is the platform's switch (signalwire-python f45ad87).
     const session = new AgentSession({ allowInterruptions: false });
     const agent = new Agent({ instructions: 'test' });
     await session.start({ agent });
-    expect(session.getSwAgent()).toBeDefined();
+    const doc = JSON.parse(session.getSwAgent()!.renderSwml()) as {
+      sections: { main: Record<string, unknown>[] };
+    };
+    const ai = doc.sections.main.find((v) => 'ai' in v)!['ai'] as {
+      params: Record<string, unknown>;
+    };
+    expect(ai.params['enable_barge']).toBe(false);
+    expect(ai.params).not.toHaveProperty('barge_confidence');
+  });
+
+  it('leaves barge-in to the platform when interruptions are allowed', async () => {
+    const session = new AgentSession();
+    await session.start({ agent: new Agent({ instructions: 'test' }) });
+    const doc = JSON.parse(session.getSwAgent()!.renderSwml()) as {
+      sections: { main: Record<string, unknown>[] };
+    };
+    const ai = doc.sections.main.find((v) => 'ai' in v)!['ai'] as {
+      params?: Record<string, unknown>;
+    };
+    expect(ai.params ?? {}).not.toHaveProperty('enable_barge');
   });
 });
 

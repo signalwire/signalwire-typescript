@@ -6,8 +6,8 @@
  * Run: npx tsx examples/session-state.ts
  */
 
-import { AgentBase, FunctionResult } from '../src/index.js';
-import type { AgentOptions, PostPrompt, PostPromptData } from '../src/index.js';
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
+import type { AgentOptions, PostPrompt, PostPromptData } from '@signalwire/sdk';
 
 class OrderAgent extends AgentBase {
   static override PROMPT_SECTIONS = [

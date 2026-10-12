@@ -18,7 +18,7 @@
  *   npx tsx rest/examples/rest-bind-phone-to-swml-webhook.ts
  */
 
-import { RestClient, PhoneCallHandler } from '../../src/index.js';
+import { RestClient, PhoneCallHandler } from '@signalwire/sdk';
 
 async function main(): Promise<void> {
   // Read the resource identifiers from the environment; fall back to placeholders

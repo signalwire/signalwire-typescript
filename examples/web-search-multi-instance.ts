@@ -14,7 +14,7 @@ import {
   WikipediaSearchSkill,
   DateTimeSkill,
   MathSkill,
-} from '../src/index.js';
+} from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'multi-search',

@@ -5,14 +5,17 @@
     "rootDir": ".",
     "types": ["node"],
     "paths": {
-      "@signalwire/sdk": ["./src/index.ts"]
+      "@signalwire/sdk": ["./src/index.ts"],
+      "@signalwire/sdk/livewire": ["./src/livewire/index.ts"]
     }
   },
   "include": [
     "src/**/*",
     "examples/**/*.ts",
     "rest/examples/**/*.ts",
-    "relay/examples/**/*.ts"
+    "relay/examples/**/*.ts",
+    "livewire/examples/**/*.ts",
+    "tutorial/**/*.ts"
   ],
   "exclude": ["node_modules", "dist", "tests"]
 }

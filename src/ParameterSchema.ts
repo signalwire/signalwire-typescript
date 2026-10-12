@@ -86,10 +86,10 @@ export type RecordDirection = (typeof RECORD_DIRECTIONS)[number];
 
 /**
  * Tap direction for the SWAIG `tap` verb — Tier-1 closed set
- * (`function_result.py:1213`). Uses `hear`, NOT record's `listen`. Used by
+ * (`function_result.py:1370`): `speak`, `listen` or `both`, as the engine accepts. Used by
  * {@link ParameterSchema.tapDirection}.
  */
-export const TAP_DIRECTIONS = ['speak', 'hear', 'both'] as const;
+export const TAP_DIRECTIONS = ['speak', 'listen', 'both'] as const;
 /** A single {@link TAP_DIRECTIONS} value. */
 export type TapDirection = (typeof TAP_DIRECTIONS)[number];
 

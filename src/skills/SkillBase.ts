@@ -7,6 +7,7 @@
 
 import { randomBytes } from 'node:crypto';
 import type { SwaigHandler } from '../SwaigFunction.js';
+import type { FillerPhrases, SemanticGate } from '../SemanticGate.js';
 import type { SwaigRequest } from '../SwaigContracts.js';
 import type { FunctionResult } from '../FunctionResult.js';
 import type { AgentBase } from '../AgentBase.js';
@@ -30,7 +31,11 @@ export interface SkillToolDefinition {
   handler: SwaigHandler;
   /** Whether the tool requires secure (authenticated) invocation. */
   secure?: boolean;
-  /** Filler phrases spoken while the tool executes, keyed by language. */
+  /**
+   * Phrases the AI says while the tool runs, keyed by language code, `"auto"`
+   * or `"default"`; an entry may also be a list of phrases, a wait script
+   * (the type predates wait scripts, so one needs a cast).
+   */
   fillers?: Record<string, string[]>;
   /** List of parameter names that are required. */
   required?: string[];
@@ -45,6 +50,14 @@ export interface SkillToolDefinition {
    * The flag is serialised as `"is_hangup_hook": true` in the SWAIG JSON.
    */
   isHangupHook?: boolean;
+  /**
+   * Semantic gates on the tool: yes/no preconditions a decision model checks
+   * right before the platform runs it (see {@link SemanticGate}). They win
+   * over gates in the skill's `swaig_fields`.
+   */
+  gates?: ReadonlyArray<SemanticGate | Record<string, unknown>>;
+  /** Phrases the AI says while the gates are checked, shaped like `fillers`. */
+  gate_fillers?: FillerPhrases;
 }
 
 /**
@@ -111,6 +124,7 @@ export function defineSkillTool<
     handler: (
       args: ToolArgs<P, R>,
       rawData: SwaigRequest,
+      agent?: AgentBase,
     ) =>
       | FunctionResult
       | Record<string, unknown>
@@ -153,7 +167,7 @@ export interface ParameterSchemaEntry {
   required?: boolean;
   /** Whether the parameter should be hidden from user-facing output (e.g., API keys). */
   hidden?: boolean;
-  /** Environment variable that can supply this parameter's value. */
+  /** Environment variable a configuration tool can read this value from. A hint only: the SDK doesn't read it, so the skill gets the value from its params. */
   env_var?: string;
   /** Allowed values for the parameter. */
   enum?: unknown[];
@@ -176,9 +190,10 @@ export interface ParameterSchemaEntry {
  * - **Speech hints** via `getHints()`
  * - **Global data** seeded into each call via `getGlobalData()`
  *
- * Skills are added to an agent with `agent.addSkill('name', config)` and the
- * {@link SkillManager} calls `setAgent()` + `setup()` in sequence before the
- * agent starts serving requests.
+ * Skills are added to an agent with `agent.addSkill(new MySkill(config))`, or
+ * by registered name with `agent.addSkillByName('name', config)`. The agent
+ * calls `setAgent()`, and the {@link SkillManager} then calls `setup()`,
+ * before the skill's tools are registered.
  *
  * @example Custom skill
  * ```ts
@@ -200,7 +215,7 @@ export interface ParameterSchemaEntry {
  *
  * // In your agent:
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkill(new GreetingSkill({ message: 'Howdy!' }));
+ * await agent.addSkill(new GreetingSkill({ message: 'Howdy!' }));
  * ```
  *
  * @see {@link SkillManager}

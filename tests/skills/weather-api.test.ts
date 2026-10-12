@@ -2,11 +2,12 @@
  * Individual tests for the WeatherApi skill.
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { WeatherApiSkill, createWeatherApiSkill } from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
 import { FunctionResult } from '../../src/FunctionResult.js';
 import { suppressAllLogs } from '../../src/Logger.js';
+import { AgentBase } from '../../src/AgentBase.js';
 
 beforeAll(() => {
   suppressAllLogs(true);
@@ -58,10 +59,13 @@ describe('WeatherApiSkill', () => {
     expect(skill.getGlobalData()).toEqual({});
   });
 
-  it('should return correct manifest with required env vars', () => {
+  it('should return correct manifest with no required env vars (Python parity)', () => {
     const klass = WeatherApiSkill as typeof SkillBase;
     expect(klass.SKILL_NAME).toBe('weather_api');
-    expect(klass.REQUIRED_ENV_VARS).toContain('WEATHER_API_KEY');
+    // Python skill.py:47: the key can come from api_key, so no variable is required.
+    expect(klass.REQUIRED_ENV_VARS).toEqual([]);
+    // The skill calls OpenWeatherMap (PORT_BEHAVIORAL_NOTES.md), and says so.
+    expect(klass.SKILL_DESCRIPTION).toContain('OpenWeatherMap');
   });
 
   it('should return error when API key is missing', async () => {
@@ -82,5 +86,74 @@ describe('WeatherApiSkill', () => {
     expect(schema['units']!.enum).toContain('metric');
     expect(schema['api_key']!.type).toBe('string');
     expect(schema['api_key']!.env_var).toBe('WEATHER_API_KEY');
+  });
+
+  describe('units and loading', () => {
+    const requested: string[] = [];
+    const savedKey = process.env['WEATHER_API_KEY'];
+
+    beforeEach(() => {
+      delete process.env['WEATHER_API_KEY'];
+      delete process.env['WEATHER_API_BASE_URL'];
+      requested.length = 0;
+      vi.stubGlobal('fetch', async (url: string) => {
+        requested.push(url);
+        const body = {
+          cod: 200,
+          name: 'Seattle',
+          sys: { country: 'US' },
+          main: {
+            temp: 72,
+            feels_like: 70,
+            humidity: 50,
+            pressure: 1012,
+            temp_min: 68,
+            temp_max: 75,
+          },
+          weather: [{ main: 'Clouds', description: 'few clouds' }],
+          wind: { speed: 5, deg: 90 },
+        };
+        return new Response(JSON.stringify(body), { status: 200 });
+      });
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      if (savedKey !== undefined) process.env['WEATHER_API_KEY'] = savedKey;
+    });
+
+    async function weather(config: Record<string, unknown>): Promise<string> {
+      const handler = new WeatherApiSkill(config).getTools()[0]!.handler;
+      return ((await handler({ location: 'Seattle' }, {})) as FunctionResult).response;
+    }
+
+    it('loads on an agent with api_key and no WEATHER_API_KEY', async () => {
+      const agent = new AgentBase({ name: 'weather', route: '/' });
+      await agent.addSkill(new WeatherApiSkill({ api_key: 'k' }));
+      expect(agent.hasSkill('weather_api')).toBe(true);
+    });
+
+    it('defaults to Fahrenheit, as the schema says', async () => {
+      expect(WeatherApiSkill.getParameterSchema()['units']!.default).toBe('fahrenheit');
+      const text = await weather({ api_key: 'k' });
+      expect(requested[0]).toContain('units=imperial');
+      expect(text).toContain('Temperature: 72\u00B0F');
+      expect(new WeatherApiSkill().getPromptSections()[0]!.bullets).toContain(
+        'Temperature is reported in Fahrenheit.',
+      );
+    });
+
+    it.each([
+      ['fahrenheit', 'imperial', 'Fahrenheit'],
+      ['celsius', 'metric', 'Celsius'],
+      ['metric', 'metric', 'Celsius'],
+      ['standard', 'standard', 'Kelvin'],
+    ])('units %s requests %s and reports %s', async (units, sent, reported) => {
+      await weather({ api_key: 'k', units });
+      expect(requested[0]).toContain(`units=${sent}`);
+      expect(new WeatherApiSkill({ units }).getPromptSections()[0]!.bullets).toContain(
+        `Temperature is reported in ${reported}.`,
+      );
+    });
   });
 });

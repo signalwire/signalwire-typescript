@@ -10,7 +10,7 @@
  *   curl http://localhost:3000/health
  */
 
-import { AgentBase, AgentServer, FunctionResult } from '../src/index.js';
+import { AgentBase, AgentServer, FunctionResult } from '@signalwire/sdk';
 
 // --- Support Agent ---
 export const support = new AgentBase({

@@ -3,6 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 <!-- snippet-setup -->
+
 ```ts
 export {}; // treat each example as a module (top-level await)
 declare global {
@@ -48,14 +49,14 @@ This SDK builds AI voice agents as HTTP microservices. Agents serve [SWML](https
 ### Core Flow
 
 ```
-SignalWire ──GET /──> AgentBase (returns SWML JSON)
+SignalWire ──POST /──> AgentBase (returns SWML JSON; GET also works, for testing)
 SignalWire ──POST /swaig──> AgentBase (dispatches to tool handlers)
 SignalWire ──POST /post_prompt──> AgentBase (receives call summary)
 ```
 
 ### Composition Architecture
 
-`AgentBase` is the central class (~1100 lines). It uses **composition** (not inheritance) to assemble functionality from internal managers:
+`AgentBase` is the central class. It extends `SWMLService`, which provides the HTTP app, basic auth, the SWAIG function registry and SWML document building, and it composes the rest from internal managers:
 
 - **PromptManager** / **PomBuilder** — raw text or structured prompt rendering
 - **SwmlBuilder** — assembles the 5-phase SWML document
@@ -64,7 +65,7 @@ SignalWire ──POST /post_prompt──> AgentBase (receives call summary)
 - **SkillManager** — loads/unloads skill plugins that inject tools, prompts, and hints
 - **Hono App** — HTTP server with basicAuth, CORS, security headers, rate limiting
 
-This differs from the Python SDK which uses 8 mixins. The TS SDK composes everything inside AgentBase.
+The Python SDK assembles the same features from mixins; the TS SDK uses one base class and composed managers.
 
 ### SWML 5-Phase Rendering
 
@@ -78,13 +79,13 @@ This differs from the Python SDK which uses 8 mixins. The TS SDK composes everyt
 
 ### Key Classes
 
-| Class            | Purpose                                                         | Size        |
-| ---------------- | --------------------------------------------------------------- | ----------- |
-| `AgentBase`      | HTTP server, SWML rendering, tool dispatch, dynamic config      | ~1100 lines |
-| `FunctionResult` | Fluent response builder with 40+ call-control actions           | ~900 lines  |
-| `ContextBuilder` | Multi-step workflows: Context → Step → GatherInfo               | ~800 lines  |
-| `DataMap`        | Server-side tools (webhooks + expressions, no server roundtrip) | ~400 lines  |
-| `SwaigFunction`  | Wraps a tool handler with metadata for SWAIG serialization      | ~100 lines  |
+| Class            | Purpose                                                         |
+| ---------------- | --------------------------------------------------------------- |
+| `AgentBase`      | HTTP server, SWML rendering, tool dispatch, per-request config  |
+| `FunctionResult` | Fluent tool-result builder: context for the model, plus actions |
+| `ContextBuilder` | Multi-step workflows: Context → Step → GatherInfo               |
+| `DataMap`        | Tools the platform runs itself (webhooks and expressions)       |
+| `SwaigFunction`  | Wraps a tool handler with metadata for SWAIG serialization      |
 
 ### Subclassing Pattern
 
@@ -92,9 +93,7 @@ Prefab agents and user agents extend `AgentBase` using three key hooks:
 
 ```typescript
 class MyAgent extends AgentBase {
-  static override PROMPT_SECTIONS = [
-    /* declarative prompt sections */
-  ];
+  static override PROMPT_SECTIONS = [/* declarative prompt sections */];
   protected override defineTools(): void {
     /* register tools */
   }
@@ -105,6 +104,10 @@ class MyAgent extends AgentBase {
 ```
 
 `defineTools()` is a lifecycle hook subclasses override to register their tools. The base class invokes it automatically (exactly once, via the idempotent `ensureToolsDefined()`) the first time tools are needed — on `renderSwml()`, `getTools()`, `getApp()`/`serve()`, or SWAIG dispatch. It runs lazily rather than from the base constructor because in JS/TS `super()` runs before a subclass's field initializers, so a base-constructor call would see `undefined` fields. Calling `this.defineTools()` (or `this.ensureToolsDefined()`) manually from a subclass constructor still works and is safe — registration is idempotent.
+
+### Per-Request Copy
+
+A dynamic config callback (`setDynamicConfigCallback`) and `addPerCallConfig()` callbacks configure a per-request copy of the agent, never the agent itself. The SWML is rendered from the copy, and `/swaig` and post-prompt requests run on a copy configured the same way, so a tool registered in a callback works and its token checks against that copy. Loaded skills are shared with the copy, without running `setup()` again. Tool handlers receive the copy as their third argument, `(args, rawData, agent)`. Handlers run on Node's event loop, so a synchronous or CPU-bound handler blocks every other request.
 
 ### Builder Pattern
 
@@ -126,6 +129,7 @@ class MyAgent extends AgentBase {
 | `PORT`                                              | HTTP server port (default 3000)        |
 | `SWML_BASIC_AUTH_USER` / `SWML_BASIC_AUTH_PASSWORD` | Auth credentials                       |
 | `SWML_PROXY_URL_BASE`                               | Proxy/tunnel base URL for webhook URLs |
+| `SIGNALWIRE_SWAIG_SECRET`                           | Tool-token secret shared by replicas   |
 | `SIGNALWIRE_LOG_LEVEL`                              | debug, info, warn, error               |
 | `SIGNALWIRE_LOG_MODE`                               | Set to "off" to suppress all logging   |
 
@@ -137,4 +141,4 @@ class MyAgent extends AgentBase {
 - `src/prefabs/` — 5 pre-built agent types (InfoGatherer, Survey, FAQ, Concierge, Receptionist)
 - `tests/` — Vitest test files mirroring src/ structure
 - `examples/` — Runnable example agents (`npx tsx examples/simple-agent.ts`)
-- `docs/` — Comprehensive markdown documentation (12 guides + API reference)
+- `docs/` — Markdown guides and the API reference
