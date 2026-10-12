@@ -18,7 +18,7 @@ import {
   runApp,
   type RunContext,
   type JobContext,
-} from '../../src/livewire/index.js';
+} from '@signalwire/sdk/livewire';
 
 // Tool 1: Check order status
 const checkOrder = tool({
@@ -32,6 +32,10 @@ const checkOrder = tool({
   },
   execute: (params: { order_id: string }, context: { ctx: RunContext }) => {
     console.log(`[tool] check_order called with: ${params.order_id}`);
+    // RunContext gives the tool the session's userData, kept across tool calls.
+    const data = context.ctx.userData as { ordersChecked?: string[] };
+    data.ordersChecked = [...(data.ordersChecked ?? []), params.order_id];
+    console.log(`[tool] orders checked this session: ${data.ordersChecked.join(', ')}`);
     const delivery = new Date(Date.now() + 48 * 60 * 60 * 1000).toLocaleDateString();
     return `Order ${params.order_id} is currently in transit. Expected delivery: ${delivery}`;
   },
@@ -100,10 +104,10 @@ const agentDef = defineAgent({
         'You can check order status, look up product information, ' +
         'and schedule callbacks. Be concise and helpful.',
       tools: {
-        check_order: { ...checkOrder, name: 'check_order' },
-        lookup_product: { ...lookupProduct, name: 'lookup_product' },
-        schedule_callback: { ...scheduleCallback, name: 'schedule_callback' },
-        escalate: { ...escalate, name: 'escalate' },
+        check_order: checkOrder,
+        lookup_product: lookupProduct,
+        schedule_callback: scheduleCallback,
+        escalate: escalate,
       },
     });
 

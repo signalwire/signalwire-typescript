@@ -1,0 +1,65 @@
+# SignalWire SDK for TypeScript
+
+> Build AI voice agents, control live calls over WebSocket (RELAY), and manage SignalWire resources over REST. The documentation for the installed version ships with the package (`@signalwire/sdk`).
+
+Run `npx sw-tsdocs` for a map of the SDK, `npx sw-tsdocs <topic>` for an area, and `npx sw-tsdocs api <name>` for signatures read from the installed declarations. The links below are relative to this file, in the installed package.
+
+## Build AI agents
+
+- [README.md](../README.md): The SDK's overview and quickstarts for agents, RELAY and REST
+- [docs/agent-guide.md](../docs/agent-guide.md): The main guide to building agents
+- [docs/architecture.md](../docs/architecture.md): How the pieces fit: the managers AgentBase composes, request flow
+- [docs/api-reference.md](../docs/api-reference.md): Reference for AgentBase and the other public classes
+- [docs/sdk_features.md](../docs/sdk_features.md): What the SDK adds over writing SWML by hand
+- [docs/configuration.md](../docs/configuration.md): Config files and environment variables
+- [docs/pgi_agent_guide.md](../docs/pgi_agent_guide.md): How to design agents that stay within their rules
+- [docs/llm_parameters.md](../docs/llm_parameters.md): Model parameters for the prompt and post-prompt
+- [docs/swaig-reference.md](../docs/swaig-reference.md): Every FunctionResult method and action
+- [docs/datamap-guide.md](../docs/datamap-guide.md): The DataMap builder, templates, expressions and testing
+- [docs/contexts-guide.md](../docs/contexts-guide.md): Contexts, steps, navigation, gather mode and history
+- [docs/skills-guide.md](../docs/skills-guide.md): Using the built-in skills
+- [docs/skills-system.md](../docs/skills-system.md): How skills load, and how to write one
+- [docs/skills_parameter_schema.md](../docs/skills_parameter_schema.md): How skills describe their parameters
+- [docs/third_party_skills.md](../docs/third_party_skills.md): Packaging and loading skills from outside the SDK
+- [docs/prefabs-guide.md](../docs/prefabs-guide.md): Each prefab and its options
+- [docs/programmatically_governed_inference.md](../docs/programmatically_governed_inference.md): The discipline itself: why the model gets no authority, and the four constraint layers
+- [docs/developer_pain_points.md](../docs/developer_pain_points.md): The problems the guide cites, what the SDK and platform provide, and what stays yours
+- [tutorial/fred/tutorial/README.md](../tutorial/fred/tutorial/README.md): Fred, the Wikipedia agent
+- [tutorial/full-guardrails-agent/tutorial/README.md](../tutorial/full-guardrails-agent/tutorial/README.md): Penny, the full-guardrails agent
+- [tutorial/multi_agents/README.md](../tutorial/multi_agents/README.md): The multi-agent tutorial
+
+## Call control and APIs
+
+- [docs/swml_service_guide.md](../docs/swml_service_guide.md): SWMLService and SwmlBuilder
+- [relay/README.md](../relay/README.md): Overview of the RELAY client
+- [relay/docs/getting-started.md](../relay/docs/getting-started.md): Connecting, receiving calls, first steps
+- [relay/docs/guide.md](../relay/docs/guide.md): The RELAY guide: calls, actions, events and messaging
+- [relay/docs/client-reference.md](../relay/docs/client-reference.md): RelayClient reference
+- [relay/docs/call-methods.md](../relay/docs/call-methods.md): Every Call method
+- [relay/docs/events.md](../relay/docs/events.md): Events and their payloads
+- [relay/docs/messaging.md](../relay/docs/messaging.md): Sending and receiving messages
+- [rest/README.md](../rest/README.md): Overview of the REST client
+- [rest/docs/getting-started.md](../rest/docs/getting-started.md): Credentials and first requests
+- [rest/docs/guide.md](../rest/docs/guide.md): The REST guide: namespaces, pagination and errors
+- [rest/docs/client-reference.md](../rest/docs/client-reference.md): RestClient reference
+- [rest/docs/namespaces.md](../rest/docs/namespaces.md): Every namespace and its operations
+- [rest/docs/calling.md](../rest/docs/calling.md): Commands for live calls
+- [rest/docs/fabric.md](../rest/docs/fabric.md): Fabric resources: AI agents, subscribers, SWML scripts
+- [rest/docs/phone-binding.md](../rest/docs/phone-binding.md): Pointing a phone number at an agent or a SWML script
+
+## Integrations
+
+- [livewire/README.md](../livewire/README.md): What LiveWire supports
+- [livewire/docs/migration-guide.md](../livewire/docs/migration-guide.md): Moving a LiveKit agent to LiveWire
+- [docs/mcp_integration.md](../docs/mcp_integration.md): The /mcp endpoint and addMcpServer()
+- [docs/mcp_gateway_reference.md](../docs/mcp_gateway_reference.md): The MCP gateway service and skill
+- [docs/ai_chat.md](../docs/ai_chat.md): The chat client, the gateway and the voice handoff
+- [docs/security.md](../docs/security.md): Credentials and what each protection covers
+- [docs/bedrock_agent.md](../docs/bedrock_agent.md): BedrockAgent's options and differences
+
+## Run and test
+
+- [docs/serverless-guide.md](../docs/serverless-guide.md): Serverless platforms: detection, handlers and URLs
+- [docs/cloud_functions_guide.md](../docs/cloud_functions_guide.md): Lambda, Google Cloud Functions and Azure Functions
+- [docs/web_service.md](../docs/web_service.md): Serving static files alongside agents
+- [docs/cli-guide.md](../docs/cli-guide.md): swaig-test's options and simulation

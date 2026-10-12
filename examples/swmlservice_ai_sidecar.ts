@@ -24,7 +24,7 @@
  *         --exec lookup_competitor --arg competitor=ACME
  */
 
-import { SWMLService } from '../src/index.js';
+import { SWMLService } from '@signalwire/sdk';
 
 /** SWMLService that emits <ai_sidecar> and hosts the tools its LLM calls. */
 class SalesSidecar extends SWMLService {

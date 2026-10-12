@@ -16,7 +16,7 @@
  * is genuinely verified.
  */
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import https from 'node:https';
@@ -64,14 +64,19 @@ function httpsGet(
 }
 
 describe.skipIf(!ready)('TLS: SDK WebService HTTPS server', () => {
-  const certPath = join(certs!, 'server.crt');
-  const keyPath = join(certs!, 'server.key');
-  const caBuf = ready ? readFileSync(join(certs!, 'ca.crt')) : Buffer.alloc(0);
+  // vitest still runs a skipped describe body to collect its tests, so these
+  // must not touch `certs` when porting-sdk is absent (certs === null).
+  const certPath = certs ? join(certs, 'server.crt') : '';
+  const keyPath = certs ? join(certs, 'server.key') : '';
+  const caBuf = certs ? readFileSync(join(certs, 'ca.crt')) : Buffer.alloc(0);
 
   let svc: WebService | null = null;
   let baseUrl = '';
 
   beforeAll(async () => {
+    // start() refuses to run without credentials; /health needs none.
+    vi.stubEnv('SWML_BASIC_AUTH_USER', 'tls');
+    vi.stubEnv('SWML_BASIC_AUTH_PASSWORD', 'tls-pass');
     const port = await freeTcpPort();
     baseUrl = `https://127.0.0.1:${port}`;
     // Configure SSL at construction so the SDK's own config reports it is
@@ -98,6 +103,7 @@ describe.skipIf(!ready)('TLS: SDK WebService HTTPS server', () => {
 
   afterAll(() => {
     svc?.stop();
+    vi.unstubAllEnvs();
   });
 
   it('serves /health over a verified HTTPS session', async () => {

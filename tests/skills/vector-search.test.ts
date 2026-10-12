@@ -155,3 +155,23 @@ describe('NativeVectorSearchSkill', () => {
     expect(res.response).toContain('doc1');
   });
 });
+
+describe('NativeVectorSearchSkill tool_name', () => {
+  it('declares the default the code uses', () => {
+    const schema = NativeVectorSearchSkill.getParameterSchema();
+    expect(schema['tool_name']!.default).toBe('search_knowledge');
+    expect(new NativeVectorSearchSkill().getTools()[0]!.name).toBe('search_knowledge');
+  });
+});
+
+describe('search_stats in global data (found in the tutorials)', () => {
+  it("reports the in-memory backend, not the ignored 'sqlite' default", async () => {
+    const { NativeVectorSearchSkill } =
+      await import('../../src/skills/builtin/native_vector_search.js');
+    const skill = new NativeVectorSearchSkill({
+      documents: [{ id: 'refunds', text: 'Refunds take five days.' }],
+    });
+    await skill.setup();
+    expect(skill.getGlobalData()).toEqual({ search_stats: { doc_count: 1, backend: 'memory' } });
+  });
+});

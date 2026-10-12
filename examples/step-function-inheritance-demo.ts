@@ -33,8 +33,8 @@
  * endpoints behind the tools, this is purely a documentation example.
  */
 
-import { AgentBase } from '../src/AgentBase.js';
-import { FunctionResult } from '../src/FunctionResult.js';
+import { AgentBase } from '@signalwire/sdk';
+import { FunctionResult } from '@signalwire/sdk';
 
 class StepFunctionInheritanceAgent extends AgentBase {
   constructor() {

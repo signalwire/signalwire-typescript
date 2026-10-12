@@ -11,8 +11,8 @@
  *   curl http://user:pass@localhost:3000/?set=medical
  */
 
-import { InfoGathererAgent } from '../src/index.js';
-import type { InfoGathererQuestion } from '../src/index.js';
+import { InfoGathererAgent } from '@signalwire/sdk';
+import type { InfoGathererQuestion } from '@signalwire/sdk';
 
 const questionSets: Record<string, InfoGathererQuestion[]> = {
   default: [

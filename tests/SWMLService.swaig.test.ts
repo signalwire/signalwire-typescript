@@ -6,6 +6,7 @@
  */
 
 import { SWMLService } from '../src/SWMLService.js';
+import { FunctionResult } from '../src/FunctionResult.js';
 
 beforeEach(() => {
   delete process.env['SWML_BASIC_AUTH_USER'];
@@ -90,6 +91,23 @@ describe('SWMLService SWAIG hosting', () => {
       const text = await res.text();
       expect(text).toContain('ACME');
       expect(text).toContain('$79');
+    });
+
+    it.each([
+      ['an async handler', async () => new FunctionResult('async result')],
+      ['a FunctionResult', () => new FunctionResult('async result')],
+      ['a string', () => 'async result'],
+      ['an async string', async () => 'async result'],
+    ])('POST /swaig awaits and normalizes %s', async (_label, handler) => {
+      const svc = new SWMLService({ basicAuth: ['u', 'p'] });
+      svc.defineTool({ name: 'slow', description: 'slow', parameters: {}, handler });
+      const res = await svc.getApp().request('/swaig', {
+        method: 'POST',
+        headers: { ...authHeader('u', 'p'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ function: 'slow', argument: { parsed: [{}] } }),
+      });
+      expect(res.status).toBe(200);
+      expect((await res.json())['response']).toBe('async result');
     });
 
     it('POST /swaig missing function name returns 400', async () => {

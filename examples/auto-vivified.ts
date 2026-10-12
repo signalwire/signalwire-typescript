@@ -6,7 +6,7 @@
  * Run: npx tsx examples/auto-vivified.ts
  */
 
-import { SWMLService } from '../src/index.js';
+import { SWMLService } from '@signalwire/sdk';
 
 // --- Voicemail Service ---
 const voicemail = new SWMLService({

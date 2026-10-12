@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
+import type { Context } from 'hono';
 import { suppressAllLogs } from '../../src/Logger.js';
 import { InfoGathererAgent, createInfoGathererAgent } from '../../src/prefabs/InfoGathererAgent.js';
 import { SurveyAgent, createSurveyAgent } from '../../src/prefabs/SurveyAgent.js';
@@ -159,7 +160,11 @@ describe('InfoGathererAgent', () => {
     });
     agent.setQuestionCallback(cb);
 
-    const mods = await agent.onSwmlRequest({ query_params: { mode: 'support' } });
+    // The query parameters come from the request (the Hono context), not the body.
+    const context = {
+      req: { query: () => ({ mode: 'support' }), raw: { headers: new Headers() } },
+    } as unknown as Context;
+    const mods = await agent.onSwmlRequest({}, undefined, context);
     expect(cb).toHaveBeenCalledTimes(1);
 
     // Python parity: onSwmlRequest returns the global_data modifications dict

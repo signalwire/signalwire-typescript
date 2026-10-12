@@ -10,7 +10,7 @@
  *   npx tsx rest/examples/rest-fabric-swml-and-callflows.ts
  */
 
-import { RestClient, RestError } from '../../src/index.js';
+import { RestClient, RestError } from '@signalwire/sdk';
 
 const client = new RestClient();
 

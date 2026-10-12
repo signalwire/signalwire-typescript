@@ -32,3 +32,4 @@ verify recipe) and the individual audit scripts.
 - WIRE_VIOLATIONS_ALLOW.md — STRICT-MOCKS signed-exception ledger read by porting-sdk assert_no_wire_violations.py / examples_run.py / snippet_run.py at repo root (approver: mike@signalwire.com, 2026-07-18)
 - WIRED_MODES.md — WIRED-MODES gate manifest declaring the load-bearing run-ci env/mode lines, read by porting-sdk check_wired_modes.py at repo root (plan 1.6/D7, 2026-07-19)
 - .doc_surface_floor — DOC-SURFACE TSDoc-coverage floor pin, read + ratcheted at repo root by porting-sdk doc_surface.py (plan 6.3, 2026-07-19)
+- AGENTS.md — instructions for coding agents that read AGENTS.md instead of CLAUDE.md; mirrors CLAUDE.md, and tests/AgentsMd.test.ts checks the two match (anthm@signalwire.com, 2026-09-28)
