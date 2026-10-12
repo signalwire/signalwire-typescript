@@ -10,7 +10,7 @@
  * Run: npx tsx examples/relay-demo.ts
  */
 
-import { RelayClient } from '../src/index.js';
+import { RelayClient } from '@signalwire/sdk';
 
 const client = new RelayClient({
   contexts: ['default'],

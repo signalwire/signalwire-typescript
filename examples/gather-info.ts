@@ -1,12 +1,13 @@
 /**
  * Gather Info with Steps Example
  *
- * Uses the ContextBuilder with GatherInfo to collect structured
- * information from the caller through a guided conversation flow.
+ * Uses the ContextBuilder's gather info mode (setGatherInfo and
+ * addGatherQuestion) to collect a patient's details and reason for visit one
+ * question at a time, then confirms the answers and calls submit_intake.
  * Run: npx tsx examples/gather-info.ts
  */
 
-import { AgentBase, FunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'intake-agent',
@@ -38,31 +39,54 @@ agent.defineTool({
   },
 });
 
-// Define structured conversation flow with steps
+// Define the intake flow. The first two steps run in gather info mode: the
+// AI asks each question in turn and stores the answers in global_data under
+// the step's output key. The last step is a normal step that confirms the
+// answers and calls submit_intake.
 const ctx = agent.defineContexts();
 const intake = ctx.addContext('default');
 
-// Step 1: Welcome and collect name
+// Step 1: Gather the patient's details
 intake
-  .addStep('welcome', { task: 'Welcome the patient and ask for their full name.' })
-  .setStepCriteria('Patient has provided their full name')
-  .setFunctions('none')
+  .addStep('demographics')
+  .setText("Collect the patient's basic information.")
+  .setGatherInfo({
+    outputKey: 'patient_demographics',
+    prompt: 'Welcome the patient, then collect the following information.',
+  })
+  .addGatherQuestion({ key: 'full_name', question: 'What is your full name?' })
+  .addGatherQuestion({ key: 'date_of_birth', question: 'What is your date of birth?' })
+  .addGatherQuestion({
+    key: 'phone_number',
+    question: 'What is your phone number?',
+    confirm: true,
+  })
   .setValidSteps(['reason']);
 
-// Step 2: Collect reason for visit
+// Step 2: Gather the reason for the visit
 intake
-  .addStep('reason', {
-    task: 'Ask the patient about their reason for visiting today.',
+  .addStep('reason')
+  .setText("Ask about the patient's reason for visiting today.")
+  .setGatherInfo({
+    outputKey: 'visit_reason',
+    prompt: 'Now ask why the patient is visiting today.',
   })
-  .setStepCriteria('Patient has described their reason for the visit')
-  .setFunctions('none')
+  .addGatherQuestion({
+    key: 'reason_for_visit',
+    question: 'What is the main reason for your visit today?',
+  })
+  .addGatherQuestion({
+    key: 'symptom_duration',
+    question: 'How long have you been experiencing these symptoms?',
+  })
   .setValidSteps(['confirm']);
 
-// Step 3: Confirm and submit
+// Step 3: Confirm and submit (normal mode, not gather)
 intake
   .addStep('confirm', {
     task: 'Confirm the collected information with the patient and submit the intake form.',
   })
+  .setStepCriteria('Patient has confirmed the information and the form is submitted')
   .setFunctions(['submit_intake'])
   .setEnd(true);
 

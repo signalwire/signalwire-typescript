@@ -25,8 +25,8 @@
  * Run this file to see the resulting SWML.
  */
 
-import { AgentBase } from '../src/AgentBase.js';
-import { FunctionResult } from '../src/FunctionResult.js';
+import { AgentBase } from '@signalwire/sdk';
+import { FunctionResult } from '@signalwire/sdk';
 
 class GatherPerQuestionFunctionsAgent extends AgentBase {
   constructor() {

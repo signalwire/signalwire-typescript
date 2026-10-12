@@ -14,7 +14,7 @@
  *   npx tsx rest/examples/rest-calling-play-and-record.ts
  */
 
-import { RestClient, RestError } from '../../src/index.js';
+import { RestClient, RestError } from '@signalwire/sdk';
 
 const client = new RestClient();
 

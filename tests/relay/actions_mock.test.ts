@@ -435,12 +435,14 @@ describe('StreamAction', () => {
     const call = await answeredInboundCall('call-strm');
     await call.stream('wss://stream.example/audio', {
       codec: 'OPUS@48000h',
+      track: 'both_tracks',
       controlId: 'strm-ctl',
     });
     const [entry] = await mock.journalRecv('calling.stream');
     const p = entry!.frame.params;
     expect(p!.url).toBe('wss://stream.example/audio');
     expect(p!.codec).toBe('OPUS@48000h');
+    expect(p!.track).toBe('both_tracks');
     expect(p!.control_id).toBe('strm-ctl');
   });
 

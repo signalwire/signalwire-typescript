@@ -12,6 +12,7 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { createHmac } from 'node:crypto';
 
+import { SessionManager } from '../src/SessionManager.js';
 import { AgentBase } from '../src/AgentBase.js';
 import { FunctionResult } from '../src/FunctionResult.js';
 
@@ -142,6 +143,31 @@ describe('AgentBase — webhook signature validation', () => {
     expect(res.status).toBe(200);
   });
 
+  it('with explicit signingKey: POST / signed only with X-SignalWire-Sha256-Signature is accepted', async () => {
+    const agent = new AgentBase({
+      name: 'sig-agent',
+      route: '/',
+      basicAuth: ['u', 'p'],
+      signingKey: KEY,
+    });
+    agent.setPromptText('hello');
+
+    const body = JSON.stringify({ call_id: 'abc-123' });
+    const sig = createHmac('sha256', KEY)
+      .update('http://localhost/' + body, 'utf8')
+      .digest('hex');
+    const res = await agent.getApp().request('/', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + Buffer.from('u:p').toString('base64'),
+        'X-SignalWire-Sha256-Signature': sig,
+        'Content-Type': 'application/json',
+      },
+      body,
+    });
+    expect(res.status).toBe(200);
+  });
+
   it('with explicit signingKey: POST / with bogus sig → 403', async () => {
     const agent = new AgentBase({
       name: 'sig-agent',
@@ -173,11 +199,15 @@ describe('AgentBase — webhook signature validation', () => {
     });
 
     const app = agent.getApp();
-    const body = JSON.stringify({ post_prompt_data: { summary: 'ok' } });
-    const url = 'http://localhost/post_prompt';
+    // A summary needs the post-prompt token for its call, and the signature
+    // covers the full URL, query string included.
+    const sm = (agent as unknown as { sessionManager: SessionManager }).sessionManager;
+    const token = encodeURIComponent(sm.createToolToken('post_prompt', 'c1'));
+    const body = JSON.stringify({ call_id: 'c1', post_prompt_data: { summary: 'ok' } });
+    const url = `http://localhost/post_prompt?__token=${token}`;
     const sig = schemeASig(KEY, url, body);
 
-    const res = await app.request('/post_prompt', {
+    const res = await app.request(`/post_prompt?__token=${token}`, {
       method: 'POST',
       headers: {
         Authorization: 'Basic ' + Buffer.from('u:p').toString('base64'),
@@ -187,6 +217,61 @@ describe('AgentBase — webhook signature validation', () => {
       body,
     });
     expect(res.status).toBe(200);
+  });
+
+  describe('routing-callback paths', () => {
+    /** An agent with a signing key and a routing callback at /cb that never redirects. */
+    function routedAgent() {
+      const agent = new AgentBase({
+        name: 'sig-agent',
+        route: '/',
+        basicAuth: ['u', 'p'],
+        signingKey: KEY,
+      });
+      agent.setPromptText('routed');
+      const seen: unknown[] = [];
+      agent.registerRoutingCallback((body) => {
+        seen.push(body);
+        return null;
+      }, '/cb');
+      return { agent, seen };
+    }
+    const auth = 'Basic ' + Buffer.from('u:p').toString('base64');
+    const body = JSON.stringify({ call_id: 'c1' });
+
+    it('refuses an unsigned POST and does not run the callback', async () => {
+      const { agent, seen } = routedAgent();
+      const res = await agent.getApp().request('/cb', {
+        method: 'POST',
+        headers: { Authorization: auth, 'Content-Type': 'application/json' },
+        body,
+      });
+      expect(res.status).toBe(403);
+      expect(seen).toEqual([]);
+    });
+
+    it('accepts a signed POST and renders SWML', async () => {
+      const { agent, seen } = routedAgent();
+      const sig = schemeASig(KEY, 'http://localhost/cb', body);
+      const res = await agent.getApp().request('/cb', {
+        method: 'POST',
+        headers: {
+          Authorization: auth,
+          'X-SignalWire-Signature': sig,
+          'Content-Type': 'application/json',
+        },
+        body,
+      });
+      expect(res.status).toBe(200);
+      expect(seen).toHaveLength(1);
+      expect((await res.json()).sections).toBeDefined();
+    });
+
+    it('serves an unsigned GET, like the root SWML probe', async () => {
+      const { agent } = routedAgent();
+      const res = await agent.getApp().request('/cb', { headers: { Authorization: auth } });
+      expect(res.status).toBe(200);
+    });
   });
 
   it('with explicit signingKey: GET / (SWML probe) is unsigned and still works', async () => {

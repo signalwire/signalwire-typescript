@@ -1,5 +1,7 @@
 # SignalWire SWML Service Guide
 
+`SWMLService` builds a SWML document from verbs and serves it over HTTP. This guide covers building documents, serving them, authentication, dynamic documents and routing callbacks.
+
 <!-- snippet-setup -->
 ```ts
 export {}; // treat each example as a module (top-level await)
@@ -25,31 +27,29 @@ declare global {
 
 ## Introduction
 
-The `SWMLService` class is a foundation for creating and serving SignalWire Markup Language (SWML) documents. It is the base class for `AgentBase` and handles common tasks such as:
+`SWMLService` creates and serves SignalWire Markup Language (SWML) documents, the JSON call-flow instructions SignalWire runs on a call. `AgentBase` extends it, so an agent has the same document, serving and routing methods, plus the AI verb and its tools. `SWMLService` handles these tasks:
 
 - SWML document creation and manipulation
-- Schema validation
+- Schema validation of each verb
 - HTTP serving (built on [Hono](https://hono.dev/))
-- Authentication
+- Basic authentication
 - Structured logging
 
-Use `SWMLService` when you need a SignalWire call flow but don't need AI — plain call
-routing, IVR-style trees, recording workflows, static playback, etc. For AI-powered voice
-agents, use [`AgentBase`](agent-guide.md) instead.
+Use `SWMLService` for a call flow that doesn't need AI: call routing, IVR-style menus, recording, or playback. For an AI voice agent, use [`AgentBase`](agent-guide.md) instead.
 
 ## Installation
 
-The `SWMLService` class is part of the SignalWire AI Agents SDK:
+The `SWMLService` class is part of the SignalWire SDK package:
 
 ```bash
 npm install @signalwire/sdk
 ```
 
-It requires Node.js >= 22.
+The package requires Node.js 22 or later.
 
 ## Basic Usage
 
-Here's a simple SWML service that subclasses `SWMLService` and builds a static document:
+This service subclasses `SWMLService` and builds a static document in its constructor:
 
 <!-- snippet: no-run starts a blocking HTTP server via service.serve() -->
 ```typescript
@@ -77,7 +77,9 @@ const service = new SimpleVoiceService();
 await service.serve();
 ```
 
-You can also build documents with the fluent `SwmlBuilder` returned by `getBuilder()`:
+The service answers `GET` and `POST` on `/voice` with the document. SignalWire requests a document with a `POST`; a `GET` works too, which is handy for testing with a browser or `curl`.
+
+You can also build the document with the `SwmlBuilder` that `getBuilder()` returns. It has a method for each verb in the SWML schema, and each returns the builder:
 
 <!-- snippet: no-run starts a blocking HTTP server via service.serve() -->
 ```typescript
@@ -93,10 +95,11 @@ await service.serve();
 
 ## Logging
 
-Every `SWMLService` instance exposes a structured logger on the public `log` property.
-Logging is configured globally by the SDK's `Logger` module.
+Every `SWMLService` instance has a logger on its public `log` property. The SDK's `Logger` module configures logging for the whole process.
 
 ### Using the Logger
+
+A subclass method logs through `this.log`, with optional data:
 
 <!-- snippet: no-compile fragment from inside an SWMLService subclass method; uses `this.log` / `document` -->
 ```typescript
@@ -116,7 +119,7 @@ try {
 
 ### Log Levels
 
-The following log levels are available (in increasing order of severity):
+The logger has four levels, in increasing order of severity:
 - `debug`: Detailed information for debugging
 - `info`: General information about operation
 - `warn`: Warning about potential issues
@@ -124,28 +127,31 @@ The following log levels are available (in increasing order of severity):
 
 ### Controlling Log Output
 
-Logging is configured via environment variables and the `Logger` helper functions:
+Environment variables set the level and mode when the process starts:
 
 ```bash
 export SIGNALWIRE_LOG_LEVEL=warn   # debug | info | warn | error
-export SIGNALWIRE_LOG_MODE=off     # set to "off" to suppress all logging
+export SIGNALWIRE_LOG_MODE=off     # off | stderr | auto
 ```
+
+The `Logger` functions change them at runtime:
 
 ```typescript
 import { setGlobalLogLevel, suppressAllLogs } from '@signalwire/sdk';
 
-setGlobalLogLevel('warn');  // Only show warnings and above
+setGlobalLogLevel('warn');  // Only show warnings and errors
 suppressAllLogs(true);      // Suppress everything
 ```
 
+For the log format, colors and the other settings, see [Logging](configuration.md#logging) in the configuration guide.
+
 ## SWML Document Creation
 
-`SWMLService` provides methods for creating and manipulating SWML documents.
+`SWMLService` has methods to create and change its SWML document.
 
 ### Document Structure
 
-SWML documents have the following basic structure (output keys are `snake_case`, the
-platform format):
+A SWML document has a `version` and named `sections`. The call starts at `main`:
 
 ```json
 {
@@ -162,45 +168,52 @@ platform format):
 }
 ```
 
+A `transfer` or `execute` verb with a section name as its `dest` moves the call to that section. The SWML schema bundled with the SDK (`src/schema.json`) describes both verbs.
+
 ### Document Methods
 
-- `resetDocument()`: Reset the document to an empty state
+These methods build and read the document:
+
+- `resetDocument()`: Reset the document to an empty `main` section
 - `addVerb(verbName, config)`: Add a verb to the main section
-- `addSection(sectionName)`: Add a new section
-- `addVerbToSection(sectionName, verbName, config)`: Add a verb to a specific section
+- `addSection(sectionName)`: Add an empty section, if it doesn't exist
+- `addVerbToSection(sectionName, verbName, config)`: Add a verb to a section, creating the section if needed
 - `getDocument()`: Get the current document as an object
 - `renderDocument()`: Get the current document as a JSON string
-- `getBuilder()`: Get the underlying `SwmlBuilder` for fluent verb methods
+- `getBuilder()`: Get the underlying `SwmlBuilder`, which has a method for each verb
 
 ## Verb Handling
 
-`SWMLService` validates SWML verbs against the bundled SignalWire schema.
+`SWMLService` validates each verb against the SWML schema bundled with the SDK.
 
 ### Verb Validation
 
-When you add a verb, the service validates it against the schema to ensure it has the
-correct structure and parameters. An invalid config throws an error:
+`addVerb()` and `addVerbToSection()` check the verb name and its configuration against the schema. An unknown verb, an unknown property or a wrong type throws a `SchemaValidationError`:
 
 <!-- snippet: no-compile fragment from inside an SWMLService subclass method; uses `this.addVerb` -->
 ```typescript
-// This validates the configuration against the schema
+// Valid: play takes a url and a volume
 this.addVerb('play', { url: 'say:Hello, world!', volume: 5 });
 
-// This would throw a validation error (invalid parameter)
+// Throws: play has no invalid_param property
 this.addVerb('play', { invalid_param: 'value' });
 ```
 
-Validation can be disabled via the `schemaValidation: false` constructor option or the
-`SWML_SKIP_SCHEMA_VALIDATION=true` environment variable.
+The second call throws with this message:
+
+```text
+Schema validation failed for 'play': Schema validation error for 'play': /play unknown property 'invalid_param'
+```
+
+Set `SWML_SKIP_SCHEMA_VALIDATION=true`, or pass `schemaValidation: false`, to turn validation off. `schemaPath` validates verbs against another schema file.
 
 ### Custom Verb Handlers
 
-You can register custom verb handlers for specialized verb processing by implementing the
-`SWMLVerbHandler` interface and registering it via `registerVerbHandler()`:
+`registerVerbHandler()` stores an object that implements the `SWMLVerbHandler` interface in the service's `verbRegistry`, keyed by verb name:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `service` object established earlier on the page -->
 ```typescript
-import { SWMLVerbHandler } from '@signalwire/sdk';
+import type { SWMLVerbHandler } from '@signalwire/sdk';
 
 const customPlayHandler: SWMLVerbHandler = {
   getVerbName: () => 'play',
@@ -209,46 +222,94 @@ const customPlayHandler: SWMLVerbHandler = {
 };
 
 service.registerVerbHandler(customPlayHandler);
+const handler = service.verbRegistry.getHandler('play');
 ```
+
+`addVerb()` doesn't consult the registry, so a registered handler doesn't change how verbs are validated or added. Call the handler's methods from your own code.
 
 ## Web Service Features
 
-`SWMLService` includes built-in HTTP serving for SWML documents.
+`SWMLService` serves its document over HTTP with a [Hono](https://hono.dev/) app.
 
 ### Endpoints
 
-By default, a service provides the following endpoints:
+A service answers these requests, where `{route}` is the `route` option (default `/`):
 
-- `GET /{route}`: Return the SWML document
-- `POST /{route}`: Process request data and return the SWML document
-- `GET /{route}/swaig` and `POST /{route}/swaig`: SWAIG function dispatch
-- `GET /health`, `GET /ready`: Health and readiness checks
+- `GET {route}` and `POST {route}`: Return the SWML document
+- `GET {route}/swaig`: Return the SWML document
+- `POST {route}/swaig`: Run a SWAIG function registered with `defineTool()`
+- `GET /health` and `GET /ready`: Return `{"status":"ok"}` and `{"status":"ready"}`
+- Each routing-callback path, at the server root: see [Custom Routing Callbacks](#custom-routing-callbacks)
 
-Where `{route}` is the route path specified when creating the service.
+With the default route `/`, the SWAIG path is `/swaig`. A trailing slash is a different path: `GET /voice/` gets `404` when the route is `/voice`. `serve()` binds to the `host` and `port` options (defaults `0.0.0.0` and `PORT` or `3000`).
+
+Every response carries `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`, `Content-Security-Policy` and `Permissions-Policy` headers. CORS allows the origins in `SWML_CORS_ORIGINS`, or any origin when it's unset.
+
+### SWAIG Functions
+
+A `SWMLService` can register tools with `defineTool()` and run them on `POST {route}/swaig`. The request body names the function in `function`, and its arguments in `argument.parsed[0]` or `arguments`:
+
+<!-- snippet: no-run illustrative fragment: references the assumed `service` object established earlier on the page -->
+```typescript
+import { FunctionResult } from '@signalwire/sdk';
+
+// Your own asynchronous lookup, such as a database query
+async function lookUpHours(day: string): Promise<string> {
+  return day.toLowerCase() === 'sunday' ? 'from noon to 5 PM' : 'from 9 AM to 5 PM';
+}
+
+service.defineTool({
+  name: 'get_hours',
+  description: 'Get the office hours for a day of the week.',
+  parameters: { day: { type: 'string', description: 'Day of the week' } },
+  handler: async (args) => {
+    const hours = await lookUpHours(String(args.day));
+    return new FunctionResult(`The office is open ${hours} on ${args.day}.`);
+  },
+});
+```
+
+The route awaits the handler, so an `async` handler's result is sent once it resolves. A `FunctionResult` is sent as its `toDict()` form, a string is wrapped in a `FunctionResult`, and an object is sent as it is. The `response` text is context for the model on the call, not speech: the model decides what to say.
+
+These requests don't run a handler:
+
+- A body that isn't JSON gets `400` `{"error":"Invalid JSON"}`.
+- A missing function name gets `400`, and a name that isn't a valid identifier gets `400`.
+- A function the service doesn't have gets `404` `{"error":"Unknown function: <name>"}`.
+
+`SWMLService` doesn't check per-call tokens. A tool's `secure` setting takes effect on `AgentBase`, which renders the tokens into its SWML and checks them on `/swaig`. On a plain `SWMLService`, basic auth is the only protection for `/swaig`.
 
 ### Authentication
 
-Basic authentication is available for all endpoints. Provide credentials via the
-constructor, or set the environment variables. When credentials are auto-generated
-(neither provided nor in the environment), they are available via
-`getBasicAuthCredentials()` but not enforced on HTTP requests.
+`SWMLService` resolves basic-auth credentials in this order:
+
+1. The `basicAuth` constructor option.
+2. The config file's `security.auth.basic` (or `security.basicAuth`) password, when you pass `configFile`.
+3. `SWML_BASIC_AUTH_PASSWORD`, with `SWML_BASIC_AUTH_USER` or `signalwire` as the username.
+4. Generated credentials: the service name as the username and a random password.
+
+The service enforces the first three on every route, including `/health` and `/ready`. It doesn't enforce generated credentials: with no option, config file or environment variable, the service serves every route, `/swaig` included, without authentication, and `serve()` logs a warning saying so. The Python SDK's service always requires them. `getBasicAuthCredentials(true)` returns the credentials and their source (`provided`, `config file`, `environment` or `generated`).
+
+This service requires basic auth:
 
 ```typescript
 const service = new SWMLService({
   name: 'my-service',
-  basicAuth: ['username', 'password'],
+  basicAuth: ['username', 'a-long-random-password'],
 });
 ```
 
-Environment variables:
-- `SWML_BASIC_AUTH_USER`
-- `SWML_BASIC_AUTH_PASSWORD`
+When credentials are enforced, the routes and `handleRequest()`, the framework-free dispatch method, check them through `validateBasicAuth()`, which a subclass can override.
 
 ### Dynamic SWML Generation
 
-Override the protected `buildSwmlForRequest()` hook to fully replace the document for a
-request, or use `setOnRequestCallback()`. The hook returns a `SwmlBuilder` (whose document
-is sent), or `null` to fall through to the static document:
+Each request for the document runs the first of these that applies:
+
+1. The protected `buildSwmlForRequest(queryParams, bodyParams, headers)` hook. Return a `SwmlBuilder` to send its document, or `null` to fall through.
+2. The callback set with `setOnRequestCallback()`. It returns a `SwmlBuilder`, or a promise of one.
+3. The service's own document.
+
+`bodyParams` is the request's JSON body, or an empty object for a `GET`. This subclass builds a different document for each request:
 
 ```typescript
 import { SWMLService, SwmlBuilder } from '@signalwire/sdk';
@@ -263,10 +324,10 @@ class DynamicService extends SWMLService {
     builder.answer();
 
     // Customize the document based on request data
-    if (bodyParams['caller_type'] === 'vip') {
-      builder.play({ url: 'say:Welcome VIP caller!' });
+    if (queryParams['caller_type'] === 'vip') {
+      builder.play({ url: 'say:Welcome, VIP caller.' });
     } else {
-      builder.play({ url: 'say:Welcome caller!' });
+      builder.play({ url: 'say:Welcome, caller.' });
     }
 
     return builder;
@@ -274,11 +335,11 @@ class DynamicService extends SWMLService {
 }
 ```
 
-Alternatively, register a per-request callback:
+`buildSwmlForRequest()` is synchronous. To build the document with asynchronous work, register a callback instead:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `service` object established earlier on the page -->
 ```typescript
-service.setOnRequestCallback((queryParams, bodyParams, headers) => {
+service.setOnRequestCallback(async (queryParams, bodyParams, headers) => {
   const builder = new SwmlBuilder();
   builder.answer().play({ url: 'say:Hello!' }).hangup();
   return builder;
@@ -287,14 +348,11 @@ service.setOnRequestCallback((queryParams, bodyParams, headers) => {
 
 ## Custom Routing Callbacks
 
-`SWMLService` lets you register routing callbacks that examine incoming requests and decide
-where they should be routed.
+A routing callback inspects a request at a path you choose, and either redirects it or lets the service answer it.
 
 ### Registering a Routing Callback
 
-Use `registerRoutingCallback()` to register a function called when a request arrives at a
-specific path. If it returns a string, the response is a 307 redirect to that route; if it
-returns `null`, normal SWML serving continues:
+`registerRoutingCallback(callbackFn, path)` adds `GET` and `POST` routes at `path` (default `/sip`). The path is at the server root, not under the service's `route`. The callback receives the request's JSON body and its headers, and returns a route string or `null`:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `service` object established earlier on the page -->
 ```typescript
@@ -305,7 +363,7 @@ function myRoutingCallback(body: SwmlRequestData): string | null {
   if (body['customer_id']) {
     return `/customer/${body['customer_id']}`;
   }
-  // Process request normally
+  // Serve the service's document
   return null;
 }
 
@@ -315,74 +373,54 @@ service.registerRoutingCallback(myRoutingCallback, '/customer');
 
 ### How Routing Works
 
-1. When a request is received at the registered path, the routing callback runs.
-2. The callback inspects the request body and decides whether to redirect.
-3. If it returns a route string, the request is redirected with HTTP 307 (temporary redirect).
-4. If it returns `null`, the request is processed normally and the static SWML is returned.
+A request to a callback path goes through these steps:
 
-### Example: Multi-Section Service
+1. For a `POST` with a JSON body, the route calls the callback with the body and the headers, and awaits it. A `GET`, or a `POST` with no body, skips the callback.
+2. If the callback returns a string, the response is a `307` redirect with that string as the `Location`.
+3. Otherwise, or if the callback throws, the response is the service's SWML for the request, built as the main route builds it.
 
-Here's a service that uses routing callbacks to handle different types of requests:
+The callback can return its route directly or as a `Promise`.
+
+### Example: Routing by SIP Username
+
+This service serves one document at `/main`, and a callback at `/sip` sends calls for the SIP user `sales` to another route:
 
 ```typescript
 import { SWMLService } from '@signalwire/sdk';
 import type { SwmlRequestData } from '@signalwire/sdk';
 
-class MultiSectionService extends SWMLService {
+class FrontDoorService extends SWMLService {
   constructor() {
-    super({ name: 'multi-section', route: '/main' });
+    super({ name: 'front-door', route: '/main' });
 
-    // Build the main document
-    this.resetDocument();
+    // The main document: a greeting, then the menu section
     this.addVerb('answer', {});
-    this.addVerb('play', { url: 'say:Hello from the main service!' });
-    this.addVerb('hangup', {});
+    this.addVerb('play', { url: 'say:Hello from the main service.' });
+    this.addVerb('transfer', { dest: 'menu' });
 
-    // Register customer and product routes
-    this.registerCustomerRoute();
-    this.registerProductRoute();
-  }
+    // A second section, reached by the transfer verb
+    this.addVerbToSection('menu', 'play', { url: 'say:Goodbye.' });
+    this.addVerbToSection('menu', 'hangup', {});
 
-  registerCustomerRoute(): void {
-    const customerCallback = (body: SwmlRequestData): string | null => {
-      if (body['customer_id']) {
-        this.log.info('processing_customer', { customerId: body['customer_id'] });
+    this.registerRoutingCallback((body: SwmlRequestData) => {
+      const user = SWMLService.extractSipUsername(body);
+      if (user === 'sales') {
+        this.log.info('routing_to_sales');
+        return '/sales';
       }
       return null;
-    };
-    this.registerRoutingCallback(customerCallback, '/customer');
-
-    // Create the customer SWML section
-    this.addSection('customer_section');
-    this.addVerbToSection('customer_section', 'answer', {});
-    this.addVerbToSection('customer_section', 'play', { url: 'say:Welcome to customer service!' });
-    this.addVerbToSection('customer_section', 'hangup', {});
-  }
-
-  registerProductRoute(): void {
-    const productCallback = (body: SwmlRequestData): string | null => {
-      if (body['product_id']) {
-        this.log.info('processing_product', { productId: body['product_id'] });
-      }
-      return null;
-    };
-    this.registerRoutingCallback(productCallback, '/product');
-
-    // Create the product SWML section
-    this.addSection('product_section');
-    this.addVerbToSection('product_section', 'answer', {});
-    this.addVerbToSection('product_section', 'play', { url: 'say:Welcome to product support!' });
-    this.addVerbToSection('product_section', 'hangup', {});
+    }, '/sip');
   }
 }
 ```
+
+A `POST /sip` whose body has `call.to` set to `sip:sales@example.sip.signalwire.com` gets a `307` to `/sales`. Any other request to `/sip` gets the service's document. `SWMLService.extractSipUsername()` returns the user part of a `sip:` or `sips:` address, the number of a `tel:` address, or the `call.to` value as it is.
 
 ## Advanced Usage
 
 ### Mounting into a Larger App
 
-`getApp()` returns the underlying Hono app so you can mount the service into a larger
-application. `asRouter()` is a cross-SDK-friendly alias that returns the same app:
+`getApp()` returns the service's Hono app, so you can mount it in a larger application. `asRouter()` returns the same app:
 
 ```typescript
 import { Hono } from 'hono';
@@ -392,31 +430,43 @@ const service = new SWMLService({ name: 'my-service' });
 app.route('/voice', service.getApp());
 ```
 
-### Schema Path Customization
+Mounted this way, the service's routes are under `/voice`: its document at `/voice` and its SWAIG route at `/voice/swaig`.
 
-You can specify a custom path to the SWML schema file:
+### Serving HTTPS
 
+`serve()` serves HTTPS when SSL is enabled and both a certificate and a key path are set. The paths come from the `serve()` options, then the config file's `security.ssl` keys, then `SWML_SSL_ENABLED`, `SWML_SSL_CERT_PATH` and `SWML_SSL_KEY_PATH`:
+
+<!-- snippet: no-run starts a blocking HTTPS server via service.serve() -->
 ```typescript
-const service = new SWMLService({
-  name: 'my-service',
-  schemaPath: '/path/to/schema.json',
+const service = new SWMLService({ name: 'my-service', port: 8443 });
+service.addVerb('answer', {});
+await service.serve({
+  sslEnabled: true,
+  sslCert: '/etc/ssl/certs/voice.example.com.pem',
+  sslKey: '/etc/ssl/private/voice.example.com.key',
 });
 ```
+
+Without all three, `serve()` serves plain HTTP. HTTPS responses don't carry a `Strict-Transport-Security` header. `AgentBase` overrides `serve()` and serves HTTPS from the same settings; see [SSL/TLS](configuration.md#ssltls) in the configuration guide.
 
 ## API Reference
 
 ### Constructor Options (`SWMLServiceOptions`)
 
-- `name`: Service name/identifier (required)
+The constructor takes these options:
+
+- `name`: Service name (required)
 - `route`: HTTP route path (default `'/'`)
 - `host`: Host to bind to (default `'0.0.0.0'`)
-- `port`: Port to bind to (default `PORT` env var or 3000)
+- `port`: Port to bind to (default `PORT` or `3000`)
 - `basicAuth`: Optional `[username, password]` tuple
-- `schemaPath`: Optional path to a custom SWML schema JSON file
-- `configFile`: Optional path to a security configuration file
-- `schemaValidation`: Enable schema validation (default `true`)
+- `schemaPath`: Path to a SWML schema file that verbs are validated against
+- `configFile`: Path to a JSON config file; the service reads its `security.ssl` and basic-auth keys
+- `schemaValidation`: `false` turns off verb validation (default `true`)
 
 ### Document Methods
+
+The document methods listed in [Document Methods](#document-methods) are the public API:
 
 - `resetDocument()`
 - `addVerb(verbName, config)`
@@ -428,19 +478,26 @@ const service = new SWMLService({
 
 ### Service Methods
 
+These methods serve, configure and inspect the service:
+
 - `getApp()`: Get the underlying Hono app
-- `asRouter()`: Alias for `getApp()` (cross-SDK parity)
-- `serve(host?, port?, opts?)`: Start the HTTP(S) server
+- `asRouter()`: Return the same app as `getApp()`, to mount in a host app
+- `serve(hostOrOptions?, port?, sslOptions?)`: Start the HTTP or HTTPS server
 - `stop()`: Stop the server
+- `handleRequest(method, url, headers, body?)`: Answer a request without Hono, returning `[status, headers, body]`
 - `getBasicAuthCredentials(includeSource?)`: Get the basic-auth credentials
 - `setOnRequestCallback(cb)`: Set a per-request SWML-builder callback
-- `registerVerbHandler(handler)`: Register a custom verb handler
+- `defineTool(opts)`: Register a SWAIG function
+- `registerVerbHandler(handler)`: Store a custom verb handler in `verbRegistry`
 - `registerRoutingCallback(callbackFn, path?)`: Register a request-routing callback
-- `manualSetProxyUrl(url)`: Manually set the proxy base URL for webhook URLs
+- `manualSetProxyUrl(url)`: Set the external base URL for webhook URLs
+- `SWMLService.extractSipUsername(body)`: Get the user part of `call.to`
 
 ## Examples
 
 ### Basic Voicemail Service
+
+This service answers, plays a greeting and a beep, and records a message:
 
 ```typescript
 import { SWMLService } from '@signalwire/sdk';
@@ -464,7 +521,7 @@ class VoicemailService extends SWMLService {
       max_length: 120, // 2 minutes max
       terminators: '#',
     });
-    this.addVerb('play', { url: 'say:Thank you for your message. Goodbye!' });
+    this.addVerb('play', { url: 'say:Thank you for your message. Goodbye.' });
     this.addVerb('hangup', {});
     this.log.debug('voicemail_document_built');
   }
@@ -472,6 +529,8 @@ class VoicemailService extends SWMLService {
 ```
 
 ### Dynamic Call Routing Service
+
+This service builds a document for each request from a `department` value in the request body. Without one, it returns `null`, and the service sends its own document:
 
 ```typescript
 import { SWMLService, SwmlBuilder } from '@signalwire/sdk';
@@ -502,7 +561,7 @@ class CallRouterService extends SWMLService {
 
     builder.connect({ to: toNumber, timeout: 30, answer_on_bridge: true });
     builder.play({
-      url: "say:We're sorry, but all of our agents are currently busy. Please try again later.",
+      url: "say:We're sorry, but all of our agents are busy. Please try again later.",
     });
     builder.hangup();
 
@@ -511,4 +570,4 @@ class CallRouterService extends SWMLService {
 }
 ```
 
-For more examples, see the `examples` directory in the SignalWire AI Agents SDK repository.
+For more examples, see the `examples` directory in the SDK repository.

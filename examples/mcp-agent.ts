@@ -17,7 +17,7 @@
  *   - Connect Claude Desktop to http://your-server:3000/agent/mcp
  */
 
-import { AgentBase, FunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
 const agent = new AgentBase({
   name: 'mcp-agent',

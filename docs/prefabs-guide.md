@@ -1,6 +1,6 @@
 # Prefab Agents Guide
 
-Complete guide to the pre-built Prefab agents included in the SignalWire AI Agents TypeScript SDK.
+The SDK includes five prefab agents, each an `AgentBase` subclass for a common call flow. This guide lists each prefab's options, its tools, and what the tools do.
 
 <!-- snippet-setup -->
 ```ts
@@ -21,9 +21,9 @@ declare global {
 - [Overview](#overview)
 - [InfoGathererAgent](#infogathereragent)
   - [Configuration](#infogatherer-configuration)
-  - [Fields](#infogatherer-fields)
+  - [Questions](#infogatherer-questions)
   - [Tools](#infogatherer-tools)
-  - [Session Tracking](#infogatherer-session-tracking)
+  - [Dynamic Mode](#dynamic-mode)
   - [Example](#infogatherer-example)
 - [SurveyAgent](#surveyagent)
   - [Configuration](#survey-configuration)
@@ -52,22 +52,18 @@ declare global {
 
 ## Overview
 
-Prefab agents are ready-to-use agent implementations built on top of `AgentBase`. They provide complete, production-ready AI voice agents for common use cases -- information gathering, surveys, FAQ bots, department routing, and front-desk reception.
+A prefab agent is an `AgentBase` subclass that configures itself from one options object. Each prefab:
 
-Each prefab:
+- **Extends `AgentBase`**, so it has the same HTTP serving, SWML rendering, basic auth and proxy handling.
+- **Builds its prompt in its constructor** with `promptAddSection()`, from your options: the question list, the FAQ entries, the departments and so on.
+- **Sets AI parameters, hints and global data** suited to its call flow.
+- **Registers its SWAIG tools** in a `defineTools()` override.
 
-- **Extends `AgentBase`** and inherits all core functionality (HTTP serving, SWML generation, basic auth, CORS, proxy detection).
-- **Defines its own SWAIG tools** through the `defineTools()` override, giving the AI model the ability to perform domain-specific actions.
-- **Declares static `PROMPT_SECTIONS`** that set up the AI's role and behavioral rules automatically.
-- **Adds dynamic prompt sections** in the constructor based on your configuration (field lists, question lists, department directories, etc.).
-- **Tracks per-call session state** using `call_id` from the incoming request data, so multiple concurrent calls are isolated.
+A tool's response is context for the model, not speech: the model reads it and decides what to say. Several tools return instructions for the model, such as the next question to ask.
 
-Prefabs can be used in two ways:
+The prefabs keep per-call state in one of two places. `InfoGathererAgent` keeps its question list and position in the call's `global_data`, and updates it with `set_global_data` actions in its tool responses. `SurveyAgent` and `ReceptionistAgent` keep theirs in memory in the agent process, keyed by the request's `call_id`. That state isn't shared between replicas and is lost on a restart. The agent removes a call's state when the call's summary arrives at `/post_prompt`, or once the call has been idle for an hour, and holds at most 10,000 calls, dropping the least recently used. If you override `onSummary()` on one of these agents, call `super.onSummary(summary, rawData)` so the state is removed when the call ends.
 
-1. **Directly via the constructor** -- pass a configuration object and get a fully functional agent.
-2. **Via a factory function** -- a shorthand that creates and returns a new instance (e.g., `createInfoGathererAgent(config)`).
-
-All prefabs are exported from the main SDK entry point:
+Every prefab takes `name`, `route` and `agentOptions`. `agentOptions` is passed to the `AgentBase` constructor after `name` and `route`, so a `route` or `name` in `agentOptions` wins over the top-level option. All five classes and their config types are exported from the package:
 
 ```typescript
 import {
@@ -80,7 +76,7 @@ import {
 
 ## InfoGathererAgent
 
-A conversational agent that asks the caller a sequence of questions one at a time and records each answer in `global_data`. Supports both static configuration (questions defined at construction) and dynamic configuration (questions resolved per request via a callback).
+An agent that asks the caller a list of questions, one at a time, and records each answer in the call's `global_data`. The questions are fixed at construction (static mode) or chosen for each call by a callback (dynamic mode).
 
 **Source:** `src/prefabs/InfoGathererAgent.ts`
 
@@ -90,11 +86,13 @@ The constructor accepts an `InfoGathererConfig` object:
 
 | Property | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `name` | `string` | No | `"info_gatherer"` | Agent display name. |
+| `name` | `string` | No | `"info_gatherer"` | Agent name. |
 | `route` | `string` | No | `"/info_gatherer"` | HTTP route for this agent. |
-| `questions` | `InfoGathererQuestion[]` | No | -- | Questions to ask (static mode). Omit for dynamic mode. |
-| `questionCallback` | `InfoGathererQuestionCallback` | No | -- | Resolves questions per request (dynamic mode); equivalent to calling `setQuestionCallback()` after construction. |
-| `agentOptions` | `Partial<AgentOptions>` | No | -- | Additional AgentBase options forwarded to `super()` (e.g., `port`, `basicAuth`). |
+| `questions` | `InfoGathererQuestion[]` | No | none | Questions to ask (static mode). Omit it for dynamic mode. |
+| `questionCallback` | `InfoGathererQuestionCallback` | No | none | Chooses the questions for each call (dynamic mode). The same as calling `setQuestionCallback()` after construction. Ignored when `questions` is set. |
+| `agentOptions` | `Partial<AgentOptions>` | No | none | Other `AgentBase` options, such as `port` or `basicAuth`. |
+
+The constructor throws if `questions` is an empty array, or a question lacks `key_name` or `question_text`. It sets the AI parameters `end_of_speech_timeout` to 800 and `speech_event_timeout` to 1000.
 
 ### InfoGatherer Questions
 
@@ -102,46 +100,50 @@ Each entry in the `questions` array is an `InfoGathererQuestion`:
 
 | Property | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `key_name` | `string` | **Yes** | -- | Identifier used as the key when storing the caller's answer. |
-| `question_text` | `string` | **Yes** | -- | The question text spoken to the caller. |
-| `confirm` | `boolean` | No | `false` | When `true`, the agent insists the caller confirms the answer before submitting. |
+| `key_name` | `string` | Yes | none | Key the answer is stored under. |
+| `question_text` | `string` | Yes | none | The question to ask the caller. |
+| `confirm` | `boolean` | No | `false` | When `true`, the tool tells the model to have the caller confirm the answer before submitting it. |
+
+In static mode, the agent's `global_data` holds `questions`, `question_index` (starting at 0) and `answers` (an empty list).
 
 ### InfoGatherer Tools
 
-The agent registers two SWAIG tools:
+The agent registers two SWAIG tools.
 
 #### `start_questions`
 
-Retrieves the first question from `global_data.questions` and returns an instruction asking the caller to answer it.
+Reads the first question from the request's `global_data.questions` and returns an instruction for the model to ask it.
 
 **Parameters:** None.
 
-**Returns:** A formatted instruction including the first question's text and confirmation guidance when `confirm` is set. Also sets `replace_in_history` to the generic "Welcome" prompt.
+**Returns:** The instruction, including whether the caller must confirm the answer. It also sets `replace_in_history` to `Welcome! Let me ask you a few questions.`. If there are no questions left, it returns `I don't have any questions to ask.`.
 
 #### `submit_answer`
 
-Records the caller's answer to the current question and advances to the next.
+Records the answer to the current question and moves to the next.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `answer` | `string` | Yes | The caller's answer to the current question. |
+| `answer` | `string` | Not marked required | The caller's answer to the current question. |
 
 **Behavior:**
-- Appends `{ key_name, answer }` to `global_data.answers`.
-- Increments `global_data.question_index`.
-- If more questions remain, returns the next question's instruction text.
-- If all questions are answered, returns the completion message.
+- Adds `{ key_name, answer }` to `answers` and increases `question_index`, with a `set_global_data` action.
+- If more questions remain, returns the instruction to ask the next one.
+- After the last question, returns a message telling the model that all questions are answered.
+- If every question was already answered, returns `All questions have already been answered.`.
 
 ### Dynamic Mode
 
-Omit `questions` and register a callback to resolve the question list per incoming request:
+Omit `questions` and register a callback that returns the question list for each call. The callback runs on every SWML request, before the SWML is rendered, and its list becomes that call's `global_data.questions`.
+
+The callback's signature is `(queryParams, bodyParams, headers)`. `queryParams` holds the query parameters of the SWML request's URL, `bodyParams` the SWML request body, and `headers` the request's HTTP headers, with lower-case names. The SDK removes `Authorization`, `Cookie` and the other credential headers before the callback sees them. This callback chooses the questions from a query parameter, so a webhook URL ending in `?mode=support` gets the support questions:
 
 ```typescript
 const agent = new InfoGathererAgent({ name: 'dynamic-intake' });
 agent.setQuestionCallback((queryParams, bodyParams, headers) => {
-  if (queryParams['set'] === 'support') {
+  if (queryParams['mode'] === 'support') {
     return [
       { key_name: 'name', question_text: 'What is your name?' },
       { key_name: 'issue', question_text: "What's the issue?" },
@@ -151,11 +153,13 @@ agent.setQuestionCallback((queryParams, bodyParams, headers) => {
 });
 ```
 
-The callback runs on every SWML request, and its return value populates `global_data.questions` for that call. If no callback is registered or the callback throws, a default two-question fallback (`name`, `message`) is used.
+Without a callback, or when the callback throws or returns an invalid list, the agent uses two fallback questions. They are `name` ("What is your name?") and `message` ("How can I help you today?").
 
 ### InfoGatherer Example
 
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
+This agent collects four answers for a patient intake line:
+
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port); collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { InfoGathererAgent } from '@signalwire/sdk';
 
@@ -173,14 +177,14 @@ const agent = new InfoGathererAgent({
   },
 });
 
-agent.run();
+await agent.run();
 ```
 
 ---
 
 ## SurveyAgent
 
-A conversational agent that conducts surveys with multiple question types, branching logic based on answers, and per-answer scoring.
+An agent that runs a survey with typed questions, branching based on answers, and scoring.
 
 **Source:** `src/prefabs/SurveyAgent.ts`
 
@@ -190,94 +194,100 @@ The constructor accepts a `SurveyConfig` object:
 
 | Property | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `name` | `string` | No | `"survey"` | Agent display name. |
+| `name` | `string` | No | `"survey"` | Agent name. |
 | `route` | `string` | No | `"/survey"` | HTTP route for this agent. |
-| `surveyName` | `string` | **Yes** | -- | Human-readable survey name used in prompts and global data. |
-| `questions` | `SurveyQuestion[]` | **Yes** | -- | Ordered list of survey questions. |
-| `introduction` | `string` | No | `"Welcome to our ${surveyName}. We appreciate your participation."` | Opening message before the first question (used as a non-bargeable static greeting). |
-| `conclusion` | `string` | No | `"Thank you for completing our survey. Your feedback is valuable to us."` | Message spoken after the survey is complete. |
-| `brandName` | `string` | No | `"Our Company"` | Brand or company name the agent represents. |
-| `maxRetries` | `number` | No | `2` | Maximum number of times to retry invalid answers. |
-| `onComplete` | `(responses: Record<string, unknown>, score: number) => void \| Promise<void>` | No | -- | Callback fired when the survey is finished. Receives all responses and the total score. |
-| `agentOptions` | `Partial<AgentOptions>` | No | -- | Additional AgentBase options. |
+| `surveyName` | `string` | Yes | none | Survey name, used in the prompt, hints and global data. |
+| `questions` | `SurveyQuestion[]` | Yes | none | Ordered list of survey questions. |
+| `introduction` | `string` | No | `"Welcome to our ${surveyName}. We appreciate your participation."` | Opening message. It's the call's static greeting, which the caller can't interrupt, and the prompt tells the model to begin with it. |
+| `conclusion` | `string` | No | `"Thank you for completing our survey. Your feedback is valuable to us."` | Closing message, in the prompt and in `answer_question`'s final response. |
+| `brandName` | `string` | No | `"Our Company"` | Company name the prompt says the agent represents. |
+| `maxRetries` | `number` | No | `2` | Number of retries for an invalid answer. It goes into the prompt and `global_data`; the SDK doesn't count retries. |
+| `onComplete` | `(responses: Record<string, unknown>, score: number) => void \| Promise<void>` | No | none | Called when `answer_question` finishes the survey, with the answers and the total score. An error it throws is logged. |
+| `agentOptions` | `Partial<AgentOptions>` | No | none | Other `AgentBase` options. |
 
-Each `SurveyQuestion` has the following shape:
+Each `SurveyQuestion` has this shape:
 
 | Property | Type | Required | Description |
 |---|---|---|---|
-| `id` | `string` | **Yes** | Unique question identifier. |
-| `text` | `string` | **Yes** | The question text to ask the caller. |
-| `type` | `'multiple_choice' \| 'open_ended' \| 'rating' \| 'yes_no'` | **Yes** | Question type; determines validation and display. |
-| `options` | `string[]` | No | Answer options (used when `type` is `multiple_choice`). |
-| `scale` | `number` | No | For `rating` questions, the upper bound of the 1..scale range. Defaults to `5`. |
-| `required` | `boolean` | No | Whether the question requires an answer. Defaults to `true`. |
-| `nextQuestion` | `string \| Record<string, string>` | No | Controls flow after this question (see Branching Logic). |
-| `points` | `number \| Record<string, number>` | No | Points awarded for answers (see Scoring). |
+| `id` | `string` | Yes | Unique question ID. An empty ID becomes `question_N`, from the question's position. |
+| `text` | `string` | Yes | The question to ask the caller. |
+| `type` | `'multiple_choice' \| 'open_ended' \| 'rating' \| 'yes_no'` | Yes | Question type; sets how an answer is validated. |
+| `options` | `string[]` | For `multiple_choice` | Answer options. A `multiple_choice` question without options throws. |
+| `scale` | `number` | No | For `rating` questions, the top of the 1 to `scale` range. Defaults to `5`. |
+| `required` | `boolean` | No | Whether an answer is required. Defaults to `true`. |
+| `nextQuestion` | `string \| Record<string, string>` | No | The question after this one (see [Branching Logic](#survey-branching-logic)). |
+| `points` | `number \| Record<string, number>` | No | Points for an answer (see [Scoring](#survey-scoring)). |
+
+The constructor throws on a question without `text` or with an unknown `type`. It adds the survey name, the brand name, rating numbers, options and `yes`/`no` as speech hints, and enables the `check_time` native function.
 
 ### Survey Question Types
 
-| Type | Validation | Notes |
+Each type accepts these answers:
+
+| Type | Valid answer | Notes |
 |---|---|---|
-| `multiple_choice` | Answer must exactly match one of the `options` (case-insensitive). | All options are read aloud. |
-| `open_ended` | No validation; any answer is accepted. | Free-form response. |
-| `rating` | Must be an integer between 1 and the question's `scale` (default `5`). | The AI specifies the scale to the caller. |
-| `yes_no` | Must be a recognized affirmative or negative word. | Accepts: `yes`, `y`, `yeah`, `yep`, `sure`, `absolutely`, `correct`, `true`, `no`, `n`, `nah`, `nope`, `negative`, `false`. Normalized to `"yes"` or `"no"` before storage. |
+| `multiple_choice` | One of the `options`, ignoring case and surrounding spaces. | The prompt tells the model to list the options. |
+| `open_ended` | Any answer. An empty answer is invalid when the question is required. | Stored as given. |
+| `rating` | A whole number from 1 to `scale`. | The prompt tells the model to explain the scale. |
+| `yes_no` | `yes`, `y`, `no` or `n`, ignoring case. | Stored as `"yes"` or `"no"`. |
 
 ### Survey Branching Logic
 
-The `nextQuestion` property controls which question follows the current one:
+`answer_question` uses the answered question's `nextQuestion` to pick the next question:
 
 | Value | Behavior |
 |---|---|
-| `undefined` (omitted) | Proceed to the next question in array order. If this is the last question, the survey ends. |
-| `string` | Always jump to the question with this ID, regardless of the answer. |
-| `Record<string, string>` | Conditional branching: the answer value (case-insensitive) is looked up as a key, and the value is the next question ID. A special `_default` key serves as a fallback. If no key matches and there is no `_default`, falls through to the next question in array order. |
+| omitted | The next question in array order. After the last question, the survey ends. |
+| `string` | The question with this ID, whatever the answer. |
+| `Record<string, string>` | The ID mapped to the answer, matching the stored answer (so `"yes"` or `"no"` for a `yes_no` question) and ignoring case. A `_default` key applies when no key matches. Without one, the next question in array order. |
+
+If the chosen ID isn't a question in the survey, the survey ends.
 
 ### Survey Scoring
 
-The `points` property controls point accumulation:
+The `points` property sets the points an answer earns:
 
 | Value | Behavior |
 |---|---|
-| `undefined` (omitted) | No points for this question. |
-| `number` | Fixed points awarded for any answer. |
-| `Record<string, number>` | Per-answer scoring: the answer value (case-insensitive) is looked up as a key, and the matched value is the number of points awarded. Unmatched answers receive 0 points. |
+| omitted | No points. |
+| `number` | These points for any valid answer. |
+| `Record<string, number>` | The points mapped to the stored answer, ignoring case. An answer with no entry earns 0. |
 
-The total score is accumulated across all answered questions and passed to the `onComplete` callback.
+`answer_question` adds the points to the call's total, which it passes to `onComplete`.
 
 ### Survey Tools
 
-The agent registers the following SWAIG tools:
+The agent registers these SWAIG tools:
 
 #### `validate_response`
 
-Validates whether a response satisfies the question's type and constraints without recording or advancing.
+Checks a response against a question's type without recording it.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `question_id` | `string` | Yes | The ID of the question to validate against. |
-| `response` | `string` | Yes | The candidate response. |
+| `question_id` | `string` | Not marked required | The ID of the question to validate against. |
+| `response` | `string` | Not marked required | The response to check. |
 
-**Returns:** A confirmation message when valid, or a type-specific error describing why the response is invalid.
+**Returns:** `Response to '<id>' is valid.`, the reason it's invalid, or an error for an unknown question ID.
 
 #### `log_response`
 
-Acknowledges that a validated response has been recorded for the specified question.
+Stores a response for a question in the call's in-memory state.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `question_id` | `string` | Yes | The ID of the question. |
-| `response` | `string` | Yes | The validated response. |
+| `question_id` | `string` | Not marked required | The ID of the question. |
+| `response` | `string` | Not marked required | The response to store. |
 
-**Returns:** A confirmation message referencing the question's text.
+**Returns:** A message naming the question's text. It doesn't validate the response, add points, move to another question or call `onComplete`.
 
 #### `answer_question`
 
-Records the caller's answer to the current survey question.
+Validates, stores and scores an answer, then moves to the next question.
 
 **Parameters:**
 
@@ -287,45 +297,49 @@ Records the caller's answer to the current survey question.
 | `answer` | `string` | Yes | The caller's answer. |
 
 **Behavior:**
-- Validates the answer based on question type. Returns a validation error if invalid.
-- Normalizes the answer (e.g., yes/no variants become `"yes"` or `"no"`).
-- Calculates and accumulates points.
-- Resolves the next question via branching logic.
-- If there is no next question, marks the survey complete, fires `onComplete`, and returns the completion message with answer count and total score.
-- Otherwise, advances the session and returns the next question text with its type-specific instructions.
+- Returns the validation error if the answer isn't valid for the question's type.
+- Stores the answer, normalizing `yes_no` answers to `"yes"` or `"no"`.
+- Adds the answer's points to the total.
+- Picks the next question with the branching logic.
+- If there is no next question, marks the survey complete, calls `onComplete`, and returns the number of answers, the total score and the conclusion.
+- Otherwise, returns the next question's ID and text, with its options, rating range or yes/no hint.
+- After the survey is complete, returns `The survey has already been completed.`.
 
 #### `get_current_question`
 
-Returns the current question to be asked to the caller.
+Returns the question the call is on.
 
 **Parameters:** None.
 
-**Returns:** The question ID, type, text, and type-specific instructions (options for multiple choice, scale for rating, etc.).
+**Returns:** The question's ID, type and text, with its options, rating range or yes/no hint.
 
 #### `get_survey_progress`
 
-Returns the current progress of the survey.
+Returns the call's progress through the survey.
 
 **Parameters:** None.
 
-**Returns:** A summary including questions answered out of total, percentage complete, current score, completion status, and all answers so far.
+**Returns:** The number of questions answered out of the total, the percentage, the current score, whether the survey is complete, and the answers so far.
 
 ### Survey Example
 
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
+This survey branches on the recommendation question and scores two answers:
+
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port); collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { SurveyAgent } from '@signalwire/sdk';
 
 const agent = new SurveyAgent({
   name: 'CustomerSatisfaction',
   surveyName: 'Customer Satisfaction Survey',
-  introduction: 'Hi! We would love to hear your feedback about our service.',
-  conclusion: 'Thanks for your feedback! We really appreciate it.',
+  introduction: 'Hi, we would like your feedback about our service.',
+  conclusion: 'Thank you for your feedback.',
   questions: [
     {
       id: 'overall',
-      text: 'How would you rate your overall experience?',
+      text: 'On a scale of 1 to 10, how would you rate your overall experience?',
       type: 'rating',
+      scale: 10,
       points: { '9': 10, '10': 10, '7': 7, '8': 7 },
     },
     {
@@ -358,20 +372,20 @@ const agent = new SurveyAgent({
     },
   ],
   onComplete: async (responses, score) => {
-    console.log('Survey complete! Score:', score);
+    console.log('Survey complete. Score:', score);
     console.log('Responses:', responses);
     // Store results, send to analytics, etc.
   },
 });
 
-agent.run();
+await agent.run();
 ```
 
 ---
 
 ## FAQBotAgent
 
-A conversational agent that answers frequently asked questions using keyword and word-overlap matching with configurable similarity thresholds and optional escalation to a live agent.
+An agent that answers questions from a list of frequently asked questions. The prompt contains every question and answer, and a search tool tells the model which entries match the caller's question. It can transfer the caller to a live agent.
 
 **Source:** `src/prefabs/FAQBotAgent.ts`
 
@@ -381,68 +395,77 @@ The constructor accepts a `FAQBotConfig` object:
 
 | Property | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `name` | `string` | No | `"FAQBot"` | Agent display name. |
-| `faqs` | `FAQEntry[]` | **Yes** | -- | List of FAQ entries for the knowledge base. |
-| `threshold` | `number` | No | `0.5` | Minimum match score (0--1) for an FAQ to be considered a match. |
-| `escalationMessage` | `string` | No | `"I'm sorry, I couldn't find an answer to your question. Let me transfer you to someone who can help."` | Message spoken when no FAQ matches the query. |
-| `escalationNumber` | `string` | No | -- | Phone number to transfer to on escalation. If not set, the `escalate` tool is **not registered**. |
-| `agentOptions` | `Partial<AgentOptions>` | No | -- | Additional AgentBase options. |
+| `name` | `string` | No | `"faq_bot"` | Agent name. |
+| `route` | `string` | No | `"/faq"` | HTTP route for this agent. |
+| `faqs` | `FAQEntry[]` | Yes | none | The FAQ entries. Each one with a question and an answer goes into the prompt. |
+| `suggestRelated` | `boolean` | No | `true` | Add prompt instructions to suggest related questions. |
+| `persona` | `string` | No | `"You are a helpful FAQ bot that provides accurate answers to common questions."` | Text of the prompt's Personality section. |
+| `threshold` | `number` | No | `0.5` | Minimum match score, from 0 to 1, for `search_faqs` to return an entry. |
+| `escalationMessage` | `string` | No | `"I'm sorry, I couldn't find an answer to your question. Let me transfer you to someone who can help."` | Start of the `escalate` tool's response. |
+| `escalationNumber` | `string` | No | none | Phone number or SIP address `escalate` transfers to. Without it, the agent doesn't register `escalate`. |
+| `agentOptions` | `Partial<AgentOptions>` | No | none | Other `AgentBase` options. |
 
-Each `FAQEntry` has the following shape:
+Each `FAQEntry` has this shape:
 
 | Property | Type | Required | Description |
 |---|---|---|---|
-| `question` | `string` | **Yes** | The representative question text. |
-| `answer` | `string` | **Yes** | The answer to provide when this FAQ matches. |
-| `keywords` | `string[]` | No | Additional keywords to boost matching accuracy. |
+| `question` | `string` | Yes | The question. |
+| `answer` | `string` | Yes | The answer. |
+| `keywords` | `string[]` | No | Words that raise the entry's match score when the query contains them. |
+| `categories` | `string[]` | No | Categories, shown in the prompt and usable as a `search_faqs` filter. |
+
+The agent adds the questions' words of four or more characters, the keywords and the categories as speech hints. Its `global_data` holds `faq_count` and `categories`.
 
 ### FAQBot Matching Engine
 
-The matching engine computes a word-overlap similarity score between the caller's query and each FAQ entry.
+`search_faqs` scores each entry by the words it shares with the query.
 
 **Tokenization:**
 1. Text is lowercased.
-2. Non-alphanumeric characters are replaced with spaces.
-3. Text is split on whitespace.
+2. Characters other than `a` to `z`, digits and white space become spaces.
+3. Text is split on white space.
 4. Words shorter than 2 characters are removed.
-5. Common English stop words are filtered out (e.g., "the", "is", "to", "and", "or", etc.).
+5. Common English stop words are removed ("the", "is", "to", "and", "or" and others).
 
 **Scoring:**
-- **Question overlap** -- the number of shared tokens between the query and the FAQ question text, normalized by the smaller token set.
-- **Keyword overlap** -- each keyword is checked for substring presence in the lowercased query; the hit count is divided by total keywords.
-- **Combined score** -- if keywords are present, the final score is `0.6 * questionOverlap + 0.4 * keywordScore`. Without keywords, only question overlap is used.
+- **Question overlap**: the number of query words found in the entry's question, divided by the smaller of the two word counts.
+- **Keyword score**: the number of keywords found anywhere in the lowercased query, divided by the number of keywords.
+- **Combined score**: with keywords, `0.6 * questionOverlap + 0.4 * keywordScore`. Without keywords, the question overlap alone.
 
-The best-scoring FAQ is returned if its score meets or exceeds the configured `threshold`. Runner-up matches above the threshold are mentioned as related results.
+Entries that score at least `threshold` match, best first.
 
 ### FAQBot Tools
 
-#### `search_faq`
+#### `search_faqs`
 
-Searches the FAQ knowledge base for an answer to the caller's question.
+Searches the FAQ entries for the caller's question.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `query` | `string` | Yes | The caller's question or search query. |
+| `query` | `string` | Not marked required | The search query. Without it, the tool returns `A query is required to search the FAQ.`. |
+| `category` | `string` | No | Search only entries with this category, ignoring case. |
 
-**Returns:** The best matching FAQ entry with confidence score, plus up to 2 related runner-ups if they also exceed the threshold. If no match meets the threshold, returns the escalation message.
+**Returns:** `Here are the most relevant FAQs:` and a numbered list of up to three matching questions, without their answers. The model finds the answers in its prompt. With no match, it returns `No matching FAQs found.`.
 
 #### `escalate`
 
-Transfers the caller to a live agent. **Only registered when `escalationNumber` is configured.**
+Transfers the caller. The agent registers it only when `escalationNumber` is set.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `reason` | `string` | No | The reason for escalation. Defaults to `"Caller needs assistance beyond FAQ"`. |
+| `reason` | `string` | No | The reason for the transfer. Defaults to `"Caller needs assistance beyond FAQ"`. |
 
-**Behavior:** Uses `FunctionResult.connect()` to transfer the call to the configured `escalationNumber`.
+**Behavior:** Returns `escalationMessage` followed by the reason, with a `FunctionResult.connect()` action that transfers the call to `escalationNumber` permanently.
 
 ### FAQBot Example
 
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
+This agent answers four questions and can transfer to a support line:
+
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port); collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { FAQBotAgent } from '@signalwire/sdk';
 
@@ -478,14 +501,14 @@ const agent = new FAQBotAgent({
   },
 });
 
-agent.run();
+await agent.run();
 ```
 
 ---
 
 ## ConciergeAgent
 
-A virtual concierge for a venue or business. Provides information about services, amenities, and hours of operation, and answers availability and directions questions.
+A concierge for a venue or business. Its prompt describes the venue's services, amenities and hours, and its tools answer availability and directions questions.
 
 **Source:** `src/prefabs/ConciergeAgent.ts`
 
@@ -495,49 +518,51 @@ The constructor accepts a `ConciergeConfig` object:
 
 | Property | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `name` | `string` | No | `"concierge"` | Agent display name. |
+| `name` | `string` | No | `"concierge"` | Agent name. |
 | `route` | `string` | No | `"/concierge"` | HTTP route for this agent. |
-| `venueName` | `string` | **Yes** | -- | Name of the venue or business. |
-| `services` | `string[]` | **Yes** | -- | List of services offered. |
-| `amenities` | `Record<string, Record<string, string>>` | **Yes** | -- | Amenities as an object of amenity-name → detail-pairs. |
-| `hoursOfOperation` | `Record<string, string>` | No | `{ default: '9 AM - 5 PM' }` | Operating hours by category. |
-| `specialInstructions` | `string[]` | No | `[]` | Extra instruction bullets to append. |
-| `welcomeMessage` | `string` | No | -- | When set, installed as a non-bargeable static greeting. |
-| `agentOptions` | `Partial<AgentOptions>` | No | -- | Additional AgentBase options. |
+| `venueName` | `string` | Yes | none | Name of the venue or business. |
+| `services` | `string[]` | Yes | none | Services offered. |
+| `amenities` | `Record<string, Record<string, string>>` | Yes | none | Amenities, each a map of details such as `hours` and `location`. |
+| `hoursOfOperation` | `Record<string, string>` | No | `{ default: '9 AM - 5 PM' }` | Opening hours by category. |
+| `specialInstructions` | `string[]` | No | `[]` | Extra bullets for the prompt's Instructions section. |
+| `welcomeMessage` | `string` | No | none | When set, the call's static greeting, which the caller can't interrupt. |
+| `agentOptions` | `Partial<AgentOptions>` | No | none | Other `AgentBase` options. |
 
-The venue name, all services, and amenity names are added as speech recognition hints.
+The venue name, the services and the amenity names become speech hints. The agent sets `local_tz` to `America/New_York` and enables the `check_time` native function.
 
 ### Concierge Tools
 
 #### `check_availability`
 
-Checks whether a given service is offered on a specified date and time.
+Answers whether a service is available at a date and time.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `service` | `string` | Yes | The service to check. |
-| `date` | `string` | Yes | The date in `YYYY-MM-DD` format. |
-| `time` | `string` | Yes | The time in `HH:MM` 24-hour format. |
+| `service` | `string` | Not marked required | The service to check. |
+| `date` | `string` | Not marked required | The date, in `YYYY-MM-DD` format. |
+| `time` | `string` | Not marked required | The time, in 24-hour `HH:MM` format. |
 
-**Returns:** A confirmation or a list of offered services when the requested service is not available.
+**Returns:** For a service in `services` (ignoring case), a response that it's available at that date and time. The tool doesn't check a calendar or a booking system, so a listed service is always reported available. For any other service, a response listing the services offered. Override `checkAvailability()` in a subclass to look up real availability.
 
 #### `get_directions`
 
-Looks up directions for an amenity by name.
+Returns directions to an amenity.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `location` | `string` | Yes | The amenity or location to get directions to. |
+| `location` | `string` | Not marked required | The amenity to get directions to. |
 
-**Returns:** Directions referencing the amenity's `location` detail, or a fallback pointing the caller to the front desk.
+**Returns:** Directions built from the amenity's `location` detail. The lowercased `location` argument must equal the amenity's key exactly, so use lowercase keys in `amenities`. Otherwise, a response that suggests asking at the front desk.
 
 ### Concierge Example
 
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
+This agent describes a hotel's services and two amenities:
+
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port); collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { ConciergeAgent } from '@signalwire/sdk';
 
@@ -550,17 +575,17 @@ const agent = new ConciergeAgent({
   },
   hoursOfOperation: { weekday: '9 AM - 9 PM', weekend: '10 AM - 6 PM' },
   specialInstructions: ['Always mention the weekly wine tasting.'],
-  welcomeMessage: 'Welcome to the Grand Hotel! How may I assist you?',
+  welcomeMessage: 'Welcome to the Grand Hotel. How may I assist you?',
 });
 
-agent.run();
+await agent.run();
 ```
 
 ---
 
 ## ReceptionistAgent
 
-A front-desk agent that greets callers, collects their name and reason for calling, and transfers them to the appropriate department. Optionally supports visitor check-in as a TS-specific enhancement.
+A front-desk agent that greets callers, collects their name and reason for calling, and transfers them to a department. It can also check in visitors, a tool the Python SDK's prefab doesn't have.
 
 **Source:** `src/prefabs/ReceptionistAgent.ts`
 
@@ -570,58 +595,60 @@ The constructor accepts a `ReceptionistConfig` object:
 
 | Property | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `name` | `string` | No | `"receptionist"` | Agent display name. |
+| `name` | `string` | No | `"receptionist"` | Agent name. |
 | `route` | `string` | No | `"/receptionist"` | HTTP route for this agent. |
-| `departments` | `ReceptionistDepartment[]` | **Yes** | -- | Departments the agent can transfer callers to. |
-| `greeting` | `string` | No | `"Thank you for calling. How can I help you today?"` | Initial greeting message. |
-| `voice` | `string` | No | `"rime.spore"` | Voice identifier passed to `addLanguage`. |
-| `companyName` | `string` | No | -- | Optional company name appended to the greeting and used as a speech hint. |
-| `checkInEnabled` | `boolean` | No | `false` | Whether the TS-specific `check_in_visitor` tool is registered. |
-| `onVisitorCheckIn` | `(visitor: Record<string, string>) => void \| Promise<void>` | No | -- | Callback fired when a visitor checks in. |
-| `agentOptions` | `Partial<AgentOptions>` | No | -- | Additional AgentBase options. |
+| `departments` | `ReceptionistDepartment[]` | Yes | none | Departments the agent can transfer callers to. The constructor throws if the list is empty or an entry lacks a field. |
+| `greeting` | `string` | No | `"Thank you for calling. How can I help you today?"` | Greeting the prompt tells the model to begin with. |
+| `voice` | `string` | No | `"rime.spore"` | Voice of the English (`en-US`) language the agent adds. |
+| `companyName` | `string` | No | none | Company name, added to the greeting as `Welcome to <companyName>.` and as a speech hint. |
+| `checkInEnabled` | `boolean` | No | `false` | Register the `check_in_visitor` tool. |
+| `onVisitorCheckIn` | `(visitor: Record<string, string>) => void \| Promise<void>` | No | none | Called when `check_in_visitor` records a visitor. An error it throws is logged. |
+| `agentOptions` | `Partial<AgentOptions>` | No | none | Other `AgentBase` options. |
 
-Each `ReceptionistDepartment` has the following shape:
+Each `ReceptionistDepartment` has this shape:
 
 | Property | Type | Required | Description |
 |---|---|---|---|
-| `name` | `string` | **Yes** | Department identifier (used as enum value in `transfer_call`). |
-| `description` | `string` | **Yes** | Description of the department (shown to the AI). |
-| `number` | `string` | **Yes** | Phone number (or SIP address) to dial on transfer. |
+| `name` | `string` | Yes | Department name, one of the `transfer_call` tool's allowed values. |
+| `description` | `string` | Yes | What the department handles, listed in the prompt. |
+| `number` | `string` | Yes | Phone number or SIP address to transfer to. |
+
+The agent sets `end_of_speech_timeout` to 700, `speech_event_timeout` to 1000 and `transfer_summary` to `true`. Its `global_data` starts with `departments` and an empty `caller_info`.
 
 ### Receptionist Tools
 
 #### `collect_caller_info`
 
-Records the caller's name and reason for calling in `global_data.caller_info` via `set_global_data`.
+Records the caller's name and reason for calling in `global_data.caller_info`, with a `set_global_data` action.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `name` | `string` | Yes | The caller's name. |
-| `reason` | `string` | Yes | The reason for the call. |
+| `name` | `string` | Not marked required | The caller's name. |
+| `reason` | `string` | Not marked required | The reason for the call. |
 
-**Returns:** An acknowledgement referencing the caller by name.
+**Returns:** A response that repeats the name and reason.
 
 #### `transfer_call`
 
-Transfers the caller to the selected department.
+Transfers the caller to a department.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |---|---|---|---|
-| `department` | `string` (enum over department names) | Yes | The department to transfer to. |
+| `department` | `string` (one of the department names) | Not marked required | The department to transfer to. |
 
 **Behavior:**
-- Uses `post_process=true` so the AI speaks the response before executing the transfer.
-- Uses `FunctionResult.connect(number, final=true)` to make the transfer permanent.
-- Reads `global_data.caller_info.name` (populated by `collect_caller_info`) to personalize the hand-off message.
-- Returns an error if the department name is unknown.
+- Reads `global_data.caller_info.name`, set by `collect_caller_info`, for the response.
+- Sets `post_process`, which gives the model one more turn to respond before the transfer action runs.
+- Adds a `connect(number, true)` action, a permanent transfer to the department's number.
+- For an unknown department name, returns a response that it couldn't find the department, and doesn't transfer.
 
-#### `check_in_visitor` (TS enhancement)
+#### `check_in_visitor`
 
-Only registered when `checkInEnabled` is `true`. Records a visitor in the per-call session and fires the `onVisitorCheckIn` callback.
+Registered only when `checkInEnabled` is `true`. Records a visitor in the call's in-memory state and calls `onVisitorCheckIn` with the record.
 
 **Parameters:**
 
@@ -629,11 +656,15 @@ Only registered when `checkInEnabled` is `true`. Records a visitor in the per-ca
 |---|---|---|---|
 | `visitor_name` | `string` | Yes | Full name of the visitor. |
 | `purpose` | `string` | Yes | Purpose of the visit. |
-| `visiting` | `string` | Yes | Name of the person or department the visitor is here to see. |
+| `visiting` | `string` | Yes | The person or department the visitor is here to see. |
+
+The record passed to `onVisitorCheckIn` has `visitor_name`, `purpose`, `visiting` and `checked_in_at`, an ISO 8601 time.
 
 ### Receptionist Example
 
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
+This agent transfers callers to four departments and checks in visitors:
+
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port); collides under the concurrent gate and cannot run standalone -->
 ```typescript
 import { ReceptionistAgent } from '@signalwire/sdk';
 
@@ -666,82 +697,50 @@ const agent = new ReceptionistAgent({
   ],
   onVisitorCheckIn: async (visitor) => {
     console.log('Visitor checked in:', visitor);
-    // Send Slack notification, update visitor log, print badge, etc.
+    // Send a notification, update a visitor log, and so on
   },
   agentOptions: {
     route: '/reception',
   },
 });
 
-agent.run();
+await agent.run();
 ```
 
 ---
 
 ## Factory Functions
 
-Each prefab provides a factory function that creates and returns a new instance. These are simple shorthands for `new PrefabAgent(config)`:
+Each prefab's source file also defines a factory function: `createInfoGathererAgent()`, `createSurveyAgent()`, `createFAQBotAgent()`, `createConciergeAgent()` and `createReceptionistAgent()`. Each takes the same config as its class and returns `new PrefabAgent(config)`.
 
-| Factory Function | Creates |
-|---|---|
-| `createInfoGathererAgent(config)` | `InfoGathererAgent` |
-| `createSurveyAgent(config)` | `SurveyAgent` |
-| `createFAQBotAgent(config)` | `FAQBotAgent` |
-| `createConciergeAgent(config)` | `ConciergeAgent` |
-| `createReceptionistAgent(config)` | `ReceptionistAgent` |
-
-Factory functions accept the same config type as their corresponding class constructors.
-
-<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port) — collides under the concurrent gate and cannot run standalone -->
-```typescript
-import { SurveyAgent } from '@signalwire/sdk';
-
-const agent = new SurveyAgent({
-  surveyName: 'Quick Survey',
-  questions: [
-    { id: 'q1', text: 'How was your experience?', type: 'rating' },
-  ],
-  onComplete: (responses, score) => {
-    console.log('Done!', responses, score);
-  },
-});
-
-agent.run();
-```
-
-The prefab **classes** (`InfoGathererAgent`, `SurveyAgent`, `FAQBotAgent`,
-`ConciergeAgent`, `ReceptionistAgent`) and their config types are exported from the
-main SDK entry point `@signalwire/sdk`. The `create*Agent()` factory helpers are
-defined alongside each prefab class in `src/prefabs/`; the class constructor shown
-above is the recommended public entry point.
+The package's entry point (`@signalwire/sdk`) doesn't export these functions, and its `exports` map doesn't expose `src/prefabs/`, so code that installs the package can't import them. Use the class constructors, as the examples on this page do.
 
 ---
 
 ## Subclassing Prefabs
 
-Prefab agents can be subclassed to customize their behavior. The two primary extension points are the static `PROMPT_SECTIONS` array and the `defineTools()` method.
+You can subclass a prefab to add prompt content or tools.
 
-### Overriding `PROMPT_SECTIONS`
+### Adding `PROMPT_SECTIONS`
 
-Each prefab declares a `static override PROMPT_SECTIONS` array that the `AgentBase` constructor merges into the prompt. You can override this in your subclass to change the AI's role and rules:
+The prefabs don't declare `static PROMPT_SECTIONS`; they build their prompts in their constructors. A subclass can declare `PROMPT_SECTIONS`, which the `AgentBase` constructor adds before the prefab adds its own sections. The prefab's sections stay, so use this to add content, not to replace the prefab's instructions:
 
 ```typescript
 import { InfoGathererAgent } from '@signalwire/sdk';
 import type { InfoGathererConfig } from '@signalwire/sdk';
 
-class SpanishInfoGatherer extends InfoGathererAgent {
+class BilingualInfoGatherer extends InfoGathererAgent {
   static override PROMPT_SECTIONS = [
     {
-      title: 'Role',
-      body: 'You are a bilingual information-gathering assistant. You speak Spanish and English. Always respond in the same language the caller uses.',
+      title: 'Language',
+      body: 'You speak Spanish and English. Always respond in the same language the caller uses.',
     },
     {
       title: 'Rules',
       bullets: [
         'Ask one question at a time, in the order provided by start_questions.',
         'Use submit_answer to record each response and advance to the next question.',
-        'If a question has confirm=true, insist on confirmation before submitting.',
-        'If validation fails, politely ask the caller to try again in their language.',
+        'If the caller needs to try again, ask in their language.',
       ],
     },
   ];
@@ -754,11 +753,10 @@ class SpanishInfoGatherer extends InfoGathererAgent {
 
 ### Overriding `defineTools()`
 
-You can override `defineTools()` to add additional tools, replace existing tools, or extend the default tool set by calling `super.defineTools()` first:
+Override `defineTools()` to add tools, and call `super.defineTools()` first to keep the prefab's own:
 
 ```typescript
 import { FAQBotAgent, FunctionResult } from '@signalwire/sdk';
-import type { FAQBotConfig } from '@signalwire/sdk';
 
 class FAQBotWithFeedback extends FAQBotAgent {
   protected override defineTools(): void {
@@ -787,16 +785,18 @@ class FAQBotWithFeedback extends FAQBotAgent {
         const rating = args['rating'] as string;
         const comment = args['comment'] as string | undefined;
         console.log(`FAQ Feedback: ${rating}${comment ? ' - ' + comment : ''}`);
-        return new FunctionResult('Thank you for your feedback!');
+        return new FunctionResult('The feedback was recorded.');
       },
     });
   }
 }
 ```
 
+The prefab constructors call `ensureToolsDefined()` themselves, so the override runs during construction, before the subclass's own field initializers. Don't read subclass fields in it.
+
 ### Adding Dynamic Prompt Sections
 
-Beyond the static `PROMPT_SECTIONS`, you can use `this.promptAddSection()` in the constructor body to add additional dynamic prompt content:
+Call `this.promptAddSection()` in the subclass constructor to add sections after the prefab's own:
 
 ```typescript
 import { ConciergeAgent } from '@signalwire/sdk';
@@ -808,7 +808,7 @@ class HolidayConcierge extends ConciergeAgent {
 
     // Add a holiday schedule section to the prompt
     this.promptAddSection('Holiday Schedule', {
-      body: 'Note: The office is closed on December 25th and January 1st. All departments will reopen on January 2nd.',
+      body: 'The office is closed on December 25th and January 1st. All departments reopen on January 2nd.',
     });
   }
 }

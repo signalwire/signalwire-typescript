@@ -11,7 +11,7 @@
  *   curl http://user:pass@localhost:3000/  (default IVR)
  */
 
-import { SWMLService, SwmlBuilder } from '../src/index.js';
+import { SWMLService, SwmlBuilder } from '@signalwire/sdk';
 
 export const agent = new SWMLService({
   name: 'ivr-router',

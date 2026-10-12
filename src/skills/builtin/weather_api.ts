@@ -1,9 +1,9 @@
 /**
  * Weather API Skill - Fetches current weather data from OpenWeatherMap.
  *
- * Tier 2 built-in skill: requires WEATHER_API_KEY environment variable.
  * Uses the OpenWeatherMap API to retrieve current weather conditions
- * for a specified location.
+ * for a specified location. The key comes from `api_key` or the
+ * WEATHER_API_KEY environment variable.
  */
 
 import { SkillBase } from '../SkillBase.js';
@@ -42,17 +42,19 @@ interface WeatherApiResponse {
 /**
  * Fetches current weather data from OpenWeatherMap for any location worldwide.
  *
- * Tier 2 built-in skill. Requires the `WEATHER_API_KEY` environment variable
- * containing a valid OpenWeatherMap API key (obtainable at openweathermap.org).
- * Supports metric, imperial, and standard temperature units via the `units`
- * config option. The `api_key` config value takes precedence over the
- * environment variable when both are set.
+ * Needs an OpenWeatherMap API key (obtainable at openweathermap.org), passed
+ * as `api_key` or set in the `WEATHER_API_KEY` environment variable; setup
+ * fails without one. The `api_key` config value takes precedence over the
+ * environment variable when both are set. Supports metric, imperial, and
+ * standard temperature units via the `units` config option, with Fahrenheit
+ * (`imperial`) as the default, as in Python.
  *
  * **Provider note:** The Python reference SDK uses WeatherAPI.com
  * (`api.weatherapi.com/v1/current.json`). This TypeScript skill uses
- * OpenWeatherMap (`api.openweathermap.org/data/2.5/weather`). These providers
- * use different API key formats — a WeatherAPI.com key will NOT work here.
- * Obtain an OpenWeatherMap key at https://openweathermap.org/api.
+ * OpenWeatherMap (`api.openweathermap.org/data/2.5/weather`), a deliberate
+ * choice recorded in PORT_BEHAVIORAL_NOTES.md. These providers use different
+ * API key formats — a WeatherAPI.com key will NOT work here. Obtain an
+ * OpenWeatherMap key at https://openweathermap.org/api.
  *
  * **Unit aliases:** For migration compatibility with the Python SDK the `units`
  * config also accepts `"fahrenheit"` (normalized to `"imperial"`) and
@@ -62,18 +64,19 @@ interface WeatherApiResponse {
  * ```ts
  * import { AgentBase } from '@signalwire/sdk';
  * const agent = new AgentBase({ name: 'demo', route: '/' });
- * agent.addSkillByName('weather_api', { units: 'imperial' });
- * // or pass the key explicitly:
- * agent.addSkillByName('weather_api', { api_key: process.env.WEATHER_API_KEY });
+ * // The key comes from WEATHER_API_KEY:
+ * await agent.addSkillByName('weather_api', { units: 'metric' });
+ * // or pass it explicitly:
+ * await agent.addSkillByName('weather_api', { api_key: process.env.OPENWEATHERMAP_KEY });
  * ```
  */
 export class WeatherApiSkill extends SkillBase {
   // Python ground truth: skills/weather_api/skill.py
-  // TS declares env var as required historically; Python declares [] explicitly.
-  // Preserving TS behavior — full Python parity is out-of-scope for this PR.
   static override SKILL_NAME = 'weather_api';
-  static override SKILL_DESCRIPTION = 'Get current weather information from WeatherAPI.com';
-  static override REQUIRED_ENV_VARS: readonly string[] = ['WEATHER_API_KEY'];
+  static override SKILL_DESCRIPTION = 'Get current weather information from OpenWeatherMap';
+  // Python skill.py:47 declares [] too: the key can come from api_key, and
+  // setup() fails when neither api_key nor WEATHER_API_KEY is set.
+  static override REQUIRED_ENV_VARS: readonly string[] = [];
   static override SUPPORTS_MULTIPLE_INSTANCES = false;
 
   /**
@@ -114,19 +117,26 @@ export class WeatherApiSkill extends SkillBase {
         description:
           'Temperature units. Preferred values: "metric" (Celsius), "imperial" (Fahrenheit), "standard" (Kelvin). ' +
           'Python SDK aliases also accepted: "celsius" → "metric", "fahrenheit" → "imperial". ' +
-          'Default matches Python (`temperature_unit: "fahrenheit"` → `"imperial"`).',
+          'Default "fahrenheit" (imperial), as Python\'s `temperature_unit` defaults to "fahrenheit".',
         default: 'fahrenheit',
         enum: ['metric', 'imperial', 'standard', 'celsius', 'fahrenheit'],
       },
     };
   }
 
+  /**
+   * The OpenWeatherMap unit system: `units`, with the Python SDK aliases
+   * `fahrenheit` and `celsius` normalized, defaulting to `imperial` (the
+   * schema's `fahrenheit` default).
+   */
+  private units(): string {
+    const rawUnits = this.getConfig<string>('units', 'fahrenheit');
+    return rawUnits === 'fahrenheit' ? 'imperial' : rawUnits === 'celsius' ? 'metric' : rawUnits;
+  }
+
   /** @returns A single weather tool (configurable name) that fetches current weather for a location. */
   getTools(): SkillToolDefinition[] {
-    // Normalize Python SDK unit aliases to OpenWeatherMap unit names.
-    const rawUnits = this.getConfig<string>('units', 'metric');
-    const units =
-      rawUnits === 'fahrenheit' ? 'imperial' : rawUnits === 'celsius' ? 'metric' : rawUnits;
+    const units = this.units();
     const toolName = this.getConfig<string>('tool_name', 'get_weather');
 
     return [
@@ -239,7 +249,7 @@ export class WeatherApiSkill extends SkillBase {
   }
 
   protected override _getPromptSections(): SkillPromptSection[] {
-    const units = this.getConfig<string>('units', 'metric');
+    const units = this.units();
     const unitDesc =
       units === 'imperial' ? 'Fahrenheit' : units === 'standard' ? 'Kelvin' : 'Celsius';
 

@@ -10,7 +10,7 @@
  *   npx tsx rest/examples/rest-client.ts
  */
 
-import { RestClient } from '../../src/index.js';
+import { RestClient } from '@signalwire/sdk';
 
 async function main() {
   // Create client — reads from env vars if not provided explicitly

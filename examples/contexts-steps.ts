@@ -6,7 +6,7 @@
  * Run: npx tsx examples/contexts-steps.ts
  */
 
-import { AgentBase, FunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'quiz-agent',

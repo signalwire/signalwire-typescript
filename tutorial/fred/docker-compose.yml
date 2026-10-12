@@ -1,0 +1,57 @@
+services:
+  fred:
+    # Build from local Dockerfile
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    # Container name
+    container_name: fred-bot
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Port mapping
+    ports:
+      - "3000:3000"
+
+    # Environment variables
+    environment:
+      # Authentication: Compose refuses to start without a password
+      - SWML_BASIC_AUTH_USER=${FRED_AUTH_USER:-fred}
+      - SWML_BASIC_AUTH_PASSWORD=${FRED_AUTH_PASSWORD:?Set FRED_AUTH_PASSWORD in .env}
+
+      # Request signatures, and one tool-token secret for every copy of Fred
+      - SIGNALWIRE_SIGNING_KEY=${SIGNALWIRE_SIGNING_KEY:-}
+      - SIGNALWIRE_SWAIG_SECRET=${SIGNALWIRE_SWAIG_SECRET:-}
+
+      # SignalWire configuration
+      - SWML_PROXY_URL_BASE=${PROXY_URL:-}
+
+      # Timezone
+      - TZ=America/New_York
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/fred/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
