@@ -82,9 +82,11 @@ jobs:
       # starlette (1.x) turned the httpx-deprecation into a HARD requirement for the
       # package literally named `httpx2` (a real PyPI package, v2.x) — plain
       # `pip install httpx` (0.28) no longer satisfies it. Install httpx2 so the
-      # TestClient imports clean and the SWAIG-HTTP oracle builds.
-      - name: Install SWAIG-HTTP gate backend (starlette TestClient needs httpx2)
-        run: pip install httpx2
+      # TestClient imports clean and the SWAIG-HTTP oracle builds. The
+      # AI-CHAT-GATEWAY gate's reference dump imports httpx itself (its
+      # ASGITransport), so install both, as nightly.yml does.
+      - name: Install gate HTTP backends (httpx2 for TestClient, httpx for AI-CHAT-GATEWAY)
+        run: pip install httpx httpx2
 
       # ACTIONLINT gate (porting-sdk actionlint_gate.py) needs the actionlint
       # binary and fails LOUD when it is absent (never a silent skip), so install

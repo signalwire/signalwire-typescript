@@ -6,7 +6,7 @@
 
 # SignalWire SDK for TypeScript
 
-_Build AI voice agents, control live calls over WebSocket, and manage every SignalWire resource over REST -- all from one package._
+_Build AI voice agents, control live calls over WebSocket, and manage every SignalWire resource over REST, all from one package._
 
 <p align="center">
   <a href="https://developer.signalwire.com/sdks/agents-sdk" target="_blank">Documentation</a> &middot;
@@ -39,19 +39,29 @@ declare global {
 
 | Capability | What it does | Quick link |
 |-----------|-------------|------------|
-| **AI Agents** | Build voice agents that handle calls autonomously -- the platform runs the AI pipeline, your code defines the persona, tools, and call flow | [Agent Guide](#ai-agents) |
-| **RELAY Client** | Control live calls and SMS/MMS in real time over WebSocket -- answer, play, record, collect DTMF, conference, transfer, and more | [RELAY docs](relay/README.md) |
-| **REST Client** | Manage SignalWire resources over HTTP -- phone numbers, SIP endpoints, Fabric AI agents, video rooms, messaging, and the full set of REST API namespaces | [REST docs](rest/README.md) |
+| **AI Agents** | Build voice agents that handle calls on their own. The platform runs the AI pipeline, and your code defines the persona, tools, and call flow. | [Agent Guide](#ai-agents) |
+| **RELAY Client** | Control live calls and SMS/MMS in real time over WebSocket: answer, play, record, collect DTMF, conference, transfer, and more | [RELAY docs](relay/README.md) |
+| **REST Client** | Manage SignalWire resources over HTTP: phone numbers, SIP endpoints, Fabric AI agents, video rooms, messaging, and the other REST API namespaces | [REST docs](rest/README.md) |
+
+Install the SDK from npm:
 
 ```bash
 npm install @signalwire/sdk
+```
+
+The package installs its own documentation. `npx sw-tsdocs` prints a map of the SDK for the installed version, with the docs and examples on disk, and `npx sw-tsdocs api <name>` reads signatures and JSDoc from the installed declarations. If you're a coding agent working with the SDK, start there:
+
+```bash
+npx sw-tsdocs                 # the map: what the SDK does and where to start
+npx sw-tsdocs agents          # one topic: concepts, files to read, examples, API
+npx sw-tsdocs api AgentBase   # a signature, JSDoc and members
 ```
 
 ---
 
 ## AI Agents
 
-Each agent is a self-contained microservice that generates [SWML](docs/swml_service_guide.md) (SignalWire Markup Language) and handles [SWAIG](docs/swaig-reference.md) (SignalWire AI Gateway) tool calls. The SignalWire platform runs the entire AI pipeline (STT, LLM, TTS) -- your agent just defines the behavior.
+Each agent is a self-contained microservice that generates [SWML](docs/swml_service_guide.md) (SignalWire Markup Language) and handles [SWAIG](docs/swaig-reference.md) (SignalWire AI Gateway) tool calls. The SignalWire platform runs the entire AI pipeline (STT, LLM, TTS), and your agent defines the behavior.
 
 <!-- include: examples/quickstart-agent.ts#construct -->
 ```typescript
@@ -75,7 +85,7 @@ agent.defineTool({
 agent.run(); // Starts HTTP server on port 3000
 ```
 
-Test locally without running a server:
+In a clone of this repository, `swaig-test` checks an agent without running a server. These commands list the example agent's tools, print its SWML, and call its `get_time` tool:
 
 ```bash
 npx tsx src/cli/swaig-test.ts examples/simple-agent.ts --list-tools
@@ -85,23 +95,25 @@ npx tsx src/cli/swaig-test.ts examples/simple-agent.ts --exec get_time
 
 ### Agent Features
 
-- **Prompt Object Model (POM)** -- structured prompt composition via `promptAddSection()`
-- **SWAIG tools** -- define functions with `defineTool()` that the AI calls mid-conversation, with native access to the call's media stack
-- **Skills system** -- add capabilities with one-liners: `await agent.addSkill(new DateTimeSkill())`
-- **Contexts and steps** -- structured multi-step workflows with navigation control
-- **DataMap tools** -- tools that execute on SignalWire's servers, calling REST APIs without your own webhook
-- **Dynamic configuration** -- per-request agent customization for multi-tenant deployments
-- **Call flow control** -- pre-answer, post-answer, and post-AI verb insertion
-- **Prefab agents** -- ready-to-use archetypes (InfoGatherer, Survey, FAQ, Receptionist, Concierge)
-- **Multi-agent hosting** -- serve multiple agents on a single server with `AgentServer`
-- **SIP routing** -- route SIP calls to agents based on usernames
-- **Session state** -- persistent conversation state with global data and post-prompt summaries
-- **Security** -- auto-generated basic auth, function-specific HMAC tokens, SSL support
-- **Serverless** -- auto-detects Lambda, CGI, Google Cloud Functions, Azure Functions
+An agent built on `AgentBase` gets these features:
+
+- **Prompt Object Model (POM)**: structured prompt composition with `promptAddSection()`
+- **SWAIG tools**: functions defined with `defineTool()` that the AI calls mid-conversation. A tool's result is context for the model, and its actions can control the call.
+- **Skills system**: capabilities added in one line, such as `await agent.addSkill(new DateTimeSkill())`
+- **Contexts and steps**: structured multi-step workflows with navigation control
+- **DataMap tools**: tools that run on SignalWire's servers, calling REST APIs without your own webhook
+- **Dynamic configuration**: a per-request copy of the agent, configured for each call, for multi-tenant deployments
+- **Call flow control**: pre-answer, post-answer, and post-AI verb insertion
+- **Prefab agents**: ready-to-use archetypes (InfoGatherer, Survey, FAQ, Receptionist, Concierge)
+- **Multi-agent hosting**: multiple agents on a single server with `AgentServer`
+- **SIP routing**: SIP calls routed to agents by username
+- **Session state**: global data for the call, and post-prompt summaries when it ends
+- **Security**: auto-generated basic auth, per-call tool tokens, webhook signature validation, and TLS support
+- **Serverless**: automatic detection of Lambda, CGI, Google Cloud Functions, and Azure Functions
 
 ### Agent Examples
 
-The [`examples/`](examples/) directory contains 35+ working examples:
+The [`examples/`](examples/) directory contains more than 50 working examples. These show the main features:
 
 | Example | What it demonstrates |
 |---------|---------------------|
@@ -123,6 +135,8 @@ See [examples/README.md](examples/README.md) for the full list organized by cate
 
 Real-time call control and messaging over WebSocket. The RELAY client connects to SignalWire via the Blade protocol and gives you imperative, async control over live phone calls and SMS/MMS.
 
+The RELAY client connects with `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN` and `SIGNALWIRE_SPACE` from the environment. This client answers each call on the `default` context, plays a greeting, and hangs up:
+
 <!-- include: examples/quickstart-relay.ts#construct -->
 ```typescript
 import { RelayClient, Call } from '@signalwire/sdk';
@@ -141,7 +155,9 @@ client.onCall(async (call: Call) => {
 client.run();
 ```
 
-- 40+ calling methods (play, record, collect, detect, tap, stream, AI, conferencing, and more)
+The RELAY client provides:
+
+- Calling methods for play, record, collect, detect, tap, stream, AI, conferencing, and more
 - SMS/MMS messaging with delivery tracking
 - Action objects with `wait()`, `stop()`, `pause()`, `resume()`
 - Auto-reconnect with exponential backoff
@@ -152,7 +168,9 @@ See the **[RELAY documentation](relay/README.md)** for the full guide, API refer
 
 ## REST Client
 
-Typed HTTP client for managing SignalWire resources and controlling calls over HTTP. No WebSocket required -- just standard `fetch` requests.
+Typed HTTP client for managing SignalWire resources and controlling calls over HTTP. It sends standard `fetch` requests, with no WebSocket.
+
+This client creates a Fabric AI agent, plays text on a live call, searches for phone numbers and searches Datasphere documents:
 
 <!-- include: examples/quickstart-rest.ts#construct -->
 ```typescript
@@ -170,9 +188,11 @@ await client.phoneNumbers.search({ areacode: '512' });
 await client.datasphere.documents.search('billing policy');
 ```
 
-- Namespaced API surfaces: Fabric (16 resource types), Calling (37 commands), Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, and more
-- Uses Node's built-in `fetch` -- no HTTP client dependency
-- Dict returns -- raw JSON, no wrapper objects
+The REST client provides:
+
+- Namespaced API surfaces: Fabric, Calling, Video, Datasphere, Phone Numbers, SIP, Queues, Recordings, and more
+- Node's built-in `fetch`, with no HTTP client dependency
+- Plain object returns: the raw JSON, with no wrapper objects
 
 See the **[REST documentation](rest/README.md)** for the full guide, API reference, and examples.
 
@@ -180,24 +200,23 @@ See the **[REST documentation](rest/README.md)** for the full guide, API referen
 
 ## Webhook Verification
 
-Verify that an inbound webhook (status callback, messaging callback, SWML/SWAIG
-request) genuinely came from SignalWire using your Signing Key. This is the
-spiritual successor to the Compatibility API's `RestClient.validateRequest()` /
-`validateRequestWithBody()` — and it ships **built into `@signalwire/sdk`** as a
-top-level export, so you do not need the separate `@signalwire/compatibility-api`
-package.
+Your Signing Key verifies that an inbound webhook (a status callback, a
+messaging callback, or a SWML or SWAIG request) came from SignalWire.
+`validateRequest` replaces the Compatibility API's `RestClient.validateRequest()`
+and `validateRequestWithBody()`. It's a top-level export of `@signalwire/sdk`, so
+you don't need the separate `@signalwire/compatibility-api` package.
+
+This fragment checks a form-encoded webhook, then a JSON one:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `signingKey` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
 import { validateRequest } from '@signalwire/sdk';
 
-// Parsed form params (classic cXML/Compat webhooks) — this one call replaces
-// the two Python-SDK entry points (validateRequest for parsed params and
-// validateRequestWithBody for raw bodies): TS unifies both behind validateRequest.
+// Parsed form params, from a cXML (Compatibility API) webhook.
 const ok = validateRequest(signingKey, signatureHeader, fullUrl, requestParams);
 
-// Raw request body (JSON/SWML, or cXML form bodies that carry bodySHA256) —
-// same unified function, passed the raw body string instead of parsed params.
+// The raw request body, for JSON and SWML webhooks, or a cXML body that
+// carries bodySHA256.
 const okBody = validateRequest(signingKey, signatureHeader, fullUrl, rawBodyString);
 ```
 
@@ -207,62 +226,72 @@ the **raw body string** to additionally verify the `bodySHA256` the platform
 includes for JSON/SWML payloads. It returns `true` on a match, `false`
 otherwise, and throws if the Signing Key is missing.
 
-If you want the lower-level primitive (compute/compare a single signature over a
-raw body), `validateWebhookSignature(signingKey, signature, url, rawBody)` is
-also exported.
+`validateWebhookSignature(signingKey, signature, url, rawBody)` is the
+lower-level check of one signature over a raw body.
+
+SignalWire also sends an HMAC-SHA256 signature in the
+`X-SignalWire-Sha256-Signature` header on JSON and SWML webhooks. It signs the
+same message, the URL followed by the raw body, and you can check it with
+`validateWebhookSignatureSha256(signingKey, signature, url, rawBody)`. An
+agent's built-in validation, and `webhookValidationMiddleware`, check that
+header first when it's present and fall back to `X-SignalWire-Signature`.
 
 ---
 
 ## Installation
 
+One package covers agents, RELAY and REST. It requires Node.js 22 or later:
+
 ```bash
-# Core SDK (agents, RELAY, REST)
 npm install @signalwire/sdk
 ```
 
-Requires Node.js >= 22.
-
 ## Documentation
 
-Full reference documentation is available at **[developer.signalwire.com/sdks/agents-sdk](https://developer.signalwire.com/sdks/agents-sdk)**.
+The reference documentation is at **[developer.signalwire.com/sdks/agents-sdk](https://developer.signalwire.com/sdks/agents-sdk)**.
 
-Guides are also available in the [`docs/`](docs/) directory:
+The [`docs/`](docs/) directory has these guides. They're installed with the package, with the examples: `npx sw-tsdocs path` prints where.
 
 ### Getting Started
 
-- [Agent Guide](docs/agent-guide.md) -- creating agents, prompt configuration, dynamic setup
-- [Architecture](docs/architecture.md) -- SDK architecture and core concepts
-- [SDK Features](docs/sdk_features.md) -- feature overview, SDK vs raw SWML comparison
+- [Agent Guide](docs/agent-guide.md): creating agents, prompt configuration, dynamic setup
+- [Architecture](docs/architecture.md): SDK architecture and core concepts
+- [SDK Features](docs/sdk_features.md): feature overview, SDK vs raw SWML comparison
+- [Programmatically Governed Inference](docs/programmatically_governed_inference.md): why code, not the model, owns the rules of a call
+- [PGI Implementation Guide](docs/pgi_agent_guide.md): building a governed agent, with a tested reference implementation
+- [Developer Pain Points](docs/developer_pain_points.md): common problems in voice AI, and the SDK features that address them
 
 ### Core Features
 
-- [SWAIG Reference](docs/swaig-reference.md) -- function results, actions, post_data lifecycle
-- [Contexts and Steps](docs/contexts-guide.md) -- structured workflows, navigation, gather mode
-- [DataMap Guide](docs/datamap-guide.md) -- serverless API tools without webhooks
-- [LLM Parameters](docs/llm_parameters.md) -- temperature, top_p, barge confidence tuning
-- [SWML Service Guide](docs/swml_service_guide.md) -- low-level construction of SWML documents
+- [SWAIG Reference](docs/swaig-reference.md): function results, actions, post_data lifecycle
+- [Contexts and Steps](docs/contexts-guide.md): structured workflows, navigation, gather mode
+- [DataMap Guide](docs/datamap-guide.md): serverless API tools without webhooks
+- [LLM Parameters](docs/llm_parameters.md): temperature, top_p, barge settings
+- [SWML Service Guide](docs/swml_service_guide.md): low-level construction of SWML documents
 
 ### Skills and Extensions
 
-- [Skills System](docs/skills-guide.md) -- built-in skills and the modular framework
-- [Third-Party Skills](docs/third_party_skills.md) -- creating and publishing custom skills
-- [MCP Gateway](docs/mcp_gateway_reference.md) -- Model Context Protocol integration
-- [MCP Integration](docs/mcp_integration.md) -- MCP agent setup and configuration
+- [Skills System](docs/skills-guide.md): built-in skills and the modular framework
+- [Third-Party Skills](docs/third_party_skills.md): creating and publishing custom skills
+- [MCP Gateway](docs/mcp_gateway_reference.md): Model Context Protocol integration
+- [MCP Integration](docs/mcp_integration.md): MCP agent setup and configuration
+- [AI Chat](docs/ai_chat.md): the AI Chat client, and the gateway and handoff routes for a browser chat widget
 
 ### Deployment
 
-- [CLI Guide](docs/cli-guide.md) -- `swaig-test` command reference
-- [Cloud Functions](docs/cloud_functions_guide.md) -- Lambda, Cloud Functions, Azure deployment
-- [Serverless Guide](docs/serverless-guide.md) -- deploy to AWS Lambda, Google Cloud Functions, Azure Functions, CGI
-- [Configuration](docs/configuration.md) -- environment variables, SSL, proxy setup
-- [Security](docs/security.md) -- authentication and security model
+- [CLI Guide](docs/cli-guide.md): `swaig-test` command reference
+- [Cloud Functions](docs/cloud_functions_guide.md): Lambda, Cloud Functions, Azure deployment
+- [Serverless Guide](docs/serverless-guide.md): deploy to AWS Lambda, Google Cloud Functions, Azure Functions, CGI
+- [Configuration](docs/configuration.md): environment variables, SSL, proxy setup
+- [Security](docs/security.md): authentication and security model
 
 ### Reference
 
-- [API Reference](docs/api-reference.md) -- complete class and method reference
-- [Web Service](docs/web_service.md) -- HTTP server and endpoint details
-- [Skills Parameter Schema](docs/skills_parameter_schema.md) -- skill parameter definitions
-- [Prefabs Guide](docs/prefabs-guide.md) -- pre-built agents: InfoGatherer, Survey, FAQ, Concierge, Receptionist
+- [API Reference](docs/api-reference.md): complete class and method reference
+- [Web Service](docs/web_service.md): HTTP server and endpoint details
+- [Skills Parameter Schema](docs/skills_parameter_schema.md): skill parameter definitions
+- [Prefabs Guide](docs/prefabs-guide.md): pre-built agents: InfoGatherer, Survey, FAQ, Concierge, Receptionist
+- [Bedrock Agent](docs/bedrock_agent.md): an agent that runs on Amazon Bedrock through the `amazon_bedrock` verb
 
 ## Environment Variables
 
@@ -286,9 +315,8 @@ Guides are also available in the [`docs/`](docs/) directory:
 
 ## Testing
 
-Lint, format, and test go through the canonical scripts under `scripts/`. They
-self-bootstrap their toolchain (installing dependencies on first run) and work
-from any directory:
+The scripts under `scripts/` lint, format and test the SDK. They install their
+dependencies on first run and work from any directory:
 
 ```bash
 # Run the test suite (optional filter passed through to vitest)
@@ -303,6 +331,8 @@ bash scripts/run-format.sh --check
 bash scripts/run-lint.sh
 ```
 
+These npm scripts build the SDK and watch for changes:
+
 ```bash
 # Build
 npm run build
@@ -316,4 +346,4 @@ npm run test:watch
 
 ## License
 
-MIT -- see [LICENSE](LICENSE) for details.
+MIT. See [LICENSE](LICENSE) for details.

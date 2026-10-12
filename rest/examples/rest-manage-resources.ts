@@ -10,7 +10,7 @@
  *   npx tsx rest/examples/rest-manage-resources.ts
  */
 
-import { RestClient, RestError } from '../../src/index.js';
+import { RestClient, RestError } from '@signalwire/sdk';
 
 const client = new RestClient();
 

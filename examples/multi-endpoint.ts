@@ -11,7 +11,7 @@
  *   curl http://localhost:3000/health
  */
 
-import { AgentBase, AgentServer, FunctionResult } from '../src/index.js';
+import { AgentBase, AgentServer, FunctionResult } from '@signalwire/sdk';
 
 // --- Billing Agent ---
 const billing = new AgentBase({

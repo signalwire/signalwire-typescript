@@ -6,7 +6,7 @@
  * Run: npx tsx examples/datasphere-multi-instance.ts
  */
 
-import { AgentBase, DataSphereSkill, DateTimeSkill, MathSkill } from '../src/index.js';
+import { AgentBase, DataSphereSkill, DateTimeSkill, MathSkill } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'multi-datasphere',
@@ -33,8 +33,8 @@ await agent.addSkill(
   new DataSphereSkill({
     document_id: 'drinks-doc-123',
     tool_name: 'search_drinks_knowledge',
-    max_results: 2,
-    distance_threshold: 5.0,
+    count: 2,
+    distance: 5.0,
   }),
 );
 
@@ -43,8 +43,8 @@ await agent.addSkill(
   new DataSphereSkill({
     document_id: 'food-doc-456',
     tool_name: 'search_food_knowledge',
-    max_results: 3,
-    distance_threshold: 4.0,
+    count: 3,
+    distance: 4.0,
   }),
 );
 
@@ -52,8 +52,8 @@ await agent.addSkill(
 await agent.addSkill(
   new DataSphereSkill({
     document_id: 'general-doc-789',
-    max_results: 1,
-    distance_threshold: 3.0,
+    count: 1,
+    distance: 3.0,
   }),
 );
 

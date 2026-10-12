@@ -6,7 +6,7 @@
  * Run: npx tsx examples/verb-methods.ts
  */
 
-import { AgentBase, SwmlBuilder } from '../src/index.js';
+import { AgentBase, SwmlBuilder } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'verb-demo',

@@ -48,11 +48,11 @@ import { RelayError } from './RelayError.js';
 import type { CallState, MessageState } from './closedSets.js';
 import type {
   CallHandler,
+  CompletedCallback,
   Device,
   JsonRpcError,
   MessageHandler,
   RelayClientOptions,
-  SendMessageOptions,
 } from './types.js';
 
 /** Raw RELAY wire payload — an open JSON-RPC frame or `signalwire.event` dict. */
@@ -157,7 +157,8 @@ type WsLike = {
  *
  * client.onCall(async (call) => {
  *   await call.answer();
- *   await call.playTTS('Thanks for calling!');
+ *   const played = await call.play([{ type: 'tts', text: 'Thanks for calling!' }]);
+ *   await played.wait();
  *   await call.hangup();
  * });
  *
@@ -688,22 +689,21 @@ export class RelayClient {
    * @param options - Optional dial behaviour overrides.
    * @param options.tag - Client-provided tag for event correlation.
    *   Auto-generated (UUID) when omitted.
-   * @param options.region - Origination region override
-   *   (`CallingDialParams.region`).
-   * @param options.maxPricePerMinute - Price cap per minute
-   *   (`CallingDialParams.max_price_per_minute`).
+   * @param options.maxDuration - Maximum call duration in minutes.
    * @param options.dialTimeout - Seconds to wait for the dial to complete.
    *   Defaults to `120`.
    * @returns A {@link Call} representing the answered leg.
    * @throws {Error} When the dial times out.
    * @throws {RelayError} When the server rejects the dial request.
    */
+  // The options are written out (the same shape as the exported DialOptions)
+  // so the signature snapshot reads them as the reference's keyword arguments.
   async dial(
     devices: Record<string, unknown>[][],
     options: {
       tag?: string;
-      region?: string;
-      maxPricePerMinute?: number;
+      /** Maximum call duration in minutes. */
+      maxDuration?: number;
       /** Dial timeout in seconds (default 120). */
       dialTimeout?: number;
     } = {},
@@ -713,10 +713,7 @@ export class RelayClient {
       tag: dialTag,
       devices: normalizeDevicePlan(devices),
     };
-    // `calling.dial` has no max_duration on the wire (unlike `connect`); the real
-    // optional knobs are region + max_price_per_minute (CallingDialParams).
-    if (options.region != null) params.region = options.region;
-    if (options.maxPricePerMinute != null) params.max_price_per_minute = options.maxPricePerMinute;
+    if (options.maxDuration != null) params.max_duration = options.maxDuration;
 
     // Register a deferred that _handleEvent will resolve
     const dialDeferred = createDeferred<Call>();
@@ -777,12 +774,23 @@ export class RelayClient {
    * @returns A {@link Message} tracking the outbound send.
    * @throws {RelayError} When the server rejects the send request.
    */
-  async sendMessage(options: SendMessageOptions): Promise<Message> {
+  // Written out, the same shape as the exported SendMessageOptions (see dial()).
+  async sendMessage(options: {
+    toNumber: string;
+    fromNumber: string;
+    context?: string;
+    body?: string;
+    media?: string[];
+    tags?: string[];
+    region?: string;
+    onCompleted?: CompletedCallback;
+  }): Promise<Message> {
     if (!options.body && (!options.media || options.media.length === 0)) {
       throw new Error('At least one of body or media is required');
     }
 
-    const msgContext = options.context ?? this._relayProtocol ?? 'default';
+    // `||`, not `??`: the protocol is '' until the server assigns one.
+    const msgContext = options.context || this._relayProtocol || 'default';
     const params: Record<string, unknown> = {
       context: msgContext,
       to_number: options.toNumber,
@@ -1263,12 +1271,19 @@ export class RelayClient {
     const messageId = (params.message_id ?? '') as string;
     const message = this._messages.get(messageId);
     if (message) {
-      message._dispatchEvent(payload).catch((err) => {
-        logger.error(`Error dispatching message state for ${messageId}: ${err}`);
-      });
-      if (message.isDone) {
-        this._messages.delete(messageId);
-      }
+      // Check isDone only after dispatch settles: _dispatchEvent awaits the
+      // message's on() listeners before it resolves the terminal state, so a
+      // synchronous check would miss it and leave the message tracked forever.
+      message
+        ._dispatchEvent(payload)
+        .catch((err) => {
+          logger.error(`Error dispatching message state for ${messageId}: ${err}`);
+        })
+        .finally(() => {
+          if (message.isDone && this._messages.get(messageId) === message) {
+            this._messages.delete(messageId);
+          }
+        });
     } else {
       logger.debug(`State event for unknown message ${messageId}`);
     }

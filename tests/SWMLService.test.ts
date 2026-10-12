@@ -346,3 +346,147 @@ describe('SWMLService', () => {
     });
   });
 });
+
+describe('validateBasicAuth on the routes (found in review)', () => {
+  it('calls an override on the served routes when credentials are enforced', async () => {
+    class Guarded extends SWMLService {
+      override validateBasicAuth(username: string, password: string): boolean {
+        return username === 'u' && password === 'p' && !blocked;
+      }
+    }
+    let blocked = false;
+    const svc = new Guarded({ name: 'svc', route: '/svc', basicAuth: ['u', 'p'] });
+    svc.addVerb('answer', {});
+    const app = svc.getApp();
+    const auth = { Authorization: 'Basic ' + btoa('u:p') };
+    expect((await app.request('/svc', { headers: auth })).status).toBe(200);
+    blocked = true;
+    expect((await app.request('/svc', { headers: auth })).status).toBe(401);
+  });
+});
+
+describe('serving with generated credentials (found in review)', () => {
+  it('warns that the service requires no basic auth', async () => {
+    const saved = [process.env['SWML_BASIC_AUTH_USER'], process.env['SWML_BASIC_AUTH_PASSWORD']];
+    delete process.env['SWML_BASIC_AUTH_USER'];
+    delete process.env['SWML_BASIC_AUTH_PASSWORD'];
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const svc = new SWMLService({ name: 'open', route: '/open', port: 0, host: '127.0.0.1' });
+    try {
+      await svc.serve();
+      const lines = warn.mock.calls.map((c) => String(c[0]));
+      expect(lines.some((l) => l.includes('without basic auth'))).toBe(true);
+    } finally {
+      svc.stop();
+      warn.mockRestore();
+      if (saved[0] !== undefined) process.env['SWML_BASIC_AUTH_USER'] = saved[0];
+      if (saved[1] !== undefined) process.env['SWML_BASIC_AUTH_PASSWORD'] = saved[1];
+    }
+  });
+});
+
+describe('getRegisteredTools with a DataMap tool (found in the documentation pass)', () => {
+  it('reports the description and parameters DataMap.toSwaigFunction() writes', async () => {
+    const { DataMap } = await import('../src/DataMap.js');
+    const svc = new SWMLService({ name: 'dm', route: '/dm', basicAuth: ['u', 'p'] });
+    svc.registerSwaigFunction(
+      new DataMap('lookup')
+        .description('Look up an order')
+        .parameter('order_id', 'string', 'The order', { required: true })
+        .webhook('GET', 'https://api.example.com/orders/${args.order_id}')
+        .toSwaigFunction(),
+    );
+    const tool = svc.getRegisteredTools().find((t) => t.name === 'lookup')!;
+    expect(tool.description).toBe('Look up an order');
+    expect(JSON.stringify(tool.parameters)).toContain('order_id');
+  });
+});
+
+describe('SWMLService routing callbacks on the served app (found in the documentation pass)', () => {
+  function svc(cb: (body: Record<string, unknown>) => unknown) {
+    const s = new SWMLService({ name: 'r', route: '/r', basicAuth: ['u', 'p'] });
+    s.addVerb('answer', {});
+    s.registerRoutingCallback(cb as never, '/route');
+    return s;
+  }
+  const post = (s: SWMLService) =>
+    s.getApp().request('/route', {
+      method: 'POST',
+      headers: { Authorization: 'Basic ' + btoa('u:p'), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ call: { to: 'sip:sales@example.com' } }),
+    });
+
+  it('awaits an async callback and redirects to its route', async () => {
+    const res = await post(svc(async () => '/sales'));
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('/sales');
+  });
+
+  it('serves the SWML when an async callback returns null', async () => {
+    const res = await post(svc(async () => null));
+    expect(res.status).toBe(200);
+    expect((await res.json()).sections).toBeDefined();
+  });
+
+  it('serves the SWML when the callback throws', async () => {
+    const res = await post(
+      svc(() => {
+        throw new Error('boom');
+      }),
+    );
+    expect(res.status).toBe(200);
+  });
+});
+
+describe('SWMLService routing callbacks, second review (found in review)', () => {
+  const post = (s: SWMLService, path: string) =>
+    s.getApp().request(path, {
+      method: 'POST',
+      headers: { Authorization: 'Basic ' + btoa('u:p'), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ call: { to: 'sip:x@example.com' } }),
+    });
+
+  it('runs the callback registered at the requested path, with overlapping paths', async () => {
+    for (const order of [
+      ['/route', '/nested/route'],
+      ['/nested/route', '/route'],
+    ]) {
+      const s = new SWMLService({ name: 'r', route: '/r', basicAuth: ['u', 'p'] });
+      s.addVerb('answer', {});
+      for (const p of order)
+        s.registerRoutingCallback(() => (p === '/route' ? '/short' : '/long'), p);
+      expect((await post(s, '/nested/route')).headers.get('location')).toBe('/long');
+      expect((await post(s, '/route')).headers.get('location')).toBe('/short');
+    }
+  });
+
+  it('serves the per-request SWML when the callback returns null', async () => {
+    const s = new SWMLService({ name: 'r', route: '/r', basicAuth: ['u', 'p'] });
+    s.addVerb('answer', {});
+    s.setOnRequestCallback(async () => {
+      const { SwmlBuilder: B } = await import('../src/SwmlBuilder.js');
+      const b = new B();
+      b.addVerb('hangup', {});
+      return b;
+    });
+    s.registerRoutingCallback(() => null, '/route');
+    const res = await post(s, '/route');
+    expect(res.headers.get('content-type')).toContain('application/json');
+    expect(JSON.stringify(await res.json())).toContain('hangup');
+  });
+
+  it('checks a validateBasicAuth override once per request', async () => {
+    let calls = 0;
+    class Counting extends SWMLService {
+      override validateBasicAuth(u: string, p: string) {
+        calls += 1;
+        return super.validateBasicAuth(u, p);
+      }
+    }
+    const s = new Counting({ name: 'r', route: '/r', basicAuth: ['u', 'p'] });
+    s.addVerb('answer', {});
+    s.registerRoutingCallback(() => '/go', '/route');
+    await post(s, '/route');
+    expect(calls).toBe(1);
+  });
+});

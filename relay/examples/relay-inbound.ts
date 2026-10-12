@@ -12,7 +12,7 @@
  *   npx tsx relay/examples/relay-inbound.ts
  */
 
-import { RelayClient, Call } from '../../src/relay/index.js';
+import { RelayClient, Call } from '@signalwire/sdk';
 
 const client = new RelayClient({
   contexts: ['office'],

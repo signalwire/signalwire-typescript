@@ -6,7 +6,7 @@
  * Run: npx tsx examples/prefab-faq.ts
  */
 
-import { FAQBotAgent } from '../src/index.js';
+import { FAQBotAgent } from '@signalwire/sdk';
 
 export const agent = new FAQBotAgent({
   name: 'help-desk',

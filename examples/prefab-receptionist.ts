@@ -8,7 +8,7 @@
  * Run: npx tsx examples/prefab-receptionist.ts
  */
 
-import { ReceptionistAgent } from '../src/index.js';
+import { ReceptionistAgent } from '@signalwire/sdk';
 
 export const agent = new ReceptionistAgent({
   name: 'front-desk',

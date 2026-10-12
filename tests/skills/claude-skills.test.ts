@@ -6,6 +6,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { ClaudeSkillsSkill, createClaudeSkillsSkill } from '../../src/skills/builtin/index.js';
 import { SkillBase } from '../../src/skills/SkillBase.js';
 import { suppressAllLogs } from '../../src/Logger.js';
+import { listSkillsWithParams, registerBuiltinSkills } from '../../src/index.js';
 
 beforeAll(() => {
   suppressAllLogs(true);
@@ -58,5 +59,15 @@ describe('ClaudeSkillsSkill', () => {
     expect(Object.keys(schema).length).toBeGreaterThan(0);
     expect(schema).toHaveProperty('swaig_fields');
     expect(schema).toHaveProperty('skip_prompt');
+  });
+
+  it('omits the base tool_name entry, which the skill never reads', () => {
+    // Tools are named with tool_prefix, and instances are told apart by skills_path, so the tool_name entry SkillBase adds for multi-instance skills
+    // doesn't apply (signalwire-python cf78a30).
+    const schema = ClaudeSkillsSkill.getParameterSchema();
+    expect(schema).not.toHaveProperty('tool_name');
+    expect(schema).toHaveProperty('tool_prefix');
+    registerBuiltinSkills(); // skips skills already registered
+    expect(listSkillsWithParams()['claude_skills']!.parameters).not.toHaveProperty('tool_name');
   });
 });

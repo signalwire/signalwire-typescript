@@ -6,7 +6,7 @@
  * Run: npx tsx examples/pom-prompt.ts
  */
 
-import { AgentBase, FunctionResult } from '../src/index.js';
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
 
 export const agent = new AgentBase({
   name: 'support-agent',

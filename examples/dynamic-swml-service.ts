@@ -6,7 +6,7 @@
  * Run: npx tsx examples/dynamic-swml-service.ts
  */
 
-import { SWMLService, SwmlBuilder } from '../src/index.js';
+import { SWMLService, SwmlBuilder } from '@signalwire/sdk';
 
 export const agent = new SWMLService({
   name: 'dynamic-ivr',
