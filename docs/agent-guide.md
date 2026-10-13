@@ -10,6 +10,7 @@
   - [Declarative PROMPT_SECTIONS](#declarative-prompt_sections)
 - [Tools (SWAIG Functions)](#tools-swaig-functions)
   - [Defining Tools](#defining-tools)
+  - [Slow tools and the webhook timeout](#slow-tools-and-the-webhook-timeout)
   - [Tool Parameters](#tool-parameters)
   - [Secure Tools](#secure-tools)
   - [FunctionResult](#functionresult)
@@ -23,7 +24,7 @@
 - [Call Flow (5 Phases)](#call-flow-5-phases)
 - [Dynamic Configuration](#dynamic-configuration)
 - [Post-Prompt and Summaries](#post-prompt-and-summaries)
-- [Call End Hook](#call-end-hook)
+- [Call Start and End Hooks](#call-start-and-end-hooks)
 - [Mounting Extra Routes](#mounting-extra-routes)
 - [Multi-Agent Server](#multi-agent-server)
 - [Subclassing AgentBase](#subclassing-agentbase)
@@ -369,6 +370,51 @@ The handler can return any of these:
 - A string, which the SDK wraps in a `FunctionResult`
 
 A handler runs on Node's event loop. Synchronous or CPU-heavy work in a handler blocks every other request the process is serving, so await asynchronous calls instead.
+
+### Slow tools and the webhook timeout
+
+SignalWire waits for a SWAIG function's webhook for only a short time: on live calls it stops waiting after about 10 seconds (observed) and sends the same request again. It also sends a request again when it gets an error response (5xx) or can't connect. So a tool that takes longer than that runs more than once, and the caller hears nothing from it in the meantime.
+
+Answer within a few seconds. When the work takes longer, start it without awaiting it, return at once with a reply that tells the model the result is on its way, and send the result into the call when it's ready with the REST API's `calling.ai_message` (`calling.aiMessage()` on a `RestClient`):
+
+<!-- snippet: no-run illustrative fragment (`slowOrderLookup` is your own helper; sends a live REST request) -->
+```typescript
+import { AgentBase, FunctionResult, RestClient } from '@signalwire/sdk';
+
+declare function slowOrderLookup(orderId: string): Promise<string>;
+
+const rest = new RestClient(); // SIGNALWIRE_PROJECT_ID, SIGNALWIRE_API_TOKEN, SIGNALWIRE_SPACE
+const agent = new AgentBase({ name: 'orders' });
+
+agent.defineTool({
+  name: 'check_order',
+  description: "Look up an order's shipping status",
+  parameters: { order_id: { type: 'string', description: 'The order number' } },
+  handler: (args, rawData) => {
+    const callId = rawData.call_id as string;
+    const orderId = args['order_id'] as string;
+
+    // Not awaited: the handler returns before the lookup finishes
+    void (async () => {
+      try {
+        const status = await slowOrderLookup(orderId); // may take 30 seconds
+        await rest.calling.aiMessage(callId, {
+          role: 'system',
+          message_text: `Order ${orderId} status: ${status}. Tell the caller.`,
+        });
+      } catch (err) {
+        console.error('check_order failed', err);
+      }
+    })();
+
+    return new FunctionResult(
+      "The lookup has started. Tell the caller you're checking and will have it shortly.",
+    );
+  },
+});
+```
+
+The message goes into the AI session as the given role (`system`, `user` or `assistant`); `system` keeps the result from reading as something the caller said. Catch errors in the work you don't await: the SDK can't catch them once the handler has returned, and an unhandled rejection can stop the Node process. This pattern is for asynchronous I/O: leaving out `await` doesn't move synchronous or CPU-heavy work off Node's event loop. Because a request can arrive twice, make tools safe to run twice: for example, key work that's already running by `call_id` and arguments, and join it instead of starting it again.
 
 ### Tool Parameters
 
@@ -762,6 +808,54 @@ agent.addPerCallConfig((_query, _body, headers, copy) => {
 
 `setDynamicConfigCallback()` replaces every callback registered so far, including those from `addPerCallConfig()`.
 
+### Rejecting a Call
+
+The callback can't refuse the request, but it can decide what the call does. To turn away a call the agent shouldn't take, such as one whose caller can't be verified, build the agent so that by default the call hears a message and hangs up, and have the callback undo that only for a call it accepts:
+
+1. When you build the agent, add `play` and `hangup` with `addPostAnswerVerb()`. They run after the call is answered and before the `ai` verb, so a call that keeps them hangs up before the AI starts. Define no tools on the agent itself.
+2. In the callback, for an accepted call, add the tools and other configuration to the request's copy, then call `clearPostAnswerVerbs()` last.
+
+This fails closed. The callback changes only the request's copy, so the next call starts from the goodbye again. If the callback throws, the SDK logs the error and renders the copy as it stands, and since clearing the verbs is the last step, a failure before it leaves the goodbye in place. With several callbacks, finish every check before the one call to `clearPostAnswerVerbs()`, and make it the last callback registered: a callback that throws stops the ones after it, but doesn't restore verbs an earlier one cleared.
+
+The callback runs for every request the call makes: the SWML fetch, and again for each tool call and the post-prompt summary. Only the SWML fetch carries the caller's data, such as the `userVariables` a browser or app client sends with `dial()`; a tool call carries the `call_id` and `global_data`, and `global_data` comes from the call, so it proves nothing. Verify on the SWML fetch, remember the `call_id` (`body.call.call_id` there, `body.call_id` on later requests), and check that on later requests, so a tool call from a call you didn't verify finds no tool to run.
+
+<!-- snippet: no-run illustrative fragment (`signatureIsValid` is your own check) -->
+```typescript
+import { AgentBase, FunctionResult, userVariables } from '@signalwire/sdk';
+
+declare function signatureIsValid(vars: Record<string, unknown>): boolean;
+
+// With more than one process, keep this in a shared store instead.
+const verified = new Set<string>();
+
+const agent = new AgentBase({ name: 'gated', route: '/' });
+agent.promptAddSection('Role', { body: 'You are a helpful assistant.' });
+// Fail closed: every call gets this unless the callback accepts it.
+agent.addPostAnswerVerb('play', { url: "say:Sorry, this call can't be verified. Goodbye." });
+agent.addPostAnswerVerb('hangup', {});
+
+agent.addPerCallConfig((_query, body, _headers, copy) => {
+  let callId: string | undefined;
+  if (body.call && typeof body.call === 'object') {
+    // The SWML fetch that starts the call
+    callId = body.call.call_id;
+    if (callId && signatureIsValid(userVariables(body))) verified.add(callId);
+  } else {
+    // A tool call or the summary
+    callId = body.call_id as string | undefined;
+  }
+  if (!callId || !verified.has(callId)) return; // stays a goodbye with no tools
+  copy.defineTool({
+    name: 'lookup',
+    description: 'Look up an account',
+    handler: () => new FunctionResult('...'),
+  });
+  copy.clearPostAnswerVerbs(); // last: a failure above leaves the goodbye
+});
+```
+
+Since the call never reaches the `ai` verb, no tool, `onCallStart()` or `onCallEnd()` handler runs for a rejected call. Forget a verified `call_id` when the call ends (in `onCallEnd()`, for example) or after a time limit.
+
 ### SWAIG Query Parameters
 
 `addSwaigQueryParams()` appends query parameters to the SWAIG webhook URLs:
@@ -823,7 +917,31 @@ agent.setPostPromptLlmParams({
 
 ---
 
-## Call End Hook
+## Call Start and End Hooks
+
+`onCallStart()` and `onCallEnd()` register handlers for the platform's two reserved hooks, `startup_hook` and `hangup_hook`. Each takes any number of handlers, which run in registration order, and logs an error a handler throws instead of raising it, so one failing handler doesn't stop the others.
+
+### onCallStart()
+
+`onCallStart()` registers a handler that runs when the call starts. The handler receives the SWAIG request (`call_id`, `global_data`, `caller_id_num` and the rest) and may return a `FunctionResult` or nothing:
+
+```typescript
+agent.onCallStart(async (rawData) => {
+  const customer = await lookupCustomer(rawData.caller_id_num as string);
+  return new FunctionResult(`The caller is ${customer.name}.`).updateGlobalData({
+    customer_name: customer.name,
+  });
+});
+```
+
+The first registration adds the reserved `startup_hook` function, which the platform runs once, after the call is answered and before the AI's first turn, and doesn't offer to the model. The platform uses its reply:
+
+- The actions run at once, such as `updateGlobalData()` to give the call data before the conversation starts. Several handlers' actions run in registration order. `postProcess` isn't used.
+- The response text is added to the conversation as a system message, so the model reads it before it speaks. Several handlers' texts are joined, one per line. Only a plain string response is used; the SDK logs a warning for a structured `tool_result`/`tool_prompt` response, and for a return value that isn't a `FunctionResult`, and ignores it. OpenAI Realtime agents run the hook's actions but don't add its text, so give them what they need through an action such as `updateGlobalData()`.
+
+The platform waits for the hook before the AI starts, so a slow handler delays the greeting; keep it short (see [Slow tools and the webhook timeout](#slow-tools-and-the-webhook-timeout)). Like any function request, the hook's request can be sent again after a timeout or an error, so make the handlers safe to run twice.
+
+### onCallEnd()
 
 `onCallEnd()` registers a handler that runs when the call ends, with the transcript. Handlers run in registration order with `(callLog, rawData)`:
 
@@ -836,6 +954,8 @@ agent.onCallEnd(async (callLog, rawData) => {
 The first registration adds the platform's reserved `hangup_hook` function, which fires on hangup and isn't offered to the model. It also sets the `swaig_post_conversation` parameter to `true`, because without it the hook carries no transcript. If you set that parameter to `false` yourself, the SDK leaves it and logs a warning, and handlers get an empty list.
 
 The SDK ignores a handler's return value. It logs an error a handler throws, and runs the remaining handlers.
+
+To write a hook yourself instead, define a tool with the reserved name. Use one or the other for each hook: `onCallStart()` and `onCallEnd()` define `startup_hook` and `hangup_hook` themselves.
 
 ---
 

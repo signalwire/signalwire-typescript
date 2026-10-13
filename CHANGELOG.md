@@ -5,7 +5,7 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-Parity with signalwire-python 3.7.1.
+Parity with signalwire-python 3.7.1, and `onCallStart()` from its next release.
 
 ### Added
 
@@ -15,6 +15,27 @@ Parity with signalwire-python 3.7.1.
   sets it, and gate objects are checked by the platform's rule. 3.6.0
   refused the key, so a gate that looks at the caller's video could only be
   written in raw SWML.
+- `AgentBase.onCallStart()` registers handlers that run when the call
+  starts, before the AI's first turn: the counterpart of `onCallEnd()`. It
+  wraps the platform's reserved `startup_hook` function. A handler receives
+  the SWAIG request and may return a `FunctionResult`: its actions run at
+  once, and its response text is added to the conversation as a system
+  message the model reads before it speaks. Handlers run in registration
+  order, and an exception is logged, not raised.
+
+### Documentation
+
+- How to reject a call from the per-call configuration callback
+  (`addPerCallConfig()`): build the agent with `play` and `hangup`
+  post-answer verbs and no tools, and have the callback add the tools and
+  call `clearPostAnswerVerbs()` only for a call it accepts. A callback that
+  fails leaves the call rejected. See "Rejecting a Call" in
+  `docs/agent-guide.md`.
+- The SWAIG function webhook timeout: SignalWire stops waiting for a tool
+  after about 10 seconds (observed on live calls) and sends the request
+  again. Tools should answer quickly and send late results into the call with
+  `calling.aiMessage()` on a `RestClient`. See "Slow tools and the webhook
+  timeout" in `docs/agent-guide.md`.
 
 ## 3.6.0 (2026-10-05)
 

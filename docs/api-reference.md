@@ -958,6 +958,8 @@ setDynamicConfigCallback(cb: DynamicConfigCallback): this
 
 Add a per-request configuration callback, keeping the ones already registered. The callbacks run in registration order on the same copy, so a later one sees what an earlier one set. When a callback throws, the error is logged, the later callbacks are skipped, and the request continues with the copy as configured so far.
 
+To turn a call away, build the agent with `play` and `hangup` post-answer verbs and no tools, and have the callback add the tools and call `clearPostAnswerVerbs()` last, only for a call it accepts. A callback that throws before that step leaves the call rejected; with several callbacks, the one that clears the verbs must run last. See [Rejecting a Call](agent-guide.md#rejecting-a-call) in the agent guide.
+
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addPerCallConfig(cb: DynamicConfigCallback): this
@@ -981,9 +983,37 @@ support.addPerCallConfig((query, body, headers, copy) => {
 });
 ```
 
+#### `onCallStart(handler)`
+
+Register a handler that runs when the call starts, before the AI's first turn, and return it. The first registration defines a tool named `startup_hook`, the platform's reserved hook, which it runs once after the call is answered and doesn't offer to the model. Handlers run in registration order with the whole SWAIG request (`call_id`, `global_data`, `caller_id_num` and the rest), and may return a `FunctionResult` or nothing. The hook replies with the handlers' results combined:
+
+- The actions, in registration order, which the platform runs at once. `postProcess` isn't used.
+- The response texts, joined one per line, which the platform adds to the conversation as a system message the model reads before it speaks. Only a plain string response is used: a structured `tool_result`/`tool_prompt` response, and a return value that isn't a `FunctionResult`, are ignored with a warning. OpenAI Realtime agents run the actions but don't add the text.
+
+An exception is logged, not raised, and that handler's result is dropped. The platform waits for the hook before the AI starts, so keep handlers short, and it can send the request again after a timeout or an error, so make them safe to run twice. Registering a handler doesn't change `swaig_post_conversation`.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+onCallStart(
+  handler: (rawData: SwaigRequest) => FunctionResult | null | undefined | void | Promise<FunctionResult | null | undefined | void>,
+): (rawData: SwaigRequest) => FunctionResult | null | undefined | void | Promise<FunctionResult | null | undefined | void>
+```
+
+**Example:**
+
+```ts
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
+
+const greeter = new AgentBase({ name: 'greeter' });
+greeter.onCallStart((rawData) => {
+  const name = (rawData['caller_id_name'] as string | undefined) || 'the caller';
+  return new FunctionResult(`The caller's name is ${name}.`);
+});
+```
+
 #### `onCallEnd(handler)`
 
-Register a handler that runs when the call ends, and return it. The first registration defines a tool named `hangup_hook` and sets the `swaig_post_conversation` param to `true`, unless that param is explicitly `false`, which logs a warning. Handlers run in registration order with the call log (`call_log`, or `raw_call_log` when that's empty) and the whole SWAIG request. Return values are ignored, and an exception is logged without stopping the other handlers.
+Register a handler that runs when the call ends, and return it. The first registration defines a tool named `hangup_hook`, the platform's reserved hook, and sets the `swaig_post_conversation` param to `true`, unless that param is explicitly `false`, which logs a warning. Handlers run in registration order with the call log (`call_log`, or `raw_call_log` when that's empty) and the whole SWAIG request. Return values are ignored, and an exception is logged without stopping the other handlers.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts

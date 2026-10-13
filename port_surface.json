@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 1885d839263539db552ca1f18ae08271c3f4e338",
+  "generated_from": "signalwire-typescript @ 4b20bba1aef0975f1adc7a5a7717492949fc95dd",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -347,6 +347,7 @@
           "is_mcp_server_enabled",
           "native_functions",
           "on_call_end",
+          "on_call_start",
           "on_debug_event",
           "on_error",
           "on_summary",
@@ -916,7 +917,8 @@
           "on_fail",
           "question",
           "threshold",
-          "to_dict"
+          "to_dict",
+          "visual_input"
         ]
       },
       "functions": [

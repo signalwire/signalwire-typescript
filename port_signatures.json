@@ -3070,6 +3070,20 @@
               ],
               "returns": "callable<list<list<dict<string,any>>,class:signalwire.swaig_contracts.generated.SwaigRequest>,union<void,void>>"
             },
+            "on_call_start": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "handler",
+                  "type": "callable<list<class:signalwire.swaig_contracts.generated.SwaigRequest>,union<void,class:signalwire.core.function_result.FunctionResult,union<void,class:signalwire.core.function_result.FunctionResult>>>",
+                  "required": true
+                }
+              ],
+              "returns": "callable<list<class:signalwire.swaig_contracts.generated.SwaigRequest>,union<void,class:signalwire.core.function_result.FunctionResult,union<void,class:signalwire.core.function_result.FunctionResult>>>"
+            },
             "on_debug_event": {
               "params": [
                 {
@@ -8417,6 +8431,15 @@
                 }
               ],
               "returns": "dict<string,any>"
+            },
+            "visual_input": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "union<float,bool,bool>"
             }
           }
         }
@@ -34232,6 +34255,10 @@
         },
         "true_means": {
           "type": "optional<string>",
+          "required": false
+        },
+        "visual_input": {
+          "type": "optional<union<bool,float>>",
           "required": false
         }
       }
