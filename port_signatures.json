@@ -2333,7 +2333,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.core.agent_base.AgentBase"
+              "returns": "optional<class:signalwire.core.agent_base.AgentBase>"
             },
             "get_pom_builder": {
               "params": [
@@ -4403,7 +4403,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<string>"
+              "returns": "optional<list<string>>"
             },
             "isolated": {
               "params": [
@@ -4412,7 +4412,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "bool"
+              "returns": "optional<bool>"
             },
             "key": {
               "params": [
@@ -4430,7 +4430,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "string"
+              "returns": "optional<string>"
             },
             "question": {
               "params": [
@@ -8394,7 +8394,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "string"
+              "returns": "optional<string>"
             },
             "on_fail": {
               "params": [
@@ -8439,7 +8439,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "union<float,bool,bool>"
+              "returns": "optional<union<float,bool,bool>>"
             }
           }
         }
@@ -8517,7 +8517,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.core.agent_base.AgentBase"
+              "returns": "optional<class:signalwire.core.agent_base.AgentBase>"
             },
             "cleanup": {
               "params": [
@@ -8822,7 +8822,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.core.agent_base.AgentBase"
+              "returns": "optional<class:signalwire.core.agent_base.AgentBase>"
             },
             "clear": {
               "params": [
@@ -9097,7 +9097,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "dict<string,any>"
+              "returns": "optional<dict<string,any>>"
             },
             "handler": {
               "params": [
@@ -9200,7 +9200,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "string"
+              "returns": "optional<string>"
             },
             "wait_file_loops": {
               "params": [
@@ -9209,7 +9209,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "float"
+              "returns": "optional<float>"
             },
             "webhook_url": {
               "params": [
@@ -9218,7 +9218,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "string"
+              "returns": "optional<string>"
             }
           }
         }
@@ -9407,7 +9407,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.core.swml_builder.SWMLServiceLike"
+              "returns": "optional<class:signalwire.core.swml_builder.SWMLServiceLike>"
             },
             "set_validation": {
               "params": [
@@ -10811,7 +10811,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "class:signalwire.livewire.AgentSession"
+              "returns": "optional<class:signalwire.livewire.AgentSession>"
             },
             "user_data": {
               "params": [
@@ -18923,7 +18923,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "float"
+              "returns": "optional<float>"
             },
             "retry_backoff": {
               "params": [
@@ -18932,7 +18932,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "float"
+              "returns": "optional<float>"
             },
             "retry_on_status": {
               "params": [
@@ -18941,7 +18941,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<float>"
+              "returns": "optional<list<float>>"
             },
             "timeout": {
               "params": [
@@ -18950,7 +18950,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "float"
+              "returns": "optional<float>"
             }
           }
         }
@@ -29512,7 +29512,7 @@
                   "kind": "self"
                 }
               ],
-              "returns": "list<union<string,class:signalwire.swml_verbs_generated.Hint>>"
+              "returns": "optional<list<union<string,class:signalwire.swml_verbs_generated.Hint>>>"
             },
             "languages": {
               "params": [
