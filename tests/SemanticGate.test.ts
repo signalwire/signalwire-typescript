@@ -527,3 +527,61 @@ describe('whole definitions, as JSON leaves them', () => {
     expect(() => applyGateFields(withList, 'refund', { definition: true })).not.toThrow();
   });
 });
+
+/**
+ * A gate's visual_input: the caller's video frames the decision model sees
+ * with it. The platform reads true as 1, false as 0, and a whole number from 0
+ * to 5 (ai_visual_input_count); anything else refuses the function. The SDK
+ * refused the key outright in 3.6.0.
+ */
+describe('a gate with visual_input', () => {
+  it.each([true, false, 0, 1, 5, 2.0, -0])('accepts %s, which the platform reads', (value) => {
+    const definition = gateDefinitions([gate({ visual_input: value })], 'verify_id')[0]!;
+    // As sent: JSON writes -0 as 0
+    expect(JSON.stringify(definition['visual_input'])).toBe(JSON.stringify(value));
+  });
+
+  it.each([6, -1, 1.5, '1', null, NaN, Infinity, [1], { n: 1 }])('refuses %s', (value) => {
+    expect(() => gateDefinitions([gate({ visual_input: value })], 'verify_id')).toThrow(
+      'verify_id: gate 1: visual_input must be true, false or a whole number from 0 to 5',
+    );
+  });
+
+  it('is checked before the id, as the platform checks it', () => {
+    expect(() => gateDefinitions([gate({ visual_input: 9, id: 'bad id' })], 'verify_id')).toThrow(
+      'verify_id: gate 1: visual_input must be',
+    );
+  });
+
+  it('is sent by SemanticGate only when it is set', () => {
+    const withFrames = new SemanticGate(
+      'Is the caller holding a photo ID up to the camera in `visual_input`?',
+      0.9,
+      'verify_id was not run.',
+      { visualInput: 2 },
+    );
+    expect(withFrames.visualInput).toBe(2);
+    expect(withFrames.toDict()['visual_input']).toBe(2);
+    expect(withFrames.toDict()).toEqual({
+      question: 'Is the caller holding a photo ID up to the camera in `visual_input`?',
+      threshold: 0.9,
+      on_fail: { response: 'verify_id was not run.' },
+      visual_input: 2,
+    });
+    expect('visual_input' in new SemanticGate('Q?', 0.9, 'no').toDict()).toBe(false);
+    expect(new SemanticGate('Q?', 0.9, 'no', { visualInput: false }).toDict()['visual_input']).toBe(
+      false,
+    );
+  });
+
+  it('checks a SemanticGate the same way', () => {
+    expect(() =>
+      gateDefinitions([new SemanticGate('Q?', 0.9, 'no', { visualInput: 6 })], 'verify_id'),
+    ).toThrow('visual_input must be true, false or a whole number from 0 to 5');
+  });
+
+  it('exports the limit', async () => {
+    const sdk = await import('../src/index.js');
+    expect(sdk.MAX_VISUAL_INPUT).toBe(5);
+  });
+});

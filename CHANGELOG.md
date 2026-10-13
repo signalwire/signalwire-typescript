@@ -3,6 +3,19 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+Parity with signalwire-python 3.7.1.
+
+### Added
+
+- Semantic gates take `visual_input`: how many of the caller's newest video
+  frames the decision model sees with the gate, `true` for 1 or a whole
+  number up to 5 (`MAX_VISUAL_INPUT`). `new SemanticGate(..., { visualInput })`
+  sets it, and gate objects are checked by the platform's rule. 3.6.0
+  refused the key, so a gate that looks at the caller's video could only be
+  written in raw SWML.
+
 ## 3.6.0 (2026-10-05)
 
 Parity with signalwire-python 3.6.0: semantic gates, `changeVoice()`, and
