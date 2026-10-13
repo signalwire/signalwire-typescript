@@ -113,6 +113,7 @@ signalwire.core._sync_handlers.run_sync_handler: impossible: Python hands synchr
 signalwire.core._sync_handlers.sync_handlers_inline: impossible: Python hands synchronous handlers to AnyIO's worker-thread pool; Node runs handlers on one event loop and has no thread pool to hand a function to (a worker_threads Worker can't share the handler's closures or the request's objects), so there is nothing for this helper to do. async handlers don't block. See PORT_BEHAVIORAL_NOTES.md, 'Synchronous handlers in worker threads'
 signalwire.core.agent_base.AgentBase.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.agent_base.AgentBase.on_call_end: the handler's rawData is typed as the generated SwaigRequest payload, the same request dict the reference passes as dict[str, Any], with its fields typed
+signalwire.core.agent_base.AgentBase.on_call_start: the handler's rawData is typed as the generated SwaigRequest payload, the same request dict the reference passes as dict[str, Any], with its fields typed; it may also return a Promise, since TS handlers can be async
 signalwire.core.auth_handler.AuthHandler.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.contexts.ContextBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.contexts.GatherInfo.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
