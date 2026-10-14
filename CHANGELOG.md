@@ -5,7 +5,7 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## 3.7.1 (2026-10-13)
 
-Parity with signalwire-python 3.7.1, and `onCallStart()` from its next release.
+Parity with signalwire-python 3.7.1, and `onCallStart()` from its main branch (#118).
 
 ### Added
 
@@ -31,9 +31,10 @@ Parity with signalwire-python 3.7.1, and `onCallStart()` from its next release.
   call `clearPostAnswerVerbs()` only for a call it accepts. A callback that
   fails leaves the call rejected. See "Rejecting a Call" in
   `docs/agent-guide.md`.
-- The SWAIG function webhook timeout: SignalWire stops waiting for a tool
-  after about 10 seconds (observed on live calls) and sends the request
-  again. Tools should answer quickly and send late results into the call with
+- The SWAIG function webhook timeout: the platform waits up to 30 seconds to
+  connect and 120 seconds for a tool's reply, and sends the request again, up
+  to 3 times, after a failed or timed-out request or a 5xx. The caller hears
+  nothing meanwhile, so tools should answer quickly and send late results into the call with
   `calling.aiMessage()` on a `RestClient`. See "Slow tools and the webhook
   timeout" in `docs/agent-guide.md`.
 

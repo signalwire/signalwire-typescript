@@ -259,9 +259,10 @@ agent.defineTool({
 - \`gates: [new SemanticGate(...)]\` adds semantic gates: yes/no questions a
   decision model answers about the call before the platform runs the tool.
   A platform release without semantic gates runs the tool ungated.
-- Answer within a few seconds. SignalWire stops waiting for a tool's webhook
-  after about 10 seconds (observed) and sends the request again, so a slow
-  tool runs twice. Start long work without awaiting it, return at once, and
+- Answer within a few seconds: the caller hears nothing while a tool runs.
+  SignalWire waits up to 120 seconds for a tool's webhook, and sends the
+  request again after a timeout, a failed connection or a 5xx, so a slow tool
+  can run more than once. Start long work without awaiting it, return at once, and
   send the result into the call with \`calling.aiMessage()\` on a
   \`RestClient\`.
 `,

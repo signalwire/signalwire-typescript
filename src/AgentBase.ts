@@ -2269,8 +2269,9 @@ export class AgentBase extends SWMLService {
    * the model.
    *
    * The platform waits for the hook before the AI starts, so a slow handler
-   * delays the greeting, and it stops waiting for a function after about 10
-   * seconds (observed). Keep handlers short; start long work without awaiting
+   * delays the greeting; it waits up to 120 seconds for a function's reply
+   * and sends the request again after a timeout or a 5xx. Keep handlers
+   * short; start long work without awaiting
    * it and send its result into the call later (`calling.aiMessage()` on the
    * REST client). Like any function request, the hook's request can be sent
    * again after a timeout or an error, so make handlers safe to run twice.
