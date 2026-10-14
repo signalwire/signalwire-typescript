@@ -142,6 +142,42 @@ export function refName(ref: string): string {
 
 // ---- schema → TS type expression ------------------------------------------
 
+/**
+ * True when `s` carries no keyword that pins a concrete TS type — the empty `{}`
+ * (or annotation-only) schema. In a Record/index-signature VALUE position this is
+ * the "allow any value" idiom, so the value type is `unknown`.
+ */
+function isUnconstrainedSchema(s: Schema): boolean {
+  return (
+    !s.$ref &&
+    s.type === undefined &&
+    s.properties === undefined &&
+    s.enum === undefined &&
+    s.const === undefined &&
+    s.allOf === undefined &&
+    s.oneOf === undefined &&
+    s.anyOf === undefined &&
+    s.items === undefined &&
+    s.additionalProperties === undefined &&
+    s.unevaluatedProperties === undefined &&
+    s['x-sdk-enum-literal'] === undefined &&
+    !s['x-sdk-widen']
+  );
+}
+
+/**
+ * The VALUE type of a `Record<string, …>` / index signature whose value schema is
+ * `ap`. An empty / unconstrained value schema — the SWML `unevaluatedProperties:
+ * {}` (or `additionalProperties: {}`) "allow any additional property" idiom —
+ * describes arbitrary values, so the value type is `unknown`, yielding
+ * `Record<string, unknown>` instead of double-wrapping to `Record<string,
+ * Record<string, unknown>>` (issue #19537). A constrained value schema (e.g.
+ * `{ type: 'object' }`, `{ type: 'string' }`, a `$ref`) keeps its real type.
+ */
+function recordValueType(ap: Schema, indent: number): string {
+  return isUnconstrainedSchema(ap) ? 'unknown' : tsType(ap, indent);
+}
+
 export function tsType(schema: Schema | undefined, indent = 0): string {
   if (!schema) return 'unknown';
 
@@ -224,9 +260,11 @@ export function tsType(schema: Schema | undefined, indent = 0): string {
       if (schema.properties) {
         return wrapNull(objectBody(schema, indent));
       }
-      // free-form object → Record. additionalProperties may give a value type.
+      // free-form object → Record. additionalProperties may give a value type;
+      // an empty/unconstrained value schema means `unknown` (issue #19537).
       const ap = schema.additionalProperties ?? schema.unevaluatedProperties;
-      if (ap && typeof ap === 'object') return wrapNull(`Record<string, ${tsType(ap, indent)}>`);
+      if (ap && typeof ap === 'object')
+        return wrapNull(`Record<string, ${recordValueType(ap, indent)}>`);
       // a bare `type: object` with no shape, or no type at all → open record
       return wrapNull('Record<string, unknown>');
     }
@@ -339,11 +377,20 @@ export function objectBody(
   if (ap === true) {
     if (topLevel) lines.push(`${pad}[key: string]: unknown;`);
   } else if (ap && typeof ap === 'object') {
-    const base = tsType(ap, indent + 1);
-    const propTypes = Object.values(props).map((p) => tsType(p, indent + 1));
-    const hasOptional = Object.keys(props).some((k) => !required.has(k));
-    const members = [base, ...propTypes, ...(hasOptional ? ['undefined'] : [])];
-    const value = [...new Set(members)].join(' | ');
+    const base = recordValueType(ap, indent + 1);
+    // An unconstrained value schema makes the index type `unknown` — it already
+    // absorbs every declared prop type, so emit it bare rather than a redundant
+    // `unknown | string | …` union (issue #19537). Otherwise the index type must
+    // union in the declared prop types so they stay assignable to it (TS2411).
+    let value: string;
+    if (base === 'unknown') {
+      value = 'unknown';
+    } else {
+      const propTypes = Object.values(props).map((p) => tsType(p, indent + 1));
+      const hasOptional = Object.keys(props).some((k) => !required.has(k));
+      const members = [base, ...propTypes, ...(hasOptional ? ['undefined'] : [])];
+      value = [...new Set(members)].join(' | ');
+    }
     lines.push(`${pad}[key: string]: ${value};`);
   }
   // No declared members AND no emitted index signature → this is an open object

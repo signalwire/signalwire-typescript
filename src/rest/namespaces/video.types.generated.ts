@@ -110,7 +110,7 @@ export interface Conference {
   /** Error indication color (light theme). */
   light_negative: string | null;
   /** User-defined metadata for the conference. */
-  meta: Record<string, Record<string, unknown>> | null;
+  meta: Record<string, unknown> | null;
   /** Timestamp when the conference was created. */
   created_at: string;
   /** Timestamp when the conference was last updated. */
@@ -207,7 +207,7 @@ export interface CreateRoomRequest {
   /** Whether a video with a preview of the content of the room is to be generated. */
   enable_room_previews?: boolean;
   /** User-defined metadata for the room. Must be a valid JSON object. Maximum of 2000 characters when serialized. */
-  meta?: Record<string, Record<string, unknown>>;
+  meta?: Record<string, unknown>;
   /** Enable/disable jitter buffer audio-video sync. */
   sync_audio_video?: boolean;
 }
@@ -245,9 +245,9 @@ export interface CreateRoomTokenRequest {
   /** Indicates what media the user is allowed to receive. */
   media_allowed?: MediaAllowedType;
   /** Set the room meta. Maximum of 2000 characters when serialized to JSON. */
-  room_meta?: Record<string, Record<string, unknown>>;
+  room_meta?: Record<string, unknown>;
   /** Set the member meta. Maximum of 2000 characters when serialized to JSON. */
-  meta?: Record<string, Record<string, unknown>>;
+  meta?: Record<string, unknown>;
   /** Enable/disable jitter buffer audio-video sync. */
   sync_audio_video?: boolean;
 }
@@ -497,7 +497,7 @@ export interface RoomResponse {
   /** Enable/disable jitter buffer audio-video sync. */
   sync_audio_video: boolean | null;
   /** User-defined metadata for the room. */
-  meta: Record<string, Record<string, unknown>> | null;
+  meta: Record<string, unknown> | null;
   /** Whether hand raises are prioritized in the room layout. */
   prioritize_handraise: boolean;
   /** Active session information for the room. */
@@ -589,7 +589,7 @@ export interface RoomSessionEvent {
   /** The name of the event. */
   name: string;
   /** Event-specific payload data. */
-  payload: Record<string, Record<string, unknown>>;
+  payload: Record<string, unknown>;
   /** Timestamp when the event was created. */
   created_at: string;
 }
@@ -858,7 +858,7 @@ export interface UpdateRoomRequest {
   /** Whether a video with a preview of the content of the room is to be generated. */
   enable_room_previews?: boolean;
   /** User-defined metadata for the room. Must be a valid JSON object. Maximum of 2000 characters when serialized. */
-  meta?: Record<string, Record<string, unknown>>;
+  meta?: Record<string, unknown>;
   /** Enable/disable jitter buffer audio-video sync. */
   sync_audio_video?: boolean;
 }
