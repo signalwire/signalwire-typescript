@@ -3,7 +3,7 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 3.7.1 (2026-10-13)
 
 Parity with signalwire-python 3.7.1, and `onCallStart()` from its next release.
 
