@@ -28,6 +28,7 @@ toLocaleTimeString: Date.prototype.toLocaleTimeString() — JavaScript built-in
 toLowerCase: String.prototype.toLowerCase() — JavaScript built-in
 toUpperCase: String.prototype.toUpperCase() — JavaScript built-in
 floor: Math.floor() — JavaScript built-in
+add: Set.prototype.add() — JavaScript built-in
 round: Math.round() — JavaScript built-in
 random: Math.random() — JavaScript built-in
 entries: Object.entries() / Map.prototype.entries() — JavaScript built-in

@@ -32,6 +32,8 @@ export const MAX_QUESTION_BYTES = 8192;
 export const MAX_CRITERIA_BYTES = 2048;
 /** The largest `on_fail` output, as compact JSON in UTF-8 bytes. */
 export const MAX_ON_FAIL_BYTES = 8192;
+/** The most caller video frames a gate may ask for (the platform's AI_VISUAL_INPUT_MAX). */
+export const MAX_VISUAL_INPUT = 5;
 
 const GATE_KEYS: ReadonlySet<string> = new Set([
   'id',
@@ -39,6 +41,7 @@ const GATE_KEYS: ReadonlySet<string> = new Set([
   'criteria',
   'threshold',
   'on_fail',
+  'visual_input',
 ]);
 const GATE_ID = /^[A-Za-z0-9_]{1,64}$/;
 const UNPAIRED_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
@@ -76,6 +79,15 @@ export interface SemanticGateOptions {
   trueMeans?: string;
   /** What no means, at most 2 KB. */
   falseMeans?: string;
+  /**
+   * How many of the caller's newest video frames the decision model sees with
+   * this gate, as `visual_input`: `true` is 1, `false` or 0 none, or a whole
+   * number up to 5. All of a function's gates share one request, so each sees
+   * as many frames as the gate asking for the most. The gate's provider must
+   * take images; one that doesn't makes the check a configuration error, which
+   * blocks the call. Default: no frames, and the key is left out.
+   */
+  visualInput?: boolean | number;
 }
 
 /**
@@ -122,6 +134,8 @@ export class SemanticGate {
   criteria: { true?: string; false?: string };
   /** The output the model gets when this is the first gate that fails. */
   onFail: Record<string, unknown>;
+  /** The caller's video frames the decision model sees, or undefined for none. */
+  visualInput?: boolean | number;
 
   /**
    * @param question - The yes/no question, at most 8 KB. Its `${...}`
@@ -136,7 +150,8 @@ export class SemanticGate {
    *   a system message after the tool result in the text pipeline, which OpenAI
    *   Realtime agents don't use. The actions run as written, without template
    *   expansion.
-   * @param opts - The gate's id, and what yes and no mean.
+   * @param opts - The gate's id, what yes and no mean, and the caller's video
+   *   frames it looks at.
    * @throws {Error} When `onFail` has no response: a blocked call must never
    *   read as a success.
    */
@@ -153,12 +168,13 @@ export class SemanticGate {
     if (opts.trueMeans !== undefined) this.criteria.true = opts.trueMeans;
     if (opts.falseMeans !== undefined) this.criteria.false = opts.falseMeans;
     this.onFail = onFailOutput(onFail);
+    this.visualInput = opts.visualInput;
   }
 
   /**
    * The gate as the platform reads it.
    * @returns The gate object: `id` (when set), `question`, `criteria` (when
-   *   set), `threshold` and `on_fail`.
+   *   set), `threshold`, `on_fail` and `visual_input` (when set).
    */
   toDict(): Record<string, unknown> {
     const gate: Record<string, unknown> = {};
@@ -167,6 +183,7 @@ export class SemanticGate {
     if (Object.keys(this.criteria).length > 0) gate['criteria'] = { ...this.criteria };
     gate['threshold'] = this.threshold;
     gate['on_fail'] = deepCopy(this.onFail);
+    if (this.visualInput !== undefined) gate['visual_input'] = this.visualInput;
     return gate;
   }
 }
@@ -376,6 +393,15 @@ function checkCriteria(criteria: unknown): string {
   return '';
 }
 
+/**
+ * Whether the platform reads `value` as a frame count: a boolean, or a whole
+ * number from 0 to 5. 2.0 counts as 2; 1.5, -1, 6, null and strings are refused.
+ */
+function validVisualInput(value: unknown): boolean {
+  if (typeof value === 'boolean') return true;
+  return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= MAX_VISUAL_INPUT;
+}
+
 /** Why the platform would refuse one gate, or an empty string. */
 function checkGate(gate: unknown): string {
   if (!isPlainObject(gate)) return 'must be an object';
@@ -403,6 +429,9 @@ function checkGate(gate: unknown): string {
   if ('criteria' in gate) {
     const criteriaWhy = checkCriteria(gate['criteria']);
     if (criteriaWhy) return criteriaWhy;
+  }
+  if ('visual_input' in gate && !validVisualInput(gate['visual_input'])) {
+    return `visual_input must be true, false or a whole number from 0 to ${MAX_VISUAL_INPUT}`;
   }
   if ('id' in gate) {
     const id = gate['id'];

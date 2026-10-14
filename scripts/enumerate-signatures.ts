@@ -1570,7 +1570,11 @@ function signatureFromProperty(
   } else {
     propType = checker.getTypeAtLocation(m);
   }
-  const canon = translateType(propType, checker, aliases, ctx);
+  let canon = translateType(propType, checker, aliases, ctx);
+  // `x?: T` reads as `T | undefined`: the annotation's type node drops the `?`.
+  if (m.questionToken && canon !== 'any' && !canon.startsWith('optional<')) {
+    canon = `optional<${canon}>`;
+  }
   // Only project SDK class references by default; primitive-typed state fields
   // are excluded (matches Python adapter's _is_sdk_class_type rule) — UNLESS the
   // field is a reference-declared @dataclass field accessor (relay Event structs,

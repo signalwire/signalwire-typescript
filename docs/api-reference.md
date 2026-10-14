@@ -444,6 +444,7 @@ agent.defineTool({
 | `onFail` | `string \| FunctionResult \| Record<string, unknown>` | What the model gets when this is the first gate that fails: the tool result text, a `FunctionResult`, whose response and actions are used, or a data_map output object. It needs a response, and in the `tool_result`/`tool_prompt` form a `tool_result`: a blocked call must never read as a success. The `tool_prompt` becomes a system message after the tool result; OpenAI Realtime agents don't use it, so put what they need in the `tool_result`. The actions run as written, without template expansion |
 | `opts.id` | `string` | 1 to 64 letters, digits or underscores, unique within the function. Default `gate_<n>`, 1-based |
 | `opts.trueMeans`, `opts.falseMeans` | `string` | What yes and no mean, at most 2 KB each |
+| `opts.visualInput` | `boolean \| number` | How many of the caller's newest video frames the decision model sees with this gate, as `visual_input`: `true` is 1, `false` or 0 none, or a whole number up to 5 (`MAX_VISUAL_INPUT`). Name it in the question, as in "Is the caller holding a photo ID up to the camera in `visual_input`?". All of a function's gates share one request, so each sees as many frames as the gate asking for the most. The gate provider must take images; one that doesn't makes the check a configuration error, which blocks the call. Left out by default. A function's own `visual_input`, frames sent to its webhook, is a separate field of the function, set through `extraFields` |
 
 Gates are checked by the platform's rules when the tool is defined, and once more when the SWML is rendered. The platform refuses the whole function for an invalid gate, so the SDK throws instead. Gates aren't allowed on the hook names `startup_hook`, `hangup_hook` and `check_for_input`, on `end_call`, or on a built-in function's name. A gated function also needs a description, and a `web_hook_url` or `data_map`; tools the SDK builds always have them. A `gates` given as `null` is refused rather than dropped, since the platform refuses that function too.
 
@@ -957,6 +958,8 @@ setDynamicConfigCallback(cb: DynamicConfigCallback): this
 
 Add a per-request configuration callback, keeping the ones already registered. The callbacks run in registration order on the same copy, so a later one sees what an earlier one set. When a callback throws, the error is logged, the later callbacks are skipped, and the request continues with the copy as configured so far.
 
+To turn a call away, build the agent with `play` and `hangup` post-answer verbs and no tools, and have the callback add the tools and call `clearPostAnswerVerbs()` last, only for a call it accepts. A callback that throws before that step leaves the call rejected; with several callbacks, the one that clears the verbs must run last. See [Rejecting a Call](agent-guide.md#rejecting-a-call) in the agent guide.
+
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addPerCallConfig(cb: DynamicConfigCallback): this
@@ -980,9 +983,37 @@ support.addPerCallConfig((query, body, headers, copy) => {
 });
 ```
 
+#### `onCallStart(handler)`
+
+Register a handler that runs when the call starts, before the AI's first turn, and return it. The first registration defines a tool named `startup_hook`, the platform's reserved hook, which it runs once after the call is answered and doesn't offer to the model. Handlers run in registration order with the whole SWAIG request (`call_id`, `global_data`, `caller_id_num` and the rest), and may return a `FunctionResult` or nothing. The hook replies with the handlers' results combined:
+
+- The actions, in registration order, which the platform runs at once. `postProcess` isn't used.
+- The response texts, joined one per line, which the platform adds to the conversation as a system message the model reads before it speaks. Only a plain string response is used: a structured `tool_result`/`tool_prompt` response, and a return value that isn't a `FunctionResult`, are ignored with a warning. OpenAI Realtime agents run the actions but don't add the text; for something their first greeting needs, add it to the prompt from a per-call configuration callback instead.
+
+An exception is logged, not raised, and that handler's result is dropped. The platform waits for the hook before the AI starts, so keep handlers short, and it can send the request again after a timeout or an error, so make them safe to run twice. Registering a handler doesn't change `swaig_post_conversation`.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+onCallStart(
+  handler: (rawData: SwaigRequest) => FunctionResult | null | undefined | void | Promise<FunctionResult | null | undefined | void>,
+): (rawData: SwaigRequest) => FunctionResult | null | undefined | void | Promise<FunctionResult | null | undefined | void>
+```
+
+**Example:**
+
+```ts
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
+
+const greeter = new AgentBase({ name: 'greeter' });
+greeter.onCallStart((rawData) => {
+  const name = (rawData['caller_id_name'] as string | undefined) || 'the caller';
+  return new FunctionResult(`The caller's name is ${name}.`);
+});
+```
+
 #### `onCallEnd(handler)`
 
-Register a handler that runs when the call ends, and return it. The first registration defines a tool named `hangup_hook` and sets the `swaig_post_conversation` param to `true`, unless that param is explicitly `false`, which logs a warning. Handlers run in registration order with the call log (`call_log`, or `raw_call_log` when that's empty) and the whole SWAIG request. Return values are ignored, and an exception is logged without stopping the other handlers.
+Register a handler that runs when the call ends, and return it. The first registration defines a tool named `hangup_hook`, the platform's reserved hook, and sets the `swaig_post_conversation` param to `true`, unless that param is explicitly `false`, which logs a warning. Handlers run in registration order with the call log (`call_log`, or `raw_call_log` when that's empty) and the whole SWAIG request. Return values are ignored, and an exception is logged without stopping the other handlers.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts

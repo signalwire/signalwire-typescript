@@ -3,6 +3,41 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## 3.7.1 (2026-10-14)
+
+Parity with signalwire-python 3.7.1, and `onCallStart()` from its main branch (#118).
+
+### Added
+
+- Semantic gates take `visual_input`: how many of the caller's newest video
+  frames the decision model sees with the gate, `true` for 1 or a whole
+  number up to 5 (`MAX_VISUAL_INPUT`). `new SemanticGate(..., { visualInput })`
+  sets it, and gate objects are checked by the platform's rule. 3.6.0
+  refused the key, so a gate that looks at the caller's video could only be
+  written in raw SWML.
+- `AgentBase.onCallStart()` registers handlers that run when the call
+  starts, before the AI's first turn: the counterpart of `onCallEnd()`. It
+  wraps the platform's reserved `startup_hook` function. A handler receives
+  the SWAIG request and may return a `FunctionResult`: its actions run at
+  once, and its response text is added to the conversation as a system
+  message the model reads before it speaks. Handlers run in registration
+  order, and an exception is logged, not raised.
+
+### Documentation
+
+- How to reject a call from the per-call configuration callback
+  (`addPerCallConfig()`): build the agent with `play` and `hangup`
+  post-answer verbs and no tools, and have the callback add the tools and
+  call `clearPostAnswerVerbs()` only for a call it accepts. A callback that
+  fails leaves the call rejected. See "Rejecting a Call" in
+  `docs/agent-guide.md`.
+- The SWAIG function webhook timeout: the platform waits up to 30 seconds to
+  connect and 120 seconds for a tool's reply, and sends the request again, up
+  to 3 times, after a failed or timed-out request or a 5xx. The caller hears
+  nothing meanwhile, so tools should answer quickly and send late results into the call with
+  `calling.aiMessage()` on a `RestClient`. See "Slow tools and the webhook
+  timeout" in `docs/agent-guide.md`.
+
 ## 3.6.0 (2026-10-05)
 
 Parity with signalwire-python 3.6.0: semantic gates, `changeVoice()`, and
