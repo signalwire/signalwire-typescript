@@ -39,7 +39,6 @@ import type {
   DeviceInput,
   EventHandler,
   PlayItem,
-  ReferDevice,
 } from './types.js';
 // Canonical RELAY wire param shapes (generated from porting-sdk/relay-protocol/
 // *.params.json — the switchblade source). Method params index into these so
@@ -1071,22 +1070,17 @@ export class Call {
   /**
    * Transfer a SIP call via REFER.
    *
-   * @param device - SIP target device descriptor. `to` is required by the wire
-   *   (`CallingReferParams.device.params.to`); `headers` is a name→value map.
+   * @param device - Platform-shaped SIP target device descriptor.
    * @param options - Optional REFER behaviour.
    * @param options.statusUrl - Webhook URL for REFER status events.
    * @returns The platform's refer response.
    * @throws {RelayError} When the refer command is rejected.
    */
   async refer(
-    device: ReferDevice,
+    device: DeviceInput,
     options: { statusUrl?: string } = {},
   ): Promise<CallingReferResult> {
-    // ReferDevice is a closed shape (no index signature), so widen it to the
-    // normalizer's open record type at this boundary.
-    const params: Record<string, unknown> = {
-      device: normalizeDevice(device as unknown as Record<string, unknown>),
-    };
+    const params: Record<string, unknown> = { device: normalizeDevice(device) };
     if (options.statusUrl != null) params.status_url = options.statusUrl;
     return this._execute<CallingReferResult>('refer', params);
   }

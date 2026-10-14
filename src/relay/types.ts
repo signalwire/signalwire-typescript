@@ -190,21 +190,6 @@ export type CollectConfig = Omit<CallingCollectParams, 'node_id' | 'call_id' | '
  */
 export type DeviceInput = { type: string } & Record<string, unknown>;
 
-/**
- * The typed device descriptor accepted by `refer()`. Unlike the open
- * {@link DeviceInput}, the RELAY REFER wire (`CallingReferParams.device.params`)
- * REQUIRES `to`; `headers` is a name→value map. {@link normalizeDevice} folds
- * this flat shape into `{ type, params: { to, headers } }` before sending.
- */
-export interface ReferDevice {
-  /** Device type (typically `'sip'`). */
-  type: string;
-  /** Transfer target — required by the wire (`device.params.to`). */
-  to: string;
-  /** Optional SIP headers as a name→value map. */
-  headers?: Record<string, string>;
-}
-
 /** Queued request waiting for reconnection. */
 export interface QueuedRequest {
   method: string;
