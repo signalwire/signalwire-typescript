@@ -135,7 +135,7 @@ SignalWire requests the SWML with a `POST` whose body describes the call. The ag
 - **Tool dispatch**: running the handler for a SWAIG request, after checking its per-call token.
 - **Proxy detection**: finding the external URL for the webhook URLs in the SWML.
 - **Per-request configuration**: making a per-request copy of the agent for a dynamic config callback.
-- **Lifecycle hooks**: `onSummary`, `onFunctionCall`, `onSwmlRequest`, `onDebugEvent`, `onCallEnd` and `onError`.
+- **Lifecycle hooks**: `onSummary`, `onFunctionCall`, `onSwmlRequest`, `onDebugEvent`, `onCallStart`, `onCallEnd` and `onError`.
 
 `SWMLService` supplies the `SwmlBuilder`, the tool registry, basic-auth resolution, routing callbacks and `handleRequest()`, the framework-free request handler that the agent's SWML routes call.
 
@@ -777,6 +777,7 @@ A subclass can override these methods:
 These methods register handlers instead of being overridden:
 
 - `onError(handler)`: called when a tool handler throws, after the tool's own `onError`. A `FunctionResult` it returns is sent as the response.
+- `onCallStart(handler)`: registers the reserved `startup_hook` tool, so the handler runs before the AI's first turn; the actions and response text of the `FunctionResult` it returns reach the call.
 - `onCallEnd(handler)`: registers the reserved `hangup_hook` tool and turns on `swaig_post_conversation`, so the handler gets the call log when the call ends.
 
 ### Dynamic Configuration Callback

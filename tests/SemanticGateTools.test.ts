@@ -338,3 +338,49 @@ describe('a per-request copy', () => {
     );
   });
 });
+
+describe('a gate with visual_input', () => {
+  const idGate = (visualInput: boolean | number) =>
+    new SemanticGate(
+      'Is the caller holding a photo ID up to the camera in `visual_input`?',
+      0.9,
+      'verify_id was not run.',
+      { visualInput },
+    );
+
+  it("renders the gate's frames apart from the function's own visual_input", async () => {
+    const a = agent();
+    a.defineTool({
+      name: 'verify_id',
+      description: "Verify the caller's ID",
+      handler,
+      gates: [idGate(true)],
+      // The function's own visual_input, frames sent to its webhook, is separate
+      extraFields: { visual_input: 1 },
+    });
+    for (const fns of [rendered(a), await served(a)]) {
+      expect(fns['verify_id']!['gates'][0]['visual_input']).toBe(true);
+      expect(fns['verify_id']!['visual_input']).toBe(1);
+    }
+  });
+
+  it('refuses a bad value on a raw function definition', () => {
+    expect(() =>
+      agent().registerSwaigFunction({
+        function: 'verify_id',
+        description: "Verify the caller's ID",
+        web_hook_url: 'https://example.com/swaig',
+        gates: [rawGate({ visual_input: 1.5 })],
+      }),
+    ).toThrow('verify_id: gate 1: visual_input must be true, false or a whole number from 0 to 5');
+  });
+
+  it('checks a DataMap gate the same way', () => {
+    const map = new DataMap('verify_id')
+      .purpose("Verify the caller's ID")
+      .webhook('POST', 'https://api.example.com/verify')
+      .output(new FunctionResult('Verified.'))
+      .gate(rawGate({ visual_input: 6 }));
+    expect(() => map.toSwaigFunction()).toThrow('visual_input must be true, false');
+  });
+});

@@ -90,6 +90,7 @@ export {
   MAX_QUESTION_BYTES,
   MAX_CRITERIA_BYTES,
   MAX_ON_FAIL_BYTES,
+  MAX_VISUAL_INPUT,
   RESERVED_FUNCTION_NAMES,
 } from './SemanticGate.js';
 export type { SemanticGateOptions, FillerPhrases } from './SemanticGate.js';

@@ -121,6 +121,14 @@ Per-call configuration: \`setDynamicConfigCallback()\` configures a copy of the
 agent for each request, from its query parameters, body and headers, for
 per-tenant prompts, voices and tools. Handlers for different calls interleave
 at every \`await\`: don't keep per-caller state on the shared agent instance.
+To turn a call away, build the agent with \`play\` and \`hangup\` post-answer
+verbs and no tools, and have the callback add the tools and call
+\`clearPostAnswerVerbs()\` only for a call it accepts.
+
+Call start and end: \`onCallStart()\` runs handlers before the AI's first
+turn, and their \`FunctionResult\` actions and text reach the call (OpenAI
+Realtime agents don't add the text);
+\`onCallEnd()\` runs handlers with the transcript when the call ends.
 `,
   docs: [
     ['docs/agent-guide.md', 'The main guide: prompts, tools, skills, contexts, serving'],
@@ -147,6 +155,9 @@ at every \`await\`: don't keep per-caller state on the shared agent instance.
     'AgentBase.setDynamicConfigCallback',
     'AgentBase.getApp',
     'AgentBase.onSummary',
+    'AgentBase.onCallStart',
+    'AgentBase.onCallEnd',
+    'AgentBase.addPerCallConfig',
   ],
   related: ['prompts', 'tools', 'contexts', 'skills', 'pgi', 'deploy'],
 };
@@ -248,6 +259,12 @@ agent.defineTool({
 - \`gates: [new SemanticGate(...)]\` adds semantic gates: yes/no questions a
   decision model answers about the call before the platform runs the tool.
   A platform release without semantic gates runs the tool ungated.
+- Answer within a few seconds: the caller hears nothing while a tool runs.
+  SignalWire waits up to 120 seconds for a tool's webhook, and sends the
+  request again after a timeout, a failed connection or a 5xx, so a slow tool
+  can run more than once. Start long work without awaiting it, return at once, and
+  send the result into the call with \`calling.aiMessage()\` on a
+  \`RestClient\`.
 `,
   docs: [
     ['docs/swaig-reference.md', 'Every FunctionResult method and action'],

@@ -360,6 +360,15 @@ export class AgentBase extends SWMLService {
   private perCallConfigs: DynamicConfigCallback[] = [];
   /** Set once serve() runs an HTTP server; getFullUrl then ignores serverless environments. */
   private _serving = false;
+  /** Handlers registered with {@link onCallStart}. */
+  private callStartHandlers: ((
+    rawData: SwaigRequest,
+  ) =>
+    | FunctionResult
+    | null
+    | undefined
+    | void
+    | Promise<FunctionResult | null | undefined | void>)[] = [];
   /** Handlers registered with {@link onCallEnd}. */
   private callEndHandlers: ((
     callLog: Record<string, unknown>[],
@@ -2223,6 +2232,21 @@ export class AgentBase extends SWMLService {
    * without knowing about each other. `setDynamicConfigCallback` replaces
    * every callback registered so far.
    *
+   * Rejecting a call: a callback can't refuse the request, but it can decide
+   * what the call does. Build the agent to fail closed, with
+   * `addPostAnswerVerb('play', { url: 'say:...' })` and
+   * `addPostAnswerVerb('hangup', {})` and no tools, so the call hears the
+   * message and hangs up before the `ai` verb runs. For a call the callback
+   * accepts, add the tools to `agent` and call `agent.clearPostAnswerVerbs()`
+   * last. A callback that throws is logged and the copy is rendered as it
+   * stands, so a failure before that last step leaves the goodbye in place.
+   * A callback that throws stops the ones after it but doesn't restore verbs
+   * an earlier one cleared, so the callback that clears them must run last.
+   * Callbacks run for every request of the call (the SWML fetch, each tool
+   * call, the summary), and only the SWML fetch carries the caller's data
+   * (such as `userVariables`): verify there, remember the `call_id`, and check
+   * it on later requests. See "Rejecting a Call" in docs/agent-guide.md.
+   *
    * @param cb - Callback receiving `(queryParams, bodyParams, headers, agent)`,
    *   where `agent` is the per-request copy. Configure that, never the agent
    *   itself, or the configuration leaks across callers. May be async.
@@ -2232,6 +2256,120 @@ export class AgentBase extends SWMLService {
     // Rebind rather than push: a per-request copy shares this array.
     this.perCallConfigs = [...this.perCallConfigs, cb];
     return this;
+  }
+
+  /**
+   * Register a handler that runs when the call starts, before the AI speaks.
+   *
+   * Handlers run in registration order with `rawData`, the whole SWAIG request
+   * (`call_id`, `global_data`, the caller's details). This wraps the
+   * platform's reserved `startup_hook` function, the counterpart of the
+   * `hangup_hook` behind {@link onCallEnd}. The platform calls it once, after
+   * the call is answered and before the AI's first turn, and never offers it to
+   * the model.
+   *
+   * The platform waits for the hook before the AI starts, so a slow handler
+   * delays the greeting; it waits up to 120 seconds for a function's reply
+   * and sends the request again after a timeout or a 5xx. Keep handlers
+   * short; start long work without awaiting
+   * it and send its result into the call later (`calling.aiMessage()` on the
+   * REST client). Like any function request, the hook's request can be sent
+   * again after a timeout or an error, so make handlers safe to run twice.
+   *
+   * A handler may return a `FunctionResult`, or nothing. What the platform
+   * does with the hook's reply:
+   * - its actions run at once, in registration order across handlers (for
+   *   example `updateGlobalData()` to give the call data before the
+   *   conversation starts);
+   * - its response text is added to the conversation as a system message the
+   *   model reads before its first turn. The texts of several handlers are
+   *   joined, one per line. Only a plain string response is used. OpenAI
+   *   Realtime agents run the actions but don't add the text.
+   *
+   * `postProcess` isn't used: the combined result runs its actions at once.
+   * The platform adds every hook reply to the conversation, so a hook whose
+   * handlers return no text still adds a short placeholder line, as any
+   * function with an empty reply does.
+   *
+   * An exception is logged, not raised, and that handler's result is dropped,
+   * so a failing handler can't stop the call from starting or the other
+   * handlers from running.
+   *
+   * @param handler - Called with `(rawData)`; may be async. Returns a
+   *   `FunctionResult`, or nothing.
+   * @returns The handler.
+   *
+   * @example
+   * ```ts
+   * agent.onCallStart(async (rawData) => {
+   *   const caller = await lookupCaller(rawData.caller_id_num);
+   *   return new FunctionResult(`The caller's name is ${caller.name}.`).updateGlobalData({
+   *     customer_id: caller.id,
+   *   });
+   * });
+   * ```
+   */
+  onCallStart(
+    handler: (
+      rawData: SwaigRequest,
+    ) =>
+      FunctionResult | null | undefined | void | Promise<FunctionResult | null | undefined | void>,
+  ): (
+    rawData: SwaigRequest,
+  ) =>
+    FunctionResult | null | undefined | void | Promise<FunctionResult | null | undefined | void> {
+    const first = this.callStartHandlers.length === 0;
+    // Rebind rather than push: a per-request copy shares this array.
+    this.callStartHandlers = [...this.callStartHandlers, handler];
+    if (first) this.ensureCallStartHook();
+    return handler;
+  }
+
+  /** Register the reserved startup_hook tool once. */
+  private ensureCallStartHook(): void {
+    this.defineTool({
+      name: 'startup_hook',
+      description: 'Internal: fires when the call starts.',
+      parameters: {},
+      handler: async (_args, rawData, running) => {
+        const raw = (rawData ?? {}) as SwaigRequest;
+        const combined = new FunctionResult();
+        const texts: string[] = [];
+        // The handlers of the agent running the call: a per-call copy may
+        // have added its own.
+        const agent = running instanceof AgentBase ? running : this;
+        for (const callback of agent.callStartHandlers) {
+          const name = callback.name || 'anonymous';
+          let result: unknown;
+          // Each handler is isolated, so one failure doesn't stop the others.
+          try {
+            result = await callback(raw);
+          } catch (err) {
+            this.log.error('call_start_handler_failed', {
+              error: err instanceof Error ? err.message : String(err),
+              handler: name,
+            });
+            continue;
+          }
+          if (result === undefined || result === null) continue;
+          if (!(result instanceof FunctionResult)) {
+            this.log.warn('call_start_handler_result_ignored', {
+              handler: name,
+              result_type: typeof result,
+            });
+            continue;
+          }
+          const response = result.toDict().response;
+          if (typeof response === 'object') {
+            this.log.warn('call_start_handler_structured_response_ignored', { handler: name });
+          } else if (result.response) {
+            texts.push(result.response);
+          }
+          combined.addActions(result.action);
+        }
+        return combined.setResponse(texts.join('\n'));
+      },
+    });
   }
 
   /**
