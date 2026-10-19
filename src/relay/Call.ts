@@ -53,6 +53,7 @@ import type {
   CallingAnswerResult,
   CallingBindDigitResult,
   CallingClearDigitBindingsResult,
+  CallingCollectParams,
   CallingConnectParams,
   CallingConnectResult,
   CallingDenoiseResult,
@@ -82,7 +83,6 @@ import type {
 // same wire command, fully specified. (connect's params are relay-only — see
 // CallingConnectParams above for ringback.)
 import type {
-  CallCollectRequest,
   CallDetectRequest,
   CallRecordRequest,
   CallTapRequest,
@@ -833,8 +833,8 @@ export class Call {
    */
   async collect(
     options: {
-      digits?: CallCollectRequest['params']['digits'];
-      speech?: CallCollectRequest['params']['speech'];
+      digits?: CallingCollectParams['digits'];
+      speech?: CallingCollectParams['speech'];
       initialTimeout?: number;
       partialResults?: boolean;
       continuous?: boolean;
