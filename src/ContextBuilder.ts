@@ -300,8 +300,8 @@ export class GatherInfo {
 
 // ── Step ────────────────────────────────────────────────────────────
 
-/** Internal structure for a POM-like section within a step or context. */
-interface StepSection {
+/** A POM-like section within a step or context (element of {@link ContextDict.pom}). */
+export interface StepSection {
   /** Section heading text. */
   title: string;
   /** Section body paragraph text. */
