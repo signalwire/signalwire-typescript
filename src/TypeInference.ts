@@ -314,7 +314,7 @@ function extractParamName(expr: string): string {
  * - No default → `"string"` (and the parameter is marked required)
  *
  * @param fn - The function to inspect. Arrow functions, regular functions, and
- *   method shorthand all work. Typed as {@link IntrospectableFn} because only
+ *   method shorthand all work. Typed as `IntrospectableFn` because only
  *   the parameter list is read — the handler's return is irrelevant to schema
  *   inference (a {@link TypedToolHandler} satisfies this).
  * @returns An {@link InferredSchema} describing the parameters, or `null` when

@@ -14,7 +14,7 @@ import { ReadResource } from './ReadResource.js';
  * the generic types. `_updateMethod` may be overridden to `'PUT'` for APIs that
  * replace instead of patch.
  *
- * Extends {@link ReadResource} (mirroring Python's `CrudResource(ReadResource)`)
+ * Extends `ReadResource` (mirroring Python's `CrudResource(ReadResource)`)
  * so every CRUD resource inherits the `list()`/`get()`/`paginate()` read surface
  * — in particular the async-iterator `paginate()`. A prior version extended
  * `BaseResource` directly and re-declared `list()`/`get()`, which silently left

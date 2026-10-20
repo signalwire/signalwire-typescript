@@ -11,7 +11,7 @@
  * finite set the open arm only *deletes* the typo/exhaustiveness checks — it is
  * the inverse of a Rust `#[non_exhaustive]`, not an analogue (measured with the
  * port's own `tsc`; see PORT_PHILOSOPHY_TYPESCRIPT.md §"genuine splits").
- * `SkillName` ({@link ../skills/SkillName.SkillName}) is the one set left open —
+ * `SkillName` ({@link SkillName}) is the one set left open —
  * custom/third-party skill names are a genuinely *unbounded* input, the single
  * site where "accept any string" is the real contract.
  *
@@ -28,14 +28,14 @@
  */
 
 /**
- * Text-to-speech voice gender for {@link ../relay/Call.Call.playTTS} /
- * {@link ../relay/Call.Call.promptTTS} (`gender` option). The SignalWire
+ * Text-to-speech voice gender for {@link Call.playTTS} /
+ * {@link Call.promptTTS} (`gender` option). The SignalWire
  * platform recognises `"male"` and `"female"`.
  */
 export type TtsGender = 'male' | 'female';
 
 /**
- * Fax tone to detect for {@link ../relay/Call.Call.detectFax} (`tone` option):
+ * Fax tone to detect for {@link Call.detectFax} (`tone` option):
  * `"CED"` (called-station, answering fax) or `"CNG"` (calling-station,
  * originating fax). Restricts detection to one tone; omit to detect either.
  */
@@ -66,9 +66,9 @@ export type FaxTone = 'CED' | 'CNG';
 // answered | failed`).
 
 /**
- * Call lifecycle state for {@link ../relay/Call.Call.state} and the
+ * Call lifecycle state for {@link Call.state} and the
  * `call_state` field of a `calling.call.state` event
- * ({@link ../relay/RelayEvent.CallStateEvent.callState}). The platform walks a
+ * ({@link CallStateEvent.callState}). The platform walks a
  * call through `created → ringing → answered → ending → ended`; `ended` is the
  * sole terminal state (see {@link isCallStateTerminal}).
  */
@@ -76,7 +76,7 @@ export type CallState = 'created' | 'ringing' | 'answered' | 'ending' | 'ended';
 
 /**
  * Outbound-dial state for the `dial_state` field of a `calling.call.dial`
- * event ({@link ../relay/RelayEvent.DialEvent.dialState}). The platform reports
+ * event ({@link DialEvent.dialState}). The platform reports
  * `dialing` while a leg is being attempted, then resolves to `answered` (a leg
  * won) or `failed` (all legs failed) — both terminal (see
  * {@link isDialStateTerminal}). Grounded in `signalwire/relay/client.py`.
@@ -87,9 +87,9 @@ export type CallState = 'created' | 'ringing' | 'answered' | 'ending' | 'ended';
 export type DialState = 'dialing' | 'answered' | 'failed';
 
 /**
- * Message lifecycle state for {@link ../relay/Message.Message.state} and the
+ * Message lifecycle state for {@link Message.state} and the
  * `message_state` field of a `messaging.state` event
- * ({@link ../relay/RelayEvent.MessageStateEvent.messageState}). Outbound
+ * ({@link MessageStateEvent.messageState}). Outbound
  * messages walk `queued → initiated → sent → delivered` (or `undelivered` /
  * `failed`); inbound messages arrive as `received`. The terminal set is
  * `delivered | undelivered | failed` (see {@link isMessageStateTerminal} and
@@ -152,7 +152,7 @@ export function isDialStateTerminal(state: DialState | string): boolean {
  * reached a final delivery outcome (`delivered`, `undelivered`, or `failed`)
  * and will emit no further `messaging.state` events. Accepts any string (the
  * value off the wire), matching the runtime `MESSAGE_TERMINAL_STATES` check in
- * {@link ../relay/Message.Message}.
+ * {@link Message}.
  *
  * @param state - A message state (typed {@link MessageState} or any wire string).
  * @returns `true` iff `state` is `delivered`, `undelivered`, or `failed`.

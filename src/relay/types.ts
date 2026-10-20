@@ -156,7 +156,7 @@ export interface SendMessageOptions {
  * The canonical RELAY wire form is `{ type, params }`
  * (`CallingPlayParams['play'][number]`). The SDK also accepts the friendly flat
  * shorthands below (`{ type: 'tts', text }`, etc.), which
- * {@link normalizePlayItem} expands into `params` before sending. So the
+ * `normalizePlayItem` expands into `params` before sending. So the
  * accepted-input type is the wire shape OR one of the flat shorthands — exactly
  * the set the normalizer handles, not the post-normalization wire shape alone.
  */

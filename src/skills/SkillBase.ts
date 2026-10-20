@@ -50,14 +50,14 @@ export interface SkillToolDefinition {
 /**
  * Build a {@link SkillToolDefinition} whose `handler` args are *inferred* from
  * its `parameters` schema + `required` list — the `getTools()`-level counterpart
- * to {@link ../SWMLService.SWMLService.defineTool}'s typed-tool inference.
+ * to {@link SWMLService.defineTool}'s typed-tool inference.
  *
  * A skill returns its tools as a plain `SkillToolDefinition[]`, and that
  * interface types `handler` as the loose {@link SwaigHandler} (`args:
  * Record<string, unknown>`) — so a hand-written entry's handler sees untyped
  * args and must reach for `args['query'] as string`. Wrapping the entry in
  * `defineSkillTool` captures `parameters` (`P`) and `required` (`R`) via `const`
- * type parameters and feeds them through {@link ToolArgs}, so the handler's
+ * type parameters and feeds them through `ToolArgs`, so the handler's
  * `args` is precise: a `required` string prop is `args.query: string`, an `enum`
  * prop narrows to its literal union, optional props are `?`. It then erases the
  * typed handler back to {@link SwaigHandler} at a single boundary and returns an

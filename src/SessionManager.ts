@@ -264,15 +264,19 @@ export class SessionManager {
   /**
    * Merge metadata into a session, creating the entry if it does not exist.
    *
-   * Supports two call signatures for Python SDK compatibility:
-   * - `setSessionMetadata(sessionId, metadata)` — bulk merge (TS-native)
-   * - `setSessionMetadata(sessionId, key, value)` — single key/value (Python-compatible)
-   *
    * @param sessionId - The session identifier.
-   * @param metadataOrKey - A metadata record to merge, or a string key when called with three arguments.
-   * @param value - The value to set when called with a string key.
+   * @param metadataOrKey - A metadata record to merge.
    */
   setSessionMetadata(sessionId: string, metadataOrKey: Record<string, unknown>): void;
+  /**
+   * Set one metadata key on a session, creating the entry if it does not
+   * exist. This form matches the Python SDK's `set_session_metadata`.
+   *
+   * @param sessionId - The session identifier.
+   * @param key - The metadata key to set.
+   * @param value - The value to set.
+   * @returns Always `true`.
+   */
   setSessionMetadata(sessionId: string, key: string, value: unknown): boolean;
   setSessionMetadata(
     sessionId: string,
