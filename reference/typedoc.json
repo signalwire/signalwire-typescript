@@ -1,0 +1,25 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  // API reference for the npm package, generated from the TSDoc comments in src/.
+  // Paths resolve against this file, so `out` lands in reference/_site (gitignored,
+  // outside the npm `files` globs). Build: npm run docs:reference.
+  "name": "SignalWire TypeScript SDK",
+  // The package exports. Each entry file names its module with `@module`.
+  "entryPoints": ["../src/index.ts", "../src/livewire/index.ts"],
+  "tsconfig": "../tsconfig.json",
+  "out": "_site",
+  "readme": "none",
+  // Any warning fails the build: a stale @param, a link that does not resolve,
+  // or a link to a symbol the package does not export.
+  "treatWarningsAsErrors": true,
+  "validation": {
+    "invalidLink": true,
+    "rewrittenLink": true,
+    // Missing comments are tracked by the doc-coverage floor, not this build.
+    "notDocumented": false,
+    // Off for now: ~250 types that public signatures use are not exported
+    // (mostly the generated REST and RELAY payload types), so their names
+    // render as plain text. Turn on once they are exported.
+    "notExported": false
+  }
+}

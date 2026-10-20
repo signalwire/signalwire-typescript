@@ -6,6 +6,9 @@
  * control plane runs STT, TTS, VAD, LLM orchestration and call control. The
  * pipeline options LiveWire ignores are accepted, and each logs a message
  * once, so existing code keeps compiling.
+ *
+ * @packageDocumentation
+ * @module @signalwire/sdk/livewire
  */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
