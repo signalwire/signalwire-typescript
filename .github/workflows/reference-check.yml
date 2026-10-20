@@ -1,0 +1,43 @@
+# API reference docs, PR check.
+#
+# Build-only: no deploy, no write permission. Runs the TypeDoc build over the
+# package exports (reference/typedoc.json), which treats every warning as an
+# error, so a PR fails on a stale @param, a link that does not resolve, or a
+# link to a symbol the package does not export. Missing comments do not fail
+# it; the doc-coverage floor in run-ci.sh tracks those.
+name: reference-check
+
+env:
+  # Opt into Node.js 24 ahead of GitHub's 2026-06-02 default switch.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "reference/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - ".github/workflows/reference-check.yml"
+
+permissions:
+  contents: read   # never deploys
+
+concurrency:
+  group: reference-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - name: npm ci
+        run: npm ci
+      - name: Build the reference (warnings fail)
+        run: npm run docs:reference
