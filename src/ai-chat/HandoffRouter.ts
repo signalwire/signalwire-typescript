@@ -161,17 +161,17 @@ export interface HandoffRouterOptions {
   nextConversationId?: (conversationId: string) => string;
   /**
    * Seconds a nonce stays usable for `/handoff` and `/say`, from registration.
-   * Default {@link DEFAULT_NONCE_TTL}.
+   * Default `3600` (one hour).
    */
   nonceTtl?: number;
   /**
    * Typed messages allowed per call. Each is a billed turn, so this limits
-   * spending as well as abuse. Default {@link DEFAULT_MAX_MESSAGES_PER_CALL}.
+   * spending as well as abuse. Default `200`.
    */
   maxMessagesPerCall?: number;
   /**
    * Seconds to wait for `captureLeg`, as an upper limit; a capture normally
-   * takes under a second. Default {@link DEFAULT_CAPTURE_TIMEOUT}.
+   * takes under a second. Default `8`.
    */
   captureTimeout?: number;
   /**

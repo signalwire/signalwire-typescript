@@ -241,13 +241,14 @@ export interface SwaigFunctionOptions {
   isTypedHandler?: boolean;
   /**
    * Per-tool error hook. Invoked when this tool's handler throws, before the
-   * default error response is produced. See {@link SwaigErrorHandler}.
+   * default error response is produced. See `SwaigErrorHandler`.
    */
   onError?: SwaigErrorHandler;
   /**
    * Per-tool override for the user-facing message returned when the handler
    * throws and no {@link onError} hook supplies a response. Defaults to
-   * {@link DEFAULT_SWAIG_ERROR_MESSAGE}.
+   * "Sorry, I couldn't complete that action. Please try again or contact
+   * support if the issue persists."
    */
   errorMessage?: string;
 }
@@ -310,7 +311,7 @@ export class SwaigFunction {
   isTypedHandler: boolean;
   /** Whether this tool is externally hosted (has a webhookUrl). */
   isExternal: boolean;
-  /** Per-tool error hook; see {@link SwaigErrorHandler}. */
+  /** Per-tool error hook; see `SwaigErrorHandler`. */
   onError?: SwaigErrorHandler;
   /** Per-tool user-facing error message override. */
   errorMessage?: string;

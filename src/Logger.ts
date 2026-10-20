@@ -11,7 +11,7 @@ const LEVELS = { debug: 0, info: 1, warn: 2, error: 3 } as const;
 /**
  * Log severity level — the closed set this Logger emits and filters on.
  *
- * `'warn'` (not `'warning'`) matches the keys of {@link LEVELS} and the
+ * `'warn'` (not `'warning'`) matches the keys of `LEVELS` and the
  * `Logger.warn()` method; the Python reference's logger has no `set_log_level`
  * counterpart (this setter is a documented TS addition — see
  * `PORT_ADDITIONS.md`), so the canonical set is this port's own.

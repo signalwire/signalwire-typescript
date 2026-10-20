@@ -187,7 +187,7 @@ export class Call {
    *
    * Idiomatic shortcut for `isCallStateTerminal(call.state)` — prefer it over
    * a hand-written `call.state === 'ended'` comparison so the terminal-set
-   * definition lives in one place ({@link ../relay/closedSets.CallState}).
+   * definition lives in one place ({@link CallState}).
    */
   get isTerminal(): boolean {
     return isCallStateTerminal(this.state);
