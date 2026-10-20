@@ -58,6 +58,7 @@
  * @see {@link RestClient} — typed HTTP access to SignalWire platform APIs
  *
  * @packageDocumentation
+ * @module @signalwire/sdk
  */
 
 // Core agent

@@ -79,6 +79,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:examples": "tsc --noEmit --project tsconfig.examples.json",
+    "docs:reference": "typedoc --options reference/typedoc.json",
     "dev": "tsc --watch",
     "enumerate:doc-surface": "npx tsx scripts/enumerate-doc-surface.ts",
     "enumerate:signatures": "PORTING_SDK=\"${PORTING_SDK:-../porting-sdk}\" PORTING_SDK_PATH=\"${PORTING_SDK_PATH:-../porting-sdk}\" npx tsx scripts/enumerate-signatures.ts",
@@ -112,6 +113,7 @@
     "libphonenumber-js": "^1.13.14",
     "prettier": "^3.8.4",
     "tsx": "^4.21.0",
+    "typedoc": "^0.28.20",
     "typescript": "^6.0.0",
     "typescript-eslint": "^8.61.0",
     "vitest": "^4.1.5"
