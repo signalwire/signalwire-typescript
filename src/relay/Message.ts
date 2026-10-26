@@ -114,7 +114,7 @@ export class Message {
    * Distinct from {@link Message.isDone}: `isDone` reflects whether the
    * internal completion promise has settled (driven by event dispatch),
    * whereas `isTerminal` is a pure test of the state *value*
-   * ({@link ../relay/closedSets.MessageState}) and is meaningful even on a
+   * ({@link MessageState}) and is meaningful even on a
    * freshly-constructed inbound message.
    */
   get isTerminal(): boolean {

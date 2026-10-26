@@ -702,9 +702,7 @@ export class RelayClient {
     devices: Record<string, unknown>[][],
     options: {
       tag?: string;
-      /** Maximum call duration in minutes. */
       maxDuration?: number;
-      /** Dial timeout in seconds (default 120). */
       dialTimeout?: number;
     } = {},
   ): Promise<Call> {

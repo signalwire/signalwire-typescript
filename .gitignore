@@ -21,3 +21,6 @@ __pycache__/
 !.claude/
 .claude/*
 !.claude/settings.json
+
+# generated API reference (npm run docs:reference)
+reference/_site/

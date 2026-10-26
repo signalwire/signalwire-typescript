@@ -196,25 +196,25 @@ export interface ChatGatewayOptions {
    * Set it when you run more than one replica or restart often.
    */
   secret?: string | Uint8Array;
-  /** Seconds a handle stays valid. Default {@link DEFAULT_HANDLE_TTL}. */
+  /** Seconds a handle stays valid. Default `86400` (24 hours). */
   handleTtl?: number;
   /**
    * Idle seconds before the service ends a conversation, sent on every
    * create. Set here rather than in the page: the service's responses don't
    * expose the deadline, so the gateway reports it back on `start` and `log`
    * for a widget to warn that the next message opens a new conversation.
-   * Omit for the service default ({@link SERVICE_DEFAULT_CONVERSATION_TIMEOUT}).
+   * Omit for the service default (`3600`).
    */
   conversationTimeout?: number | null;
   /**
    * New conversations per `windowSeconds`. The cap that matters most: a
    * leaked key is used to open many one-turn conversations, each billed for
-   * its opening turn. Default {@link DEFAULT_MAX_NEW_CONVERSATIONS}.
+   * its opening turn. Default `60`.
    */
   maxNewConversations?: number;
-  /** Turns one conversation may run. Default {@link DEFAULT_MAX_TURNS}. */
+  /** Turns one conversation may run. Default `200`. */
   maxTurns?: number;
-  /** Window for `maxNewConversations`, in seconds. Default {@link DEFAULT_WINDOW_SECONDS}. */
+  /** Window for `maxNewConversations`, in seconds. Default `60`. */
   windowSeconds?: number;
 }
 

@@ -622,7 +622,7 @@ export class SWMLService {
    * `const` type parameters capture its literals and the handler's `args` is
    * inferred precisely — `args.phone` typed `string`, an `enum` prop narrowed to
    * its literal union, `required` keys present and the rest optional (see
-   * {@link ToolArgs}/{@link InferArgs}). The WRAPPED JSON-Schema object
+   * `ToolArgs`/`InferArgs`). The WRAPPED JSON-Schema object
    * (`{ type:'object', properties }`) and a pre-built `Record` are still
    * accepted and keep the prior open-record `args` behavior. The args type is a
    * compile-time authoring convenience — at runtime args is the JSON the model
@@ -1205,10 +1205,10 @@ export class SWMLService {
    *
    * Default implementation returns `null` (no-op).
    *
-   * @param queryParams - URL query parameters from the request.
-   * @param bodyParams  - Parsed POST body (empty object for GET requests).
-   * @param headers     - HTTP request headers.
-   * @param callbackPath - The callback sub-path being handled, if any.
+   * @param _queryParams - URL query parameters from the request.
+   * @param _bodyParams - Parsed POST body (empty object for GET requests).
+   * @param _headers - HTTP request headers.
+   * @param _callbackPath - The callback sub-path being handled, if any.
    * @returns A `SwmlBuilder` whose document is sent as the response, or
    *          `null` to delegate to the next handler in the chain.
    */

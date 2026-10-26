@@ -263,7 +263,7 @@ function relativePath(path: string, routePath: string): string {
  * - `POST /post_prompt` receives the end-of-call summary and invokes {@link onSummary}
  *
  * Most user agents either (a) subclass `AgentBase` and override `defineTools()` / `onSummary()`
- * or (b) use one of the {@link ./prefabs/index.js | prefab agents} (e.g. `ReceptionistAgent`).
+ * or (b) use one of the prefab agents (e.g. {@link ReceptionistAgent}).
  *
  * @example Subclass with a custom tool
  * ```ts

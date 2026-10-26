@@ -97,7 +97,7 @@ export class CallStateEvent extends RelayEvent {
   /**
    * The new call state — a {@link CallState} (`created` | `ringing` |
    * `answered` | `ending` | `ended`; closed literal union, autocompleted +
-   * typo-checked). Pass to {@link ../relay/closedSets.isCallStateTerminal} to
+   * typo-checked). Pass to {@link isCallStateTerminal} to
    * test for the terminal state.
    */
   readonly callState: CallState;
@@ -519,7 +519,7 @@ export class DialEvent extends RelayEvent {
   /**
    * Outbound-dial state — a {@link DialState} (`dialing` | `answered` |
    * `failed`; closed literal union, autocompleted + typo-checked). Pass to
-   * {@link ../relay/closedSets.isDialStateTerminal} to test for resolution.
+   * {@link isDialStateTerminal} to test for resolution.
    * Distinct from a {@link CallState}.
    */
   readonly dialState: DialState;
@@ -932,7 +932,7 @@ export class MessageStateEvent extends RelayEvent {
    * Message lifecycle state — a {@link MessageState} (`queued` |
    * `initiated` | `sent` | `delivered` | `undelivered` | `failed` | `received`;
    * closed literal union, autocompleted + typo-checked). Pass to
-   * {@link ../relay/closedSets.isMessageStateTerminal} to test for a final
+   * {@link isMessageStateTerminal} to test for a final
    * delivery outcome. Distinct from a {@link CallState} /
    * {@link DialState}.
    */
