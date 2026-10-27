@@ -1,0 +1,79 @@
+/* =============================================================================
+   SignalWire docs navbar: the base styles fern.css expects, plus the theme
+   menu. Ported from the SDK-docs POC (assets/css/app.css); fern.css does the
+   rest, unchanged from the POC. Loads inside the navbar's shadow root, after
+   tokens.css and fern.css, so nothing here reaches the page. The host
+   element's own placement (a sticky bar at the top of the page) is in
+   document.css.
+   ============================================================================= */
+
+/* What the POC set on html/body, applied at the host: inherited page styles
+   (font, size, color, line height) stop here. Custom properties still come
+   through. This also undoes the `visibility: hidden` in navbar.html once this
+   file has loaded. */
+:host {
+  all: initial;
+  visibility: visible;
+  color: var(--grayscale-12);
+  font-family: var(--font-body);
+  font-size: 16px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* --- Theme menu --- */
+#theme-panel .fern-dropdown-item {
+  gap: calc(var(--spacing) * 2);
+}
+
+#theme-panel .fern-dropdown-item-indicator svg {
+  width: calc(var(--spacing) * 3.5);
+  height: calc(var(--spacing) * 3.5);
+}
+
+/* --- Side padding: steps with the viewport, as on signalwire.com/docs --- */
+:host { --page-padding: 16px; }
+@media (min-width: 768px) { :host { --page-padding: 24px; } }
+@media (min-width: 1024px) { :host { --page-padding: 32px; } }
+
+/* --- Responsive: collapse like the Fern header ---
+   Below 1024px Fern swaps its links and product menu for a hamburger menu.
+   There's no hamburger here, so the links go and the product menu and theme
+   control stay. */
+@media (max-width: 1023px) {
+  .fern-header-navbar-links > .fern-button { display: none; }
+}
+
+/* The product menu's three columns don't fit a phone: stack the cards, keep
+   a group label above each group, and put the Compatibility API link last. */
+@media (max-width: 767px) {
+  [data-testid="product-dropdown-content"] {
+    width: calc(100dvw - 16px);
+    max-width: none;
+    max-height: calc(100dvh - 72px);
+  }
+  .fern-product-selector-radio-group {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 4px;
+    padding: 40px 12px 6px;
+  }
+  .fern-product-selector-radio-group > a[href] {
+    grid-column: auto;
+    grid-row: auto;
+  }
+  .fern-product-selector-radio-group > a[href*="server-sdks"],
+  .fern-product-selector-radio-group > a[href$="/docs/apis"] {
+    margin-top: 36px;
+  }
+  .fern-product-selector-radio-group::after { display: none; }
+  .fern-product-selector-radio-group > a[href*="compatibility-api"] {
+    margin: 4px 0 0;
+    width: auto;
+    border-top: 1px solid var(--grayscale-a5);
+  }
+}
+
+/* Room for the product menu and theme control next to the logo. */
+@media (max-width: 479px) {
+  .fern-logo-text { display: none; }
+}
