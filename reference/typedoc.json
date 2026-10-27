@@ -2,13 +2,15 @@
   "$schema": "https://typedoc.org/schema.json",
   // API reference for the npm package, generated from the TSDoc comments in src/.
   // Paths resolve against this file, so `out` lands in reference/_site (gitignored,
-  // outside the npm `files` globs). Build: npm run docs:reference.
+  // outside the npm `files` globs). Build: npm run docs:reference, which then
+  // adds the SignalWire docs navbar to every page (scripts/inject-navbar.ts).
   "name": "SignalWire TypeScript SDK",
   // The package exports. Each entry file names its module with `@module`.
   "entryPoints": ["../src/index.ts", "../src/livewire/index.ts"],
   "tsconfig": "../tsconfig.json",
   "out": "_site",
   "readme": "none",
+  "favicon": "navbar/img/signalwire-favicon.png",
   // Any warning fails the build: a stale @param, a link that does not resolve,
   // or a link to a symbol the package does not export.
   "treatWarningsAsErrors": true,
