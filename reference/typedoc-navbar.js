@@ -23,12 +23,17 @@
     },
     set: function (pref) {
       var theme = TO_TYPEDOC[pref] || "os";
+      // Go through TypeDoc's settings select: its change handler stores the
+      // choice the way TypeDoc does (honouring
+      // TypeDoc.disableWritingLocalStorage()) and applies it.
+      var select = document.getElementById("tsd-theme");
+      if (select) {
+        select.value = theme;
+        select.dispatchEvent(new Event("change"));
+        return;
+      }
       try { localStorage.setItem(STORAGE_KEY, theme); } catch (e) { /* blocked */ }
       html.dataset.theme = theme;
-      // Setting .value doesn't fire TypeDoc's change handler, which would
-      // only store and apply the same value again.
-      var select = document.getElementById("tsd-theme");
-      if (select) select.value = theme;
     },
     // A change made in TypeDoc's settings panel updates the navbar.
     subscribe: function (cb) {
