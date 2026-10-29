@@ -79,7 +79,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:examples": "tsc --noEmit --project tsconfig.examples.json",
-    "docs:reference": "typedoc --options reference/typedoc.json",
+    "docs:reference": "typedoc --options reference/typedoc.json && npx tsx scripts/inject-navbar.ts",
     "dev": "tsc --watch",
     "enumerate:doc-surface": "npx tsx scripts/enumerate-doc-surface.ts",
     "enumerate:signatures": "PORTING_SDK=\"${PORTING_SDK:-../porting-sdk}\" PORTING_SDK_PATH=\"${PORTING_SDK_PATH:-../porting-sdk}\" npx tsx scripts/enumerate-signatures.ts",

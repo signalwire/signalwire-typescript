@@ -1,0 +1,36 @@
+/* =============================================================================
+   SignalWire docs navbar: the only navbar CSS that applies to the page.
+   Everything else is inside the navbar's shadow root (navbar.css).
+   ============================================================================= */
+
+/* Browsers ignore @font-face inside a shadow root, so the navbar's fonts are
+   declared on the page. */
+@font-face {
+  font-family: "Lexend";
+  src: url("fonts/lexend-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Instrument Sans";
+  src: url("fonts/instrument-sans.woff2") format("woff2");
+  font-weight: 500 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* The bar's height, including its 1px bottom border. A page adapter reads it
+   to move the generator's own sticky header and sidebars below the bar. */
+:root { --sw-docs-navbar-height: 65px; }
+
+/* A sticky bar in normal flow at the top of <body>: it reserves its own
+   height, so the page needs no padding to clear it. Placed here rather than
+   in navbar.css so the space is reserved before the shadow CSS loads. */
+sw-docs-navbar {
+  display: block;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  height: var(--sw-docs-navbar-height);
+}
