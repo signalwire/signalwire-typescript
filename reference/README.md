@@ -69,11 +69,17 @@ wraps, so the TypeScript and Python sites are published the same way.
 - **On rollback:** ghp-import replaces the whole site tree on every deploy but
   does not discard history. Run without `--no-history`, it parents each deploy
   onto `origin/gh-pages`, and the push is a plain fast-forward. A bad publish is
-  recoverable by hand with `git push --force origin gh-pages~1:gh-pages`. The
-  gate exists because that recovery depends on somebody noticing, not because
-  rollback is impossible. This is also why `fetch-depth: 0` must stay: it is
-  what fetches `origin/gh-pages`, and without it the push lands a parentless
-  orphan and the history really is gone.
+  recoverable by hand with
+  `git fetch origin gh-pages && git push --force origin origin/gh-pages~1:gh-pages`.
+  The gate exists because that recovery depends on somebody noticing, not
+  because rollback is impossible. This is also why the gate's fetch of
+  `gh-pages` must stay: it is what gives ghp-import `origin/gh-pages` to parent
+  on, and without it the push lands a parentless orphan and the history really
+  is gone.
+- **After the push,** the job re-reads `version.txt` from `gh-pages` and fails
+  unless it is the marker this run stamped. ghp-import's exit code is not proof:
+  if its `git fast-import` fails it still pushes, and pushing the unchanged
+  branch succeeds with nothing to do.
 
 ## Going live
 
@@ -81,13 +87,17 @@ Two one-time steps, in this order. The Pages dropdown cannot offer `gh-pages`
 until the branch exists, so the dispatch has to come first.
 
 1. Run `reference-docs` manually from the default branch with the `deploy` input
-   ticked. That creates `gh-pages` and stamps `version.txt` with the `v0.0.0`
-   bootstrap floor.
+   ticked and `version_marker` set to the release the default branch is at, as
+   `package.json` has it (`v3.7.1` at the time of writing). That creates
+   `gh-pages` with the current reference and a marker the gate can compare the
+   next release against. Leave `version_marker` blank only if the default branch
+   has unreleased API changes: the site is then stamped with the `v0.0.0` floor
+   until the next release replaces it.
 2. In the GitHub UI: **Settings > Pages > Build and deployment >
    Source = "Deploy from a branch", Branch = `gh-pages` / `(root)`.**
 
 Pages then serves the site at `https://signalwire.github.io/signalwire-typescript/`.
-The next stable release stamps its own version.
+Every later stable release republishes it with its own tag.
 
 ### The version marker
 
@@ -95,11 +105,14 @@ The next stable release stamps its own version.
 monotonicity check reads it. **Every** publish stamps it, dispatches included:
 ghp-import replaces the whole site tree, so a dispatch that did not re-stamp
 would erase the marker and silently disarm the guard for the next release. A
-dispatch preserves whatever is already there.
+dispatch preserves whatever is already there, and publishes the default
+branch's reference under it. To put the released content back afterwards,
+re-run the `reference-docs` job of the last release's publish run: the gate
+accepts an equal version.
 
-A site with no readable marker is therefore an anomaly, and the gate refuses to
-publish over it on both paths: a release fails, and a dispatch fails unless the
-`version_marker` input is set. The `v0.0.0` floor applies only when `gh-pages`
+A site with no readable marker, or one that is not `vX.Y.Z`, is therefore an
+anomaly, and the gate refuses to publish over it on both paths: a release
+fails, and a dispatch fails unless the `version_marker` input is set. The `v0.0.0` floor applies only when `gh-pages`
 does not exist yet. If the marker ever needs repairing, for instance after a typo
 tag like `v31.0.0` sorts newest and starts blocking real releases, dispatch a
 publish with the `version_marker` input set to the correct `vX.Y.Z`.

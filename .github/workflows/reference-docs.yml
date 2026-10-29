@@ -13,7 +13,7 @@
 # every deploy, but it does NOT discard history: run without --no-history, it
 # parents each deploy onto origin/gh-pages. A bad publish is therefore
 # recoverable, by hand, with:
-#   git push --force origin gh-pages~1:gh-pages
+#   git fetch origin gh-pages && git push --force origin origin/gh-pages~1:gh-pages
 # That recovery depends on somebody noticing, so the gate below exists to keep an
 # older or invalid version from becoming the public site in the first place:
 #   * called by publish.yml only after the full CI gate set and `npm publish`
@@ -27,6 +27,8 @@
 #     job, so the release run goes red and "Re-run failed jobs" can republish
 #     once the cause is repaired. The npm publish is already done by then and is
 #     not affected.
+#   * the deploy is checked, not trusted: the marker on gh-pages must equal the
+#     one this run stamped, or the job fails.
 #
 # There is deliberately NO `release: published` trigger. publish.yml creates the
 # GitHub Release with `secrets.GITHUB_TOKEN`, and GitHub does not raise
@@ -56,7 +58,7 @@ on:
         type: boolean
         default: false
       version_marker:
-        description: "Recovery only: overwrite the site's version.txt with this (vX.Y.Z). Leave blank to preserve the current marker."
+        description: "Set the site's version.txt to this (vX.Y.Z): the current release at the first publish, otherwise recovery only. Leave blank to preserve the current marker."
         type: string
         required: false
         default: ""
@@ -83,11 +85,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          # Required, and do NOT "optimize" it away: this is what fetches
-          # origin/gh-pages, which ghp-import parents the new deploy on. Without
-          # that ref present, the push lands a parentless orphan commit and the
-          # deploy history really is destroyed.
-          fetch-depth: 0
+          # A shallow checkout is enough. The gate below fetches origin/gh-pages
+          # itself, which is all ghp-import needs to parent the deploy on.
           ref: ${{ inputs.tag || github.ref }}
 
       # Runs BEFORE the toolchain install, so a run the gate rejects does not
@@ -132,9 +131,15 @@ jobs:
 
           prev=""
           if [ "$branch" = "present" ]; then
+            # This fetch does double duty, so do NOT "optimize" it away: besides
+            # reading the marker, it is what gives ghp-import origin/gh-pages to
+            # parent the new deploy on. Without it the push lands a parentless
+            # orphan commit and the deploy history really is destroyed. Depth 1
+            # is enough for both and keeps the growing gh-pages history off
+            # every run.
             # No `|| true` here: an unreadable gh-pages must stop the run rather
             # than fall through as "no marker, go ahead".
-            git fetch --no-tags origin +refs/heads/gh-pages:refs/remotes/origin/gh-pages
+            git fetch --no-tags --depth=1 origin +refs/heads/gh-pages:refs/remotes/origin/gh-pages
             if git cat-file -e refs/remotes/origin/gh-pages:version.txt 2>/dev/null; then
               prev="$(git show refs/remotes/origin/gh-pages:version.txt | tr -d '[:space:]')"
             fi
@@ -162,6 +167,11 @@ jobs:
               # hand-edited or predates this workflow. Fail closed and make the
               # operator repair it deliberately (dispatch with version_marker).
               echo "::error::gh-pages carries no readable version.txt; refusing to publish $TAG. Repair with a manual dispatch using the version_marker input."
+              exit 1
+            elif [[ ! "$prev" =~ $SEMVER ]]; then
+              # A marker that is not vX.Y.Z (say, a hand-written "latest") would
+              # sort newest forever and turn every release into a green skip.
+              echo "::error::gh-pages carries version.txt '$prev', which is not vX.Y.Z; refusing to publish $TAG. Repair with a manual dispatch using the version_marker input."
               exit 1
             elif [ "$(printf '%s\n%s\n' "${prev#v}" "${TAG#v}" | sort -V | tail -1)" = "${TAG#v}" ]; then
               # Equal versions pass, so re-running a release can republish it.
@@ -191,6 +201,11 @@ jobs:
                   exit 1
                 fi
                 marker="$DISPATCH_MARKER"
+              elif [ -n "$prev" ] && [[ ! "$prev" =~ $SEMVER ]]; then
+                # Preserving it would re-stamp the garbage; the release path
+                # refuses it, and so does this one.
+                echo "::error::gh-pages carries version.txt '$prev', which is not vX.Y.Z; set the version_marker input to repair it"
+                exit 1
               elif [ -n "$prev" ]; then
                 marker="$prev"
               elif [ "$branch" = "absent" ]; then
@@ -266,3 +281,21 @@ jobs:
           ghp-import --no-jekyll --push --remote origin --branch gh-pages \
             --message "Publish API reference $MARKER from $GITHUB_SHA" \
             reference/_site
+
+      # ghp-import's exit code is not proof. When its `git fast-import` fails it
+      # prints "Failed to process commit." and still pushes, and a push of the
+      # unchanged local branch is "Everything up-to-date", exit 0. So check the
+      # result: the marker this run stamped must now be the one on the remote.
+      - name: Verify the publish landed
+        if: steps.gate.outputs.publish == 'true'
+        env:
+          MARKER: ${{ steps.gate.outputs.marker }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin +refs/heads/gh-pages:refs/remotes/origin/gh-pages
+          live="$(git show refs/remotes/origin/gh-pages:version.txt 2>/dev/null | tr -d '[:space:]' || true)"
+          if [ "$live" != "$MARKER" ]; then
+            echo "::error::after the deploy, gh-pages carries version.txt '$live', expected '$MARKER'; the push did not land"
+            exit 1
+          fi
+          echo "gh-pages now carries $MARKER"
