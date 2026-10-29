@@ -165,6 +165,10 @@
     return root;
   }
 
+  // Load this script with defer. Run any earlier and connectedCallback fires
+  // before the parser has reached the <template>, finds no shadow root and
+  // never tries again: the bar renders but its menus and theme control don't
+  // work.
   class SwDocsNavbar extends HTMLElement {
     connectedCallback() {
       if (this.initialized) return;
