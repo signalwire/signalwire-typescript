@@ -106,3 +106,25 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
+
+  # Republish the API reference for the version that just shipped.
+  #
+  # Called here rather than triggered by `release: published` inside
+  # reference-docs.yml: the Create GitHub Release step above uses
+  # secrets.GITHUB_TOKEN, and GitHub deliberately does not raise
+  # workflow-triggering events for that token, so a release trigger would never
+  # fire on this path. `needs: publish` also gives the ordering we actually want,
+  # with the docs going out only after the npm publish succeeded. If this job
+  # fails, the release itself is unaffected (npm and the GitHub Release are
+  # already done); repair the cause and use "Re-run failed jobs".
+  #
+  # Tags only: this workflow also runs on workflow_dispatch, and a branch name is
+  # not a release to publish the reference for.
+  reference-docs:
+    needs: publish
+    if: github.ref_type == 'tag'
+    permissions:
+      contents: write   # the called workflow pushes the built site to gh-pages
+    uses: ./.github/workflows/reference-docs.yml
+    with:
+      tag: ${{ github.ref_name }}   # the `v*` tag that triggered this run
