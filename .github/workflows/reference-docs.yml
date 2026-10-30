@@ -27,8 +27,9 @@
 #     job, so the release run goes red and "Re-run failed jobs" can republish
 #     once the cause is repaired. The npm publish is already done by then and is
 #     not affected.
-#   * the deploy is checked, not trusted: the marker on gh-pages must equal the
-#     one this run stamped, or the job fails.
+#   * the deploy is checked, not trusted: a new gh-pages commit must exist, the
+#     remote must be at it, it must parent on the previous deploy, and it must
+#     carry the marker this run stamped, or the job fails.
 #
 # There is deliberately NO `release: published` trigger. publish.yml creates the
 # GitHub Release with `secrets.GITHUB_TOKEN`, and GitHub does not raise
@@ -79,6 +80,14 @@ jobs:
     # Publishing runs share one serialized group; previews get a per-ref group of
     # their own, so a newly queued preview can never displace a pending release
     # publish (which would drop it as "cancelled" rather than failing red).
+    #
+    # Within the production group that displacement can still happen: GitHub
+    # keeps one pending run per group and cancels the older one when another
+    # queues. Two release tags pushed within one docs job of each other, or a
+    # dispatch deploy during a release, drop one publish as "cancelled", not
+    # red, and if the dropped one was the newest version the site stays a
+    # release behind. Re-run the dropped release's job; the gate publishes it
+    # unless the live site is already newer.
     concurrency:
       group: ${{ (inputs.tag != '' || inputs.deploy) && 'reference-docs-production' || format('reference-docs-preview-{0}', github.ref) }}
       cancel-in-progress: false   # never interrupt a push mid-flight
@@ -89,8 +98,10 @@ jobs:
           # itself, which is all ghp-import needs to parent the deploy on.
           ref: ${{ inputs.tag || github.ref }}
 
-      # Runs BEFORE the toolchain install, so a run the gate rejects does not
-      # first pay for npm ci. It needs nothing but git.
+      # Runs BEFORE the toolchain install, and the install and build steps are
+      # skipped when it rejects a release-path run, so an rc tag or a tag older
+      # than the live site costs nothing but this step. Previews always build;
+      # that is what they are for. It needs nothing but git.
       #
       # Outcomes are graded. `::notice::` and `::warning::` are expected
       # non-publishes (preview, fork, rc tag, older tag) and the job stays green.
@@ -223,16 +234,28 @@ jobs:
             fi
           fi
 
-          echo "publish=$publish" >> "$GITHUB_OUTPUT"
-          echo "marker=$marker" >> "$GITHUB_OUTPUT"
-          echo "publish=$publish marker=$marker"
+          # Build when publishing, and on every dispatch (that is the preview).
+          build=false
+          if [ "$publish" = true ] || [ -z "$TAG" ]; then build=true; fi
+          # The tip ghp-import will parent on, for the post-deploy check.
+          before="$(git rev-parse --verify -q refs/remotes/origin/gh-pages || echo none)"
+
+          {
+            echo "publish=$publish"
+            echo "marker=$marker"
+            echo "build=$build"
+            echo "before=$before"
+          } >> "$GITHUB_OUTPUT"
+          echo "publish=$publish marker=$marker build=$build before=$before"
 
       - uses: actions/setup-node@v7
+        if: steps.gate.outputs.build == 'true'
         with:
           node-version: '24'
           cache: 'npm'
 
       - name: npm ci
+        if: steps.gate.outputs.build == 'true'
         run: npm ci
 
       # Validates preview runs, and fails a publish before anything is pushed.
@@ -240,6 +263,7 @@ jobs:
       # inject-navbar exits 1 on a page it cannot edit, so a stale @param, an
       # unresolved link, or a page without the navbar stops the run here.
       - name: Build the reference (strict), the gate before any push
+        if: steps.gate.outputs.build == 'true'
         run: npm run docs:reference
 
       # Must run after the build: TypeDoc empties reference/_site first. The
@@ -284,18 +308,37 @@ jobs:
 
       # ghp-import's exit code is not proof. When its `git fast-import` fails it
       # prints "Failed to process commit." and still pushes, and a push of the
-      # unchanged local branch is "Everything up-to-date", exit 0. So check the
-      # result: the marker this run stamped must now be the one on the remote.
+      # unchanged local branch is "Everything up-to-date", exit 0. Nor is the
+      # marker on the remote proof: on an equal-version re-run, or a dispatch
+      # that preserves the marker, the old site already carries it. So compare
+      # commits. ghp-import points refs/heads/gh-pages at the remote's tip
+      # before writing the new commit there, so a local branch still at the tip
+      # the gate recorded means nothing was written.
       - name: Verify the publish landed
         if: steps.gate.outputs.publish == 'true'
         env:
           MARKER: ${{ steps.gate.outputs.marker }}
+          BEFORE: ${{ steps.gate.outputs.before }}
         run: |
           set -euo pipefail
-          git fetch --no-tags --depth=1 origin +refs/heads/gh-pages:refs/remotes/origin/gh-pages
-          live="$(git show refs/remotes/origin/gh-pages:version.txt 2>/dev/null | tr -d '[:space:]' || true)"
-          if [ "$live" != "$MARKER" ]; then
-            echo "::error::after the deploy, gh-pages carries version.txt '$live', expected '$MARKER'; the push did not land"
+          new="$(git rev-parse --verify -q refs/heads/gh-pages || true)"
+          remote="$(git ls-remote --heads origin gh-pages | cut -f1)"
+          if [ -z "$new" ] || [ "$new" = "$BEFORE" ]; then
+            echo "::error::ghp-import wrote no new gh-pages commit (local gh-pages '${new:-none}', before the deploy '$BEFORE')"
             exit 1
           fi
-          echo "gh-pages now carries $MARKER"
+          if [ "$remote" != "$new" ]; then
+            echo "::error::origin/gh-pages is '${remote:-missing}', expected '$new'; the push did not land"
+            exit 1
+          fi
+          parent="$(git rev-parse --verify -q "$new^" || true)"
+          if [ "$BEFORE" != "none" ] && [ "$parent" != "$BEFORE" ]; then
+            echo "::error::the new gh-pages commit parents on '${parent:-nothing}', not on the previous deploy '$BEFORE'; the rollback recipe would not work"
+            exit 1
+          fi
+          live="$(git show "$new:version.txt" | tr -d '[:space:]')"
+          if [ "$live" != "$MARKER" ]; then
+            echo "::error::the deployed version.txt is '$live', expected '$MARKER'"
+            exit 1
+          fi
+          echo "gh-pages is now $new, parented on $BEFORE, carrying $MARKER"
