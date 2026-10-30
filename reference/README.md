@@ -10,12 +10,12 @@ as a single unversioned site to this repo's own GitHub Pages:
 
 ```
 reference/
-  typedoc.json             TypeDoc config: entry points, strict validation, `out`
-  typedoc-navbar.css       TypeDoc layout for the navbar: offsets its sticky toolbar and sidebars
-  typedoc-navbar.js        TypeDoc theme adapter: the navbar's theme control drives TypeDoc's
-  navbar/                  the navbar itself; generator-agnostic, see navbar/README.md
-  _site/                   the built site                                  [gitignored]
-  README.md                this file
+  typedoc.json        TypeDoc config: entry points, strict validation, `out`
+  typedoc-navbar.css  TypeDoc layout for the navbar: toolbar and sidebar offsets
+  typedoc-navbar.js   theme adapter: the navbar's theme control drives TypeDoc's
+  navbar/             the navbar; generator-agnostic, see navbar/README.md
+  _site/              the built site                                [gitignored]
+  README.md           this file
 ```
 
 ## Build
@@ -76,10 +76,18 @@ wraps, so the TypeScript and Python sites are published the same way.
   `gh-pages` must stay: it is what gives ghp-import `origin/gh-pages` to parent
   on, and without it the push lands a parentless orphan and the history really
   is gone.
-- **After the push,** the job re-reads `version.txt` from `gh-pages` and fails
-  unless it is the marker this run stamped. ghp-import's exit code is not proof:
-  if its `git fast-import` fails it still pushes, and pushing the unchanged
-  branch succeeds with nothing to do.
+- **After the push,** the job compares commits and fails unless a new
+  `gh-pages` commit exists, the remote is at it, it parents on the previous
+  deploy, and it carries the marker this run stamped. ghp-import's exit code is
+  not proof: if its `git fast-import` fails it still pushes, and pushing the
+  unchanged branch succeeds with nothing to do. Nor is the marker alone: on a
+  re-run or a marker-preserving dispatch the old site already carries it.
+- **Two publishes at once:** publishing runs queue behind each other, but
+  GitHub keeps only one pending run per group and cancels the older one when
+  another queues. Two release tags within one docs job of each other, or a
+  dispatch deploy during a release, drop one publish as cancelled, not failed.
+  If the dropped one was the newest version, re-run its `reference-docs` job;
+  the gate publishes it unless the live site is already newer.
 
 ## Going live
 
@@ -112,10 +120,11 @@ accepts an equal version.
 
 A site with no readable marker, or one that is not `vX.Y.Z`, is therefore an
 anomaly, and the gate refuses to publish over it on both paths: a release
-fails, and a dispatch fails unless the `version_marker` input is set. The `v0.0.0` floor applies only when `gh-pages`
-does not exist yet. If the marker ever needs repairing, for instance after a typo
-tag like `v31.0.0` sorts newest and starts blocking real releases, dispatch a
-publish with the `version_marker` input set to the correct `vX.Y.Z`.
+fails, and a dispatch fails unless the `version_marker` input is set. The
+`v0.0.0` floor applies only when `gh-pages` does not exist yet. If the marker
+ever needs repairing, for instance after a typo tag like `v31.0.0` sorts newest
+and starts blocking real releases, dispatch a publish with the `version_marker`
+input set to the correct `vX.Y.Z`.
 
 ### `.nojekyll`
 
