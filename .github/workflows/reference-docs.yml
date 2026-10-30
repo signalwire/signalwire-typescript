@@ -1,0 +1,344 @@
+# API reference docs.
+#
+# Builds the SignalWire TypeScript SDK API reference (TypeDoc over the TSDoc
+# comments in src/, with the SignalWire docs navbar on every page) and publishes
+# a single, unversioned site to this repo's OWN GitHub Pages:
+#   https://signalwire.github.io/signalwire-typescript/
+#
+# Ported from signalwire-python's reference-docs.yml. The publish gate is the
+# same; the build is `npm run docs:reference`, and the deploy is ghp-import, the
+# tool that `mkdocs gh-deploy` wraps.
+#
+# Publishing is deliberately narrow. ghp-import replaces the whole site tree on
+# every deploy, but it does NOT discard history: run without --no-history, it
+# parents each deploy onto origin/gh-pages. A bad publish is therefore
+# recoverable, by hand, with:
+#   git fetch origin gh-pages && git push --force origin origin/gh-pages~1:gh-pages
+# That recovery depends on somebody noticing, so the gate below exists to keep an
+# older or invalid version from becoming the public site in the first place:
+#   * called by publish.yml only after the full CI gate set and `npm publish`
+#     have succeeded, so a rejected tag can never become the public site.
+#   * stable semver tags only, and only when the tag is at least as new as the
+#     version the last publish recorded at the site root (version.txt).
+#   * workflow_dispatch builds a preview by default. It publishes only when the
+#     `deploy` input is ticked, only from the default branch, and never from a
+#     fork.
+#   * anything the gate cannot positively determine fails CLOSED, and fails the
+#     job, so the release run goes red and "Re-run failed jobs" can republish
+#     once the cause is repaired. The npm publish is already done by then and is
+#     not affected.
+#   * the deploy is checked, not trusted: a new gh-pages commit must exist, the
+#     remote must be at it, it must parent on the previous deploy, and it must
+#     carry the marker this run stamped, or the job fails.
+#
+# There is deliberately NO `release: published` trigger. publish.yml creates the
+# GitHub Release with `secrets.GITHUB_TOKEN`, and GitHub does not raise
+# workflow-triggering events for actions taken with that token
+# (workflow_dispatch and repository_dispatch excepted). A `release` trigger would
+# therefore sit here looking correct and silently never fire on the normal tag
+# path. The reusable `workflow_call` below is the wire that actually connects.
+#
+# MANUAL REPO SETTING REQUIRED to go live (one-time, in the GitHub UI):
+#   Settings > Pages > Build and deployment > Source = "Deploy from a branch",
+#   Branch = `gh-pages` / `(root)`. ghp-import pushes the built site there. The
+#   dropdown only offers the branch once it exists, so the first publish (a
+#   manual dispatch with `deploy` ticked) comes first. See reference/README.md.
+name: reference-docs
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag being published (vX.Y.Z). Its presence is what marks a run as a release publish."
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Publish to gh-pages (leave false for a build-only preview)"
+        type: boolean
+        default: false
+      version_marker:
+        description: "Set the site's version.txt to this (vX.Y.Z): the current release at the first publish, otherwise recovery only. Leave blank to preserve the current marker."
+        type: string
+        required: false
+        default: ""
+
+# Applies to the workflow_dispatch path. On the workflow_call path the caller's
+# job grants the token permissions, so publish.yml sets contents: write on the
+# job that calls this workflow.
+permissions:
+  contents: write   # ghp-import pushes the built site to the gh-pages branch
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    # Job level, NOT workflow level. A called workflow's jobs run inside the
+    # CALLER's run, so a top-level `concurrency:` here would be ignored on the
+    # publish.yml path and two releases could race the push.
+    #
+    # Publishing runs share one serialized group; previews get a per-ref group of
+    # their own, so a newly queued preview can never displace a pending release
+    # publish (which would drop it as "cancelled" rather than failing red).
+    #
+    # Within the production group that displacement can still happen: GitHub
+    # keeps one pending run per group and cancels the older one when another
+    # queues. Two release tags pushed within one docs job of each other, or a
+    # dispatch deploy during a release, drop one publish as "cancelled", not
+    # red, and if the dropped one was the newest version the site stays a
+    # release behind. Re-run the dropped release's job; the gate publishes it
+    # unless the live site is already newer.
+    concurrency:
+      group: ${{ (inputs.tag != '' || inputs.deploy) && 'reference-docs-production' || format('reference-docs-preview-{0}', github.ref) }}
+      cancel-in-progress: false   # never interrupt a push mid-flight
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # A shallow checkout is enough. The gate below fetches origin/gh-pages
+          # itself, which is all ghp-import needs to parent the deploy on.
+          ref: ${{ inputs.tag || github.ref }}
+
+      # Runs BEFORE the toolchain install, and the install and build steps are
+      # skipped when it rejects a release-path run, so an rc tag or a tag older
+      # than the live site costs nothing but this step. Previews always build;
+      # that is what they are for. It needs nothing but git.
+      #
+      # Outcomes are graded. `::notice::` and `::warning::` are expected
+      # non-publishes (preview, fork, rc tag, older tag) and the job stays green.
+      # `::error::` is an anomaly that needs a human, and the step exits 1 so the
+      # run goes red instead of quietly leaving the site stale.
+      #
+      # Single decision point for whether this run may push the public site, and
+      # the single place that decides what the version marker becomes.
+      # `inputs.tag` is only defined for workflow_call and `inputs.deploy` only
+      # for workflow_dispatch; the one belonging to the other trigger evaluates
+      # to an empty string, which is what separates the two paths below.
+      - name: Decide whether to publish
+        id: gate
+        env:
+          TAG: ${{ inputs.tag }}
+          DISPATCH_DEPLOY: ${{ inputs.deploy }}
+          DISPATCH_MARKER: ${{ inputs.version_marker }}
+          REF_NAME: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          IS_UPSTREAM: ${{ github.repository == 'signalwire/signalwire-typescript' }}
+        run: |
+          set -euo pipefail
+          SEMVER='^v[0-9]+\.[0-9]+\.[0-9]+$'
+          publish=false
+          marker=""
+
+          # Probe gh-pages rather than trusting checkout's refspec, and keep the
+          # three states distinct. `ls-remote --exit-code` returns 2 for "no such
+          # ref" and something else for "could not ask", which is the difference
+          # between a legitimate bootstrap and a failure we must not read as one.
+          rc=0
+          git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1 || rc=$?
+          case "$rc" in
+            0) branch=present ;;
+            2) branch=absent ;;
+            *) branch=unknown ;;
+          esac
+
+          prev=""
+          if [ "$branch" = "present" ]; then
+            # This fetch does double duty, so do NOT "optimize" it away: besides
+            # reading the marker, it is what gives ghp-import origin/gh-pages to
+            # parent the new deploy on. Without it the push lands a parentless
+            # orphan commit and the deploy history really is destroyed. Depth 1
+            # is enough for both and keeps the growing gh-pages history off
+            # every run.
+            # No `|| true` here: an unreadable gh-pages must stop the run rather
+            # than fall through as "no marker, go ahead".
+            git fetch --no-tags --depth=1 origin +refs/heads/gh-pages:refs/remotes/origin/gh-pages
+            if git cat-file -e refs/remotes/origin/gh-pages:version.txt 2>/dev/null; then
+              prev="$(git show refs/remotes/origin/gh-pages:version.txt | tr -d '[:space:]')"
+            fi
+          fi
+          echo "gh-pages=$branch  marker-on-site='${prev}'"
+
+          if [ "$IS_UPSTREAM" != "true" ]; then
+            echo "::notice::fork build; not publishing"
+          elif [ "$branch" = "unknown" ]; then
+            echo "::error::could not determine the state of gh-pages; refusing to publish"
+            exit 1
+          elif [ -n "$TAG" ]; then
+            # Release publish, called from publish.yml after its gates.
+            # publish.yml triggers on the `v*` glob, so an rc/beta tag does
+            # reach here; the shape check is what stops it overwriting the
+            # stable site. Actions expressions have no regex, hence a step.
+            if [[ ! "$TAG" =~ $SEMVER ]]; then
+              echo "::warning::$TAG is not stable semver; not republishing"
+            elif [ "$branch" = "absent" ]; then
+              echo "::notice::gh-pages does not exist yet; treating $TAG as the first publish"
+              publish=true
+              marker="$TAG"
+            elif [ -z "$prev" ]; then
+              # Every publish stamps a marker, so a site without one has been
+              # hand-edited or predates this workflow. Fail closed and make the
+              # operator repair it deliberately (dispatch with version_marker).
+              echo "::error::gh-pages carries no readable version.txt; refusing to publish $TAG. Repair with a manual dispatch using the version_marker input."
+              exit 1
+            elif [[ ! "$prev" =~ $SEMVER ]]; then
+              # A marker that is not vX.Y.Z (say, a hand-written "latest") would
+              # sort newest forever and turn every release into a green skip.
+              echo "::error::gh-pages carries version.txt '$prev', which is not vX.Y.Z; refusing to publish $TAG. Repair with a manual dispatch using the version_marker input."
+              exit 1
+            elif [ "$(printf '%s\n%s\n' "${prev#v}" "${TAG#v}" | sort -V | tail -1)" = "${TAG#v}" ]; then
+              # Equal versions pass, so re-running a release can republish it.
+              publish=true
+              marker="$TAG"
+            else
+              echo "::warning::live site is $prev, which is newer than $TAG; not republishing"
+            fi
+          else
+            # Manual dispatch.
+            if [ "${DISPATCH_DEPLOY:-false}" != "true" ]; then
+              echo "::notice::preview build; the deploy input was not ticked"
+            elif [ -z "$DEFAULT_BRANCH" ] || [ "$REF_NAME" != "$DEFAULT_BRANCH" ]; then
+              # Otherwise any branch in the dropdown could publish itself as the
+              # official public API reference, running its own code under a
+              # contents: write token.
+              echo "::error::refusing to publish from '$REF_NAME'; dispatch a publish from the default branch ('${DEFAULT_BRANCH:-unknown}')"
+              exit 1
+            else
+              publish=true
+              # ghp-import replaces the whole site tree (it emits deleteall), so
+              # NOT re-stamping here would erase the marker and silently disarm
+              # the monotonicity guard for the next release.
+              if [ -n "$DISPATCH_MARKER" ]; then
+                if [[ ! "$DISPATCH_MARKER" =~ $SEMVER ]]; then
+                  echo "::error::version_marker '$DISPATCH_MARKER' is not vX.Y.Z"
+                  exit 1
+                fi
+                marker="$DISPATCH_MARKER"
+              elif [ -n "$prev" ] && [[ ! "$prev" =~ $SEMVER ]]; then
+                # Preserving it would re-stamp the garbage; the release path
+                # refuses it, and so does this one.
+                echo "::error::gh-pages carries version.txt '$prev', which is not vX.Y.Z; set the version_marker input to repair it"
+                exit 1
+              elif [ -n "$prev" ]; then
+                marker="$prev"
+              elif [ "$branch" = "absent" ]; then
+                # Bootstrap floor, so the site always carries a readable marker
+                # and "missing" stays meaningful as an anomaly.
+                marker="v0.0.0"
+              else
+                # The same anomaly the release path refuses: the branch exists
+                # but carries no marker. Falling back to the floor here would let
+                # the documented repair path (a dispatch) silently reset the
+                # guard to v0.0.0 instead of repairing it.
+                echo "::error::gh-pages exists but carries no readable version.txt; set the version_marker input to repair it"
+                exit 1
+              fi
+            fi
+          fi
+
+          # Build when publishing, and on every dispatch (that is the preview).
+          build=false
+          if [ "$publish" = true ] || [ -z "$TAG" ]; then build=true; fi
+          # The tip ghp-import will parent on, for the post-deploy check.
+          before="$(git rev-parse --verify -q refs/remotes/origin/gh-pages || echo none)"
+
+          {
+            echo "publish=$publish"
+            echo "marker=$marker"
+            echo "build=$build"
+            echo "before=$before"
+          } >> "$GITHUB_OUTPUT"
+          echo "publish=$publish marker=$marker build=$build before=$before"
+
+      - uses: actions/setup-node@v7
+        if: steps.gate.outputs.build == 'true'
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: npm ci
+        if: steps.gate.outputs.build == 'true'
+        run: npm ci
+
+      # Validates preview runs, and fails a publish before anything is pushed.
+      # TypeDoc treats every warning as an error (reference/typedoc.json), and
+      # inject-navbar exits 1 on a page it cannot edit, so a stale @param, an
+      # unresolved link, or a page without the navbar stops the run here.
+      - name: Build the reference (strict), the gate before any push
+        if: steps.gate.outputs.build == 'true'
+        run: npm run docs:reference
+
+      # Must run after the build: TypeDoc empties reference/_site first. The
+      # value goes through `env:` rather than inline `${{ }}`: git permits shell
+      # metacharacters in tag names, and this job holds contents: write.
+      - name: Stamp the version marker
+        if: steps.gate.outputs.marker != ''
+        env:
+          MARKER: ${{ steps.gate.outputs.marker }}
+        run: printf '%s\n' "$MARKER" > reference/_site/version.txt
+
+      - uses: actions/setup-python@v6
+        if: steps.gate.outputs.publish == 'true'
+        with:
+          python-version: '3.15'
+
+      - name: Install ghp-import
+        if: steps.gate.outputs.publish == 'true'
+        run: pip install 'ghp-import==2.1.0'
+
+      - name: Configure git
+        if: steps.gate.outputs.publish == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # ghp-import sets the local gh-pages to origin/gh-pages, writes one commit
+      # with the site tree parented on it (no --no-history, so the history that
+      # makes the rollback above possible is kept), and pushes. No --force: the
+      # push is a fast-forward, so a rejection means gh-pages moved under this
+      # run, and the job goes red rather than overwriting it. --no-jekyll keeps
+      # the .nojekyll TypeDoc writes; without it Pages would hide the
+      # `_signalwire_sdk.*` pages.
+      - name: Deploy to gh-pages
+        if: steps.gate.outputs.publish == 'true'
+        env:
+          MARKER: ${{ steps.gate.outputs.marker }}
+        run: |
+          ghp-import --no-jekyll --push --remote origin --branch gh-pages \
+            --message "Publish API reference $MARKER from $GITHUB_SHA" \
+            reference/_site
+
+      # ghp-import's exit code is not proof. When its `git fast-import` fails it
+      # prints "Failed to process commit." and still pushes, and a push of the
+      # unchanged local branch is "Everything up-to-date", exit 0. Nor is the
+      # marker on the remote proof: on an equal-version re-run, or a dispatch
+      # that preserves the marker, the old site already carries it. So compare
+      # commits. ghp-import points refs/heads/gh-pages at the remote's tip
+      # before writing the new commit there, so a local branch still at the tip
+      # the gate recorded means nothing was written.
+      - name: Verify the publish landed
+        if: steps.gate.outputs.publish == 'true'
+        env:
+          MARKER: ${{ steps.gate.outputs.marker }}
+          BEFORE: ${{ steps.gate.outputs.before }}
+        run: |
+          set -euo pipefail
+          new="$(git rev-parse --verify -q refs/heads/gh-pages || true)"
+          remote="$(git ls-remote --heads origin gh-pages | cut -f1)"
+          if [ -z "$new" ] || [ "$new" = "$BEFORE" ]; then
+            echo "::error::ghp-import wrote no new gh-pages commit (local gh-pages '${new:-none}', before the deploy '$BEFORE')"
+            exit 1
+          fi
+          if [ "$remote" != "$new" ]; then
+            echo "::error::origin/gh-pages is '${remote:-missing}', expected '$new'; the push did not land"
+            exit 1
+          fi
+          parent="$(git rev-parse --verify -q "$new^" || true)"
+          if [ "$BEFORE" != "none" ] && [ "$parent" != "$BEFORE" ]; then
+            echo "::error::the new gh-pages commit parents on '${parent:-nothing}', not on the previous deploy '$BEFORE'; the rollback recipe would not work"
+            exit 1
+          fi
+          live="$(git show "$new:version.txt" | tr -d '[:space:]')"
+          if [ "$live" != "$MARKER" ]; then
+            echo "::error::the deployed version.txt is '$live', expected '$MARKER'"
+            exit 1
+          fi
+          echo "gh-pages is now $new, parented on $BEFORE, carrying $MARKER"
