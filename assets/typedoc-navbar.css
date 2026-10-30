@@ -1,0 +1,20 @@
+/* =============================================================================
+   TypeDoc layout for the SignalWire docs navbar (reference/navbar/).
+   The navbar is a sticky bar --sw-docs-navbar-height tall at the top of the
+   page (navbar/document.css). TypeDoc's CSS is all in `@layer typedoc`, so
+   these unlayered rules win without !important.
+   ============================================================================= */
+
+/* TypeDoc sizes its sticky sidebars, the page's minimum height and the
+   anchor scroll offset from --dim-header-height; count the navbar in it. */
+:root {
+  --dim-header-height: calc(
+    var(--sw-docs-navbar-height) + var(--dim-toolbar-border-bottom-width) +
+      var(--dim-toolbar-contents-height)
+  );
+}
+
+/* TypeDoc's toolbar sticks just below the navbar instead of under it. */
+.tsd-page-toolbar {
+  top: var(--sw-docs-navbar-height);
+}

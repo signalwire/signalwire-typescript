@@ -1,0 +1,1158 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>SWMLService | SignalWire TypeScript SDK</title><link rel="icon" href="../assets/favicon.png" type="image/png"/><meta name="description" content="Documentation for SignalWire TypeScript SDK"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script><link rel="stylesheet" href="../navbar/document.css"/><link rel="stylesheet" href="../assets/typedoc-navbar.css"/><script defer src="../assets/typedoc-navbar.js"></script><script defer src="../navbar/navbar.js"></script></head><body><sw-docs-navbar>
+  <template shadowrootmode="open">
+    <style>:host { visibility: hidden; }</style>
+    <link rel="stylesheet" href="../navbar/tokens.css" />
+    <link rel="stylesheet" href="../navbar/fern.css" />
+    <link rel="stylesheet" href="../navbar/navbar.css" />
+
+    <header id="fern-header" role="banner">
+      <div class="fern-header-content">
+
+        <div class="fern-header-logo-container">
+          <a data-fern-logo href="https://signalwire.com/docs" id="brand-link">
+            <img alt="SignalWire" src="../navbar/img/logo-no-text.svg" />
+            <span class="fern-logo-text">SignalWire Docs</span>
+          </a>
+          <div class="fern-header-selectors">
+            <button type="button" class="fern-product-selector" id="product-trigger"
+                    aria-haspopup="menu" aria-expanded="false" data-state="closed">
+              <div class="product-dropdown-trigger" data-testid="product-dropdown">
+                <p class="product-item-title">Server SDKs</p>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><path d="m6 9 6 6 6-6"></path></svg>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div class="fern-header-center"></div>
+
+        <nav class="fern-button-group fern-header-navbar-links" aria-label="Navbar links">
+          <a class="fern-button minimal" href="https://signalwire.com/signin">
+            <span class="fern-button-content"><span class="fern-button-text">Log in</span></span>
+          </a>
+          <a class="fern-button outlined" href="https://signalwire.com/signup">
+            <span class="fern-button-content"><span class="fern-button-text">Sign up</span></span>
+          </a>
+          <button type="button" class="fern-button minimal" id="support-trigger"
+                  aria-haspopup="menu" aria-expanded="false" data-state="closed">
+            <span class="fern-button-content">
+              <span class="fern-button-text">Support</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><path d="m6 9 6 6 6-6"></path></svg>
+            </span>
+          </button>
+          <button type="button" class="fern-icon-button" id="theme-trigger"
+                  aria-label="Theme" aria-haspopup="menu" aria-expanded="false" data-state="closed">
+            <span id="theme-icon-sun"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg></span>
+            <span id="theme-icon-moon" hidden><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></span>
+            <span id="theme-icon-system" hidden><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><rect width="20" height="14" x="2" y="3" rx="2"></rect><line x1="8" x2="16" y1="21" y2="21"></line><line x1="12" x2="12" y1="17" y2="21"></line></svg></span>
+          </button>
+        </nav>
+
+      </div>
+    </header>
+
+    <div class="fern-dropdown-panel" data-testid="product-dropdown-content" data-state="closed" id="product-panel" role="menu">
+      <div class="fern-product-selector-radio-group">
+        <a href="https://signalwire.com/docs/platform/" role="menuitem">
+          <div class="fern-selection-item"><div class="item-main">
+            <div class="fern-selection-item-icon use-icon"><svg role="img" viewBox="0 0 576 512" aria-hidden="true" width="100%" height="100%"><path fill="currentColor" d="M480.9 93.2c14-23.7 22.9-43.1 27.5-57.5-13.7 4.4-31.9 12.6-54.1 25.5-13.6-11.6-28.1-21.6-43.3-29.9 5.2-3.3 10.4-6.5 15.5-9.5 30-17.7 56.5-29.7 78-34.9 6.7-1.6 13.9-3.1 20.7-3.1 6.5-.1 17.1 1.1 25.6 9.6s9.6 19 9.6 25.6c-.1 6.7-1.5 13.9-3.1 20.7-5.2 21.4-17.2 48-34.9 78-11.4 19.2-25.1 39.8-40.8 61.3 9.5 23.8 14.7 49.8 14.7 77.1 0 114.9-93.1 208-208 208-27.2 0-53.2-5.2-77.1-14.7-21.5 15.8-42.1 29.5-61.3 40.8-30 17.7-56.5 29.7-78 34.9-6.7 1.6-13.9 3.1-20.7 3.1-6.5 .1-17.1-1.1-25.6-9.6S16 499.5 16 493c.1-6.7 1.5-13.9 3.1-20.7 5.2-21.4 17.2-48 34.9-78 3-5.1 6.1-10.2 9.5-15.5 8.3 15.2 18.3 29.7 29.9 43.3-12.9 22.2-21.1 40.4-25.5 54.1 14.4-4.6 33.7-13.5 57.5-27.5 12.4-7.4 25.6-15.8 39.3-25.4-51.3-37.9-84.5-98.8-84.5-167.4 0-114.9 93.1-208 208-208 68.6 0 129.5 33.3 167.4 84.5 9.5-13.7 18-26.9 25.4-39.3zm-55.6 80.4c-28-46.5-78.9-77.5-137.1-77.5-88.4 0-160 71.6-160 160 0 58.2 31.1 109.1 77.5 137.1 36.9-28.8 76.5-63.7 116.2-103.4s74.6-79.3 103.4-116.2zM257.6 413.1c9.9 1.9 20.1 2.9 30.6 2.9 88.4 0 160-71.6 160-160 0-10.5-1-20.7-2.9-30.6-26.3 32-56.4 65.2-89.4 98.2s-66.2 63.1-98.2 89.4z"/></svg></div>
+            <div class="item-text"><p class="fern-selection-item-title">Platform</p><p class="fern-selection-item-subtitle">Dashboard, configuration &amp; administration</p></div>
+          </div></div>
+        </a>
+        <a href="https://signalwire.com/docs/call-flow-builder/" role="menuitem">
+          <div class="fern-selection-item"><div class="item-main">
+            <div class="fern-selection-item-icon use-icon"><svg role="img" viewBox="0 0 512 512" aria-hidden="true" width="100%" height="100%"><path fill="currentColor" d="M48 80l0 96 96 0 0-96-96 0zM0 80C0 53.5 21.5 32 48 32l96 0c26.5 0 48 21.5 48 48l0 24 128 0 0-24c0-26.5 21.5-48 48-48l96 0c26.5 0 48 21.5 48 48l0 96c0 26.5-21.5 48-48 48l-96 0c-26.5 0-48-21.5-48-48l0-24-128 0 0 24c0 10.4-3.3 20.1-9 28l63 84 90 0c26.5 0 48 21.5 48 48l0 96c0 26.5-21.5 48-48 48l-96 0c-26.5 0-48-21.5-48-48l0-96c0-10.4 3.3-20.1 9-28l-63-84-90 0c-26.5 0-48-21.5-48-48L0 80zM240 336l0 96 96 0 0-96-96 0zM464 80l-96 0 0 96 96 0 0-96z"/></svg></div>
+            <div class="item-text"><p class="fern-selection-item-title">Call Flow Builder</p><p class="fern-selection-item-subtitle">Drag-and-drop call flows and AI agents</p></div>
+          </div></div>
+        </a>
+        <a href="https://signalwire.com/docs/server-sdks/" role="menuitem">
+          <div class="fern-selection-item"><div class="item-main">
+            <div class="fern-selection-item-icon use-icon"><svg role="img" viewBox="0 0 576 512" aria-hidden="true" width="100%" height="100%"><path fill="currentColor" d="M337.1 16.9c3.9-12.7 17.4-19.7 30-15.8s19.7 17.4 15.8 30l-144 464c-3.9 12.7-17.4 19.7-30 15.8s-19.7-17.4-15.8-30l144-464zM145 135c9.4 9.4 9.4 24.6 0 33.9l-87 87 87 87c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0L7 273c-9.4-9.4-9.4-24.6 0-33.9L111 135c9.4-9.4 24.6-9.4 33.9 0zM431 135c9.4-9.4 24.6-9.4 33.9 0L569 239c9.4 9.4 9.4 24.6 0 33.9L465 377c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l87-87-87-87c-9.4-9.4-9.4-24.6 0-33.9z"/></svg></div>
+            <div class="item-text"><p class="fern-selection-item-title">Server SDKs</p><p class="fern-selection-item-subtitle">Build AI agents, control calls, send messages, and more</p></div>
+          </div></div>
+        </a>
+        <a href="https://signalwire.com/docs/browser-sdk/" role="menuitem">
+          <div class="fern-selection-item"><div class="item-main">
+            <div class="fern-selection-item-icon use-icon"><svg role="img" viewBox="0 0 512 512" aria-hidden="true" width="100%" height="100%"><path fill="currentColor" d="M48 256l0 128c0 8.8 7.2 16 16 16l384 0c8.8 0 16-7.2 16-16l0-128-416 0zM0 128C0 92.7 28.7 64 64 64l384 0c35.3 0 64 28.7 64 64l0 256c0 35.3-28.7 64-64 64L64 448c-35.3 0-64-28.7-64-64L0 128zm128 32a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zm56-24c-13.3 0-24 10.7-24 24s10.7 24 24 24l240 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-240 0z"/></svg></div>
+            <div class="item-text"><p class="fern-selection-item-title">Browser SDK</p><p class="fern-selection-item-subtitle">Build voice, video and chat applications for the browser</p></div>
+          </div></div>
+        </a>
+        <a href="https://signalwire.com/docs/apis" role="menuitem">
+          <div class="fern-selection-item"><div class="item-main">
+            <div class="fern-selection-item-icon use-icon"><svg role="img" viewBox="0 0 576 512" aria-hidden="true" width="100%" height="100%"><path fill="currentColor" d="M496 64c35.3 0 64 28.7 64 64l0 256-.3 6.5c-3.1 30.1-27 54.1-57.1 57.1l-6.5 .3-416 0-6.5-.3c-30.1-3.1-54.1-27-57.1-57.1L16 384 16 128c0-35.3 28.7-64 64-64l416 0zM80 112c-8.8 0-16 7.2-16 16l0 256c0 8.8 7.2 16 16 16l416 0c8.8 0 16-7.2 16-16l0-256c0-8.8-7.2-16-16-16L80 112zm96 48c35.3 0 64 28.7 64 64l0 104c0 13.3-10.7 24-24 24s-24-10.7-24-24l0-24-32 0 0 24c0 13.3-10.7 24-24 24s-24-10.7-24-24l0-104c0-35.3 28.7-64 64-64zm160 0c35.3 0 64 28.7 64 64s-28.7 64-64 64l-16 0 0 40c0 13.3-10.7 24-24 24s-24-10.7-24-24l0-144c0-13.3 10.7-24 24-24l40 0zm112 0c13.3 0 24 10.7 24 24l0 144c0 13.3-10.7 24-24 24s-24-10.7-24-24l0-144c0-13.3 10.7-24 24-24zM176 208c-8.8 0-16 7.2-16 16l0 32 32 0 0-32c0-8.8-7.2-16-16-16zm144 32l16 0c8.8 0 16-7.2 16-16s-7.2-16-16-16l-16 0 0 32z"/></svg></div>
+            <div class="item-text"><p class="fern-selection-item-title">APIs</p><p class="fern-selection-item-subtitle">Send SMS, manage calls, administer SignalWire</p></div>
+          </div></div>
+        </a>
+        <a href="https://signalwire.com/docs/swml/" role="menuitem">
+          <div class="fern-selection-item"><div class="item-main">
+            <div class="fern-selection-item-icon use-icon"><svg viewBox="0 0 24 24" fill="none" width="100%" height="100%" aria-hidden="true"><path d="M6.89999 3.6C5.0775 3.6 3.6 5.0775 3.6 6.9V8.60625C3.6 9.00375 3.4425 9.38625 3.16125 9.6675L1.4625 11.3625C1.11 11.715 1.11 12.285 1.4625 12.6337L3.16125 14.3325C3.4425 14.6138 3.6 14.9963 3.6 15.3937V17.1C3.6 18.9225 5.0775 20.4 6.89999 20.4H8.69999C9.19874 20.4 9.59999 19.9987 9.59999 19.5C9.59999 19.0012 9.19874 18.6 8.69999 18.6H6.89999C6.07124 18.6 5.39999 17.9287 5.39999 17.1V15.3937C5.39999 14.52 5.05124 13.68 4.43249 13.0612L3.37124 12L4.43249 10.9388C5.05124 10.32 5.39999 9.48 5.39999 8.60625V6.9C5.39999 6.07125 6.07124 5.4 6.89999 5.4H8.69999C9.19874 5.4 9.59999 4.99875 9.59999 4.5C9.59999 4.00125 9.19874 3.6 8.69999 3.6H6.89999ZM17.1 3.6H15.3C14.8012 3.6 14.4 4.00125 14.4 4.5C14.4 4.99875 14.8012 5.4 15.3 5.4H17.1C17.9287 5.4 18.6 6.07125 18.6 6.9V8.60625C18.6 9.48 18.9487 10.32 19.5675 10.9388L20.6287 12L19.5675 13.0612C18.9487 13.68 18.6 14.52 18.6 15.3937V17.1C18.6 17.9287 17.9287 18.6 17.1 18.6H15.3C14.8012 18.6 14.4 19.0012 14.4 19.5C14.4 19.9987 14.8012 20.4 15.3 20.4H17.1C18.9225 20.4 20.4 18.9225 20.4 17.1V15.3937C20.4 14.9963 20.5575 14.6138 20.8387 14.3325L22.5375 12.6375C22.89 12.285 22.89 11.715 22.5375 11.3663L20.8387 9.6675C20.5575 9.38625 20.4 9.00375 20.4 8.60625V6.9C20.4 5.0775 18.9225 3.6 17.1 3.6Z" fill="currentColor"/><path d="M11.6625 13.2815C11.9363 13.5628 12.032 13.9024 11.922 14.2846C11.8162 14.6517 11.5699 14.8868 11.2043 14.9713C10.8878 15.0439 10.5855 14.9824 10.3535 14.7469C9.48185 13.8629 8.61799 12.9716 7.73904 12.0674C8.08422 12.0284 8.41355 11.8695 8.68064 11.6016L8.68123 11.6004C8.90635 11.3736 9.12971 11.145 9.35447 10.9178C10.1238 11.7055 10.8933 12.4932 11.6625 13.2815Z" fill="currentColor"/><path d="M12.8021 9.62755C13.1264 9.55463 13.4281 9.62799 13.6652 9.86837C14.5368 10.7519 15.4046 11.6388 16.2691 12.5285C15.919 12.5673 15.5869 12.7306 15.3211 12.9979L14.6467 13.6799C13.8763 12.8914 13.1065 12.1031 12.3369 11.315C12.0635 11.0337 11.9676 10.6935 12.0802 10.3113C12.1885 9.94457 12.4354 9.70987 12.8021 9.62755Z" fill="currentColor"/><path d="M17.3999 14.0296C17.3999 14.3878 17.305 14.6223 17.116 14.8154C15.9836 15.9734 14.8507 17.1297 13.7174 18.2842C13.3231 18.6854 12.7488 18.7052 12.3583 18.3384C11.9471 17.9517 11.9308 17.3174 12.3329 16.8974C12.8434 16.3645 13.3615 15.8389 13.8785 15.3126C14.4998 14.6803 15.1224 14.0497 15.7464 13.4206C16.0487 13.1167 16.4538 13.0364 16.8246 13.2091C17.1954 13.3817 17.3884 13.6927 17.3999 14.0296Z" fill="currentColor"/><path d="M6.60011 10.3817C6.60554 10.2007 6.69951 9.97138 6.88407 9.78275C8.01242 8.63009 9.14101 7.47754 10.2698 6.32511C10.5046 6.08506 10.7814 5.96208 11.1122 6.01037C11.504 6.06943 11.7778 6.29245 11.9054 6.67806C12.0329 7.06367 11.9447 7.41211 11.6679 7.70045C11.1285 8.26115 10.5823 8.81629 10.0395 9.37143C9.44645 9.9752 8.85185 10.5774 8.25567 11.1779C7.95238 11.4822 7.54833 11.5569 7.1765 11.3905C6.81486 11.2297 6.59367 10.875 6.60011 10.3817Z" fill="currentColor"/></svg></div>
+            <div class="item-text"><p class="fern-selection-item-title">SWML</p><p class="fern-selection-item-subtitle">Write communication applications, call flows and AI agents</p></div>
+          </div></div>
+        </a>
+        <a href="https://signalwire.com/docs/compatibility-api/" role="menuitem"><div class="fern-selection-item"><div class="item-text"><p class="fern-selection-item-title">Compatibility API</p></div></div></a>
+      </div>
+    </div>
+
+    <div class="fern-dropdown" id="support-panel" data-state="closed" role="menu">
+      <a class="fern-dropdown-item" href="https://signalwire.zohodesk.com/portal/en/newticket" target="_blank" rel="noopener">Create a ticket</a>
+      <a class="fern-dropdown-item" href="https://signalwire.zohodesk.com/portal/en/myarea" target="_blank" rel="noopener">My tickets</a>
+      <a class="fern-dropdown-item" href="https://status.signalwire.com/" target="_blank" rel="noopener">Status</a>
+    </div>
+
+    <div class="fern-dropdown" id="theme-panel" data-state="closed" role="menu">
+      <button type="button" class="fern-dropdown-item" data-theme-pref="light">
+        <span class="fern-dropdown-item-indicator" data-check></span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg><span class="theme-item-label">Light</span>
+      </button>
+      <button type="button" class="fern-dropdown-item" data-theme-pref="dark">
+        <span class="fern-dropdown-item-indicator" data-check></span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg><span class="theme-item-label">Dark</span>
+      </button>
+      <button type="button" class="fern-dropdown-item" data-theme-pref="system">
+        <span class="fern-dropdown-item-indicator" data-check></span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><rect width="20" height="14" x="2" y="3" rx="2"></rect><line x1="8" x2="16" y1="21" y2="21"></line><line x1="12" x2="12" y1="17" y2="21"></line></svg><span class="theme-item-label">System</span>
+      </button>
+    </div>
+  </template>
+</sw-docs-navbar><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">SignalWire TypeScript SDK</a>
+<div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb" aria-label="Breadcrumb">
+<li><a href="../modules/_signalwire_sdk.html">@signalwire/sdk</a></li>
+<li><a href="" aria-current="page">SWMLService</a></li></ul>
+<h1>Class SWMLService</h1></div>
+<section class="tsd-panel tsd-hierarchy" data-refl="1236">
+<h4>Hierarchy (<a href="../hierarchy.html#@signalwire/sdk.SWMLService">View Summary</a>)</h4>
+<ul class="tsd-hierarchy">
+<li class="tsd-hierarchy-item"><span class="tsd-hierarchy-target">SWMLService</span>
+<ul class="tsd-hierarchy">
+<li class="tsd-hierarchy-item"><a href="_signalwire_sdk.AgentBase.html" class="tsd-signature-type tsd-kind-class">AgentBase</a></li></ul></li></ul></section><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L376">src/SWMLService.ts:376</a></li></ul></aside>
+<section class="tsd-panel-group tsd-index-group">
+<section class="tsd-panel tsd-index-panel">
+<details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h5 class="tsd-index-heading uppercase">Index</h5></summary>
+<div class="tsd-accordion-details">
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading tsd-anchor-link" id="constructors">Constructors<a href="#constructors" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-index-list"><a href="#constructor" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Constructor"><use href="../assets/icons.svg#icon-512"></use></svg><span>constructor</span></a>
+</div></section>
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading tsd-anchor-link" id="properties">Properties<a href="#properties" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-index-list"><a href="#_app" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>_<wbr/>app</span></a>
+<a href="#_builderschemaoptions" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>_<wbr/>builder<wbr/>Schema<wbr/>Options</span></a>
+<a href="#_proxyurlbase" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>_<wbr/>proxy<wbr/>Url<wbr/>Base</span></a>
+<a href="#_proxyurlbasefromenv" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>_<wbr/>proxy<wbr/>Url<wbr/>Base<wbr/>From<wbr/>Env</span></a>
+<a href="#_routingcallbacks" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>_<wbr/>routing<wbr/>Callbacks</span></a>
+<a href="#_server" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>_<wbr/>server</span></a>
+<a href="#authcredentials" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>auth<wbr/>Credentials?</span></a>
+<a href="#authsource" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>auth<wbr/>Source</span></a>
+<a href="#domain" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>domain</span></a>
+<a href="#host" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>host</span></a>
+<a href="#log" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>log</span></a>
+<a href="#name" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>name</span></a>
+<a href="#onrequestcallback" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>on<wbr/>Request<wbr/>Callback?</span></a>
+<a href="#port" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>port</span></a>
+<a href="#route" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>route</span></a>
+<a href="#schemautils" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>schema<wbr/>Utils</span></a>
+<a href="#security" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>security</span></a>
+<a href="#sslcertpath" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>ssl<wbr/>Cert<wbr/>Path</span></a>
+<a href="#sslenabled" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>ssl<wbr/>Enabled</span></a>
+<a href="#sslkeypath" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>ssl<wbr/>Key<wbr/>Path</span></a>
+<a href="#swmlbuilder" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>swml<wbr/>Builder</span></a>
+<a href="#toolregistry" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>tool<wbr/>Registry</span></a>
+<a href="#verbregistry" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>verb<wbr/>Registry</span></a>
+</div></section>
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading tsd-anchor-link" id="accessors">Accessors<a href="#accessors" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-index-list"><a href="#fullvalidationenabled" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Accessor"><use href="../assets/icons.svg#icon-262144"></use></svg><span>full<wbr/>Validation<wbr/>Enabled</span></a>
+</div></section>
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading tsd-anchor-link" id="methods">Methods<a href="#methods" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-index-list"><a href="#_callbackpathforurl" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>_<wbr/>callback<wbr/>Path<wbr/>For<wbr/>Url</span></a>
+<a href="#_checkbasicauthheaders" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>_<wbr/>check<wbr/>Basic<wbr/>Auth<wbr/>Headers</span></a>
+<a href="#addsection" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>add<wbr/>Section</span></a>
+<a href="#addverb" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>add<wbr/>Verb</span></a>
+<a href="#addverbtosection" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>add<wbr/>Verb<wbr/>To<wbr/>Section</span></a>
+<a href="#asrouter" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>as<wbr/>Router</span></a>
+<a href="#buildswmlforrequest" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>build<wbr/>Swml<wbr/>For<wbr/>Request</span></a>
+<a href="#definetool" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>define<wbr/>Tool</span></a>
+<a href="#getallfunctions" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>All<wbr/>Functions</span></a>
+<a href="#getapp" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>App</span></a>
+<a href="#getbasicauthcredentials" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Basic<wbr/>Auth<wbr/>Credentials</span></a>
+<a href="#getbuilder" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Builder</span></a>
+<a href="#getdocument" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Document</span></a>
+<a href="#getfunction" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Function</span></a>
+<a href="#getregisteredtools" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Registered<wbr/>Tools</span></a>
+<a href="#gettool" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Tool</span></a>
+<a href="#handlerequest" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>handle<wbr/>Request</span></a>
+<a href="#hasfunction" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>has<wbr/>Function</span></a>
+<a href="#hastool" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>has<wbr/>Tool</span></a>
+<a href="#listtoolnames" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>list<wbr/>Tool<wbr/>Names</span></a>
+<a href="#manualsetproxyurl" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>manual<wbr/>Set<wbr/>Proxy<wbr/>Url</span></a>
+<a href="#onfunctioncall" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>on<wbr/>Function<wbr/>Call</span></a>
+<a href="#registeradditionalroutes" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>register<wbr/>Additional<wbr/>Routes</span></a>
+<a href="#registerroutingcallback" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>register<wbr/>Routing<wbr/>Callback</span></a>
+<a href="#registerswaigfunction" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>register<wbr/>Swaig<wbr/>Function</span></a>
+<a href="#registerverbhandler" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>register<wbr/>Verb<wbr/>Handler</span></a>
+<a href="#removefunction" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>remove<wbr/>Function</span></a>
+<a href="#renderdocument" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>render<wbr/>Document</span></a>
+<a href="#renderswml" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>render<wbr/>Swml</span></a>
+<a href="#resetdocument" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>reset<wbr/>Document</span></a>
+<a href="#serve" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>serve</span></a>
+<a href="#setonrequestcallback" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>On<wbr/>Request<wbr/>Callback</span></a>
+<a href="#stop" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>stop</span></a>
+<a href="#swaigpredispatch" class="tsd-index-link tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>swaig<wbr/>Pre<wbr/>Dispatch</span></a>
+<a href="#validatebasicauth" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>validate<wbr/>Basic<wbr/>Auth</span></a>
+<a href="#extractsipusername" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>extract<wbr/>Sip<wbr/>Username</span></a>
+</div></section></div></details></section></section>
+<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Constructors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h2 class="tsd-anchor-link" id="constructors-1">Constructors<a href="#constructors-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
+<section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="constructor"><span>constructor</span><a href="#constructor" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="constructorswmlservice"><span class="tsd-signature-keyword">new</span> <span class="tsd-kind-constructor-signature">SWMLService</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">opts</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_signalwire_sdk.SWMLServiceOptions.html" class="tsd-signature-type tsd-kind-interface">SWMLServiceOptions</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="" class="tsd-signature-type tsd-kind-class">SWMLService</a><a href="#constructorswmlservice" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">opts</span>: <a href="../interfaces/_signalwire_sdk.SWMLServiceOptions.html" class="tsd-signature-type tsd-kind-interface">SWMLServiceOptions</a></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <a href="" class="tsd-signature-type tsd-kind-class">SWMLService</a></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L440">src/SWMLService.ts:440</a></li></ul></aside></div></li>
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="constructorswmlservice-1"><span class="tsd-signature-keyword">new</span> <span class="tsd-kind-constructor-signature">SWMLService</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">opts</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_signalwire_sdk.SWMLServiceOptions.html" class="tsd-signature-type tsd-kind-interface">SWMLServiceOptions</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="" class="tsd-signature-type tsd-kind-class">SWMLService</a><a href="#constructorswmlservice-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">opts</span>: <span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_signalwire_sdk.SWMLServiceOptions.html" class="tsd-signature-type tsd-kind-interface">SWMLServiceOptions</a><span class="tsd-signature-symbol">&gt;</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <a href="" class="tsd-signature-type tsd-kind-class">SWMLService</a></h4>
+<div class="tsd-comment tsd-typography">
+<div class="tsd-tag-deprecated">
+<h4 class="tsd-anchor-link" id="deprecated">Deprecated<a href="#deprecated" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><p>Prefer passing an options object with a required <code>name</code>. The no-arg form defaults name to 'swml-service'.</p>
+</div></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L442">src/SWMLService.ts:442</a></li></ul></aside></div></li></ul></section></section></details>
+<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h2 class="tsd-anchor-link" id="properties-1">Properties<a href="#properties-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
+<section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="_app"><code class="tsd-tag">Protected</code><span>_<wbr/>app</span><a href="#_app" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">_app</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Hono</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L410">src/SWMLService.ts:410</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="_builderschemaoptions"><code class="tsd-tag">Protected</code> <code class="tsd-tag">Internal</code><span>_<wbr/>builder<wbr/>Schema<wbr/>Options</span><a href="#_builderschemaoptions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">_builderSchemaOptions</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">enableValidation</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">schemaPath</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol"> = ...</span></div>
+<div class="tsd-comment tsd-typography"><p>The schema settings every SwmlBuilder this service creates uses.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L403">src/SWMLService.ts:403</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="_proxyurlbase"><code class="tsd-tag">Protected</code><span>_<wbr/>proxy<wbr/>Url<wbr/>Base</span><a href="#_proxyurlbase" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">_proxyUrlBase</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> = ...</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L430">src/SWMLService.ts:430</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="_proxyurlbasefromenv"><code class="tsd-tag">Protected</code><span>_<wbr/>proxy<wbr/>Url<wbr/>Base<wbr/>From<wbr/>Env</span><a href="#_proxyurlbasefromenv" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">_proxyUrlBaseFromEnv</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = ...</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L431">src/SWMLService.ts:431</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="_routingcallbacks"><code class="tsd-tag">Protected</code><span>_<wbr/>routing<wbr/>Callbacks</span><a href="#_routingcallbacks" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">_routingCallbacks</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Map</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">RoutingCallback</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> = ...</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L432">src/SWMLService.ts:432</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="_server"><code class="tsd-tag">Protected</code><span>_<wbr/>server</span><a href="#_server" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">_server</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Server</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-keyword">typeof</span> <span class="tsd-signature-type">IncomingMessage</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-keyword">typeof</span> <span class="tsd-signature-type">ServerResponse</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> = null</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L411">src/SWMLService.ts:411</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="authcredentials"><code class="tsd-tag">Protected</code> <code class="tsd-tag">Optional</code><span>auth<wbr/>Credentials</span><a href="#authcredentials" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">authCredentials</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L413">src/SWMLService.ts:413</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="authsource"><code class="tsd-tag">Protected</code><span>auth<wbr/>Source</span><a href="#authsource" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">authSource</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;environment&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;config file&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;provided&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;generated&quot;</span><span class="tsd-signature-symbol"> = &#39;generated&#39;</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L414">src/SWMLService.ts:414</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="domain"><code class="tsd-tag">Readonly</code><span>domain</span><a href="#domain" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">domain</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">undefined</span></div>
+<div class="tsd-comment tsd-typography"><p>Domain name for SSL. Mirrors Python's <code>self.domain</code>.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L394">src/SWMLService.ts:394</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="host"><code class="tsd-tag">Readonly</code><span>host</span><a href="#host" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">host</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+<div class="tsd-comment tsd-typography"><p>Host the server binds to.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L382">src/SWMLService.ts:382</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="log"><code class="tsd-tag">Readonly</code><span>log</span><a href="#log" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">log</span><span class="tsd-signature-symbol">:</span> <a href="_signalwire_sdk.Logger.html" class="tsd-signature-type tsd-kind-class">Logger</a></div>
+<div class="tsd-comment tsd-typography"><p>Structured logger, exposed for subclass access. Mirrors Python's public <code>self.log</code>.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L387">src/SWMLService.ts:387</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="name"><code class="tsd-tag">Readonly</code><span>name</span><a href="#name" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">name</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+<div class="tsd-comment tsd-typography"><p>Service display name.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L378">src/SWMLService.ts:378</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="onrequestcallback"><code class="tsd-tag">Protected</code> <code class="tsd-tag">Optional</code><span>on<wbr/>Request<wbr/>Callback</span><a href="#onrequestcallback" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">onRequestCallback</span><span class="tsd-signature-symbol">?:</span> <a href="../types/_signalwire_sdk.OnRequestCallback.html" class="tsd-signature-type tsd-kind-type-alias">OnRequestCallback</a></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L412">src/SWMLService.ts:412</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="port"><code class="tsd-tag">Readonly</code><span>port</span><a href="#port" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">port</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+<div class="tsd-comment tsd-typography"><p>Port the server binds to.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L384">src/SWMLService.ts:384</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="route"><code class="tsd-tag">Readonly</code><span>route</span><a href="#route" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">route</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+<div class="tsd-comment tsd-typography"><p>HTTP route path.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L380">src/SWMLService.ts:380</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="schemautils"><code class="tsd-tag">Readonly</code><span>schema<wbr/>Utils</span><a href="#schemautils" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">schemaUtils</span><span class="tsd-signature-symbol">:</span> <a href="_signalwire_sdk.SchemaUtils.html" class="tsd-signature-type tsd-kind-class">SchemaUtils</a></div>
+<div class="tsd-comment tsd-typography"><p>Schema validation utilities. Mirrors Python's <code>self.schema_utils</code>.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L401">src/SWMLService.ts:401</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="security"><code class="tsd-tag">Readonly</code><span>security</span><a href="#security" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">security</span><span class="tsd-signature-symbol">:</span> <a href="_signalwire_sdk.SecurityConfig.html" class="tsd-signature-type tsd-kind-class">SecurityConfig</a></div>
+<div class="tsd-comment tsd-typography"><p>Unified security configuration. Mirrors Python's <code>self.security</code>.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L390">src/SWMLService.ts:390</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="sslcertpath"><code class="tsd-tag">Readonly</code><span>ssl<wbr/>Cert<wbr/>Path</span><a href="#sslcertpath" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">sslCertPath</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">undefined</span></div>
+<div class="tsd-comment tsd-typography"><p>Path to SSL certificate. Mirrors Python's <code>self.ssl_cert_path</code>.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L396">src/SWMLService.ts:396</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="sslenabled"><code class="tsd-tag">Readonly</code><span>ssl<wbr/>Enabled</span><a href="#sslenabled" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">sslEnabled</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+<div class="tsd-comment tsd-typography"><p>Whether SSL is enabled. Mirrors Python's <code>self.ssl_enabled</code>.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L392">src/SWMLService.ts:392</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="sslkeypath"><code class="tsd-tag">Readonly</code><span>ssl<wbr/>Key<wbr/>Path</span><a href="#sslkeypath" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">sslKeyPath</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">undefined</span></div>
+<div class="tsd-comment tsd-typography"><p>Path to SSL private key. Mirrors Python's <code>self.ssl_key_path</code>.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L398">src/SWMLService.ts:398</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="swmlbuilder"><code class="tsd-tag">Protected</code><span>swml<wbr/>Builder</span><a href="#swmlbuilder" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">swmlBuilder</span><span class="tsd-signature-symbol">:</span> <a href="_signalwire_sdk.SwmlBuilder.html" class="tsd-signature-type tsd-kind-class">SwmlBuilder</a></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L409">src/SWMLService.ts:409</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="toolregistry"><code class="tsd-tag">Protected</code><span>tool<wbr/>Registry</span><a href="#toolregistry" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">toolRegistry</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Map</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <a href="_signalwire_sdk.SwaigFunction.html" class="tsd-signature-type tsd-kind-class">SwaigFunction</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> = ...</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L438">src/SWMLService.ts:438</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="verbregistry"><code class="tsd-tag">Readonly</code><span>verb<wbr/>Registry</span><a href="#verbregistry" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">verbRegistry</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">VerbHandlerRegistry</span></div>
+<div class="tsd-comment tsd-typography"><p>Custom verb handler registry. Mirrors Python's <code>self.verb_registry</code>.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L407">src/SWMLService.ts:407</a></li></ul></aside></section></section></details>
+<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Accessors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h2 class="tsd-anchor-link" id="accessors-1">Accessors<a href="#accessors-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
+<section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="fullvalidationenabled"><span>full<wbr/>Validation<wbr/>Enabled</span><a href="#fullvalidationenabled" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li>
+<div class="tsd-signature" id="fullvalidationenabledfullvalidationenabled"><span class="tsd-signature-keyword">get</span> <span class="tsd-kind-get-signature">fullValidationEnabled</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Check if full JSON Schema validation is enabled.
+Mirrors Python's <code>@property full_validation_enabled</code>.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><p>True if schema-based verb validation is active.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L831">src/SWMLService.ts:831</a></li></ul></aside></div></li></ul></section></section></details>
+<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h2 class="tsd-anchor-link" id="methods-1">Methods<a href="#methods-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
+<section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="_callbackpathforurl"><code class="tsd-tag">Protected</code><span>_<wbr/>callback<wbr/>Path<wbr/>For<wbr/>Url</span><a href="#_callbackpathforurl" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-is-protected">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="_callbackpathforurl-1"><span class="tsd-kind-call-signature">_callbackPathForUrl</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">url</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><a href="#_callbackpathforurl-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Derive the registered routing-callback path (if any) a URL targets. Mirrors
+Python's <code>_callback_path_for_url</code> — the primitive <code>handleRequest</code> recovers
+the equivalent of the router's <code>request.state.callback_path</code> by matching the
+URL's normalized path against the registered callbacks.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">url</span>: <span class="tsd-signature-type">string</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L1018">src/SWMLService.ts:1018</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="_checkbasicauthheaders"><code class="tsd-tag">Protected</code><span>_<wbr/>check<wbr/>Basic<wbr/>Auth<wbr/>Headers</span><a href="#_checkbasicauthheaders" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-is-protected">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="_checkbasicauthheaders-1"><span class="tsd-kind-call-signature">_checkBasicAuthHeaders</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">headers</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span><a href="#_checkbasicauthheaders-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Validate HTTP basic-auth from a plain headers dict (the primitive analog of
+the Hono <code>basicAuth</code> middleware). Returns true when auth is not enforced or
+the provided credentials match.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">headers</span>: <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L1041">src/SWMLService.ts:1041</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="addsection"><span>add<wbr/>Section</span><a href="#addsection" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="addsection-1"><span class="tsd-kind-call-signature">addSection</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">sectionName</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">this</span><a href="#addsection-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Add a new named section to the SWML document.
+Mirrors Python's <code>add_section()</code>.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">sectionName</span>: <span class="tsd-signature-type">string</span></span>
+<div class="tsd-comment tsd-typography"><p>Name of the section to create.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4><p>This service for chaining.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L869">src/SWMLService.ts:869</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="addverb"><span>add<wbr/>Verb</span><a href="#addverb" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="addverb-1"><span class="tsd-kind-call-signature">addVerb</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">name</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">config</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">this</span><a href="#addverb-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Add a verb to the SWML document.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">name</span>: <span class="tsd-signature-type">string</span></span>
+<div class="tsd-comment tsd-typography"><p>Verb name (e.g., 'answer', 'play', 'hangup').</p>
+</div></li>
+<li><span><span class="tsd-kind-parameter">config</span>: <span class="tsd-signature-type">unknown</span></span>
+<div class="tsd-comment tsd-typography"><p>Verb configuration.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4><p>This service for chaining.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L858">src/SWMLService.ts:858</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="addverbtosection"><span>add<wbr/>Verb<wbr/>To<wbr/>Section</span><a href="#addverbtosection" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="addverbtosection-1"><span class="tsd-kind-call-signature">addVerbToSection</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">sectionName</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">verbName</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">config</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">this</span><a href="#addverbtosection-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Add a verb to a specific named section.
+Mirrors Python's <code>add_verb_to_section()</code>.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">sectionName</span>: <span class="tsd-signature-type">string</span></span>
+<div class="tsd-comment tsd-typography"><p>Target section name (auto-created if missing).</p>
+</div></li>
+<li><span><span class="tsd-kind-parameter">verbName</span>: <span class="tsd-signature-type">string</span></span>
+<div class="tsd-comment tsd-typography"><p>Verb name.</p>
+</div></li>
+<li><span><span class="tsd-kind-parameter">config</span>: <span class="tsd-signature-type">unknown</span></span>
+<div class="tsd-comment tsd-typography"><p>Verb configuration.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4><p>This service for chaining.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L885">src/SWMLService.ts:885</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="asrouter"><span>as<wbr/>Router</span><a href="#asrouter" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="asrouter-1"><span class="tsd-kind-call-signature">asRouter</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <a href="../types/_signalwire_sdk.HostAppRouter.html" class="tsd-signature-type tsd-kind-type-alias">HostAppRouter</a><a href="#asrouter-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Get a router to embed this service's routes in a host web app.</p>
+<p>Returns the fully-wired Hono app as a mountable sub-app; the host mounts it
+with <code>hostApp.route(path, service.asRouter())</code>. This is the TypeScript
+realization of Python's <code>as_router()</code>; the named <a href="../types/_signalwire_sdk.HostAppRouter.html" class="tsd-kind-type-alias">HostAppRouter</a> type
+is the cross-port &quot;embed my routes in a host app&quot; contract.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <a href="../types/_signalwire_sdk.HostAppRouter.html" class="tsd-signature-type tsd-kind-type-alias">HostAppRouter</a></h4><p>A mountable Hono sub-app carrying this service's routes.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L1297">src/SWMLService.ts:1297</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="buildswmlforrequest"><code class="tsd-tag">Protected</code><span>build<wbr/>Swml<wbr/>For<wbr/>Request</span><a href="#buildswmlforrequest" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-is-protected">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="buildswmlforrequest-1"><span class="tsd-kind-call-signature">buildSwmlForRequest</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">_queryParams</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">_bodyParams</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">_headers</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">_callbackPath</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="_signalwire_sdk.SwmlBuilder.html" class="tsd-signature-type tsd-kind-class">SwmlBuilder</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><a href="#buildswmlforrequest-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Service-side SWML-builder hook. Subclasses return a <code>SwmlBuilder</code>
+to fully replace the document for this request, or <code>null</code> to fall
+through to <code>setOnRequestCallback</code> or the static builder.</p>
+<p>This is distinct from the WebMixin <code>onRequest(requestData, callbackPath)</code> hook on AgentBase (which mirrors Python's
+<code>on_request -&gt; on_swml_request</code> modification-merge contract).
+Use this hook when you want to swap the entire SWML builder; use
+<code>onRequest</code> / <code>onSwmlRequest</code> on AgentBase when you want to merge
+targeted modifications into the rendered document.</p>
+<p>Default implementation returns <code>null</code> (no-op).</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">_queryParams</span>: <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></span>
+<div class="tsd-comment tsd-typography"><p>URL query parameters from the request.</p>
+</div></li>
+<li><span><span class="tsd-kind-parameter">_bodyParams</span>: <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></span>
+<div class="tsd-comment tsd-typography"><p>Parsed POST body (empty object for GET requests).</p>
+</div></li>
+<li><span><span class="tsd-kind-parameter">_headers</span>: <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></span>
+<div class="tsd-comment tsd-typography"><p>HTTP request headers.</p>
+</div></li>
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">_callbackPath</span>: <span class="tsd-signature-type">string</span></span>
+<div class="tsd-comment tsd-typography"><p>The callback sub-path being handled, if any.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <a href="_signalwire_sdk.SwmlBuilder.html" class="tsd-signature-type tsd-kind-class">SwmlBuilder</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></h4><p>A <code>SwmlBuilder</code> whose document is sent as the response, or
+<code>null</code> to delegate to the next handler in the chain.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L1215">src/SWMLService.ts:1215</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="definetool"><span>define<wbr/>Tool</span><a href="#definetool" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="definetool-1"><span class="tsd-kind-call-signature">defineTool</span><span class="tsd-signature-symbol">&lt;</span><br/>    <span class="tsd-signature-keyword">const</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="#definetoolp">P</a> <span class="tsd-signature-keyword">extends</span> <span class="tsd-signature-type">ToolParameters</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-type">ToolParameters</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-signature-keyword">const</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="#definetoolr">R</a> <span class="tsd-signature-keyword">extends</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">PropertyKey</span><span class="tsd-signature-symbol">[]</span> <span class="tsd-signature-symbol">=</span> <span class="tsd-signature-symbol">[</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">opts</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Omit</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_signalwire_sdk.SwaigFunctionOptions.html" class="tsd-signature-type tsd-kind-interface">SwaigFunctionOptions</a><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;required&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;parameters&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;handler&quot;</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">&amp;</span> <span class="tsd-signature-symbol">{</span><br/>        <span class="tsd-kind-property">handler</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><br/>            <span class="tsd-kind-parameter">args</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">ToolArgs</span><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="_signalwire_sdk.AgentBase.html#definetoolp">P</a><span class="tsd-signature-symbol">,</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="_signalwire_sdk.AgentBase.html#definetoolr">R</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span><br/>            <span class="tsd-kind-parameter">rawData</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_signalwire_sdk.SwaigRequest.html" class="tsd-signature-type tsd-kind-interface">SwaigRequest</a><span class="tsd-signature-symbol">,</span><br/>            <span class="tsd-kind-parameter">agent</span><span class="tsd-signature-symbol">?:</span> <a href="_signalwire_sdk.AgentBase.html" class="tsd-signature-type tsd-kind-class">AgentBase</a><span class="tsd-signature-symbol">,</span><br/>        <span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span><br/>            <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">string</span><br/>            <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><br/>            <span class="tsd-signature-symbol">|</span> <a href="_signalwire_sdk.FunctionResult.html" class="tsd-signature-type tsd-kind-class">FunctionResult</a><br/>            <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <a href="_signalwire_sdk.FunctionResult.html" class="tsd-signature-type tsd-kind-class">FunctionResult</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">parameters</span><span class="tsd-signature-symbol">?:</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="_signalwire_sdk.AgentBase.html#definetoolp">P</a><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">required</span><span class="tsd-signature-symbol">?:</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="_signalwire_sdk.AgentBase.html#definetoolr">R</a><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">this</span><a href="#definetool-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Define a SWAIG function the AI can call. Tool descriptions and
+parameter descriptions are LLM-facing prompt engineering — see
+PORTING_GUIDE for guidance on writing them.</p>
+<p>Generic over the <code>parameters</code> schema (<code>P</code>) and <code>required</code> list (<code>R</code>): when
+<code>parameters</code> is written as a FLAT inline map (<code>{ name: { type, … } }</code>), the
+<code>const</code> type parameters capture its literals and the handler's <code>args</code> is
+inferred precisely — <code>args.phone</code> typed <code>string</code>, an <code>enum</code> prop narrowed to
+its literal union, <code>required</code> keys present and the rest optional (see
+<code>ToolArgs</code>/<code>InferArgs</code>). The WRAPPED JSON-Schema object
+(<code>{ type:'object', properties }</code>) and a pre-built <code>Record</code> are still
+accepted and keep the prior open-record <code>args</code> behavior. The args type is a
+compile-time authoring convenience — at runtime args is the JSON the model
+extracted, so the handler is the ordinary <a href="../types/_signalwire_sdk.SwaigHandler.html" class="tsd-kind-type-alias">SwaigHandler</a>.</p>
+</div>
+<section class="tsd-panel">
+<h4>Type Parameters</h4>
+<ul class="tsd-type-parameter-list">
+<li><span id="definetoolp"><span class="tsd-signature-keyword">const</span> <span class="tsd-kind-type-parameter">P</span> <span class="tsd-signature-keyword">extends</span> <span class="tsd-signature-type">ToolParameters</span> = <span class="tsd-signature-type">ToolParameters</span></span></li>
+<li><span id="definetoolr"><span class="tsd-signature-keyword">const</span> <span class="tsd-kind-type-parameter">R</span> <span class="tsd-signature-keyword">extends</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">PropertyKey</span><span class="tsd-signature-symbol">[]</span> = <span class="tsd-signature-symbol">[</span><span class="tsd-signature-symbol">]</span></span></li></ul></section>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">opts</span>: <span class="tsd-signature-type">Omit</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_signalwire_sdk.SwaigFunctionOptions.html" class="tsd-signature-type tsd-kind-interface">SwaigFunctionOptions</a><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;required&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;parameters&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;handler&quot;</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">&amp;</span> <span class="tsd-signature-symbol">{</span><br/>    <span class="tsd-kind-property">handler</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><br/>        <span class="tsd-kind-parameter">args</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">ToolArgs</span><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="_signalwire_sdk.AgentBase.html#definetoolp">P</a><span class="tsd-signature-symbol">,</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="_signalwire_sdk.AgentBase.html#definetoolr">R</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span><br/>        <span class="tsd-kind-parameter">rawData</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_signalwire_sdk.SwaigRequest.html" class="tsd-signature-type tsd-kind-interface">SwaigRequest</a><span class="tsd-signature-symbol">,</span><br/>        <span class="tsd-kind-parameter">agent</span><span class="tsd-signature-symbol">?:</span> <a href="_signalwire_sdk.AgentBase.html" class="tsd-signature-type tsd-kind-class">AgentBase</a><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span><br/>        <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">string</span><br/>        <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><br/>        <span class="tsd-signature-symbol">|</span> <a href="_signalwire_sdk.FunctionResult.html" class="tsd-signature-type tsd-kind-class">FunctionResult</a><br/>        <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <a href="_signalwire_sdk.FunctionResult.html" class="tsd-signature-type tsd-kind-class">FunctionResult</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">parameters</span><span class="tsd-signature-symbol">?:</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="_signalwire_sdk.AgentBase.html#definetoolp">P</a><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">required</span><span class="tsd-signature-symbol">?:</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="_signalwire_sdk.AgentBase.html#definetoolr">R</a><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L631">src/SWMLService.ts:631</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="getallfunctions"><span>get<wbr/>All<wbr/>Functions</span><a href="#getallfunctions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="getallfunctions-1"><span class="tsd-kind-call-signature">getAllFunctions</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="_signalwire_sdk.SwaigFunction.html" class="tsd-signature-type tsd-kind-class">SwaigFunction</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><a href="#getallfunctions-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Snapshot of all registered SWAIG functions keyed by name.
+(Python equivalent: <code>ToolRegistry.get_all_functions</code>.)</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="_signalwire_sdk.SwaigFunction.html" class="tsd-signature-type tsd-kind-class">SwaigFunction</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L738">src/SWMLService.ts:738</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="getapp"><span>get<wbr/>App</span><a href="#getapp" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="getapp-1"><span class="tsd-kind-call-signature">getApp</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Hono</span><a href="#getapp-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Get the Hono application for mounting or testing.
+This is the TypeScript equivalent of Python's <code>as_router()</code>, which returns
+a FastAPI <code>APIRouter</code>. Both expose the underlying app/router so callers can
+mount it into a larger framework. Use <code>asRouter()</code> when porting Python code
+that calls <code>as_router()</code> directly.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Hono</span></h4><p>The configured Hono app.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L1283">src/SWMLService.ts:1283</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="getbasicauthcredentials"><span>get<wbr/>Basic<wbr/>Auth<wbr/>Credentials</span><a href="#getbasicauthcredentials" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="getbasicauthcredentials-1"><span class="tsd-kind-call-signature">getBasicAuthCredentials</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">includeSource</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">false</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]</span><a href="#getbasicauthcredentials-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Get the basic-auth credentials used by this service.
+Mirrors Python's <code>get_basic_auth_credentials()</code>.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">includeSource</span>: <span class="tsd-signature-type">false</span></span>
+<div class="tsd-comment tsd-typography"><p>When true, a third element indicating the credential source is appended.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]</span></h4><p>A tuple of [username, password] or [username, password, source].</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L1244">src/SWMLService.ts:1244</a></li></ul></aside></div></li>
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="getbasicauthcredentials-2"><span class="tsd-kind-call-signature">getBasicAuthCredentials</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">includeSource</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">true</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">[</span><br/>    <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-signature-type">&quot;environment&quot;</span><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;config file&quot;</span><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;provided&quot;</span><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;generated&quot;</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">]</span><a href="#getbasicauthcredentials-2" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Get the basic-auth credentials used by this service.
+Mirrors Python's <code>get_basic_auth_credentials()</code>.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">includeSource</span>: <span class="tsd-signature-type">true</span></span>
+<div class="tsd-comment tsd-typography"><p>When true, a third element indicating the credential source is appended.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;environment&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;config file&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;provided&quot;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">&quot;generated&quot;</span><span class="tsd-signature-symbol">]</span></h4><p>A tuple of [username, password] or [username, password, source].</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L1245">src/SWMLService.ts:1245</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="getbuilder"><span>get<wbr/>Builder</span><a href="#getbuilder" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="getbuilder-1"><span class="tsd-kind-call-signature">getBuilder</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <a href="_signalwire_sdk.SwmlBuilder.html" class="tsd-signature-type tsd-kind-class">SwmlBuilder</a><a href="#getbuilder-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Get the underlying SwmlBuilder for direct manipulation.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <a href="_signalwire_sdk.SwmlBuilder.html" class="tsd-signature-type tsd-kind-class">SwmlBuilder</a></h4><p>The SwmlBuilder instance.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L848">src/SWMLService.ts:848</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="getdocument"><span>get<wbr/>Document</span><a href="#getdocument" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="getdocument-1"><span class="tsd-kind-call-signature">getDocument</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><a href="#getdocument-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Get the SWML document as a dictionary. Matches Python's <code>get_document()</code>.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></h4><p>The SWML document.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L921">src/SWMLService.ts:921</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="getfunction"><span>get<wbr/>Function</span><a href="#getfunction" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="getfunction-1"><span class="tsd-kind-call-signature">getFunction</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">name</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <a href="_signalwire_sdk.SwaigFunction.html" class="tsd-signature-type tsd-kind-class">SwaigFunction</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">undefined</span><a href="#getfunction-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Get a registered SWAIG function entry, or undefined.
+(Python equivalent: <code>ToolRegistry.get_function</code>.)</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">name</span>: <span class="tsd-signature-type">string</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <a href="_signalwire_sdk.SwaigFunction.html" class="tsd-signature-type tsd-kind-class">SwaigFunction</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">undefined</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L732">src/SWMLService.ts:732</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="getregisteredtools"><span>get<wbr/>Registered<wbr/>Tools</span><a href="#getregisteredtools" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="getregisteredtools-1"><span class="tsd-kind-call-signature">getRegisteredTools</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span><br/>    <span class="tsd-kind-property">description</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">name</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-kind-property">parameters</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">[]</span><a href="#getregisteredtools-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Get a summary of all registered tools with their names, descriptions, and
+parameter schemas. Lifted from AgentBase so the swaig-test CLI can list
+tools on a non-AgentBase SWMLService target (sidecar / standalone SWAIG
+host).</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">description</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">name</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">parameters</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">[]</span></h4><p>Array of tool descriptors.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L766">src/SWMLService.ts:766</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="gettool"><span>get<wbr/>Tool</span><a href="#gettool" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="gettool-1"><span class="tsd-kind-call-signature">getTool</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">name</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="_signalwire_sdk.SwaigFunction.html" class="tsd-signature-type tsd-kind-class">SwaigFunction</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">undefined</span><a href="#gettool-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Look up a registered SwaigFunction by name. Lifted from AgentBase so
+<code>swaig-test --exec &lt;name&gt;</code> works against a non-AgentBase SWMLService
+target.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">name</span>: <span class="tsd-signature-type">string</span></span>
+<div class="tsd-comment tsd-typography"><p>The tool name to search for.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <a href="_signalwire_sdk.SwaigFunction.html" class="tsd-signature-type tsd-kind-class">SwaigFunction</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">undefined</span></h4><p>The SwaigFunction instance, or undefined if not found or not a SwaigFunction.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L797">src/SWMLService.ts:797</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="handlerequest"><span>handle<wbr/>Request</span><a href="#handlerequest" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="handlerequest-1"><span class="tsd-kind-call-signature">handleRequest</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">method</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">url</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">headers</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">body</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">&gt;</span><a href="#handlerequest-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Framework-free request-dispatch core.</p>
+<p>The primitive dispatch surface the SDK ports share (mirrors Python's
+<code>SWMLService.handle_request(method, url, headers, body)</code> and, e.g., the
+dotnet <code>(int, Dictionary, string) HandleRequest(...)</code>). It performs the
+routing-callback check, <code>on_request</code> modification, and basic-auth exactly as
+the Hono handler path does, but over plain primitives instead of Hono
+<code>Context</code>/<code>Response</code> objects — so both paths produce identical responses.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">method</span>: <span class="tsd-signature-type">string</span></span>
+<div class="tsd-comment tsd-typography"><p>HTTP method, e.g. <code>&quot;GET&quot;</code> or <code>&quot;POST&quot;</code>.</p>
+</div></li>
+<li><span><span class="tsd-kind-parameter">url</span>: <span class="tsd-signature-type">string</span></span>
+<div class="tsd-comment tsd-typography"><p>The full request URL (used to derive the callback path).</p>
+</div></li>
+<li><span><span class="tsd-kind-parameter">headers</span>: <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></span>
+<div class="tsd-comment tsd-typography"><p>Request headers as a plain dict.</p>
+</div></li>
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">body</span>: <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></span>
+<div class="tsd-comment tsd-typography"><p>The already-parsed JSON body for POST requests, or <code>undefined</code>.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">&gt;</span></h4><p>A <code>[status, responseHeaders, bodyString]</code> triple. For a routing
+redirect the status is 307 with a <code>Location</code> header and an empty body; an
+auth failure is 401 with <code>WWW-Authenticate: Basic</code>; otherwise 200 with the
+SWML document as the body string.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L953">src/SWMLService.ts:953</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="hasfunction"><span>has<wbr/>Function</span><a href="#hasfunction" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="hasfunction-1"><span class="tsd-kind-call-signature">hasFunction</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">name</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><a href="#hasfunction-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Whether a SWAIG function with the given name is registered.
+(Python equivalent: <code>ToolRegistry.has_function</code>.)</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">name</span>: <span class="tsd-signature-type">string</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L726">src/SWMLService.ts:726</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="hastool"><span>has<wbr/>Tool</span><a href="#hastool" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="hastool-1"><span class="tsd-kind-call-signature">hasTool</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">name</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><a href="#hastool-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Whether a tool with the given name is registered.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">name</span>: <span class="tsd-signature-type">string</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L720">src/SWMLService.ts:720</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="listtoolnames"><span>list<wbr/>Tool<wbr/>Names</span><a href="#listtoolnames" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="listtoolnames-1"><span class="tsd-kind-call-signature">listToolNames</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><a href="#listtoolnames-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>List registered tool names in insertion order (Map preserves it).</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L754">src/SWMLService.ts:754</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="manualsetproxyurl"><span>manual<wbr/>Set<wbr/>Proxy<wbr/>Url</span><a href="#manualsetproxyurl" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="manualsetproxyurl-1"><span class="tsd-kind-call-signature">manualSetProxyUrl</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">url</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">this</span><a href="#manualsetproxyurl-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Manually set the proxy base URL used for webhook URL generation.
+Mirrors Python's <code>manual_set_proxy_url()</code>.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">url</span>: <span class="tsd-signature-type">string</span></span>
+<div class="tsd-comment tsd-typography"><p>The external-facing base URL (trailing slashes are stripped).</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4><p>This service for chaining.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L1264">src/SWMLService.ts:1264</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="onfunctioncall"><span>on<wbr/>Function<wbr/>Call</span><a href="#onfunctioncall" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="onfunctioncall-1"><span class="tsd-kind-call-signature">onFunctionCall</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">name</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">args</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">rawData</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_signalwire_sdk.SwaigRequest.html" class="tsd-signature-type tsd-kind-interface">SwaigRequest</a><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">string</span><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">void</span><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><br/>    <span class="tsd-signature-symbol">|</span> <a href="_signalwire_sdk.FunctionResult.html" class="tsd-signature-type tsd-kind-class">FunctionResult</a><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">void</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <a href="_signalwire_sdk.FunctionResult.html" class="tsd-signature-type tsd-kind-class">FunctionResult</a><span class="tsd-signature-symbol">&gt;</span><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">undefined</span><a href="#onfunctioncall-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Dispatch a function call to the registered handler.
+Returns null when the function isn't registered or has no handler.
+Subclasses (AgentBase) override to add session-token validation
+and FunctionResult-shape normalization. Return type is wide enough
+to accommodate the agent override (which may also return void
+shapes for fire-and-forget tool calls).</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">name</span>: <span class="tsd-signature-type">string</span></span></li>
+<li><span><span class="tsd-kind-parameter">args</span>: <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></span></li>
+<li><span><span class="tsd-kind-parameter">rawData</span>: <a href="../interfaces/_signalwire_sdk.SwaigRequest.html" class="tsd-signature-type tsd-kind-interface">SwaigRequest</a></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">string</span><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">void</span><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><br/>    <span class="tsd-signature-symbol">|</span> <a href="_signalwire_sdk.FunctionResult.html" class="tsd-signature-type tsd-kind-class">FunctionResult</a><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">void</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <a href="_signalwire_sdk.FunctionResult.html" class="tsd-signature-type tsd-kind-class">FunctionResult</a><span class="tsd-signature-symbol">&gt;</span><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">undefined</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L699">src/SWMLService.ts:699</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="registeradditionalroutes"><code class="tsd-tag">Protected</code><span>register<wbr/>Additional<wbr/>Routes</span><a href="#registeradditionalroutes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-is-protected">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="registeradditionalroutes-1"><span class="tsd-kind-call-signature">registerAdditionalRoutes</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">_app</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Hono</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#registeradditionalroutes-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Extension point: register additional Hono routes after SWMLService
+mounts /health, /ready, /swaig, and the main route. AgentBase uses
+this to add /post_prompt, /check_for_input, /debug_events, /mcp.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">_app</span>: <span class="tsd-signature-type">Hono</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L820">src/SWMLService.ts:820</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="registerroutingcallback"><span>register<wbr/>Routing<wbr/>Callback</span><a href="#registerroutingcallback" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="registerroutingcallback-1"><span class="tsd-kind-call-signature">registerRoutingCallback</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">callbackFn</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">RoutingCallback</span><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">path</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#registerroutingcallback-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Register a routing callback at a given path.
+When a POST request arrives at <code>path</code>, the callback is invoked with the
+parsed request body. If it returns a string, the response is a 307 redirect
+to that route; if it returns null, normal SWML serving continues.
+Mirrors Python's <code>register_routing_callback()</code>.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">callbackFn</span>: <span class="tsd-signature-type">RoutingCallback</span></span>
+<div class="tsd-comment tsd-typography"><p>Callback receiving the request body and returning a route or null.</p>
+</div></li>
+<li><span><span class="tsd-kind-parameter">path</span>: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#39;/sip&#39;</span></span>
+<div class="tsd-comment tsd-typography"><p>HTTP path for the callback (default '/sip').</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L1083">src/SWMLService.ts:1083</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="registerswaigfunction"><span>register<wbr/>Swaig<wbr/>Function</span><a href="#registerswaigfunction" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="registerswaigfunction-1"><span class="tsd-kind-call-signature">registerSwaigFunction</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">fn</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <a href="_signalwire_sdk.SwaigFunction.html" class="tsd-signature-type tsd-kind-class">SwaigFunction</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">this</span><a href="#registerswaigfunction-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Register a SwaigFunction instance or a raw function descriptor (DataMap).</p>
+<p>A raw descriptor with <code>gates</code> or <code>gate_fillers</code> is checked by the
+platform's rules, and a normalized copy is stored; the caller's object is
+left as it was.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">fn</span>: <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <a href="_signalwire_sdk.SwaigFunction.html" class="tsd-signature-type tsd-kind-class">SwaigFunction</a></span>
+<div class="tsd-comment tsd-typography"><p>The function, or its raw SWAIG definition.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4><p>This service, for chaining.</p>
+
+<div class="tsd-comment tsd-typography">
+<div class="tsd-tag-throws">
+<h4 class="tsd-anchor-link" id="throws">Throws<a href="#throws" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><p>For gates the platform would refuse, or gate fillers
+without gates.</p>
+</div></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L673">src/SWMLService.ts:673</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="registerverbhandler"><span>register<wbr/>Verb<wbr/>Handler</span><a href="#registerverbhandler" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="registerverbhandler-1"><span class="tsd-kind-call-signature">registerVerbHandler</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">handler</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">SWMLVerbHandler</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#registerverbhandler-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Register a custom verb handler.
+Mirrors Python's <code>register_verb_handler()</code>.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">handler</span>: <span class="tsd-signature-type">SWMLVerbHandler</span></span>
+<div class="tsd-comment tsd-typography"><p>The verb handler to register.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L1067">src/SWMLService.ts:1067</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="removefunction"><span>remove<wbr/>Function</span><a href="#removefunction" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="removefunction-1"><span class="tsd-kind-call-signature">removeFunction</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">name</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><a href="#removefunction-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Remove a registered SWAIG function. Returns true when removed,
+false when not found. (Python equivalent:
+<code>ToolRegistry.remove_function</code>.)</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">name</span>: <span class="tsd-signature-type">string</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L749">src/SWMLService.ts:749</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="renderdocument"><span>render<wbr/>Document</span><a href="#renderdocument" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="renderdocument-1"><span class="tsd-kind-call-signature">renderDocument</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><a href="#renderdocument-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Render the SWML document as a JSON string.
+Mirrors Python's <code>render_document()</code>.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4><p>JSON-encoded SWML document.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L930">src/SWMLService.ts:930</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="renderswml"><span>render<wbr/>Swml</span><a href="#renderswml" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="renderswml-1"><span class="tsd-kind-call-signature">renderSwml</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">_callId</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">_modifications</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><a href="#renderswml-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Render the SWML document.</p>
+<p>Subclass-override-friendly signature: AgentBase overrides this with
+<code>(callId?: string, modifications?: Record&lt;string, unknown&gt;): string</code>
+to return a serialized JSON string built from prompts + dynamic config.
+Plain SWMLService returns the in-memory document object.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">_callId</span>: <span class="tsd-signature-type">string</span></span></li>
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">_modifications</span>: <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></h4><p>The SWML document (object) or its serialized form (subclass).</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L910">src/SWMLService.ts:910</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="resetdocument"><span>reset<wbr/>Document</span><a href="#resetdocument" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="resetdocument-1"><span class="tsd-kind-call-signature">resetDocument</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">this</span><a href="#resetdocument-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Reset the SWML document to an empty state.
+Mirrors Python's <code>reset_document()</code>.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4><p>This service for chaining.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L895">src/SWMLService.ts:895</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="serve"><span>serve</span><a href="#serve" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="serve-1"><span class="tsd-kind-call-signature">serve</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">hostOrOpts</span><span class="tsd-signature-symbol">?:</span><br/>        <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">string</span><br/>        <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-symbol">{</span><br/>            <span class="tsd-kind-property">domain</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>            <span class="tsd-kind-property">host</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>            <span class="tsd-kind-property">port</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>            <span class="tsd-kind-property">sslCert</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>            <span class="tsd-kind-property">sslEnabled</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>            <span class="tsd-kind-property">sslKey</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">port</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">opts</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span><br/>        <span class="tsd-kind-property">domain</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">sslCert</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">sslEnabled</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">sslKey</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span><a href="#serve-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Start the HTTP server. Canonical entrypoint, matching Python's
+<code>SWMLService.serve()</code>.</p>
+<p>Matches Python's <code>serve()</code> parameters including SSL options. When
+<code>SWAIG_CLI_MODE=true</code> is set in the environment (e.g. while running the
+<code>swaig-test</code> CLI) the call is a no-op.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">hostOrOpts</span>: <br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">string</span><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-symbol">{</span><br/>        <span class="tsd-kind-property">domain</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">host</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">port</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">sslCert</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">sslEnabled</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">sslKey</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-signature-symbol">}</span></span>
+<div class="tsd-comment tsd-typography"><p>Hostname, or an options object. Defaults to <code>this.host</code>
+(constructor value) or <code>'0.0.0.0'</code>.</p>
+</div></li>
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">port</span>: <span class="tsd-signature-type">number</span></span>
+<div class="tsd-comment tsd-typography"><p>Port. Defaults to <code>this.port</code> (constructor value) or <code>3000</code>.</p>
+</div></li>
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">opts</span>: <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">domain</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">sslCert</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">sslEnabled</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">sslKey</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">}</span></span>
+<div class="tsd-comment tsd-typography"><p>Optional SSL/TLS configuration overrides.</p>
+</div>
+<ul class="tsd-parameters">
+<li class="tsd-parameter">
+<h5><code class="tsd-tag">Optional</code><span class="tsd-kind-property">domain</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span></h5>
+<div class="tsd-comment tsd-typography"><p>Domain used for HSTS header configuration.</p>
+</div></li>
+<li class="tsd-parameter">
+<h5><code class="tsd-tag">Optional</code><span class="tsd-kind-property">sslCert</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span></h5>
+<div class="tsd-comment tsd-typography"><p>Path to the PEM certificate file.</p>
+</div></li>
+<li class="tsd-parameter">
+<h5><code class="tsd-tag">Optional</code><span class="tsd-kind-property">sslEnabled</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span></h5>
+<div class="tsd-comment tsd-typography"><p>When <code>true</code>, serve over HTTPS.</p>
+</div></li>
+<li class="tsd-parameter">
+<h5><code class="tsd-tag">Optional</code><span class="tsd-kind-property">sslKey</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span></h5>
+<div class="tsd-comment tsd-typography"><p>Path to the PEM private key file.</p>
+</div></li></ul></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><p>Resolves once the server has begun listening.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L1319">src/SWMLService.ts:1319</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="setonrequestcallback"><span>set<wbr/>On<wbr/>Request<wbr/>Callback</span><a href="#setonrequestcallback" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="setonrequestcallback-1"><span class="tsd-kind-call-signature">setOnRequestCallback</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">cb</span><span class="tsd-signature-symbol">:</span> <a href="../types/_signalwire_sdk.OnRequestCallback.html" class="tsd-signature-type tsd-kind-type-alias">OnRequestCallback</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">this</span><a href="#setonrequestcallback-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Set a callback invoked per-request to dynamically build SWML.
+When set, the static SwmlBuilder is ignored and the callback's
+returned SwmlBuilder is used instead.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">cb</span>: <a href="../types/_signalwire_sdk.OnRequestCallback.html" class="tsd-signature-type tsd-kind-type-alias">OnRequestCallback</a></span>
+<div class="tsd-comment tsd-typography"><p>Callback receiving query params, body params, and headers.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4><p>This service for chaining.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L1231">src/SWMLService.ts:1231</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="stop"><span>stop</span><a href="#stop" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="stop-1"><span class="tsd-kind-call-signature">stop</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#stop-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Stop the HTTP server.
+Mirrors Python's <code>stop()</code>.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L1399">src/SWMLService.ts:1399</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member tsd-is-protected">
+<h3 class="tsd-anchor-link" id="swaigpredispatch"><code class="tsd-tag">Protected</code><span>swaig<wbr/>Pre<wbr/>Dispatch</span><a href="#swaigpredispatch" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-is-protected">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="swaigpredispatch-1"><span class="tsd-kind-call-signature">swaigPreDispatch</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">_requestData</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_signalwire_sdk.SwaigRequest.html" class="tsd-signature-type tsd-kind-interface">SwaigRequest</a><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">_funcName</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">[</span><a href="" class="tsd-signature-type tsd-kind-class">SWMLService</a><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">]</span><a href="#swaigpredispatch-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Extension point: invoked between argument parsing and function dispatch
+on POST /swaig. Returns [target, shortCircuit]: when shortCircuit is
+non-null, it's returned directly without dispatching. AgentBase may
+override to add session-token validation or ephemeral dynamic-config.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">_requestData</span>: <a href="../interfaces/_signalwire_sdk.SwaigRequest.html" class="tsd-signature-type tsd-kind-interface">SwaigRequest</a></span></li>
+<li><span><span class="tsd-kind-parameter">_funcName</span>: <span class="tsd-signature-type">string</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-symbol">[</span><a href="" class="tsd-signature-type tsd-kind-class">SWMLService</a><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">]</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L808">src/SWMLService.ts:808</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="validatebasicauth"><span>validate<wbr/>Basic<wbr/>Auth</span><a href="#validatebasicauth" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="validatebasicauth-1"><span class="tsd-kind-call-signature">validateBasicAuth</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">username</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">password</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span><a href="#validatebasicauth-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Validate provided basic-auth credentials against the configured ones
+using a constant-time comparison. (Python equivalent:
+<code>AuthMixin.validate_basic_auth(username, password)</code>.)</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">username</span>: <span class="tsd-signature-type">string</span></span></li>
+<li><span><span class="tsd-kind-parameter">password</span>: <span class="tsd-signature-type">string</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L419">src/SWMLService.ts:419</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="extractsipusername"><code class="tsd-tag">Static</code><span>extract<wbr/>Sip<wbr/>Username</span><a href="#extractsipusername" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="extractsipusername-1"><span class="tsd-kind-call-signature">extractSipUsername</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">requestBody</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_signalwire_sdk.SwmlRequestData.html" class="tsd-signature-type tsd-kind-interface">SwmlRequestData</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><a href="#extractsipusername-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Extract the SIP username from a request body's <a href="http://call.to">call.to</a> field.
+Mirrors Python's <code>@staticmethod extract_sip_username()</code>.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">requestBody</span>: <a href="../interfaces/_signalwire_sdk.SwmlRequestData.html" class="tsd-signature-type tsd-kind-interface">SwmlRequestData</a></span>
+<div class="tsd-comment tsd-typography"><p>The parsed request body containing call information.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></h4><p>The extracted SIP username, or null if not found.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/SWMLService.ts#L1168">src/SWMLService.ts:1168</a></li></ul></aside></div></li></ul></section></section></details></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div>
+<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>On This Page</h3></summary>
+<div class="tsd-accordion-details">
+<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Constructors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Constructors</summary>
+<div><a href="#constructor"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Constructor"><use href="../assets/icons.svg#icon-512"></use></svg><span>constructor</span></a></div></details>
+<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Properties</summary>
+<div><a href="#_app" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>_<wbr/>app</span></a><a href="#_builderschemaoptions" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>_<wbr/>builder<wbr/>Schema<wbr/>Options</span></a><a href="#_proxyurlbase" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>_<wbr/>proxy<wbr/>Url<wbr/>Base</span></a><a href="#_proxyurlbasefromenv" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>_<wbr/>proxy<wbr/>Url<wbr/>Base<wbr/>From<wbr/>Env</span></a><a href="#_routingcallbacks" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>_<wbr/>routing<wbr/>Callbacks</span></a><a href="#_server" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>_<wbr/>server</span></a><a href="#authcredentials" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>auth<wbr/>Credentials</span></a><a href="#authsource" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>auth<wbr/>Source</span></a><a href="#domain"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>domain</span></a><a href="#host"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>host</span></a><a href="#log"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>log</span></a><a href="#name"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>name</span></a><a href="#onrequestcallback" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>on<wbr/>Request<wbr/>Callback</span></a><a href="#port"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>port</span></a><a href="#route"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>route</span></a><a href="#schemautils"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>schema<wbr/>Utils</span></a><a href="#security"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>security</span></a><a href="#sslcertpath"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>ssl<wbr/>Cert<wbr/>Path</span></a><a href="#sslenabled"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>ssl<wbr/>Enabled</span></a><a href="#sslkeypath"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>ssl<wbr/>Key<wbr/>Path</span></a><a href="#swmlbuilder" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>swml<wbr/>Builder</span></a><a href="#toolregistry" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>tool<wbr/>Registry</span></a><a href="#verbregistry"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>verb<wbr/>Registry</span></a></div></details>
+<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Accessors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Accessors</summary>
+<div><a href="#fullvalidationenabled"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Accessor"><use href="../assets/icons.svg#icon-262144"></use></svg><span>full<wbr/>Validation<wbr/>Enabled</span></a></div></details>
+<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Methods</summary>
+<div><a href="#_callbackpathforurl" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>_<wbr/>callback<wbr/>Path<wbr/>For<wbr/>Url</span></a><a href="#_checkbasicauthheaders" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>_<wbr/>check<wbr/>Basic<wbr/>Auth<wbr/>Headers</span></a><a href="#addsection"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>add<wbr/>Section</span></a><a href="#addverb"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>add<wbr/>Verb</span></a><a href="#addverbtosection"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>add<wbr/>Verb<wbr/>To<wbr/>Section</span></a><a href="#asrouter"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>as<wbr/>Router</span></a><a href="#buildswmlforrequest" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>build<wbr/>Swml<wbr/>For<wbr/>Request</span></a><a href="#definetool"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>define<wbr/>Tool</span></a><a href="#getallfunctions"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>All<wbr/>Functions</span></a><a href="#getapp"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>App</span></a><a href="#getbasicauthcredentials"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Basic<wbr/>Auth<wbr/>Credentials</span></a><a href="#getbuilder"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Builder</span></a><a href="#getdocument"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Document</span></a><a href="#getfunction"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Function</span></a><a href="#getregisteredtools"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Registered<wbr/>Tools</span></a><a href="#gettool"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Tool</span></a><a href="#handlerequest"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>handle<wbr/>Request</span></a><a href="#hasfunction"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>has<wbr/>Function</span></a><a href="#hastool"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>has<wbr/>Tool</span></a><a href="#listtoolnames"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>list<wbr/>Tool<wbr/>Names</span></a><a href="#manualsetproxyurl"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>manual<wbr/>Set<wbr/>Proxy<wbr/>Url</span></a><a href="#onfunctioncall"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>on<wbr/>Function<wbr/>Call</span></a><a href="#registeradditionalroutes" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>register<wbr/>Additional<wbr/>Routes</span></a><a href="#registerroutingcallback"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>register<wbr/>Routing<wbr/>Callback</span></a><a href="#registerswaigfunction"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>register<wbr/>Swaig<wbr/>Function</span></a><a href="#registerverbhandler"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>register<wbr/>Verb<wbr/>Handler</span></a><a href="#removefunction"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>remove<wbr/>Function</span></a><a href="#renderdocument"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>render<wbr/>Document</span></a><a href="#renderswml"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>render<wbr/>Swml</span></a><a href="#resetdocument"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>reset<wbr/>Document</span></a><a href="#serve"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>serve</span></a><a href="#setonrequestcallback"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>On<wbr/>Request<wbr/>Callback</span></a><a href="#stop"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>stop</span></a><a href="#swaigpredispatch" class="tsd-is-protected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>swaig<wbr/>Pre<wbr/>Dispatch</span></a><a href="#validatebasicauth"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>validate<wbr/>Basic<wbr/>Auth</span></a><a href="#extractsipusername"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>extract<wbr/>Sip<wbr/>Username</span></a></div></details></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../index.html">SignalWire TypeScript SDK</a>
+<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
+<li>Loading...</li></ul></nav></div></div></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
+<div class="overlay"></div></body></html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>HoldEvent | SignalWire TypeScript SDK</title><link rel="icon" href="../assets/favicon.png" type="image/png"/><meta name="description" content="Documentation for SignalWire TypeScript SDK"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script><link rel="stylesheet" href="../navbar/document.css"/><link rel="stylesheet" href="../assets/typedoc-navbar.css"/><script defer src="../assets/typedoc-navbar.js"></script><script defer src="../navbar/navbar.js"></script></head><body><sw-docs-navbar>
+  <template shadowrootmode="open">
+    <style>:host { visibility: hidden; }</style>
+    <link rel="stylesheet" href="../navbar/tokens.css" />
+    <link rel="stylesheet" href="../navbar/fern.css" />
+    <link rel="stylesheet" href="../navbar/navbar.css" />
+
+    <header id="fern-header" role="banner">
+      <div class="fern-header-content">
+
+        <div class="fern-header-logo-container">
+          <a data-fern-logo href="https://signalwire.com/docs" id="brand-link">
+            <img alt="SignalWire" src="../navbar/img/logo-no-text.svg" />
+            <span class="fern-logo-text">SignalWire Docs</span>
+          </a>
+          <div class="fern-header-selectors">
+            <button type="button" class="fern-product-selector" id="product-trigger"
+                    aria-haspopup="menu" aria-expanded="false" data-state="closed">
+              <div class="product-dropdown-trigger" data-testid="product-dropdown">
+                <p class="product-item-title">Server SDKs</p>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><path d="m6 9 6 6 6-6"></path></svg>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div class="fern-header-center"></div>
+
+        <nav class="fern-button-group fern-header-navbar-links" aria-label="Navbar links">
+          <a class="fern-button minimal" href="https://signalwire.com/signin">
+            <span class="fern-button-content"><span class="fern-button-text">Log in</span></span>
+          </a>
+          <a class="fern-button outlined" href="https://signalwire.com/signup">
+            <span class="fern-button-content"><span class="fern-button-text">Sign up</span></span>
+          </a>
+          <button type="button" class="fern-button minimal" id="support-trigger"
+                  aria-haspopup="menu" aria-expanded="false" data-state="closed">
+            <span class="fern-button-content">
+              <span class="fern-button-text">Support</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><path d="m6 9 6 6 6-6"></path></svg>
+            </span>
+          </button>
+          <button type="button" class="fern-icon-button" id="theme-trigger"
+                  aria-label="Theme" aria-haspopup="menu" aria-expanded="false" data-state="closed">
+            <span id="theme-icon-sun"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg></span>
+            <span id="theme-icon-moon" hidden><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></span>
+            <span id="theme-icon-system" hidden><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><rect width="20" height="14" x="2" y="3" rx="2"></rect><line x1="8" x2="16" y1="21" y2="21"></line><line x1="12" x2="12" y1="17" y2="21"></line></svg></span>
+          </button>
+        </nav>
+
+      </div>
+    </header>
+
+    <div class="fern-dropdown-panel" data-testid="product-dropdown-content" data-state="closed" id="product-panel" role="menu">
+      <div class="fern-product-selector-radio-group">
+        <a href="https://signalwire.com/docs/platform/" role="menuitem">
+          <div class="fern-selection-item"><div class="item-main">
+            <div class="fern-selection-item-icon use-icon"><svg role="img" viewBox="0 0 576 512" aria-hidden="true" width="100%" height="100%"><path fill="currentColor" d="M480.9 93.2c14-23.7 22.9-43.1 27.5-57.5-13.7 4.4-31.9 12.6-54.1 25.5-13.6-11.6-28.1-21.6-43.3-29.9 5.2-3.3 10.4-6.5 15.5-9.5 30-17.7 56.5-29.7 78-34.9 6.7-1.6 13.9-3.1 20.7-3.1 6.5-.1 17.1 1.1 25.6 9.6s9.6 19 9.6 25.6c-.1 6.7-1.5 13.9-3.1 20.7-5.2 21.4-17.2 48-34.9 78-11.4 19.2-25.1 39.8-40.8 61.3 9.5 23.8 14.7 49.8 14.7 77.1 0 114.9-93.1 208-208 208-27.2 0-53.2-5.2-77.1-14.7-21.5 15.8-42.1 29.5-61.3 40.8-30 17.7-56.5 29.7-78 34.9-6.7 1.6-13.9 3.1-20.7 3.1-6.5 .1-17.1-1.1-25.6-9.6S16 499.5 16 493c.1-6.7 1.5-13.9 3.1-20.7 5.2-21.4 17.2-48 34.9-78 3-5.1 6.1-10.2 9.5-15.5 8.3 15.2 18.3 29.7 29.9 43.3-12.9 22.2-21.1 40.4-25.5 54.1 14.4-4.6 33.7-13.5 57.5-27.5 12.4-7.4 25.6-15.8 39.3-25.4-51.3-37.9-84.5-98.8-84.5-167.4 0-114.9 93.1-208 208-208 68.6 0 129.5 33.3 167.4 84.5 9.5-13.7 18-26.9 25.4-39.3zm-55.6 80.4c-28-46.5-78.9-77.5-137.1-77.5-88.4 0-160 71.6-160 160 0 58.2 31.1 109.1 77.5 137.1 36.9-28.8 76.5-63.7 116.2-103.4s74.6-79.3 103.4-116.2zM257.6 413.1c9.9 1.9 20.1 2.9 30.6 2.9 88.4 0 160-71.6 160-160 0-10.5-1-20.7-2.9-30.6-26.3 32-56.4 65.2-89.4 98.2s-66.2 63.1-98.2 89.4z"/></svg></div>
+            <div class="item-text"><p class="fern-selection-item-title">Platform</p><p class="fern-selection-item-subtitle">Dashboard, configuration &amp; administration</p></div>
+          </div></div>
+        </a>
+        <a href="https://signalwire.com/docs/call-flow-builder/" role="menuitem">
+          <div class="fern-selection-item"><div class="item-main">
+            <div class="fern-selection-item-icon use-icon"><svg role="img" viewBox="0 0 512 512" aria-hidden="true" width="100%" height="100%"><path fill="currentColor" d="M48 80l0 96 96 0 0-96-96 0zM0 80C0 53.5 21.5 32 48 32l96 0c26.5 0 48 21.5 48 48l0 24 128 0 0-24c0-26.5 21.5-48 48-48l96 0c26.5 0 48 21.5 48 48l0 96c0 26.5-21.5 48-48 48l-96 0c-26.5 0-48-21.5-48-48l0-24-128 0 0 24c0 10.4-3.3 20.1-9 28l63 84 90 0c26.5 0 48 21.5 48 48l0 96c0 26.5-21.5 48-48 48l-96 0c-26.5 0-48-21.5-48-48l0-96c0-10.4 3.3-20.1 9-28l-63-84-90 0c-26.5 0-48-21.5-48-48L0 80zM240 336l0 96 96 0 0-96-96 0zM464 80l-96 0 0 96 96 0 0-96z"/></svg></div>
+            <div class="item-text"><p class="fern-selection-item-title">Call Flow Builder</p><p class="fern-selection-item-subtitle">Drag-and-drop call flows and AI agents</p></div>
+          </div></div>
+        </a>
+        <a href="https://signalwire.com/docs/server-sdks/" role="menuitem">
+          <div class="fern-selection-item"><div class="item-main">
+            <div class="fern-selection-item-icon use-icon"><svg role="img" viewBox="0 0 576 512" aria-hidden="true" width="100%" height="100%"><path fill="currentColor" d="M337.1 16.9c3.9-12.7 17.4-19.7 30-15.8s19.7 17.4 15.8 30l-144 464c-3.9 12.7-17.4 19.7-30 15.8s-19.7-17.4-15.8-30l144-464zM145 135c9.4 9.4 9.4 24.6 0 33.9l-87 87 87 87c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0L7 273c-9.4-9.4-9.4-24.6 0-33.9L111 135c9.4-9.4 24.6-9.4 33.9 0zM431 135c9.4-9.4 24.6-9.4 33.9 0L569 239c9.4 9.4 9.4 24.6 0 33.9L465 377c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l87-87-87-87c-9.4-9.4-9.4-24.6 0-33.9z"/></svg></div>
+            <div class="item-text"><p class="fern-selection-item-title">Server SDKs</p><p class="fern-selection-item-subtitle">Build AI agents, control calls, send messages, and more</p></div>
+          </div></div>
+        </a>
+        <a href="https://signalwire.com/docs/browser-sdk/" role="menuitem">
+          <div class="fern-selection-item"><div class="item-main">
+            <div class="fern-selection-item-icon use-icon"><svg role="img" viewBox="0 0 512 512" aria-hidden="true" width="100%" height="100%"><path fill="currentColor" d="M48 256l0 128c0 8.8 7.2 16 16 16l384 0c8.8 0 16-7.2 16-16l0-128-416 0zM0 128C0 92.7 28.7 64 64 64l384 0c35.3 0 64 28.7 64 64l0 256c0 35.3-28.7 64-64 64L64 448c-35.3 0-64-28.7-64-64L0 128zm128 32a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zm56-24c-13.3 0-24 10.7-24 24s10.7 24 24 24l240 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-240 0z"/></svg></div>
+            <div class="item-text"><p class="fern-selection-item-title">Browser SDK</p><p class="fern-selection-item-subtitle">Build voice, video and chat applications for the browser</p></div>
+          </div></div>
+        </a>
+        <a href="https://signalwire.com/docs/apis" role="menuitem">
+          <div class="fern-selection-item"><div class="item-main">
+            <div class="fern-selection-item-icon use-icon"><svg role="img" viewBox="0 0 576 512" aria-hidden="true" width="100%" height="100%"><path fill="currentColor" d="M496 64c35.3 0 64 28.7 64 64l0 256-.3 6.5c-3.1 30.1-27 54.1-57.1 57.1l-6.5 .3-416 0-6.5-.3c-30.1-3.1-54.1-27-57.1-57.1L16 384 16 128c0-35.3 28.7-64 64-64l416 0zM80 112c-8.8 0-16 7.2-16 16l0 256c0 8.8 7.2 16 16 16l416 0c8.8 0 16-7.2 16-16l0-256c0-8.8-7.2-16-16-16L80 112zm96 48c35.3 0 64 28.7 64 64l0 104c0 13.3-10.7 24-24 24s-24-10.7-24-24l0-24-32 0 0 24c0 13.3-10.7 24-24 24s-24-10.7-24-24l0-104c0-35.3 28.7-64 64-64zm160 0c35.3 0 64 28.7 64 64s-28.7 64-64 64l-16 0 0 40c0 13.3-10.7 24-24 24s-24-10.7-24-24l0-144c0-13.3 10.7-24 24-24l40 0zm112 0c13.3 0 24 10.7 24 24l0 144c0 13.3-10.7 24-24 24s-24-10.7-24-24l0-144c0-13.3 10.7-24 24-24zM176 208c-8.8 0-16 7.2-16 16l0 32 32 0 0-32c0-8.8-7.2-16-16-16zm144 32l16 0c8.8 0 16-7.2 16-16s-7.2-16-16-16l-16 0 0 32z"/></svg></div>
+            <div class="item-text"><p class="fern-selection-item-title">APIs</p><p class="fern-selection-item-subtitle">Send SMS, manage calls, administer SignalWire</p></div>
+          </div></div>
+        </a>
+        <a href="https://signalwire.com/docs/swml/" role="menuitem">
+          <div class="fern-selection-item"><div class="item-main">
+            <div class="fern-selection-item-icon use-icon"><svg viewBox="0 0 24 24" fill="none" width="100%" height="100%" aria-hidden="true"><path d="M6.89999 3.6C5.0775 3.6 3.6 5.0775 3.6 6.9V8.60625C3.6 9.00375 3.4425 9.38625 3.16125 9.6675L1.4625 11.3625C1.11 11.715 1.11 12.285 1.4625 12.6337L3.16125 14.3325C3.4425 14.6138 3.6 14.9963 3.6 15.3937V17.1C3.6 18.9225 5.0775 20.4 6.89999 20.4H8.69999C9.19874 20.4 9.59999 19.9987 9.59999 19.5C9.59999 19.0012 9.19874 18.6 8.69999 18.6H6.89999C6.07124 18.6 5.39999 17.9287 5.39999 17.1V15.3937C5.39999 14.52 5.05124 13.68 4.43249 13.0612L3.37124 12L4.43249 10.9388C5.05124 10.32 5.39999 9.48 5.39999 8.60625V6.9C5.39999 6.07125 6.07124 5.4 6.89999 5.4H8.69999C9.19874 5.4 9.59999 4.99875 9.59999 4.5C9.59999 4.00125 9.19874 3.6 8.69999 3.6H6.89999ZM17.1 3.6H15.3C14.8012 3.6 14.4 4.00125 14.4 4.5C14.4 4.99875 14.8012 5.4 15.3 5.4H17.1C17.9287 5.4 18.6 6.07125 18.6 6.9V8.60625C18.6 9.48 18.9487 10.32 19.5675 10.9388L20.6287 12L19.5675 13.0612C18.9487 13.68 18.6 14.52 18.6 15.3937V17.1C18.6 17.9287 17.9287 18.6 17.1 18.6H15.3C14.8012 18.6 14.4 19.0012 14.4 19.5C14.4 19.9987 14.8012 20.4 15.3 20.4H17.1C18.9225 20.4 20.4 18.9225 20.4 17.1V15.3937C20.4 14.9963 20.5575 14.6138 20.8387 14.3325L22.5375 12.6375C22.89 12.285 22.89 11.715 22.5375 11.3663L20.8387 9.6675C20.5575 9.38625 20.4 9.00375 20.4 8.60625V6.9C20.4 5.0775 18.9225 3.6 17.1 3.6Z" fill="currentColor"/><path d="M11.6625 13.2815C11.9363 13.5628 12.032 13.9024 11.922 14.2846C11.8162 14.6517 11.5699 14.8868 11.2043 14.9713C10.8878 15.0439 10.5855 14.9824 10.3535 14.7469C9.48185 13.8629 8.61799 12.9716 7.73904 12.0674C8.08422 12.0284 8.41355 11.8695 8.68064 11.6016L8.68123 11.6004C8.90635 11.3736 9.12971 11.145 9.35447 10.9178C10.1238 11.7055 10.8933 12.4932 11.6625 13.2815Z" fill="currentColor"/><path d="M12.8021 9.62755C13.1264 9.55463 13.4281 9.62799 13.6652 9.86837C14.5368 10.7519 15.4046 11.6388 16.2691 12.5285C15.919 12.5673 15.5869 12.7306 15.3211 12.9979L14.6467 13.6799C13.8763 12.8914 13.1065 12.1031 12.3369 11.315C12.0635 11.0337 11.9676 10.6935 12.0802 10.3113C12.1885 9.94457 12.4354 9.70987 12.8021 9.62755Z" fill="currentColor"/><path d="M17.3999 14.0296C17.3999 14.3878 17.305 14.6223 17.116 14.8154C15.9836 15.9734 14.8507 17.1297 13.7174 18.2842C13.3231 18.6854 12.7488 18.7052 12.3583 18.3384C11.9471 17.9517 11.9308 17.3174 12.3329 16.8974C12.8434 16.3645 13.3615 15.8389 13.8785 15.3126C14.4998 14.6803 15.1224 14.0497 15.7464 13.4206C16.0487 13.1167 16.4538 13.0364 16.8246 13.2091C17.1954 13.3817 17.3884 13.6927 17.3999 14.0296Z" fill="currentColor"/><path d="M6.60011 10.3817C6.60554 10.2007 6.69951 9.97138 6.88407 9.78275C8.01242 8.63009 9.14101 7.47754 10.2698 6.32511C10.5046 6.08506 10.7814 5.96208 11.1122 6.01037C11.504 6.06943 11.7778 6.29245 11.9054 6.67806C12.0329 7.06367 11.9447 7.41211 11.6679 7.70045C11.1285 8.26115 10.5823 8.81629 10.0395 9.37143C9.44645 9.9752 8.85185 10.5774 8.25567 11.1779C7.95238 11.4822 7.54833 11.5569 7.1765 11.3905C6.81486 11.2297 6.59367 10.875 6.60011 10.3817Z" fill="currentColor"/></svg></div>
+            <div class="item-text"><p class="fern-selection-item-title">SWML</p><p class="fern-selection-item-subtitle">Write communication applications, call flows and AI agents</p></div>
+          </div></div>
+        </a>
+        <a href="https://signalwire.com/docs/compatibility-api/" role="menuitem"><div class="fern-selection-item"><div class="item-text"><p class="fern-selection-item-title">Compatibility API</p></div></div></a>
+      </div>
+    </div>
+
+    <div class="fern-dropdown" id="support-panel" data-state="closed" role="menu">
+      <a class="fern-dropdown-item" href="https://signalwire.zohodesk.com/portal/en/newticket" target="_blank" rel="noopener">Create a ticket</a>
+      <a class="fern-dropdown-item" href="https://signalwire.zohodesk.com/portal/en/myarea" target="_blank" rel="noopener">My tickets</a>
+      <a class="fern-dropdown-item" href="https://status.signalwire.com/" target="_blank" rel="noopener">Status</a>
+    </div>
+
+    <div class="fern-dropdown" id="theme-panel" data-state="closed" role="menu">
+      <button type="button" class="fern-dropdown-item" data-theme-pref="light">
+        <span class="fern-dropdown-item-indicator" data-check></span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg><span class="theme-item-label">Light</span>
+      </button>
+      <button type="button" class="fern-dropdown-item" data-theme-pref="dark">
+        <span class="fern-dropdown-item-indicator" data-check></span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg><span class="theme-item-label">Dark</span>
+      </button>
+      <button type="button" class="fern-dropdown-item" data-theme-pref="system">
+        <span class="fern-dropdown-item-indicator" data-check></span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide"><rect width="20" height="14" x="2" y="3" rx="2"></rect><line x1="8" x2="16" y1="21" y2="21"></line><line x1="12" x2="12" y1="17" y2="21"></line></svg><span class="theme-item-label">System</span>
+      </button>
+    </div>
+  </template>
+</sw-docs-navbar><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">SignalWire TypeScript SDK</a>
+<div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb" aria-label="Breadcrumb">
+<li><a href="../modules/_signalwire_sdk.html">@signalwire/sdk</a></li>
+<li><a href="" aria-current="page">HoldEvent</a></li></ul>
+<h1>Class HoldEvent</h1></div>
+<section class="tsd-panel tsd-comment">
+<div class="tsd-comment tsd-typography"><p><code>calling.call.hold</code> — hold/unhold state change on the call.</p>
+</div></section>
+<section class="tsd-panel tsd-hierarchy" data-refl="11105">
+<h4>Hierarchy (<a href="../hierarchy.html#@signalwire/sdk.HoldEvent">View Summary</a>)</h4>
+<ul class="tsd-hierarchy">
+<li class="tsd-hierarchy-item"><a href="_signalwire_sdk.RelayEvent.html" class="tsd-signature-type tsd-kind-class">RelayEvent</a>
+<ul class="tsd-hierarchy">
+<li class="tsd-hierarchy-item"><span class="tsd-hierarchy-target">HoldEvent</span></li></ul></li></ul></section><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/relay/RelayEvent.ts#L770">src/relay/RelayEvent.ts:770</a></li></ul></aside>
+<section class="tsd-panel-group tsd-index-group">
+<section class="tsd-panel tsd-index-panel">
+<details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h5 class="tsd-index-heading uppercase">Index</h5></summary>
+<div class="tsd-accordion-details">
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading tsd-anchor-link" id="constructors">Constructors<a href="#constructors" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-index-list"><a href="#constructor" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Constructor"><use href="../assets/icons.svg#icon-512"></use></svg><span>constructor</span></a>
+</div></section>
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading tsd-anchor-link" id="properties">Properties<a href="#properties" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-index-list"><a href="#callid" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>call<wbr/>Id</span></a>
+<a href="#eventtype" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>event<wbr/>Type</span></a>
+<a href="#params" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>params</span></a>
+<a href="#state" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>state</span></a>
+<a href="#timestamp" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>timestamp</span></a>
+</div></section>
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading tsd-anchor-link" id="methods">Methods<a href="#methods" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-index-list"><a href="#frompayload" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>from<wbr/>Payload</span></a>
+</div></section></div></details></section></section>
+<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Constructors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h2 class="tsd-anchor-link" id="constructors-1">Constructors<a href="#constructors-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
+<section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="constructor"><span>constructor</span><a href="#constructor" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="constructorholdevent"><span class="tsd-signature-keyword">new</span> <span class="tsd-kind-constructor-signature">HoldEvent</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">eventType</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">params</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">EventPayload</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">callId</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">timestamp</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">state</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="" class="tsd-signature-type tsd-kind-class">HoldEvent</a><a href="#constructorholdevent" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">eventType</span>: <span class="tsd-signature-type">string</span></span></li>
+<li><span><span class="tsd-kind-parameter">params</span>: <span class="tsd-signature-type">EventPayload</span></span></li>
+<li><span><span class="tsd-kind-parameter">callId</span>: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#39;&#39;</span></span></li>
+<li><span><span class="tsd-kind-parameter">timestamp</span>: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = 0</span></span></li>
+<li><span><span class="tsd-kind-parameter">state</span>: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#39;&#39;</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <a href="" class="tsd-signature-type tsd-kind-class">HoldEvent</a></h4><aside class="tsd-sources">
+<p>Overrides <a href="_signalwire_sdk.RelayEvent.html">RelayEvent</a>.<a href="_signalwire_sdk.RelayEvent.html#constructor">constructor</a></p>
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/relay/RelayEvent.ts#L773">src/relay/RelayEvent.ts:773</a></li></ul></aside></div></li></ul></section></section></details>
+<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h2 class="tsd-anchor-link" id="properties-1">Properties<a href="#properties-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
+<section>
+<section class="tsd-panel tsd-member tsd-is-inherited">
+<h3 class="tsd-anchor-link" id="callid"><code class="tsd-tag">Readonly</code><span>call<wbr/>Id</span><a href="#callid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">callId</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+<div class="tsd-comment tsd-typography"><p>Call ID associated with the event, or <code>&quot;&quot;</code> for non-call events.</p>
+</div><aside class="tsd-sources">
+<p>Inherited from <a href="_signalwire_sdk.RelayEvent.html">RelayEvent</a>.<a href="_signalwire_sdk.RelayEvent.html#callid">callId</a></p>
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/relay/RelayEvent.ts#L45">src/relay/RelayEvent.ts:45</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-inherited">
+<h3 class="tsd-anchor-link" id="eventtype"><code class="tsd-tag">Readonly</code><span>event<wbr/>Type</span><a href="#eventtype" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">eventType</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+<div class="tsd-comment tsd-typography"><p>Fully-qualified event type (e.g. <code>&quot;calling.call.state&quot;</code>).</p>
+</div><aside class="tsd-sources">
+<p>Inherited from <a href="_signalwire_sdk.RelayEvent.html">RelayEvent</a>.<a href="_signalwire_sdk.RelayEvent.html#eventtype">eventType</a></p>
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/relay/RelayEvent.ts#L41">src/relay/RelayEvent.ts:41</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-inherited">
+<h3 class="tsd-anchor-link" id="params"><code class="tsd-tag">Readonly</code><span>params</span><a href="#params" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">params</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">EventPayload</span></div>
+<div class="tsd-comment tsd-typography"><p>Raw params dict from the RELAY notification.</p>
+</div><aside class="tsd-sources">
+<p>Inherited from <a href="_signalwire_sdk.RelayEvent.html">RelayEvent</a>.<a href="_signalwire_sdk.RelayEvent.html#params">params</a></p>
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/relay/RelayEvent.ts#L43">src/relay/RelayEvent.ts:43</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="state"><code class="tsd-tag">Readonly</code><span>state</span><a href="#state" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">state</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/relay/RelayEvent.ts#L771">src/relay/RelayEvent.ts:771</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member tsd-is-inherited">
+<h3 class="tsd-anchor-link" id="timestamp"><code class="tsd-tag">Readonly</code><span>timestamp</span><a href="#timestamp" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">timestamp</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+<div class="tsd-comment tsd-typography"><p>Server timestamp (epoch seconds) at which the event was emitted.</p>
+</div><aside class="tsd-sources">
+<p>Inherited from <a href="_signalwire_sdk.RelayEvent.html">RelayEvent</a>.<a href="_signalwire_sdk.RelayEvent.html#timestamp">timestamp</a></p>
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/relay/RelayEvent.ts#L47">src/relay/RelayEvent.ts:47</a></li></ul></aside></section></section></details>
+<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h2 class="tsd-anchor-link" id="methods-1">Methods<a href="#methods-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
+<section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="frompayload"><code class="tsd-tag">Static</code><span>from<wbr/>Payload</span><a href="#frompayload" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="frompayload-1"><span class="tsd-kind-call-signature">fromPayload</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">payload</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">EventPayload</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="" class="tsd-signature-type tsd-kind-class">HoldEvent</a><a href="#frompayload-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Factory that builds a typed event from a raw <code>signalwire.event</code> payload.
+Subclasses override this to populate their specialised fields; the base
+implementation returns a minimal <code>RelayEvent</code> used as the fallback for
+unrecognised event types.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">payload</span>: <span class="tsd-signature-type">EventPayload</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <a href="" class="tsd-signature-type tsd-kind-class">HoldEvent</a></h4><aside class="tsd-sources">
+<p>Overrides <a href="_signalwire_sdk.RelayEvent.html">RelayEvent</a>.<a href="_signalwire_sdk.RelayEvent.html#frompayload">fromPayload</a></p>
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/relay/RelayEvent.ts#L784">src/relay/RelayEvent.ts:784</a></li></ul></aside></div></li></ul></section></section></details></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li>
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div>
+<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>On This Page</h3></summary>
+<div class="tsd-accordion-details">
+<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Constructors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Constructors</summary>
+<div><a href="#constructor"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Constructor"><use href="../assets/icons.svg#icon-512"></use></svg><span>constructor</span></a></div></details>
+<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Properties</summary>
+<div><a href="#callid" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>call<wbr/>Id</span></a><a href="#eventtype" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>event<wbr/>Type</span></a><a href="#params" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>params</span></a><a href="#state"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>state</span></a><a href="#timestamp" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>timestamp</span></a></div></details>
+<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Methods</summary>
+<div><a href="#frompayload"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>from<wbr/>Payload</span></a></div></details></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../index.html">SignalWire TypeScript SDK</a>
+<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
+<li>Loading...</li></ul></nav></div></div></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer>
+<div class="overlay"></div></body></html>
