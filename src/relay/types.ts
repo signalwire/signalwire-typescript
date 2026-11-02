@@ -76,7 +76,11 @@ export interface PhoneDevice {
   timeout?: number;
   max_duration?: number;
   codecs?: string[];
-  headers?: Record<string, string>[];
+  /**
+   * SIP headers as a name→value map. The RELAY wire models device headers as a
+   * map object (`CallingReferParams.device.params.headers`), not an array.
+   */
+  headers?: Record<string, string>;
 }
 
 /** SIP device specification for dial/connect. */
@@ -87,7 +91,11 @@ export interface SipDevice {
   timeout?: number;
   max_duration?: number;
   codecs?: string[];
-  headers?: Record<string, string>[];
+  /**
+   * SIP headers as a name→value map. The RELAY wire models device headers as a
+   * map object (`CallingReferParams.device.params.headers`), not an array.
+   */
+  headers?: Record<string, string>;
 }
 
 /**
