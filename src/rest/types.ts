@@ -4,16 +4,47 @@
 
 import type { RequestOptionsInit } from './RequestOptions.js';
 
-/** Options for constructing a RestClient. */
-export interface ClientOptions {
+/** A custom `fetch` implementation (primarily for tests / audit harnesses). */
+export interface FetchOption {
+  /** Custom fetch implementation. */
+  fetchImpl?: typeof globalThis.fetch;
+}
+
+/**
+ * Explicit RestClient credentials — all three are required.
+ *
+ * This is the compile-time-safe shape for the explicit-object constructor path:
+ * passing `{ project, token }` (forgot `host`) is a TYPE error, not a runtime
+ * throw. To read credentials from the `SIGNALWIRE_*` environment instead, call
+ * `new RestClient()` (or pass only `{ fetchImpl }`) — see the constructor
+ * overloads on {@link RestClient}.
+ */
+export interface ClientCredentials {
+  /** SignalWire project ID. */
+  project: string;
+  /** SignalWire API token. */
+  token: string;
+  /** SignalWire space host (e.g. "example.signalwire.com"). */
+  host: string;
+}
+
+/**
+ * Options for constructing a RestClient (loose form).
+ *
+ * Every credential is optional here because each falls back to an env var
+ * (`SIGNALWIRE_PROJECT_ID` / `SIGNALWIRE_API_TOKEN` / `SIGNALWIRE_SPACE`). The
+ * public {@link RestClient} constructor narrows this via overloads so a partial
+ * credential object is rejected at compile time; this interface remains the
+ * implementation-signature / back-compat shape (e.g. the `restClient()` legacy
+ * call form).
+ */
+export interface ClientOptions extends FetchOption {
   /** SignalWire project ID. Falls back to SIGNALWIRE_PROJECT_ID env var. */
   project?: string;
   /** SignalWire API token. Falls back to SIGNALWIRE_API_TOKEN env var. */
   token?: string;
   /** SignalWire space host (e.g. "example.signalwire.com"). Falls back to SIGNALWIRE_SPACE env var. */
   host?: string;
-  /** Custom fetch implementation for testing. */
-  fetchImpl?: typeof globalThis.fetch;
   /**
    * Client-default transport envelope (timeout / retries / abort) applied to
    * every request; a per-request `requestOptions` shallow-overrides it. See
@@ -21,6 +52,17 @@ export interface ClientOptions {
    */
   requestOptions?: RequestOptionsInit;
 }
+
+/**
+ * Every RestClient option that is not a credential — the custom `fetch` and the
+ * client-default transport envelope.
+ *
+ * Derived from {@link ClientOptions} rather than spelled out, so a new
+ * non-credential option added there is automatically accepted by both
+ * constructor overloads instead of silently becoming a type error on the
+ * explicit-credentials path.
+ */
+export type ClientTransportOptions = Omit<ClientOptions, 'project' | 'token' | 'host'>;
 
 /** Options for constructing an HttpClient. */
 export interface HttpClientOptions {
