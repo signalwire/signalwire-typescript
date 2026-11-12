@@ -103,6 +103,13 @@ function headersOf(c: Context): Record<string, string> {
   return headers;
 }
 
+/** A request body's `conversation_id`, if it names one. */
+function conversationIdOf(body: unknown): string | undefined {
+  if (body === null || typeof body !== 'object') return undefined;
+  const value = (body as Record<string, unknown>)['conversation_id'];
+  return typeof value === 'string' && value ? value : undefined;
+}
+
 /** The Hono context of the served request being handled, for onSwmlRequest. */
 const servedRequestContext = new AsyncLocalStorage<Context>();
 
@@ -2976,6 +2983,11 @@ export class AgentBase extends SWMLService {
    * missing `call_id`, is refused like a wrong token. A non-secure function
    * runs without a token.
    *
+   * The token may name the request's `call_id` or its `conversation_id`. A
+   * chat session fetches its SWML, and so gets its tokens, under the
+   * conversation's id, then sends every request under the chat service's own
+   * call id, with the conversation's id beside it.
+   *
    * @returns The SWAIG response to send instead of running the function, or
    *   `null` when the function may run.
    */
@@ -2984,13 +2996,14 @@ export class AgentBase extends SWMLService {
     token: string | null,
     callId: string,
     reqLog: Logger,
+    conversationId?: string,
   ): SwaigResultDict | null {
     if (!fn.secure) return null;
     if (!token) {
       reqLog.warn('token_missing');
     } else if (!callId) {
       reqLog.warn('token_rejected_no_call_id');
-    } else if (this.sessionManager.validateToken(callId, fn.name, token)) {
+    } else if (this.tokenNamesCall(fn.name, token, callId, conversationId)) {
       reqLog.debug('token_valid');
       return null;
     } else {
@@ -3000,6 +3013,24 @@ export class AgentBase extends SWMLService {
     return new FunctionResult(
       "I'm sorry, the security token for this function is invalid or expired. I cannot execute this action.",
     ).toDict();
+  }
+
+  /**
+   * Whether `token` was minted for `functionName` and the request's call:
+   * its `call_id`, or its `conversation_id` when it names a different one.
+   */
+  private tokenNamesCall(
+    functionName: string,
+    token: string,
+    callId: string,
+    conversationId?: string,
+  ): boolean {
+    return (
+      this.sessionManager.validateToken(callId, functionName, token) ||
+      (!!conversationId &&
+        conversationId !== callId &&
+        this.sessionManager.validateToken(conversationId, functionName, token))
+    );
   }
 
   private extractSwaigArgs(body: Record<string, unknown>, reqLog: Logger): Record<string, unknown> {
@@ -3601,7 +3632,13 @@ export class AgentBase extends SWMLService {
 
       const url = new URL(c.req.url);
       const token = url.searchParams.get('__token') ?? url.searchParams.get('token');
-      const refusal = target.swaigTokenRefusal(fn, token, callIdStr, reqLog);
+      const refusal = target.swaigTokenRefusal(
+        fn,
+        token,
+        callIdStr,
+        reqLog,
+        conversationIdOf(body),
+      );
       if (refusal) return c.json(refusal);
 
       const args = this.extractSwaigArgs(body, reqLog);
@@ -3674,7 +3711,10 @@ export class AgentBase extends SWMLService {
         reqLog.warn('token_missing');
         return c.json({ error: 'Invalid or missing token' }, 403);
       }
-      if (!callId || !this.sessionManager.validateToken(callId, 'post_prompt', token)) {
+      // A chat session's summary arrives under the chat service's own call id,
+      // with the conversation its SWML, and so its token, was made for beside it.
+      const conversationId = conversationIdOf(body);
+      if (!callId || !this.tokenNamesCall('post_prompt', token, callId, conversationId)) {
         reqLog.warn('invalid_token');
         return c.json({ error: 'Invalid or missing token' }, 403);
       }

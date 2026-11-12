@@ -3,6 +3,20 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Fixed
+
+- A chat session's post-prompt summary was refused with `403`, so its
+  transcript never saved. The chat service fetches an agent's SWML under the
+  conversation's id, so the SDK mints that SWML's tokens for the
+  conversation, but the summary can arrive under the chat service's own call
+  id, with the conversation's id as `conversation_id`. A token is now
+  accepted when it names the request's `call_id` or its `conversation_id`,
+  for post-prompt summaries and secure functions alike. A voice call, where
+  the two are the same, is unchanged, and the token still has to name this
+  call or conversation. Parity with signalwire-python #166.
+
 ## 3.7.1 (2026-10-14)
 
 Parity with signalwire-python 3.7.1, and `onCallStart()` from its main branch (#118).

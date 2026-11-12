@@ -462,7 +462,7 @@ agent.defineTool({
 
 When the SDK renders the SWML, it adds a `__token` query parameter to each secure tool's `web_hook_url`. The token is an HMAC over the call ID, the function name and an expiry. On each `/swaig` request, the SDK checks the signature, the call ID and the expiry before it runs the handler. A request with no token, or with no `call_id` in its body, is refused like a wrong token. The refusal is a normal SWAIG response whose text says the token is invalid or expired.
 
-The token proves that the request came from SWML this agent rendered for that call. It doesn't replace basic auth or the webhook signature check.
+The token proves that the request came from SWML this agent rendered for that call. It doesn't replace basic auth or the webhook signature check. A chat session fetches its SWML under the conversation's id and can send requests under the chat service's own call id, with the conversation's id as `conversation_id`, so the SDK accepts a token minted for either one.
 
 By default, each process generates its own signing secret at startup. A restart then invalidates the tokens of calls in progress, and two replicas can't check each other's tokens. Set the same `swaigSecret`, or `SIGNALWIRE_SWAIG_SECRET`, on every replica and keep it across restarts.
 
@@ -903,7 +903,7 @@ class MyAgent extends AgentBase {
 
 The SDK takes the summary from `body.summary`, then `body.post_prompt_data.parsed[0]`, then `body.post_prompt_data.raw` parsed as JSON. The second argument is the whole request body. With a dynamic config callback set, `onSummary` runs on the per-request copy.
 
-A `POST /post_prompt` needs the `__token` that the SDK put in the SWML's `post_prompt_url` for that call. A missing or wrong token gets `403`.
+A `POST /post_prompt` needs the `__token` that the SDK put in the SWML's `post_prompt_url` for that call. A missing or wrong token gets `403`. A token minted for the request's `conversation_id` is accepted too, since a chat session's summary arrives under the chat service's own call id.
 
 ### Post-Prompt LLM Parameters
 
