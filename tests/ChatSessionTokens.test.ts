@@ -122,6 +122,36 @@ describe('a chat session', () => {
   });
 });
 
+describe('the conversation fallback (found in review)', () => {
+  it.each([{}, 42, true, ['x'], ''])('needs a string call_id: refuses %j', async (callId) => {
+    const agent = chatAgent([]);
+    const [postPromptToken, lookupToken] = await tokens(agent, CONVERSATION);
+    const tool = await post(agent, `/swaig?__token=${lookupToken}`, {
+      function: 'lookup',
+      argument: { parsed: [{}] },
+      call_id: callId,
+      conversation_id: CONVERSATION,
+    });
+    expect(String(((await tool.json()) as Json)['response'])).not.toBe('found');
+    const summary = await post(agent, `/post_prompt?__token=${postPromptToken}`, {
+      call_id: callId,
+      conversation_id: CONVERSATION,
+      post_prompt_data: { raw: 'x' },
+    });
+    expect(summary.status).not.toBe(200);
+  });
+
+  it("doesn't log a token mismatch for a chat request that it accepts", async () => {
+    const agent = chatAgent([]);
+    const [, lookupToken] = await tokens(agent, CONVERSATION);
+    const sm = (agent as unknown as { sessionManager: { log: { warn: () => void } } })
+      .sessionManager;
+    const warn = vi.spyOn(sm.log, 'warn');
+    expect(await callLookup(agent, lookupToken, CONVERSATION)).toBe('found');
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
 describe('a voice call', () => {
   it('is unchanged: the SWML and every request carry the same call id', async () => {
     const agent = chatAgent([]);

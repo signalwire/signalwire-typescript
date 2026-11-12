@@ -3018,19 +3018,18 @@ export class AgentBase extends SWMLService {
   /**
    * Whether `token` was minted for `functionName` and the request's call:
    * its `call_id`, or its `conversation_id` when it names a different one.
+   * The request must name a call: a `call_id` that isn't a non-empty string
+   * is refused, so the conversation can't stand in for a malformed one.
    */
   private tokenNamesCall(
     functionName: string,
     token: string,
-    callId: string,
+    callId: unknown,
     conversationId?: string,
   ): boolean {
-    return (
-      this.sessionManager.validateToken(callId, functionName, token) ||
-      (!!conversationId &&
-        conversationId !== callId &&
-        this.sessionManager.validateToken(conversationId, functionName, token))
-    );
+    if (typeof callId !== 'string' || !callId) return false;
+    const ids = conversationId && conversationId !== callId ? [callId, conversationId] : [callId];
+    return this.sessionManager._validateTokenFor(ids, functionName, token);
   }
 
   private extractSwaigArgs(body: Record<string, unknown>, reqLog: Logger): Record<string, unknown> {
