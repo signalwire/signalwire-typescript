@@ -5,6 +5,18 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### Added
+
+- A step's or context's history mode can be `"isolate"`:
+  `step.setHistory('isolate')`. While the agent is in the step, the model
+  sees none of the earlier dialogue and none of the earlier step
+  instructions, as with `"hide"`. When the agent leaves the step, the
+  earlier dialogue comes back, and the step's own turns stay; the earlier
+  instructions stay cleared, and what an earlier `"hide"` step hid stays
+  hidden. Entering the step again isolates it again. On a context, it
+  applies to every step that doesn't set its own mode. A platform without
+  isolate treats it as `"default"`. Parity with signalwire-python 3.7.7.
+
 ### Fixed
 
 - A chat session's post-prompt summary was refused with `403`, so its

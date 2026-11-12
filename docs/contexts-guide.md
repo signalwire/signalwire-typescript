@@ -381,11 +381,12 @@ main.setText('Now handle the main request.');
 step.setHistory('hide');
 ```
 
-The three modes are these:
+The modes are these:
 
 - `keep`: hide nothing. Earlier steps' instructions and dialogue stay visible.
 - `default`: hide earlier step instructions, and keep the dialogue. This is the behavior when `history` isn't set.
 - `hide`: hide earlier instructions and the earlier dialogue. A `${step_history.*}` reference in this step's text brings back what you choose.
+- `isolate`: like `hide`, but only while the agent is in this step. When the step is left, the earlier dialogue returns and the step's own turns stay; the earlier instructions stay cleared, and what an earlier `hide` step hid stays hidden. Entering the step again isolates it again. Use it for a step that must see nothing else, such as a confirmation read-back. A platform without `isolate` treats it as `default`.
 
 `Context.setHistory()` sets the default for every step in the context, and a step's own `setHistory()` overrides it. Any other value throws.
 

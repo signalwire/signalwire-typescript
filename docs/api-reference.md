@@ -2110,7 +2110,7 @@ The `addStep()` options are shortcuts:
 | `setUserPrompt` | `(userPrompt: string): this` | Emits `user_prompt` |
 | `setIsolated` | `(isolated: boolean): this` | Emits `isolated: true` |
 | `setPrompt` | `(prompt: string): this` | Raw `prompt`. Throws when prompt POM sections exist. |
-| `setHistory` | `(history: string): this` | Default history mode for the context's steps: `keep`, `default` or `hide`. Throws on any other value. |
+| `setHistory` | `(history: string): this` | Default history mode for the context's steps: `keep`, `default`, `hide` or `isolate`. Throws on any other value. |
 
 #### POM Sections
 
@@ -2172,7 +2172,7 @@ constructor(name: string)
 | `setEnd` | `(end: boolean): this` | Emits `end: true`, which leaves step mode after this step. It doesn't end the call. |
 | `setSkipUserTurn` | `(skip: boolean): this` | Emits `skip_user_turn: true` |
 | `setSkipToNextStep` | `(skip: boolean): this` | Emits `skip_to_next_step: true` |
-| `setHistory` | `(history: string): this` | History mode when the step is entered: `keep`, `default` or `hide`. Throws on any other value. |
+| `setHistory` | `(history: string): this` | History mode when the step is entered: `keep`, `default`, `hide` or `isolate` (like `hide`, but only while the agent is in the step). Throws on any other value. |
 
 #### Gather Info Methods
 
@@ -2281,8 +2281,8 @@ The accepted history modes:
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
-const HISTORY_MODES: readonly ['keep', 'default', 'hide']
-type HistoryMode = 'keep' | 'default' | 'hide'
+const HISTORY_MODES: readonly ['keep', 'default', 'hide', 'isolate']
+type HistoryMode = 'keep' | 'default' | 'hide' | 'isolate'
 ```
 
 ---
