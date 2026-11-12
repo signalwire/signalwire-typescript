@@ -430,6 +430,8 @@ export class SWMLService {
   protected _proxyUrlBase: string | null = process.env['SWML_PROXY_URL_BASE'] ?? null;
   protected _proxyUrlBaseFromEnv = !!process.env['SWML_PROXY_URL_BASE'];
   protected _routingCallbacks = new Map<string, RoutingCallback>();
+  /** The route-relative router {@link asRouter} returns, built on first use. */
+  private _router: Hono | undefined;
 
   // SWAIG tool registry — lifted from AgentBase so any SWMLService (sidecar,
   // non-agent verb host) can register and dispatch SWAIG functions. Stores
@@ -533,6 +535,16 @@ export class SWMLService {
         }),
       );
     }
+
+    // Routing callbacks. Dispatched here rather than as routes, so one
+    // registered after the app has served a request still answers: Hono
+    // can't add a route once its matcher is built.
+    this._app.use('*', async (c, next) => {
+      if (c.req.method !== 'GET' && c.req.method !== 'POST') return next();
+      const callbackFn = this._routingCallbackAt(c.req.path);
+      if (!callbackFn) return next();
+      return this._serveRoutingCallback(c, callbackFn);
+    });
 
     // Health endpoints
     this._app.get('/health', (c) => c.json({ status: 'ok' }));
@@ -1087,32 +1099,46 @@ export class SWMLService {
       normalized = `/${normalized}`;
     }
     this.log.info(`Registering routing callback at ${normalized}`);
+    // The app's routing-callback middleware serves it from now on.
     this._routingCallbacks.set(normalized, callbackFn);
+  }
 
-    // Install an endpoint on the Hono app for this callback path. It runs
-    // this callback (awaited) for a POST, redirects with 307 when it returns
-    // a route, and otherwise serves the SWML for the request as the main
-    // route does, as the reference does. Auth is the app's middleware.
-    const routeHandler = async (c: Context) => {
-      const { bodyParams, headers } = await this._readRequest(c);
-      if (c.req.method === 'POST' && Object.keys(bodyParams).length > 0) {
-        try {
-          const route = await callbackFn(bodyParams as SwmlRequestData, headers);
-          if (route != null) {
-            this.log.info(`routing_request route=${route}`);
-            return c.redirect(route, 307);
-          }
-        } catch (err) {
-          this.log.error(
-            `error_in_routing_callback error=${err instanceof Error ? err.message : String(err)}`,
-          );
+  /**
+   * The routing callback a request path addresses: one registered at `path`
+   * is served under the service's route, as the reference's router serves it,
+   * and at `path` itself, where releases before 3.7.2 served it.
+   */
+  private _routingCallbackAt(requestPath: string): RoutingCallback | undefined {
+    const path = requestPath.replace(/\/{2,}/g, '/').replace(/(.)\/+$/, '$1');
+    const base = this._routeBase();
+    for (const [cbPath, callbackFn] of this._routingCallbacks) {
+      if (path === `${base}${cbPath}` || path === cbPath) return callbackFn;
+    }
+    return undefined;
+  }
+
+  /**
+   * Answer a request for a routing callback: run it (awaited) for a POST with
+   * a body, redirect with 307 when it returns a route, and otherwise serve the
+   * SWML for the request as the main route does, as the reference does. Auth
+   * is the app's middleware.
+   */
+  private async _serveRoutingCallback(c: Context, callbackFn: RoutingCallback): Promise<Response> {
+    const { bodyParams, headers } = await this._readRequest(c);
+    if (c.req.method === 'POST' && Object.keys(bodyParams).length > 0) {
+      try {
+        const route = await callbackFn(bodyParams as SwmlRequestData, headers);
+        if (route != null) {
+          this.log.info(`routing_request route=${route}`);
+          return c.redirect(route, 307);
         }
+      } catch (err) {
+        this.log.error(
+          `error_in_routing_callback error=${err instanceof Error ? err.message : String(err)}`,
+        );
       }
-      return c.json(await this._documentForRequest(c, bodyParams, headers));
-    };
-
-    this._app.get(normalized, routeHandler);
-    this._app.post(normalized, routeHandler);
+    }
+    return c.json(await this._documentForRequest(c, bodyParams, headers));
   }
 
   /** The body (for a POST) and headers of a served request. */
@@ -1287,15 +1313,40 @@ export class SWMLService {
   /**
    * Get a router to embed this service's routes in a host web app.
    *
-   * Returns the fully-wired Hono app as a mountable sub-app; the host mounts it
-   * with `hostApp.route(path, service.asRouter())`. This is the TypeScript
-   * realization of Python's `as_router()`; the named {@link HostAppRouter} type
-   * is the cross-port "embed my routes in a host app" contract.
+   * The router's routes are relative to the service's route, as Python's
+   * `as_router()` is: the host mounts it with
+   * `hostApp.route(path, service.asRouter())`, and the service's document is
+   * served at `path`, its SWAIG endpoint at `path/swaig` and its routing
+   * callbacks under `path`, with its own basic auth. The named
+   * {@link HostAppRouter} type is the cross-port "embed my routes in a host
+   * app" contract.
    *
    * @returns A mountable Hono sub-app carrying this service's routes.
    */
   asRouter(): HostAppRouter {
-    return this.getApp();
+    const base = this._routeBase();
+    if (!base) return this.getApp();
+    if (!this._router) {
+      // The service's own app serves its routes under its route. The host may
+      // mount this router at any prefix, so each request is passed on with
+      // that prefix replaced by the route.
+      const router = new Hono();
+      router.all('*', (c) => {
+        const prefix = c.req.routePath.replace(/\/?\*$/, '');
+        const url = new URL(c.req.url);
+        const path = url.pathname.replace(/\/{2,}/g, '/');
+        const rest = path.slice(prefix.length).replace(/\/+$/, '');
+        url.pathname = `${base}${rest}`;
+        return this.getApp().fetch(new Request(url, c.req.raw));
+      });
+      this._router = router;
+    }
+    return this._router;
+  }
+
+  /** The service's route as a path prefix: '' for '/', else without a trailing slash. */
+  private _routeBase(): string {
+    return this.route === '/' ? '' : this.route.replace(/\/+$/, '');
   }
 
   /**

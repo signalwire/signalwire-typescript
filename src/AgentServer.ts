@@ -11,6 +11,7 @@ import { getPathNoStrict } from 'hono/utils/url';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize, resolve } from 'node:path';
 import { AgentBase, type RoutingCallback } from './AgentBase.js';
+import type { SWMLService } from './SWMLService.js';
 import type { Server as NodeServer } from 'node:http';
 import { getLogger, setGlobalLogLevel } from './Logger.js';
 import { corsOriginsFromEnv } from './SecurityUtils.js';
@@ -69,9 +70,24 @@ const MIME_TYPES: Record<string, string> = {
  * await server.run();
  * ```
  *
+ * @example Host a plain SWMLService (an IVR menu) next to an agent
+ * ```ts
+ * import { AgentServer, AgentBase, SWMLService } from '@signalwire/sdk';
+ *
+ * const support = new AgentBase({ name: 'support', route: '/support' });
+ * const menu = new SWMLService({ name: 'menu', route: '/menu' });
+ * menu.addVerb('answer', {}).addVerb('hangup', {});
+ *
+ * const server = new AgentServer<SWMLService>();
+ * server.register(support);
+ * server.register(menu);
+ * ```
+ *
+ * @typeParam T - What the server hosts: `AgentBase` by default, or
+ *   `SWMLService` to host plain services next to agents.
  * @see {@link AgentBase}
  */
-export class AgentServer {
+export class AgentServer<T extends SWMLService = AgentBase> {
   /** Hostname the server binds to. */
   host: string;
   /** Port the server listens on. */
@@ -80,7 +96,7 @@ export class AgentServer {
   readonly logLevel: string;
   /** Public logger for this server instance. */
   readonly log = getLogger('AgentServer');
-  private agents: Map<string, AgentBase> = new Map();
+  private agents: Map<string, T> = new Map();
   private _app: Hono;
   /** Agents and static directories, in the order they were added. */
   private _routes: Array<
@@ -123,6 +139,8 @@ export class AgentServer {
     for (const [route, agent] of this.agents) {
       const base = route === '/' ? '' : route.replace(/\/+$/, '');
       if (base && normalized !== base && !normalized.startsWith(`${base}/`)) continue;
+      // Only an agent has mount(); a plain SWMLService serves its own routes.
+      if (!(agent instanceof AgentBase)) continue;
       if (agent._servedByMount(normalized.slice(base.length) || '/', method)) return true;
     }
     return false;
@@ -201,11 +219,19 @@ export class AgentServer {
 
   /**
    * Register an agent at the given route prefix.
-   * @param agent - The AgentBase instance to mount.
+   *
+   * On an `AgentServer<SWMLService>`, a plain {@link SWMLService} works too,
+   * so a call flow without AI, such as an IVR menu, can share the server with
+   * the agents and take calls through SIP routing. It answers at its route with
+   * or without a trailing slash, checks its own basic auth, and serves its
+   * `/swaig` endpoint and routing callbacks; the agent endpoints
+   * (`/post_prompt`, `/check_for_input`, `/debug`) aren't served for it.
+   *
+   * @param agent - The agent (or, on an `AgentServer<SWMLService>`, service) to mount.
    * @param route - Route prefix; defaults to the agent's own route or '/'.
    * @throws If the route is already occupied by another agent.
    */
-  register(agent: AgentBase, route?: string): void {
+  register(agent: T, route?: string): void {
     let r = route ?? agent.route ?? '/';
     if (!r.startsWith('/')) r = `/${r}`;
     r = r.replace(/\/+$/, '') || '/';
@@ -262,9 +288,9 @@ export class AgentServer {
 
   /**
    * Get all registered agents keyed by their route prefix.
-   * @returns A map of route prefixes to AgentBase instances.
+   * @returns A map of route prefixes to the registered agents (and services).
    */
-  getAgents(): Map<string, AgentBase> {
+  getAgents(): Map<string, T> {
     return this.agents;
   }
 
@@ -273,7 +299,7 @@ export class AgentServer {
    * @param route - The route prefix to look up.
    * @returns The agent at that route, or undefined if none is registered.
    */
-  getAgent(route: string): AgentBase | undefined {
+  getAgent(route: string): T | undefined {
     return this.agents.get(route);
   }
 
@@ -458,7 +484,7 @@ export class AgentServer {
   /**
    * Auto-map SIP usernames for an agent based on name and route.
    */
-  private _autoMapAgentSipUsernames(agent: AgentBase, route: string): void {
+  private _autoMapAgentSipUsernames(agent: SWMLService, route: string): void {
     const agentName = agent.name.toLowerCase();
     const cleanName = agentName.replace(/[^a-z0-9_]/g, '');
 
