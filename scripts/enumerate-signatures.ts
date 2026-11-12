@@ -957,8 +957,16 @@ function translateType(
   if (type.flags & ts.TypeFlags.NumberLiteral) return 'float';
   if (type.flags & ts.TypeFlags.BooleanLiteral) return 'bool';
   // Generic type parameter (T, U, ...). Python doesn't carry generic
-  // type variables in signatures; resolve to `any`.
-  if (type.flags & ts.TypeFlags.TypeParameter) return 'any';
+  // type variables in signatures. One with a default resolves to it, the
+  // type a caller who doesn't choose gets (AgentServer<T = AgentBase>
+  // hosts AgentBase, as the reference annotates); others resolve to `any`.
+  if (type.flags & ts.TypeFlags.TypeParameter) {
+    const decl = type.symbol?.declarations?.find(ts.isTypeParameterDeclaration);
+    if (decl?.default) {
+      return translateType(checker.getTypeFromTypeNode(decl.default), checker, aliases, context);
+    }
+    return 'any';
+  }
   // ``this`` types — fluent-API returns. Resolve to a class reference for
   // the owning declaration.
   if ((type as any).flags & 0x100000000 || typeStr === 'this') {
