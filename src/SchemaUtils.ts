@@ -9,6 +9,7 @@
 import { createRequire } from 'module';
 import Ajv2020 from 'ajv/dist/2020.js';
 import type { ValidateFunction } from 'ajv';
+import { getLogger } from './Logger.js';
 
 /** Result of validating a SWML document. */
 export interface ValidationResult {
@@ -65,6 +66,9 @@ type AjvLike = { compile: (s: object) => ValidateFunction; addSchema: (s: object
  * schema object (the bundled schema is one object, so a service or builder
  * created per request doesn't recompile it).
  */
+/** Schemas whose full validator couldn't be built, already warned about. */
+const WARNED_UNAVAILABLE = new WeakSet<object>();
+
 const COMPILED = new WeakMap<
   object,
   {
@@ -525,8 +529,18 @@ export class SchemaUtils {
         } else {
           built = ajv.compile({ $defs: defs, ...(verb.definition as object) });
         }
-      } catch {
+      } catch (err) {
         built = null;
+        // Where Ajv can't compile (a runtime that blocks code generation from
+        // strings, as Cloudflare Workers do), validation falls back to the
+        // lightweight checks. Say so once, as the reference does.
+        if (this.schema && !WARNED_UNAVAILABLE.has(this.schema)) {
+          WARNED_UNAVAILABLE.add(this.schema);
+          getLogger('SchemaUtils').warn('schema_validator_unavailable', {
+            error: err instanceof Error ? err.message : String(err),
+            hint: 'only verb names and required fields are checked',
+          });
+        }
       }
     }
     this.verbValidators.set(verbName, built);

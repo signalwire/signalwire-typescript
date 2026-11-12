@@ -1400,7 +1400,7 @@ Import the class from the package root:
 import { AgentServer } from '@signalwire/sdk';
 ```
 
-`AgentServer` serves several agents from one HTTP server, each under its own route prefix.
+`AgentServer` serves several agents from one HTTP server, each under its own route prefix. `AgentServer<T extends SWMLService = AgentBase>` is generic over what it hosts: `new AgentServer<SWMLService>()` hosts plain `SWMLService` call flows next to agents, and its `getAgent()` and `getAgents()` then return `SWMLService`. A plain service answers at its route with or without a trailing slash, under its own basic auth, and serves its `/swaig` endpoint and routing callbacks; the agent endpoints (`/post_prompt`, `/check_for_input`, `/debug`) aren't served for it.
 
 ### Constructor
 
@@ -1421,10 +1421,10 @@ constructor(opts?: { host?: string; port?: number; logLevel?: string })
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `register` | `(agent: AgentBase, route?: string): void` | Mount the agent's `asRouter()` at `route` (default the agent's route). Throws when the route is taken. |
+| `register` | `(agent: T, route?: string): void` | Mount the agent's (or service's) `asRouter()` at `route` (default its own route). Throws when the route is taken. |
 | `unregister` | `(route: string): boolean` | Remove an agent and its routes; returns `false` when none was registered there. |
-| `getAgents` | `(): Map<string, AgentBase>` | Registered agents keyed by route |
-| `getAgent` | `(route: string): AgentBase \| undefined` | The agent at a route |
+| `getAgents` | `(): Map<string, T>` | Registered agents keyed by route |
+| `getAgent` | `(route: string): T \| undefined` | The agent at a route |
 | `serveStaticFiles` | `(directory: string, route?: string): void` | Serve files from a directory, rejecting paths with `..` |
 | `setupSipRouting` | `(route?: string, autoMap?: boolean): void` | Route SIP requests to agents by username at `route` (default `/sip`) |
 | `registerSipUsername` | `(username: string, route: string): void` | Map a SIP username to an agent's route |

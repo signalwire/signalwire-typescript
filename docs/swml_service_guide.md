@@ -352,7 +352,7 @@ A routing callback inspects a request at a path you choose, and either redirects
 
 ### Registering a Routing Callback
 
-`registerRoutingCallback(callbackFn, path)` adds `GET` and `POST` routes at `path` (default `/sip`). The path is at the server root, not under the service's `route`. The callback receives the request's JSON body and its headers, and returns a route string or `null`:
+`registerRoutingCallback(callbackFn, path)` serves `GET` and `POST` at `path` (default `/sip`) under the service's `route`: a service at `/menu` answers at `/menu/sip`. It also answers at `path` itself, where releases before 3.7.2 served it. The callback receives the request's JSON body and its headers, and returns a route string or `null`. A callback can be registered after the service has started serving:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `service` object established earlier on the page -->
 ```typescript
@@ -420,17 +420,42 @@ A `POST /sip` whose body has `call.to` set to `sip:sales@example.sip.signalwire.
 
 ### Mounting into a Larger App
 
-`getApp()` returns the service's Hono app, so you can mount it in a larger application. `asRouter()` returns the same app:
+`asRouter()` returns a router whose routes are relative to the service's route, so you can mount it at any prefix in a larger application:
 
 ```typescript
 import { Hono } from 'hono';
 
 const app = new Hono();
-const service = new SWMLService({ name: 'my-service' });
-app.route('/voice', service.getApp());
+const service = new SWMLService({ name: 'my-service', route: '/menu' });
+app.route('/voice', service.asRouter());
 ```
 
-Mounted this way, the service's routes are under `/voice`: its document at `/voice` and its SWAIG route at `/voice/swaig`.
+Mounted this way, the service's routes are under `/voice`: its document at `/voice`, its SWAIG route at `/voice/swaig` and its routing callbacks under `/voice`, behind its own basic auth. `getApp()` returns the service's own app, whose routes are under the service's `route`.
+
+### Hosting a Service Next to Agents
+
+An `AgentServer<SWMLService>` registers a plain `SWMLService` as well as agents, so a call flow without AI, such as an IVR menu, can share a server with them. SIP routing can send calls to it like any agent:
+
+<!-- snippet: no-run starts a blocking HTTP server (serve/start/run on a fixed port); collides under the concurrent gate and cannot run standalone -->
+```typescript
+import { AgentBase, AgentServer, SWMLService } from '@signalwire/sdk';
+
+const support = new AgentBase({ name: 'support', route: '/support' });
+support.promptAddSection('Role', { body: 'You help callers with their accounts.' });
+
+const menu = new SWMLService({ name: 'menu', route: '/menu' });
+menu.addVerb('answer', {});
+menu.addVerb('hangup', {});
+
+const server = new AgentServer<SWMLService>();
+server.register(support, '/support');
+server.register(menu, '/menu');
+server.setupSipRouting('/sip');
+server.registerSipUsername('menu', '/menu');
+await server.run();
+```
+
+The service answers at its route with or without a trailing slash, checks its own basic auth credentials, and serves its `/swaig` endpoint and routing callbacks. The agent endpoints (`/post_prompt`, `/check_for_input` and `/debug`) aren't served for it. A plain `new AgentServer()` hosts agents only, and its `getAgent()` and `getAgents()` return agents; on an `AgentServer<SWMLService>` they return `SWMLService`, so narrow with `instanceof AgentBase` before calling agent methods.
 
 ### Serving HTTPS
 
@@ -481,7 +506,7 @@ The document methods listed in [Document Methods](#document-methods) are the pub
 These methods serve, configure and inspect the service:
 
 - `getApp()`: Get the underlying Hono app
-- `asRouter()`: Return the same app as `getApp()`, to mount in a host app
+- `asRouter()`: Return a router with the service's routes relative to its route, to mount at any prefix in a host app
 - `serve(hostOrOptions?, port?, sslOptions?)`: Start the HTTP or HTTPS server
 - `stop()`: Stop the server
 - `handleRequest(method, url, headers, body?)`: Answer a request without Hono, returning `[status, headers, body]`

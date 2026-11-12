@@ -27,7 +27,31 @@ follows [Semantic Versioning](https://semver.org/).
   accepted when it names the request's `call_id` or its `conversation_id`,
   for post-prompt summaries and secure functions alike. A voice call, where
   the two are the same, is unchanged, and the token still has to name this
-  call or conversation. Parity with signalwire-python #166.
+  call or conversation. A `call_id` that isn't a non-empty string is
+  refused, and an accepted chat request logs no token mismatch. Parity with
+  signalwire-python 3.7.4 (#166).
+- `AgentServer` hosts a plain `SWMLService` next to its agents, as
+  signalwire-python 3.7.6 does. Registering one made every request under its
+  route answer with 500. Use `new AgentServer<SWMLService>()`:
+  `AgentServer<T extends SWMLService = AgentBase>` is now generic over what
+  it hosts, so `getAgent()` and `getAgents()` keep returning agents on a
+  plain `new AgentServer()`. The service answers at its route with or
+  without a trailing slash, under its own basic auth, and serves its
+  `/swaig` endpoint and routing callbacks; the agent endpoints
+  (`/post_prompt`, `/check_for_input`, `/debug`) aren't served for it.
+- `SWMLService.asRouter()` returns a router whose routes are relative to
+  the service's route, as the reference's `as_router()` does, so a host can
+  mount it at any prefix. It returned the service's own app, so a service at
+  `/menu` mounted at `/menu` served `/menu/menu`.
+- A plain `SWMLService` serves its routing callbacks under its route
+  (`/menu/sip`), as the reference does, and still at the bare path
+  (`/sip`), where earlier releases served them. A callback registered after
+  the service has served a request now answers; it used to throw.
+- Where the SWML schema can't be compiled, as on a runtime that blocks code
+  generation from strings (Cloudflare Workers), verb validation falls back
+  to checking verb names and required fields, and now logs
+  `schema_validator_unavailable` once instead of falling back silently, as
+  signalwire-python 3.7.2 does.
 
 ## 3.7.1 (2026-10-14)
 
