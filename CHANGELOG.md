@@ -3,7 +3,11 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 3.7.2 (2026-11-12)
+
+Parity with signalwire-python 3.7.7: the chat-session token fix, a plain
+`SWMLService` on an `AgentServer`, the `isolate` history mode and the schema
+validator warning.
 
 ### Added
 
