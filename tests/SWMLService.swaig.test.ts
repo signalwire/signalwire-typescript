@@ -20,7 +20,7 @@ function authHeader(user: string, pass: string): Record<string, string> {
 
 describe('SWMLService SWAIG hosting', () => {
   describe('tool registry', () => {
-    it('registers a tool via defineTool and dispatches via onFunctionCall', () => {
+    it('registers a tool via defineTool and dispatches via onFunctionCall', async () => {
       const svc = new SWMLService();
       const captured: Record<string, unknown> = {};
       svc.defineTool({
@@ -33,7 +33,8 @@ describe('SWMLService SWAIG hosting', () => {
           return { response: 'ok' };
         },
       });
-      const result = svc.onFunctionCall('lookup', { x: 'y' }, {});
+      // Since 3.8.0 the tool runs through its own execution, which is async
+      const result = await svc.onFunctionCall('lookup', { x: 'y' }, {});
       expect(result).toEqual({ response: 'ok' });
       expect(captured['x']).toBe('y');
     });
