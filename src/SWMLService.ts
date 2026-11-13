@@ -35,6 +35,8 @@ import type { Server } from 'node:http';
 /** Single-route matchers by template, for {@link routeMatches}. */
 const ROUTE_MATCHERS = new Map<string, SmartRouter<true>>();
 const TRIE_MATCHERS = new Map<string, TrieRouter<true>>();
+/** The most path segments the trie fallback in {@link routeMatches} takes. */
+const MAX_FALLBACK_SEGMENTS = 128;
 
 /**
  * Whether `path` matches the route `template`, as routing matches it: with
@@ -58,7 +60,10 @@ function routeMatches(template: string, path: string): boolean {
     /* fall through to the trie matcher */
   }
   // RegExpRouter answers a zero-length capture with no handler list, where
-  // the trie router matches it, as routing's fallback does.
+  // the trie router matches it, as routing's fallback does. The trie's work
+  // grows with the square of the segments, and this runs before auth, so it
+  // only takes paths of a length a callback has.
+  if (path.split('/').length > MAX_FALLBACK_SEGMENTS) return false;
   let trie = TRIE_MATCHERS.get(template);
   if (!trie) {
     trie = new TrieRouter<true>();

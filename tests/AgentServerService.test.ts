@@ -882,3 +882,20 @@ it("keeps the mount's own boundary for a callback at '/' (found in review)", asy
   expect((await post('/voice')).headers.get('location')).toBe('/root');
   expect((await post('/voice/')).headers.get('location')).toBe('/capture');
 });
+
+it('bounds the empty-capture fallback on a long unauthenticated path (found in review)', async () => {
+  const s = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+  s.registerRoutingCallback(() => '/target', '/cb/:pad{.+}/:id{[a-z]*}');
+  const host = new Hono();
+  host.route('/voice', s.asRouter());
+  const started = performance.now();
+  await host.request(`/voice/cb/${Array(4096).fill('a').join('/')}/`);
+  expect(performance.now() - started).toBeLessThan(100);
+  // A path of a callback's length still matches
+  const res = await host.request('/voice/cb/a/b/c', {
+    method: 'POST',
+    headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ call: {} }),
+  });
+  expect(res.status).toBe(307);
+});
