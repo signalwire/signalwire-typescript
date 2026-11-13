@@ -76,6 +76,8 @@ describe('RestClient', () => {
     const [fetchImpl] = createMockFetch();
     expect(
       () =>
+        // @ts-expect-error a partial credential object (no project) is now a compile
+        // error; the runtime guard still throws (e.g. for JS callers / empty env).
         new RestClient({
           token: 'tok',
           host: 'test.signalwire.com',
@@ -88,6 +90,8 @@ describe('RestClient', () => {
     const [fetchImpl] = createMockFetch();
     expect(
       () =>
+        // @ts-expect-error a partial credential object (no token) is now a compile
+        // error; the runtime guard still throws (e.g. for JS callers / empty env).
         new RestClient({
           project: 'proj',
           host: 'test.signalwire.com',
@@ -100,6 +104,8 @@ describe('RestClient', () => {
     const [fetchImpl] = createMockFetch();
     expect(
       () =>
+        // @ts-expect-error a partial credential object (no host) is now a compile
+        // error; the runtime guard still throws (e.g. for JS callers / empty env).
         new RestClient({
           project: 'proj',
           token: 'tok',
