@@ -3,7 +3,7 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 3.8.0 (2026-11-13)
 
 Parity with signalwire-python 3.8.0, the voice-agent toolkit: newer semantic
 gate keys, tool outcomes and options, tool middleware with retry dedupe, the
