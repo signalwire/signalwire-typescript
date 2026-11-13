@@ -826,3 +826,20 @@ describe('routing callbacks match as routing does (found in review)', () => {
     }
   });
 });
+
+it('keeps registration order at the mount itself (found in review)', async () => {
+  for (const mounted of [false, true]) {
+    const s = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+    s.registerRoutingCallback(() => '/first', '/*');
+    s.registerRoutingCallback(() => '/second', '/');
+    const host = new Hono();
+    host.route('/voice', s.getApp());
+    const app = mounted ? host : s.getApp();
+    const res = await app.request(mounted ? '/voice' : '/', {
+      method: 'POST',
+      headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ call: {} }),
+    });
+    expect(res.headers.get('location'), String(mounted)).toBe('/first');
+  }
+});

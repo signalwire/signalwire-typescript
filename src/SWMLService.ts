@@ -715,7 +715,7 @@ export class SWMLService {
     on(
       callbackMethods,
       '/',
-      matchAt(() => this._routingCallbacks.get('/')),
+      matchAt((c) => this._matchCallback(c, base, true)),
       ...callbackGuards,
       serve,
     );
@@ -740,14 +740,15 @@ export class SWMLService {
    * callback path together, by Hono's own routers, as routing matched it when
    * callbacks were routes.
    */
-  private _matchCallback(c: Context, base: string): RoutingCallback | undefined {
-    const mount = c.req.routePath.replace(/\/?\*$/, '').replace(/\/$/, '');
-    const path = c.req.path;
+  private _matchCallback(c: Context, base: string, atMount = false): RoutingCallback | undefined {
+    // At the mount itself routing matched the mount whole: the path is '/'.
+    const mount = atMount ? '' : c.req.routePath.replace(/\/?\*$/, '').replace(/\/$/, '');
+    const path = atMount ? '/' : c.req.path;
     const paths = [...this._routingCallbacks.keys()];
     const candidates = [...(base ? paths : []), ...paths.map((cb) => `${base}${cb}`)];
     for (let i = 0; i < candidates.length; i++) {
       const candidate = candidates[i]!;
-      const template = `${mount}${candidate === '/' ? '' : candidate}`;
+      const template = `${mount}${candidate === '/' ? '' : candidate}` || '/';
       if (routeMatches(template, path)) {
         return this._routingCallbacks.get(paths[i % paths.length]!);
       }
