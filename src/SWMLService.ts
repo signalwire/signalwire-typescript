@@ -9,6 +9,7 @@
 import type { AgentBase } from './AgentBase.js';
 import { Hono } from 'hono';
 import { TrieRouter } from 'hono/router/trie-router';
+import { HTTPException } from 'hono/http-exception';
 import type { Context, MiddlewareHandler } from 'hono';
 import type { HostAppRouter } from './web.js';
 import { cors } from 'hono/cors';
@@ -30,6 +31,8 @@ import type { Server } from 'node:http';
 
 // ── Verb handler interfaces ────────────────────────────────────────────
 
+/** The route parameter holding a routing-callback request's path after the mount. */
+const CALLBACK_REST = 'swmlCallbackPath';
 /**
  * Interface for custom SWML verb handlers.
  * Mirrors Python SDK's `SWMLVerbHandler` abstract base class.
@@ -530,10 +533,11 @@ export class SWMLService {
    * The service's own app answers everything it's sent, so its security
    * headers, CORS and basic auth apply to every request. The router
    * (`scoped`) is mounted among other routes, so it has no middleware for
-   * every path: each route registered on it (the service's own, the
-   * extension hook's and any added later) carries the security headers, CORS
-   * and basic auth in its own handler chain, with a CORS preflight route for
-   * its path, and a neighbouring route is left alone.
+   * every path: the service's routes and routing callbacks carry the security
+   * headers, CORS and basic auth in their own handler chains, with CORS
+   * preflight routes, and a neighbouring route is left alone. Routes the
+   * extension hook or a caller adds to the router check auth themselves, as
+   * the reference's router handlers do.
    */
   private _buildServiceApp(base: string, scoped = false): Hono {
     const app = new Hono();
@@ -576,15 +580,22 @@ export class SWMLService {
       ...(checkAuth ? [checkAuth] : []),
     ];
 
-    if (scoped) {
-      this._guardRoutes(app, guards, corsMw);
-    } else {
-      for (const guard of guards) app.use('*', guard);
-    }
+    // The service's own routes: on the router, with the guards in their
+    // chain and a preflight route; on the app, under the guards for '*'.
+    const on = app.on as (methods: string[], path: string, ...handlers: unknown[]) => Hono;
+    const own = (methods: string[], path: string, handler: (c: Context) => unknown) => {
+      if (scoped) {
+        on(methods, path, ...guards, handler);
+        on(['OPTIONS'], path, corsMw);
+      } else {
+        on(methods, path, handler);
+      }
+    };
+    if (!scoped) for (const guard of guards) app.use('*', guard);
 
     // Health endpoints
-    app.get('/health', (c) => c.json({ status: 'ok' }));
-    app.get('/ready', (c) => c.json({ status: 'ready' }));
+    own(['GET'], '/health', (c) => c.json({ status: 'ok' }));
+    own(['GET'], '/ready', (c) => c.json({ status: 'ready' }));
 
     // Main SWML endpoint — serves on both GET and POST
     const handler = async (c: Context) => {
@@ -645,101 +656,51 @@ export class SWMLService {
       return c.json(result);
     };
     // With or without a trailing slash, mounted or on its own.
-    for (const path of [swaigPath, `${swaigPath}/`]) app.on(['GET', 'POST'], path, swaigHandler);
+    for (const path of [swaigPath, `${swaigPath}/`]) own(['GET', 'POST'], path, swaigHandler);
 
     // Subclass extension hook (AgentBase wires /post_prompt etc here).
     this.registerAdditionalRoutes(app);
 
-    for (const path of new Set([routePath, `${base}/`])) app.on(['GET', 'POST'], path, handler);
+    for (const path of new Set([routePath, `${base}/`])) own(['GET', 'POST'], path, handler);
 
     // Routing callbacks last, so the SWAIG and main routes keep precedence.
     // Looked up per request: one registered or replaced later still answers.
-    // Registered directly (not through the guarded methods): the guards run
-    // only when a callback answers, so a neighbouring route is left alone.
+    // The remainder parameter is the path after wherever the app is mounted,
+    // as routing resolved the mount. On the router the guards run only when a
+    // callback answers, so a neighbouring route is left alone.
     const dispatch: MiddlewareHandler = async (c, next) => {
-      const relative = this._mountedPath(c);
-      const callbackFn = relative === null ? undefined : this._matchCallback(relative, base);
+      const rest = c.req.param(CALLBACK_REST) ?? '';
+      const relative = `/${rest.split('/').filter(Boolean).join('/')}`;
+      const callbackFn = this._matchCallback(relative, base);
       if (!callbackFn) return next();
       const chain = scoped ? guards : [];
-      let res: Response | undefined;
+      // Composed as Hono composes middleware: each step's response lands on
+      // the context, so the outer steps' headers apply to it.
       const run = async (i: number): Promise<void> => {
         if (i === chain.length) {
-          res =
+          c.res =
             c.req.method === 'OPTIONS'
               ? c.body(null, 204)
               : await this._serveRoutingCallback(c, callbackFn);
-          c.res = res;
           return;
         }
-        const out = await chain[i]!(c, () => run(i + 1));
-        if (out instanceof Response) res = out;
+        try {
+          const out = await chain[i]!(c, () => run(i + 1));
+          if (out instanceof Response) c.res = out;
+        } catch (err) {
+          if (!(err instanceof HTTPException)) throw err;
+          c.res = err.getResponse();
+        }
       };
       await run(0);
-      return res ?? c.res;
+      return c.res;
     };
-    this._addRouteUnguarded(app, scoped ? ['GET', 'POST', 'OPTIONS'] : ['GET', 'POST'], dispatch);
+    app.on(
+      scoped ? ['GET', 'POST', 'OPTIONS'] : ['GET', 'POST'],
+      `/:${CALLBACK_REST}{.+}`,
+      dispatch,
+    );
     return app;
-  }
-
-  /** Original route methods of guarded routers, for routes added unguarded. */
-  private static _unguarded = new WeakMap<Hono, Hono['on']>();
-
-  /** Register a catch-all route on `app` without the router's per-route guards. */
-  private _addRouteUnguarded(app: Hono, methods: string[], handler: MiddlewareHandler): void {
-    (SWMLService._unguarded.get(app) ?? app.on)(methods, '*', handler);
-  }
-
-  /**
-   * Make every route registered on `app` carry `guards` in its own handler
-   * chain, with a CORS preflight route for its path: the scoped router has
-   * no middleware for every path, so it never touches a neighbouring route.
-   */
-  private _guardRoutes(app: Hono, guards: MiddlewareHandler[], corsMw: MiddlewareHandler): void {
-    const preflights = new Set<string>();
-    const origOn = app.on;
-    const origOptions = app.options;
-    const preflight = (paths: string | string[]) => {
-      for (const p of [paths].flat()) {
-        if (preflights.has(p)) continue;
-        preflights.add(p);
-        origOptions(p, corsMw);
-      }
-    };
-    SWMLService._unguarded.set(app, origOn);
-    let lastPath = '/';
-    const methods = ['get', 'post', 'put', 'delete', 'options', 'patch', 'query', 'all'] as const;
-    const target = app as unknown as Record<string, (...args: unknown[]) => Hono>;
-    for (const method of methods) {
-      const orig = target[method]!;
-      target[method] = (first: unknown, ...rest: unknown[]) => {
-        if (typeof first === 'string') {
-          lastPath = first;
-          if (rest.length === 0) return orig(first);
-          preflight(first);
-          return orig(first, ...guards, ...rest);
-        }
-        preflight(lastPath);
-        return orig(lastPath, ...guards, first, ...rest);
-      };
-    }
-    target['on'] = (method: unknown, paths: unknown, ...handlers: unknown[]) => {
-      preflight(paths as string | string[]);
-      return (origOn as (...args: unknown[]) => Hono)(method, paths, ...guards, ...handlers);
-    };
-  }
-
-  /**
-   * The request's path relative to where the app is mounted, for matching a
-   * routing callback: the mount's segments (as many as the matched route's
-   * template has before its final `*`) dropped, repeated and trailing slashes
-   * removed; null when the path is shorter than the mount.
-   */
-  private _mountedPath(c: Context): string | null {
-    const mount = c.req.routePath.replace(/\/?\*$/, '');
-    const mountSegments = mount.split('/').filter(Boolean).length;
-    const parts = c.req.path.split('/').filter(Boolean);
-    if (parts.length < mountSegments) return null;
-    return `/${parts.slice(mountSegments).join('/')}`;
   }
 
   /**

@@ -430,7 +430,7 @@ const service = new SWMLService({ name: 'my-service', route: '/menu' });
 app.route('/voice', service.asRouter());
 ```
 
-Mounted this way, the service's routes are under `/voice`: its document at `/voice`, its SWAIG route at `/voice/swaig` and its routing callbacks under `/voice`, behind its own basic auth. The router has no middleware for every path, so it leaves the host's other routes alone; each route on it, including one you add with `router.get()` and the like, carries the service's security headers, CORS and basic auth. Whether `/voice/` answers as `/voice` is the host app's choice: pass `{ strict: false }` to `new Hono()` for that, as `AgentServer` does. `getApp()` returns the service's own app, whose routes are under the service's `route`.
+Mounted this way, the service's routes are under `/voice`: its document at `/voice`, its SWAIG route at `/voice/swaig` and its routing callbacks under `/voice`, behind its own basic auth. The router has no middleware for every path, so it leaves the host's other routes alone: the service's own routes and routing callbacks carry its security headers, CORS and basic auth. A route you add to the router, or that a subclass adds in `registerAdditionalRoutes()`, isn't behind them there; check auth in it yourself (for example with Hono's `basicAuth` and the service's `validateBasicAuth()`), as the reference's router handlers do. Routes you add to `getApp()` are behind the service's basic auth. Whether `/voice/` answers as `/voice` is the host app's choice: pass `{ strict: false }` to `new Hono()` for that, as `AgentServer` does. `getApp()` returns the service's own app, whose routes are under the service's `route`.
 
 ### Hosting a Service Next to Agents
 

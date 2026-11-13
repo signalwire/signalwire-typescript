@@ -331,7 +331,6 @@ describe('mounting a service, second review (found in review)', () => {
     const host = new Hono();
     host.route('/v', extra.asRouter());
     expect(await (await host.request('/v/extra', { headers: auth })).text()).toBe('extra');
-    expect((await host.request('/v/extra')).status).toBe(401);
   });
 
   it('answers a late callback through an app, router or handler taken before it', async () => {
@@ -422,16 +421,15 @@ describe('mounting a service, third review (found in review)', () => {
     }
   });
 
-  it('puts routes added to its router behind its auth', async () => {
+  it('leaves routes added to its router to check auth themselves, as the reference does', async () => {
     const s = service();
     const router = s.asRouter();
-    router.get('/private', (c) => c.text('secret'));
-    router.get('/item/:id', (c) => c.text('item'));
+    router.get('/mine', (c) => c.text('mine'));
     const host = new Hono();
     host.route('/voice', router);
-    expect((await host.request('/voice/private')).status).toBe(401);
-    expect((await host.request('/voice/item/7')).status).toBe(401);
-    expect(await (await host.request('/voice/private', { headers: auth })).text()).toBe('secret');
+    expect(await (await host.request('/voice/mine')).text()).toBe('mine');
+    // The service's own routes keep theirs
+    expect((await host.request('/voice/swaig', { method: 'POST' })).status).toBe(401);
   });
 
   it("leaves a neighbour alone: a root-route service, a hook's middleware, a PUT at a callback path", async () => {
@@ -526,34 +524,17 @@ describe('mounting a service, fourth review (found in review)', () => {
     return s;
   };
 
-  it.each([
-    ['/private/*', '/voice/private/key'],
-    ['/private/:id{.*}', '/voice/private/a'],
-    ['/private/', '/voice/private/'],
-    ['/x//private', '/voice/x//private'],
-    ['/literal%25', '/voice/literal%25'],
-  ])('guards an added route %s', async (route, path) => {
-    const router = service().asRouter();
-    router.get(route, (c) => c.text('secret'));
-    const host = new Hono();
-    host.route('/voice', router);
-    const res = await host.request(path);
-    expect(await res.text()).not.toBe('secret');
-  });
-
-  it('guards routes under odd mounts, and still finds callbacks there', async () => {
+  it('guards its routes under odd mounts, and still finds callbacks there', async () => {
     for (const [mount, path, cbPath] of [
       ['/percent%25', '/percent%25/%ZZ', '/percent%25/sip'],
       ['/t/:id{[0-9]+}', '/t/7/private', '/t/7/sip'],
     ] as const) {
       const s = service();
       s.registerRoutingCallback(() => '/routed', '/sip');
-      const router = s.asRouter();
-      router.get('/:id', (c) => c.text('secret'));
-      router.get('/private', (c) => c.text('secret'));
       const host = new Hono();
-      host.route(mount, router);
-      expect(await (await host.request(path)).text(), mount).not.toBe('secret');
+      host.route(mount, s.asRouter());
+      const swaig = path.replace(/\/[^/]+$/, '/swaig');
+      expect((await host.request(swaig, { method: 'POST' })).status, mount).toBe(401);
       const routed = await host.request(cbPath, {
         method: 'POST',
         headers: auth,
@@ -581,5 +562,51 @@ describe('mounting a service, fourth review (found in review)', () => {
     expect((await app.fetch(req)).status).toBe(200);
     req.headers.delete('authorization');
     expect((await app.fetch(req)).status).toBe(401);
+  });
+});
+
+/** Codex's fifth review. */
+describe('mounting a service, fifth review (found in review)', () => {
+  const auth = { Authorization: AUTH, 'Content-Type': 'application/json' };
+  const routed = () => {
+    const s = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+    s.registerRoutingCallback(() => '/destination', '/sip');
+    return s;
+  };
+
+  it.each([
+    ['/t/:id{[^/]+}', '/t/acme/sip'],
+    ['/t/:path{.+}/v1', '/t/acme/team/v1/sip'],
+  ])('finds a callback under the mount %s', async (mount, path) => {
+    const host = new Hono();
+    host.route(mount, routed().asRouter());
+    const res = await host.request(path, {
+      method: 'POST',
+      headers: auth,
+      body: JSON.stringify({ call: {} }),
+    });
+    expect(res.headers.get('location')).toBe('/destination');
+  });
+
+  it("sets its security and CORS headers on a callback's responses, refusals included", async () => {
+    const previous = process.env['SWML_CORS_ORIGINS'];
+    process.env['SWML_CORS_ORIGINS'] = 'https://app.example.com';
+    try {
+      const host = new Hono();
+      host.route('/voice', routed().asRouter());
+      for (const [init, status] of [
+        [{ method: 'GET', headers: auth }, 200],
+        [{ method: 'POST', headers: auth, body: JSON.stringify({ call: {} }) }, 307],
+        [{ method: 'POST', body: '{}' }, 401],
+      ] as const) {
+        const res = await host.request('/voice/sip', init);
+        expect(res.status).toBe(status);
+        expect(res.headers.get('x-frame-options'), String(status)).toBe('DENY');
+        expect(res.headers.get('vary'), String(status)).toContain('Origin');
+      }
+    } finally {
+      if (previous === undefined) delete process.env['SWML_CORS_ORIGINS'];
+      else process.env['SWML_CORS_ORIGINS'] = previous;
+    }
   });
 });
