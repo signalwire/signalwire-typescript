@@ -843,3 +843,35 @@ it('keeps registration order at the mount itself (found in review)', async () =>
     expect(res.headers.get('location'), String(mounted)).toBe('/first');
   }
 });
+
+it("can't be disabled by a request that matches a callback emptily (found in review)", async () => {
+  const s = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+  s.registerRoutingCallback(() => '/target', '/:id{[a-z]*}');
+  const host = new Hono();
+  host.route('/voice', s.asRouter());
+  const post = () =>
+    host.request('/voice/abc', {
+      method: 'POST',
+      headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ call: {} }),
+    });
+  expect((await post()).status).toBe(307);
+  await host.request('/voice/');
+  expect((await post()).status).toBe(307);
+});
+
+it("keeps the mount's own boundary for a callback at '/' (found in review)", async () => {
+  const s = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+  s.registerRoutingCallback(() => '/capture', '/:id{.*}');
+  s.registerRoutingCallback(() => '/root', '/');
+  const host = new Hono();
+  host.route('/voice', s.getApp());
+  const post = (path: string) =>
+    host.request(path, {
+      method: 'POST',
+      headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ call: {} }),
+    });
+  expect((await post('/voice')).headers.get('location')).toBe('/root');
+  expect((await post('/voice/')).headers.get('location')).toBe('/capture');
+});
