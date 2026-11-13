@@ -660,3 +660,39 @@ describe('routing callbacks, sixth review (found in review)', () => {
     expect(res.headers.get('x-frame-options')).toBe('DENY');
   });
 });
+
+/** Codex's seventh review. */
+describe('routing callbacks, seventh review (found in review)', () => {
+  const auth = { Authorization: AUTH, 'Content-Type': 'application/json' };
+  const post = (app: Hono, path: string) =>
+    app.request(path, { method: 'POST', headers: auth, body: JSON.stringify({ call: {} }) });
+  const menu = () => new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+
+  it('handles a long unauthenticated path in linear time', async () => {
+    const s = menu();
+    s.registerRoutingCallback(() => '/x', '/sip');
+    const host = new Hono();
+    host.route('/voice', s.asRouter());
+    const long = `/voice/${Array.from({ length: 4096 }, () => 'a').join('/')}`;
+    const longer = `/voice/${Array.from({ length: 4096 }, () => 'a%2Fa').join('/')}`;
+    const started = performance.now();
+    for (const path of [long, longer]) expect((await host.request(path)).status).toBe(404);
+    expect(performance.now() - started).toBeLessThan(250);
+  });
+
+  it('matches a path mixing malformed and valid escapes as routing decodes it', async () => {
+    const s = menu();
+    s.registerRoutingCallback(() => '/exact', '/bad%ZZ%25');
+    s.registerRoutingCallback(() => '/decoded', '/bad%ZZ%');
+    expect((await post(s.getApp(), '/bad%ZZ%25')).headers.get('location')).toBe('/exact');
+  });
+
+  it("isn't misled by a host parameter named like its remainder", async () => {
+    const s = menu();
+    s.registerRoutingCallback(() => '/root-target', '/');
+    s.registerRoutingCallback(() => '/tenant-target', '/tenant');
+    const host = new Hono();
+    host.route('/:swmlCallbackPath', s.getApp());
+    expect((await post(host, '/tenant')).headers.get('location')).toBe('/root-target');
+  });
+});
