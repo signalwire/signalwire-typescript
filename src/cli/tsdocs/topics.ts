@@ -259,17 +259,31 @@ agent.defineTool({
 - \`gates: [new SemanticGate(...)]\` adds semantic gates: yes/no questions a
   decision model answers about the call before the platform runs the tool.
   A platform release without semantic gates runs the tool ungated.
+- What the handler returns is the outcome the model reads. Throw
+  \`new ToolRefusal(toolResult, toolPrompt)\` to decline with an outcome you
+  know; any other error tells the model the outcome is unknown, not that it
+  failed. Data without a \`response\` reaches the model as JSON.
+- \`vouched: true\` runs a tool only when the model says its arguments came
+  from the caller; \`needsConversation: true\` sends the conversation with each
+  request, for \`callerTurns(rawData)\`.
+- \`addToolMiddleware()\` runs code around every tool call; \`callNext()\`
+  returns a promise, so await it.
 - Answer within a few seconds: the caller hears nothing while a tool runs.
   SignalWire waits up to 120 seconds for a tool's webhook, and sends the
-  request again after a timeout, a failed connection or a 5xx, so a slow tool
-  can run more than once. Start long work without awaiting it, return at once, and
-  send the result into the call with \`calling.aiMessage()\` on a
-  \`RestClient\`.
+  request again after a timeout, a failed connection or a 5xx. The agent
+  answers such a retry with the first attempt's result, so the tool runs
+  once, but the caller still waits. Start long work without awaiting it,
+  return at once, and send the result into the call with
+  \`calling.aiMessage()\` on a \`RestClient\`.
 `,
   docs: [
     ['docs/swaig-reference.md', 'Every FunctionResult method and action'],
     ['docs/agent-guide.md', 'Defining tools, typed parameters, secure tools'],
     ['docs/pgi_agent_guide.md', 'What a tool may decide, and what code must enforce'],
+    [
+      'docs/conversation_patterns.md',
+      "Confirming a change, the caller's own words, honest outcomes, testing a call flow",
+    ],
   ],
   examples: [
     'examples/swaig-features.ts',
@@ -288,6 +302,9 @@ agent.defineTool({
     'FunctionResult.setPostProcess',
     'SwaigRequest',
     'SemanticGate',
+    'ToolRefusal',
+    'Proposal',
+    'CallSimulator',
   ],
   related: ['datamap', 'contexts', 'skills', 'security', 'pgi'],
 };

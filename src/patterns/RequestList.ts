@@ -38,6 +38,9 @@ export interface RequestListOptions {
  *
  * @example
  * ```ts
+ * import { AgentBase, RequestList } from '@signalwire/sdk';
+ *
+ * const agent = new AgentBase({ name: 'bank' });
  * const later = new RequestList('later', {
  *   openers: {
  *     balance: 'You also asked about your balance.',
@@ -49,9 +52,14 @@ export interface RequestListOptions {
  * agent.defineTool({
  *   name: 'note_request',
  *   description: 'Note a request to come back to',
- *   parameters: NOTE,
- *   handler: (args, rawData) => later.note(rawData, args.kind, args.about),
+ *   parameters: {
+ *     type: 'object',
+ *     properties: { kind: { type: 'string' }, about: { type: 'string' } },
+ *     required: ['kind', 'about'],
+ *   },
+ *   handler: (args, rawData) => later.note(rawData, String(args.kind), String(args.about)),
  * });
+ * const ctx = agent.defineContexts().addContext('default');
  * ctx.addStep('take_order').setText("Take the caller's order.\n\n${global_data.later_text}");
  * ```
  *

@@ -222,6 +222,29 @@ Help the customer with their billing inquiry.
 - Offer to escalate if needed
 ```
 
+### Variables in Step Text
+
+The platform expands a step's variables, such as `${global_data.order_total}`, once, when the step is entered. A later `updateGlobalData()` doesn't change text the model already has. To show the new value, return `FunctionResult.refreshStep()` with the current step's name after the update. Entering the step starts it over, and its `history` mode applies again.
+
+```typescript
+import { FunctionResult } from '@signalwire/sdk';
+
+const result = new FunctionResult('Added the drink.')
+  .updateGlobalData({ order_total: '$14.50' })
+  .refreshStep('take_order');
+```
+
+### Expected Answers
+
+When a step asks for a number with a known length, such as a ZIP code or a PIN, tell the recognizer how many digits to expect. It ends its wait for the number once the caller has said that many. Pass the exact count, or `minDigits` and `maxDigits` for a range, each from 1 to 64. The step emits it as `expected_answer`, which needs a platform release that has it.
+
+```typescript
+ctx.addStep('get_zip').setText("Ask for the caller's ZIP code.").setExpectedAnswer(5);
+ctx.addStep('get_pin').setText('Ask for the PIN.').setExpectedAnswer(undefined, { minDigits: 4, maxDigits: 6 });
+```
+
+A gather question takes its own, which replaces the step's while that question is asked: see [Expected Digits](#expected-digits). The exported `expectedAnswer()` function builds one, `{ digits: 5 }` or `{ min_digits: 4, max_digits: 6 }`, and checks it; an invalid count or shape throws.
+
 ### Managing Steps
 
 These methods find, remove, reorder and clear steps:
@@ -333,6 +356,13 @@ A step without `setFunctions()` emits no `functions` key. The platform then keep
 A later step that leaves out `setFunctions()` therefore keeps the tools of the step before it. Call `setFunctions()` on every step whose tools differ from the previous step's.
 
 The SDK checks every name in a `functions` list, and in each gather question's `functions`, against the agent's registered tools. `validate()` throws for a name that isn't a registered tool or one of the reserved native tools.
+
+`ContextBuilder.stepsOffering(name)` returns the `[context, step]` pairs whose function list, or a gather question's, names a tool. A step without `setFunctions()` isn't counted, since what it offers depends on the step before it. When every step lists its functions and none lists a registered tool, rendering the SWML logs a `tool_offered_by_no_step` warning for it, once: the model never gets that tool unless a function result turns it on with `toggleFunctions()`.
+
+```typescript
+const builder = agent.defineContexts();
+console.log(builder.stepsOffering('place_order')); // e.g. [['default', 'confirm']]
+```
 
 ---
 
@@ -462,6 +492,16 @@ While a question is asked, the platform deactivates the step's other functions. 
 | `prompt` | `string` | none | Extra instruction for this question. |
 | `functions` | `string[]` | none | Functions available during this question only. |
 | `isolated` | `boolean` | inherits the gather's setting | `true` hides the other questions and answers while this one is asked. `false` keeps them visible, even in an isolated gather. |
+| `expectedAnswer` | `ExpectedAnswer` | none | The digits the recognizer expects while this question is asked, `{ digits }` or `{ min_digits, max_digits }`. See [Expected Digits](#expected-digits). |
+
+#### Expected Digits
+
+A question whose answer is a number of known length can tell the recognizer how many digits to expect, with `expectedAnswer`. It applies while that question is asked, in place of the step's `setExpectedAnswer()`.
+
+```typescript
+step.setGatherInfo({ outputKey: 'address' });
+step.addGatherQuestion({ key: 'zip', question: 'What is your ZIP code?', expectedAnswer: { digits: 5 } });
+```
 
 ### GatherInfo Serialization
 

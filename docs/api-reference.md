@@ -32,6 +32,7 @@ The page covers these classes, functions and types:
   - [Context Methods](#context-methods)
   - [Skill Methods](#skill-methods)
   - [Per-Request Configuration Methods](#per-request-configuration-methods)
+  - [AI Event Methods](#ai-event-methods)
   - [SIP Routing and MCP Methods](#sip-routing-and-mcp-methods)
   - [URL and Proxy Methods](#url-and-proxy-methods)
   - [Server Methods](#server-methods)
@@ -349,8 +350,8 @@ defineTool<P extends ToolParameters, R extends readonly PropertyKey[]>(
       args: ToolArgs<P, R>,
       rawData: SwaigRequest,
       agent?: AgentBase,
-    ) => FunctionResult | Record<string, unknown> | string
-       | Promise<FunctionResult | Record<string, unknown> | string>;
+    ) => FunctionResult | Record<string, unknown> | string | null | undefined | void
+       | Promise<FunctionResult | Record<string, unknown> | string | null | undefined | void>;
   },
 ): this
 ```
@@ -371,14 +372,49 @@ When `parameters` is a flat map of property definitions written inline, TypeScri
 | `webhookUrl` | `string` | none | An external URL that runs the tool instead of this agent |
 | `extraFields` | `Record<string, unknown>` | `{}` | Extra keys merged into the function definition |
 | `onError` | `SwaigErrorHandler` | none | Called when the handler throws; may return a `FunctionResult` to use as the response |
-| `errorMessage` | `string` | A generic apology | Response used when the handler throws and no error hook returns one |
+| `errorMessage` | `string` | The unknown-outcome result | Response used when the handler throws and no error hook returns one |
 | `isTypedHandler` | `boolean` | `false` | Marks a handler that takes named parameters; `defineTypedTool()` sets it |
 | `gates` | `(SemanticGate \| Record<string, unknown>)[]` | none | Semantic gates, 1 to 8. See [Semantic gates](#semantic-gates) |
 | `gateFillers` | `FillerPhrases` | none | What the AI says while the gates are checked, shaped like `fillers`. Only with `gates` |
+| `vouched` | `boolean` | `false` | `true` for a tool whose arguments must come from the caller, not from the model's guesses. The tool gets a required boolean argument, `data_supplied_by_user` (`VOUCHED_PARAMETER`), in which the model says every other argument is what the caller said. Unless it's `true`, the handler doesn't run, and the model gets "&lt;name&gt; was not run." with the tool prompt "Get the answer from the user before using this tool." The handler never sees the argument |
+| `nullableOptional` | `boolean` | the agent's | `true` to let the model send `null` for an optional argument, as providers with strict schemas require. Each argument that isn't required takes `null` as well as its type, and a `null` reaches the handler as an argument not given. Left out, it follows [`setNullableOptionalParameters()`](#setnullableoptionalparametersenabled) |
+| `middleware` | `ToolMiddleware[]` | none | Middleware that runs around this tool's calls only, inside the agent's. See [`addToolMiddleware()`](#addtoolmiddlewaremiddleware) |
+| `needsConversation` | `boolean` | `false` | `true` when the handler reads the conversation, as [`callerTurns(rawData)`](#post-prompt-helpers) does. It turns on the agent's `swaig_post_conversation` when the SWML is rendered, so every tool request carries the call log, unless that param was set to `false` |
 
 **Throws:** `Error` for a gate the platform would refuse, or `gateFillers` without `gates`.
 
 The handler's third argument is the agent the request was configured on. With a dynamic config callback or `addPerCallConfig()`, that's the per-request copy. The handler's return value is the tool's response: context for the model, which decides what to say. See [SwaigHandler](#swaighandler) for how each return type is serialized.
+
+What the handler returns is what the model reads as the outcome, so the SDK keeps it honest:
+
+- A `FunctionResult`, or an object with a `response` or an `action`, is sent as it is.
+- Any other object is the handler's data, and the model gets it as JSON. An empty object tells the model the outcome is unknown.
+- `undefined` or `null`, including a handler that returns nothing, gets "Function executed successfully".
+- A handler that throws `new ToolRefusal(toolResult, toolPrompt?)` declines the call with an outcome it knows: the model gets that result and prompt. The `onError` hooks don't see a refusal.
+- Any other error is logged, not sent. Unless an `onError` hook or `errorMessage` gives the response, the model is told the function failed before it finished, so whether it took effect is unknown, and not to tell the caller it worked or that it didn't (`toolErrorResult(name)`). The error's text could hold internals, and the model would read it as the outcome.
+
+```ts
+import { AgentBase, FunctionResult, ToolRefusal } from '@signalwire/sdk';
+
+const shop = new AgentBase({ name: 'shop' });
+const inStock = new Set(['tea', 'coffee']); // your inventory
+
+shop.defineTool({
+  name: 'place_order',
+  description: 'Place an order for an item',
+  parameters: { item: { type: 'string', description: 'The item' } },
+  required: ['item'],
+  handler: (args) => {
+    if (!inStock.has(args.item)) {
+      throw new ToolRefusal(
+        `place_order was not run: ${args.item} is out of stock.`,
+        'Tell the caller, and offer the similar items in stock.',
+      );
+    }
+    return new FunctionResult().setToolResponse(`Order for ${args.item} is placed.`);
+  },
+});
+```
 
 **Example:**
 
@@ -401,7 +437,7 @@ agent.defineTool({
 
 A semantic gate is a yes/no question a decision model answers about the call right before the platform dispatches the function. Every gate on the function must pass for it to run. When one doesn't, the function isn't dispatched, and the model gets that gate's `on_fail` output instead, as if a data_map had returned it. The function's `fillers` and `wait_file` start only once its gates pass, so a blocked call never sounds as if the action were under way.
 
-Semantic gates need a platform release that supports them. One that doesn't runs the function ungated, and may or may not log a warning about the unknown key, so don't rely on a gate to protect a function until your platform supports them.
+Semantic gates need a platform release that supports them. One that doesn't runs the function ungated, and may or may not log a warning about the unknown key, so don't rely on a gate to protect a function until your platform supports them. The gate keys added later, `unclear`, `on_unclear`, `dialogue`, `history` and `since`, need a release that has them too: one that has gates but not a key refuses the whole function, since it treats an unknown gate key as an error.
 
 The decision model sees three things, under these names: `conversation`, the recent dialogue; `semantic_state`, the call's `global_data.semantic_state`, which [`FunctionResult.setSemanticState()`](#data-actions) sets; and `proposed_function`, the function's name, description and arguments. Write each question as one proposition, and name what it's about with those names in backticks. The model reads literally: it doesn't do arithmetic or compare dates, so put a computed result in `semantic_state` instead of asking for it.
 
@@ -441,10 +477,17 @@ agent.defineTool({
 |----------|------|-------------|
 | `question` | `string` | The yes/no question, at most 8 KB. Its `${...}` variables are expanded from the call's global data when the gate is checked |
 | `threshold` | `number` | The probability of yes, above 0 and at most 1, at or above which the gate passes |
-| `onFail` | `string \| FunctionResult \| Record<string, unknown>` | What the model gets when this is the first gate that fails: the tool result text, a `FunctionResult`, whose response and actions are used, or a data_map output object. It needs a response, and in the `tool_result`/`tool_prompt` form a `tool_result`: a blocked call must never read as a success. The `tool_prompt` becomes a system message after the tool result; OpenAI Realtime agents don't use it, so put what they need in the `tool_result`. The actions run as written, without template expansion |
+| `onFail` | `string \| FunctionResult \| Record<string, unknown>` | What the model gets when this is the first gate that fails: the tool result text, a `FunctionResult`, whose response and actions are used, or a data_map output object. It needs a response, and in the `tool_result`/`tool_prompt` form a `tool_result`: a blocked call must never read as a success. The `tool_prompt` becomes a system message after the tool result; OpenAI Realtime agents don't use it, so put what they need in the `tool_result`. The platform expands its `${...}` variables once, from the call's data as a data_map's output is, so it can quote what your code stored, such as `${global_data.semantic_state.proposal}`; a platform release from before that sends it as written |
 | `opts.id` | `string` | 1 to 64 letters, digits or underscores, unique within the function. Default `gate_<n>`, 1-based |
 | `opts.trueMeans`, `opts.falseMeans` | `string` | What yes and no mean, at most 2 KB each |
 | `opts.visualInput` | `boolean \| number` | How many of the caller's newest video frames the decision model sees with this gate, as `visual_input`: `true` is 1, `false` or 0 none, or a whole number up to 5 (`MAX_VISUAL_INPUT`). Name it in the question, as in "Is the caller holding a photo ID up to the camera in `visual_input`?". All of a function's gates share one request, so each sees as many frames as the gate asking for the most. The gate provider must take images; one that doesn't makes the check a configuration error, which blocks the call. Left out by default. A function's own `visual_input`, frames sent to its webhook, is a separate field of the function, set through `extraFields` |
+| `opts.unclear` | `boolean` | `true` to ask yes, no or unclear, where the gate's provider can (OpenAI). A yes under the threshold counts as unclear too, so such a gate wants a lower threshold than a yes/no one. Unclear doesn't run the function: the model gets `onUnclear`. Two unclear answers in a row for the same function and `semantic_state` ask again; the third is a fail, so the caller isn't asked the same thing forever. Default: yes or no |
+| `opts.onUnclear` | `string \| FunctionResult \| Record<string, unknown>` | What the model gets when this is the first gate answered unclear and none failed, in the same forms as `onFail`. It should ask the caller again. Default: the platform's own, which does |
+| `opts.dialogue` | `'window' \| 'proposal'` | The dialogue this gate judges, in place of the agent's ([`setSemanticGates({ dialogue })`](#setsemanticgatesopts)). A gate about something the caller asked before the proposal started, such as a request made before the account was found, wants `'window'` on an agent that judges its confirmations by the proposal |
+| `opts.history` | `number` | How many of the newest dialogue entries this gate judges, a whole number from 1 to 100 (`MAX_GATE_HISTORY`), in place of the agent's `history` |
+| `opts.since` | `string` | The name of a mark your code sets with [`FunctionResult.setSemanticGateMark(name)`](#data-actions). The gate judges the dialogue from the agent's first turn at or after the mark, at most `history` entries; until the mark is set, its `dialogue` as usual. Use it to anchor a confirmation to the moment your code chose, rather than to the last change of `semantic_state` |
+
+Every gate on one function must have the same `dialogue`, `history` and `since`, set or not: they're asked together, about one dialogue. The SDK throws for gates that differ, as the platform refuses the function.
 
 Gates are checked by the platform's rules when the tool is defined, and once more when the SWML is rendered. The platform refuses the whole function for an invalid gate, so the SDK throws instead. Gates aren't allowed on the hook names `startup_hook`, `hangup_hook` and `check_for_input`, on `end_call`, or on a built-in function's name. A gated function also needs a description, and a `web_hook_url` or `data_map`; tools the SDK builds always have them. A `gates` given as `null` is refused rather than dropped, since the platform refuses that function too.
 
@@ -472,10 +515,103 @@ defineTypedTool(opts: {
   required?: string[];
   gates?: ReadonlyArray<SemanticGate | Record<string, unknown>>;
   gateFillers?: FillerPhrases;
+  vouched?: boolean;
+  nullableOptional?: boolean;
+  needsConversation?: boolean;
+  middleware?: readonly ToolMiddleware[];
 }): this
 ```
 
-`gates` and `gateFillers` work as they do on [`defineTool()`](#semantic-gates).
+`gates` and `gateFillers` work as they do on [`defineTool()`](#semantic-gates), and so do `vouched`, `nullableOptional`, `needsConversation` and `middleware`.
+
+#### `defineNativeTool(name, description, parameters?, fields?)`
+
+Define a function the platform implements itself, under your own description and parameters. The platform runs its own implementation, by name, of a function whose `web_hook_url` is `'native'` (`NATIVE_WEBHOOK_URL`), and calls no webhook. A tool from `defineTool()` gets the agent's webhook URL, so it can't be one. Use it to describe a function the platform implements, such as `end_call`, in your own words, or to list it in a step's functions.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+defineNativeTool(
+  name: string,
+  description: string,
+  parameters?: Record<string, unknown>,
+  fields?: Record<string, unknown>,
+): this
+```
+
+```ts
+agent.defineNativeTool(
+  'end_call',
+  'End the call once the order is placed and the caller has nothing else.',
+  { type: 'object', properties: { reason: { type: 'string' } } },
+);
+```
+
+#### `setUnavailableFunctionResponse(text)`
+
+Set what the model is told when it calls a tool it can't use now: one the current step doesn't offer, or one the agent doesn't have. Without it, the platform says nothing ran, which steps offer the tool, and which tools are available now. `text` takes its place, with `${function}` for the tool's name, `${tools}` for the tools the request offered, comma-separated, and `${steps}` for the current context's steps whose functions include it, empty for a name the agent doesn't have. It's the `unavailable_function_response` param, which needs a platform release that has it. Throws for an empty string.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+setUnavailableFunctionResponse(text: string): this
+```
+
+```ts
+agent.setUnavailableFunctionResponse(
+  "Nothing ran: ${function} isn't offered now. Use one of: ${tools}.",
+);
+```
+
+#### `setNullableOptionalParameters(enabled?)`
+
+Let the model send `null` for every tool's optional arguments. Some providers' strict schemas make every argument required and refuse a call that leaves one out, so an optional argument must take `null` instead. With this on, each optional argument of a tool from `defineTool()` takes `null` as well as its type, and a `null` reaches the handler as an argument not given. A tool's own `nullableOptional` overrides it. It applies when the SWML is rendered, and to the MCP tool list, so it covers tools defined before and after it.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+setNullableOptionalParameters(enabled?: boolean): this // default true
+```
+
+#### `addToolMiddleware(middleware)`
+
+Run `middleware` around every tool call, after any added before it. A middleware is `(name, args, rawData, callNext) => result`. It runs before the handler, and calls `callNext(args, rawData)` for the rest of the chain and the handler, possibly with changed arguments. `callNext` returns a promise of the handler's result, so a middleware awaits it, or returns it as it is. What the middleware returns is the call's result: the handler's, a changed one, or its own without calling `callNext`. A middleware that throws `ToolRefusal` declines the call; any other error gives the model the unknown-outcome result. It covers tools from `defineTool()`, not DataMap or native tools, which run on the platform. The order around a call is the resend dedupe, the agent's middleware, then the tool's own.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+type CallNext = (args: Record<string, unknown>, rawData: Record<string, unknown>) => Promise<unknown>;
+type ToolMiddleware = (
+  name: string,
+  args: Record<string, unknown>,
+  rawData: Record<string, unknown>,
+  callNext: CallNext,
+) => unknown;
+
+addToolMiddleware(middleware: ToolMiddleware): this
+```
+
+```ts
+import type { ToolMiddleware } from '@signalwire/sdk';
+
+const logCalls: ToolMiddleware = async (name, args, rawData, callNext) => {
+  const started = performance.now();
+  const result = await callNext(args, rawData);
+  console.log(name, Math.round(performance.now() - started), 'ms');
+  return result;
+};
+
+agent.addToolMiddleware(logCalls);
+```
+
+`runChain(middleware, name, args, rawData, dispatch)` runs a list of middleware around a function of your own, and `resolve(value)` awaits a value that may be a promise, for code ported from the Python SDK.
+
+#### `setToolResendDedupe(enabled?)`
+
+Turn the dedupe of transport retries on or off; it's on by default. SignalWire sends a tool request again, with the same body, after a timeout, a failed connection or a 5xx, so a slow tool could run twice. The dedupe answers a retry with the first attempt's result, and one that arrives while the first is still running waits for it. A retry is a request with the same `call_id`, `tool_call_id` and function name. A call the model makes again has a new `tool_call_id` and runs, and a request without one always runs. It runs first, before any middleware. It's shared with the agent's per-request copies, and lives in the process: replicas of an agent each keep their own.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+setToolResendDedupe(enabled?: boolean): this // default true
+```
+
+The dedupe is a `ResendDedupe(ttl = 600, maxEntries = 1024)`, exported for use in your own chains: its `middleware` property is the `ToolMiddleware`. Finished results are kept for `ttl` seconds, at most `maxEntries` of them; an attempt still running is never dropped.
 
 #### `getTools()`
 
@@ -636,6 +772,8 @@ Add a pronunciation rule, emitted in `pronounce`. See [PronunciationRule](#pronu
 addPronunciation(rule: PronunciationRule): this
 ```
 
+The platform normalizes the text before these rules run, so a bare number is already words by then: a rule can't make "10001" read digit by digit. Tokens the normalizer treats as designations, such as IDs and codes, pass through unchanged, and rules do see those. To read digits, a ZIP code or an amount of money, give the words instead with the speech helpers: `sayDigits('10001')` is "one zero zero zero one". See [Conversation Patterns](conversation_patterns.md#numbers-the-way-a-voice-should-say-them).
+
 #### `setPronunciations(rules)`
 
 Replace every pronunciation rule.
@@ -671,7 +809,12 @@ Set how the call checks its functions' [semantic gates](#semantic-gates). Each o
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
-setSemanticGates(opts?: { enabled?: boolean; timeoutMs?: number; history?: number }): this
+setSemanticGates(opts?: {
+  enabled?: boolean;
+  timeoutMs?: number;
+  history?: number;
+  dialogue?: 'window' | 'proposal';
+}): this
 ```
 
 | Option | Type | Default | Description |
@@ -679,11 +822,14 @@ setSemanticGates(opts?: { enabled?: boolean; timeoutMs?: number; history?: numbe
 | `enabled` | `boolean` | `true` | `false` dispatches gated functions without checking their gates. Sent as `semantic_gates_enabled` |
 | `timeoutMs` | `number` | `2500` | The time one check may take, 500 to 10000 milliseconds. A check that runs out blocks the call. Sent as `semantic_gate_timeout_ms` |
 | `history` | `number` | `20` | How many recent dialogue entries the decision model sees, 0 to 100. Sent as `semantic_gate_history` |
+| `dialogue` | `'window' \| 'proposal'` | `'window'` | Which dialogue the decision model judges: `'window'`, the newest `history` entries, or `'proposal'`, the entries since `global_data.semantic_state` last changed, from the agent's first turn after it. With `'proposal'`, a gate that confirms a read-back sees the read-back and the caller's reply, not the requests before it. With no `semantic_state` set, the window. Sent as `semantic_gate_dialogue`, which needs a platform release that has it |
+
+A gate's own `dialogue` and `history` take the place of these for its function.
 
 **Throws:** `Error` for a value of the wrong type or out of range; a refused call changes nothing.
 
 ```ts
-agent.setSemanticGates({ timeoutMs: 4000, history: 30 });
+agent.setSemanticGates({ timeoutMs: 4000, history: 30, dialogue: 'proposal' });
 ```
 
 #### `setGlobalData(data)`
@@ -1050,6 +1196,75 @@ Remove every SWAIG query parameter.
 ```ts
 clearSwaigQueryParams(): this
 ```
+
+### AI Event Methods
+
+The platform posts AI events, such as `ai.speech_detect` for each final of the caller's speech, to a call's `event_webhook_url` as they happen. These methods point that URL at the agent's own `/ai_events` endpoint when the SWML is rendered, unless you set `event_webhook_url` yourself (the agent then logs `event_webhook_url_already_set`, and its handlers get nothing). The endpoint takes a POST of JSON, within the agent's request size limit, behind the agent's basic auth and, with a `signingKey`, its signature check.
+
+Set them on the agent, not in a dynamic config callback or `addPerCallConfig()`: the `/ai_events` endpoint runs on the agent itself, not on a per-request copy. The speech log is shared with the agent's per-request copies, so a tool handler reads it through its third argument too.
+
+#### `onAiEvent(handler)`
+
+Register a handler for the AI events the platform posts during calls. The handler is called with each event: `handler(eventType, params, event)`, where `params` is the event's `params` object and `event` the whole envelope `{ event_type, timestamp, project_id, space_id, params }`. `ai.speech_detect` (`SPEECH_DETECT`) comes for each final of the caller's speech, with its `text` and the recognizer's `words`, `[{ word, confidence }]`. The handlers run in turn and are awaited before the endpoint answers; one that throws is logged, and the others still run. A call with `redact_prompt` set sends no `ai.speech_detect` unless debug is on. Returns the handler.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+type AiEventHandler = (
+  eventType: string,
+  params: Record<string, unknown>,
+  event: Record<string, unknown>,
+) => unknown;
+
+onAiEvent(handler: AiEventHandler): AiEventHandler
+```
+
+#### `recordSpeechFinals(maxCalls?, maxFinals?)`
+
+Keep each call's recognizer finals, from `ai.speech_detect`, for tool handlers to read with `speechFinals()`. It sets `event_webhook_url` as `onAiEvent()` does. It keeps up to `maxFinals` (default 200) finals for each of up to `maxCalls` (default 500) calls; the oldest call's finals go first. The finals live in the process: replicas of an agent each keep their own.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+recordSpeechFinals(maxCalls?: number, maxFinals?: number): this
+```
+
+#### `speechFinals(callId, since?)`
+
+A call's recognizer finals, oldest first, as `{ text, words, timestamp }`, with `timestamp` in seconds since the epoch; `since` keeps the ones from that time on. The words are as the recognizer heard them, with their confidences, before hearing hints and number formatting change the text, so a handler can ask again about a word the recognizer wasn't sure of. Returns copies, and `[]` before `recordSpeechFinals()`.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+speechFinals(callId: string, since?: number): SpeechFinal[]
+```
+
+```ts
+import { AgentBase, FunctionResult } from '@signalwire/sdk';
+
+const speller = new AgentBase({ name: 'speller' }).recordSpeechFinals();
+
+speller.defineTool({
+  name: 'spell_name',
+  description: "Take the caller's spelled name",
+  parameters: { name: { type: 'string', description: 'The name' } },
+  required: ['name'],
+  handler: (args, rawData) => {
+    const finals = speller.speechFinals(String(rawData.call_id));
+    const doubtful = finals
+      .slice(-1)
+      .flatMap((f) => f.words)
+      .filter((w) => w.confidence < 0.85)
+      .map((w) => w.word);
+    if (doubtful.length > 0) {
+      return new FunctionResult().setToolResponse(
+        `Not sure of: ${doubtful.join(', ')}`,
+        'Ask the caller to repeat those letters.',
+      );
+    }
+    return new FunctionResult().setToolResponse(`Name: ${args.name}`);
+  },
+});
+```
+
+`SpeechLog`, the store behind it, is exported for use on its own: `add(event)`, `finals(callId, since?)` and `forget(callId)`.
 
 ### SIP Routing and MCP Methods
 
@@ -1577,6 +1792,7 @@ console.log(JSON.stringify(result.toDict()));
 | `updateGlobalData` | `(data: Record<string, unknown>): this` | `{ set_global_data: data }` |
 | `removeGlobalData` | `(keys: string \| string[]): this` | `{ unset_global_data: keys }` |
 | `setSemanticState` | `(state: Record<string, unknown>): this` | `{ set_global_data: { semantic_state: state } }`. Replaces the state [semantic gates](#semantic-gates) judge, as a whole; send `{}` to reset it |
+| `setSemanticGateMark` | `(name: string): this` | `{ semantic_gate_mark: name }`. Sets a mark that gates with `since: name` judge the dialogue from. The name is 1 to 64 letters, digits or underscores; throws otherwise. Needs a platform release that has it |
 | `setMetadata` | `(data: Record<string, unknown>): this` | `{ set_meta_data: data }` |
 | `removeMetadata` | `(keys: string \| string[]): this` | `{ unset_meta_data: keys }` |
 
@@ -1586,6 +1802,7 @@ console.log(JSON.stringify(result.toDict()));
 |--------|-----------|-------|
 | `executeSwml` | `(swmlContent: string \| Record<string, unknown> \| { toDict(): Record<string, unknown> }, transfer?: boolean): this` | `{ SWML: document }`, with `transfer: 'true'` when `transfer` is `true`. A string that isn't JSON becomes `{ raw_swml: string }`; any other value throws. |
 | `swmlChangeStep` | `(stepName: string): this` | `{ change_step: stepName }` |
+| `refreshStep` | `(stepName: string): this` | `{ change_step: stepName }`, the same action, for the current step: entering it again shows its text with new global data. See [Refreshing a step](swaig-reference.md#refreshstep) |
 | `swmlChangeContext` | `(contextName: string): this` | `{ change_context: contextName }` |
 | `swmlUserEvent` | `(eventData: Record<string, unknown>): this` | A `SWML` action with a `user_event` verb |
 | `switchContext` | `(opts?: { systemPrompt?: string; userPrompt?: string; consolidate?: boolean; fullReset?: boolean }): this` | `{ context_switch: systemPrompt }` when only `systemPrompt` is set, otherwise an object with `system_prompt`, `user_prompt`, `consolidate` and `full_reset` |
@@ -1596,6 +1813,7 @@ console.log(JSON.stringify(result.toDict()));
 |--------|-----------|-------|
 | `toggleFunctions` | `(toggles: { function: string; active: boolean }[]): this` | `{ toggle_functions: toggles }` |
 | `enableFunctionsOnTimeout` | `(enabled?: boolean): this` | `{ functions_on_speaker_timeout: enabled }` (default `true`) |
+| `backToBackFunctions` | `(value?: boolean \| 'forever'): this` | `{ back_to_back_functions: value }` (default `true`). Whether the model may call another function right after a function result. Throws for any other value |
 | `updateSettings` | `(settings: Record<string, unknown>): this` | `{ settings: settings }` |
 
 ### Communication Actions
@@ -1737,6 +1955,10 @@ See [SwaigFunctionOptions](#swaigfunctionoptions) for the options.
 | `isExternal` | `boolean` | Whether `webhookUrl` was given |
 | `onError` | `SwaigErrorHandler \| undefined` | Per-tool error hook |
 | `errorMessage` | `string \| undefined` | Per-tool error response |
+| `vouched` | `boolean` | Whether the model must vouch for the arguments |
+| `nullableOptional` | `boolean \| undefined` | Whether optional arguments take `null`; `undefined` follows the agent |
+| `needsConversation` | `boolean` | Whether the handler reads the conversation |
+| `middleware` | `readonly ToolMiddleware[]` | The tool's own middleware |
 
 ### Methods
 
@@ -1751,7 +1973,7 @@ validateArgs(args: Record<string, unknown>): [boolean, string[]]
 
 #### `execute(args, rawData?, agentOnError?)`
 
-Run the handler and return the serialized result. The handler's third argument is `undefined` here. When the handler throws, the tool's `onError`, then `agentOnError`, may supply a `FunctionResult`; otherwise the result carries `errorMessage` or the default error message.
+Run the handler and return the serialized result. The handler's third argument is `undefined` here. When the handler throws, the tool's `onError`, then `agentOnError`, may supply a `FunctionResult`; otherwise the result carries `errorMessage` or the unknown-outcome result, `toolErrorResult(name)`. A thrown `ToolRefusal` gives its own result, without the hooks. The vouched check, the outcome rules and the tool's own middleware apply; the agent's middleware and resend dedupe apply only to calls the agent dispatches.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
@@ -2055,6 +2277,15 @@ Check the contexts and throw on the first problem. It requires at least one cont
 validate(): void
 ```
 
+#### `stepsOffering(name)`
+
+The `[context, step]` pairs whose function list, or a gather question's, names a tool. A step without `setFunctions()` isn't counted, since what it offers depends on the step before it. When every step lists its functions and none lists a registered tool, rendering the SWML logs a `tool_offered_by_no_step` warning for it, once: the model never gets that tool unless a function result turns it on with `toggleFunctions()`.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+stepsOffering(name: string): Array<[string, string]>
+```
+
 #### `toDict()`
 
 Validate, then serialize every context in the order it was added.
@@ -2173,13 +2404,14 @@ constructor(name: string)
 | `setSkipUserTurn` | `(skip: boolean): this` | Emits `skip_user_turn: true` |
 | `setSkipToNextStep` | `(skip: boolean): this` | Emits `skip_to_next_step: true` |
 | `setHistory` | `(history: string): this` | History mode when the step is entered: `keep`, `default`, `hide` or `isolate` (like `hide`, but only while the agent is in the step). Throws on any other value. |
+| `setExpectedAnswer` | `(digits?: number, opts?: { minDigits?: number; maxDigits?: number }): this` | Emits `expected_answer`: how many digits the recognizer should expect before it ends its wait, `{ digits }` or `{ min_digits, max_digits }`, each from 1 to 64. Throws for any other shape. See [Expected Answers](contexts-guide.md#expected-answers) |
 
 #### Gather Info Methods
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `setGatherInfo` | `(opts?: { outputKey?: string; completionAction?: string; prompt?: string; isolated?: boolean }): this` | Start a `gather_info` for the step |
-| `addGatherQuestion` | `(opts: { key: string; question: string; type?: string; confirm?: boolean; prompt?: string; functions?: string[]; isolated?: boolean }): this` | Add a question. Throws when `setGatherInfo()` hasn't been called. |
+| `addGatherQuestion` | `(opts: { key: string; question: string; type?: string; confirm?: boolean; prompt?: string; functions?: string[]; isolated?: boolean; expectedAnswer?: ExpectedAnswer }): this` | Add a question. Throws when `setGatherInfo()` hasn't been called. |
 
 `completionAction` is `'next_step'` or the name of a step in the same context. `isolated` on the gather is the default for its questions, and a question's own `isolated` overrides it. A question's `false` is emitted, so it can override an isolated gather.
 
@@ -2218,7 +2450,7 @@ constructor(opts?: { outputKey?: string; completionAction?: string; prompt?: str
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `addQuestion` | `(opts: { key; question; type?; confirm?; prompt?; functions?; isolated? }): this` | Add a question |
+| `addQuestion` | `(opts: { key; question; type?; confirm?; prompt?; functions?; isolated?; expectedAnswer? }): this` | Add a question |
 | `getQuestions` | `(): GatherQuestion[]` | Get the questions |
 | `toDict` | `(): GatherInfoDict` | Serialize. Throws when there are no questions. |
 
@@ -2240,6 +2472,7 @@ constructor(opts: {
   prompt?: string;
   functions?: string[];
   isolated?: boolean;
+  expectedAnswer?: ExpectedAnswer; // replaces the step's while this question is asked
 })
 ```
 
@@ -2254,6 +2487,7 @@ constructor(opts: {
 | `prompt` | `string \| undefined` | Extra prompt text for this question |
 | `functions` | `string[] \| undefined` | Tools available while this question is asked |
 | `isolated` | `boolean \| undefined` | Overrides the gather's `isolated` for this question |
+| `expectedAnswer` | `ExpectedAnswer \| undefined` | The digits the recognizer expects while this question is asked |
 
 #### `toDict()`
 
@@ -2273,6 +2507,16 @@ Create a `Context` without a builder. The name defaults to `'default'`.
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 function createSimpleContext(name?: string): Context
+```
+
+#### `expectedAnswer(digits?, opts?)`
+
+Build an `expected_answer` and check it as the platform reads it: `expectedAnswer(5)` is `{ digits: 5 }`, and `expectedAnswer(undefined, { minDigits: 4, maxDigits: 6 })` is `{ min_digits: 4, max_digits: 6 }`. Each count is from 1 to 64 (`MAX_EXPECTED_DIGITS`), and the minimum is at most the maximum. Throws for anything else, which the platform would log and ignore.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+type ExpectedAnswer = { digits: number } | { min_digits: number; max_digits: number };
+function expectedAnswer(digits?: number, opts?: { minDigits?: number; maxDigits?: number }): ExpectedAnswer
 ```
 
 #### `HISTORY_MODES`
@@ -2905,6 +3149,7 @@ import {
 | `parsePostPromptData` | `(data: unknown): Record<string, unknown>` | Read `post_prompt_data` in any shape: an object inside `parsed`, flat keys, or a `raw` string (with or without a code fence). Prose that isn't JSON becomes `{ summary: text }`. |
 | `dialogueTurns` | `(callLog: unknown, opts?: { roles?: readonly string[]; dropEcho?: string \| null }): DialogueTurn[]` | The turns with the given roles (default `DIALOGUE_ROLES`) and non-empty content, without entries that carry `tool_calls`. A turn whose content equals `dropEcho` is dropped. |
 | `stripJsonFence` | `(text: string): string` | Remove a surrounding code fence, such as one labeled `json` |
+| `callerTurns` | `(rawData: unknown, since?: number, opts?: { last?: number }): string[]` | What the caller said, oldest first, from a SWAIG request's `call_log` (or `raw_call_log` when that's empty), or from a call log given directly. `since` keeps the turns from that time on, in the call log's microseconds; `last` keeps the newest that many. A request carries the conversation only with `swaig_post_conversation` on, which a tool's `needsConversation` turns on |
 | `DIALOGUE_ROLES` | `readonly string[]` | `['user', 'assistant']` |
 
 `DialogueTurn` is `{ role: string; content: string }`. A `NormalizedPostPrompt` has these readonly properties:
@@ -3428,8 +3673,8 @@ type SwaigHandler = (
   args: Record<string, unknown>,
   rawData: SwaigRequest,
   agent?: AgentBase,
-) => FunctionResult | Record<string, unknown> | string
-   | Promise<FunctionResult | Record<string, unknown> | string>;
+) => FunctionResult | Record<string, unknown> | string | null | undefined | void
+   | Promise<FunctionResult | Record<string, unknown> | string | null | undefined | void>;
 ```
 
 `args` holds the arguments the model supplied. `rawData` is the whole SWAIG request, with `call_id`, `global_data` and the rest. `agent` is the agent the request was configured on: the per-request copy when per-request configuration is in use, and `undefined` when you call `SwaigFunction.execute()` yourself.
@@ -3437,9 +3682,12 @@ type SwaigHandler = (
 The return value is serialized as follows:
 
 - A `FunctionResult` is serialized with `toDict()`.
-- An object with a `response` key is sent as is.
-- An object without a `response` key is replaced by `{ response: 'Function completed successfully' }`.
+- An object with a `response` or an `action` key is sent as is.
+- Any other object is the handler's data: it's sent as `{ response: JSON.stringify(data) }`, with a `bigint` as its digits. An empty object tells the model the outcome is unknown.
+- `undefined` or `null` is sent as `{ response: 'Function executed successfully' }`.
 - Any other value is converted to a string and wrapped in a `FunctionResult`, and the SDK logs a warning.
+
+`settleResult(name, result)` applies these rules, and `toolErrorResult(name)` is the result for a handler that threw.
 
 A synchronous or CPU-bound handler blocks Node's event loop, and with it every other request, until it returns.
 
@@ -3467,9 +3715,13 @@ interface SwaigFunctionOptions
 | `extraFields` | `Record<string, unknown>` | `{}` | Extra keys merged into the definition |
 | `isTypedHandler` | `boolean` | `false` | Whether the handler takes named parameters |
 | `onError` | `SwaigErrorHandler` | none | Per-tool error hook |
-| `errorMessage` | `string` | A generic apology | Response when the handler throws and no hook returns one |
+| `errorMessage` | `string` | The unknown-outcome result | Response when the handler throws and no hook returns one |
 | `gates` | `(SemanticGate \| Record<string, unknown>)[]` | none | [Semantic gates](#semantic-gates), 1 to 8 |
 | `gateFillers` | `FillerPhrases` | none | Phrases said while the gates are checked. Only with `gates` |
+| `vouched` | `boolean` | `false` | Run only when the model vouches the arguments came from the caller. See [`defineTool()`](#definetoolopts) |
+| `nullableOptional` | `boolean` | the agent's | Optional arguments take `null` |
+| `needsConversation` | `boolean` | `false` | Turns on `swaig_post_conversation` |
+| `middleware` | `ToolMiddleware[]` | none | Middleware around this tool's calls only |
 
 ### AuthConfig
 

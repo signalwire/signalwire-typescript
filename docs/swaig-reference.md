@@ -53,17 +53,20 @@ The reference groups the methods by what they do:
   - [updateGlobalData](#updateglobaldata)
   - [removeGlobalData](#removeglobaldata)
   - [setSemanticState](#setsemanticstate)
+  - [setSemanticGateMark](#setsemanticgatemark)
   - [setMetadata](#setmetadata)
   - [removeMetadata](#removemetadata)
 - [SWML Actions](#swml-actions)
   - [executeSwml](#executeswml)
   - [switchContext](#switchcontext)
   - [swmlChangeStep](#swmlchangestep)
+  - [refreshStep](#refreshstep)
   - [swmlChangeContext](#swmlchangecontext)
   - [swmlUserEvent](#swmluserevent)
 - [Function Control](#function-control)
   - [toggleFunctions](#togglefunctions)
   - [enableFunctionsOnTimeout](#enablefunctionsontimeout)
+  - [backToBackFunctions](#backtobackfunctions)
   - [updateSettings](#updatesettings)
 - [User Input and History](#user-input-and-history)
   - [simulateUserInput](#simulateuserinput)
@@ -153,11 +156,12 @@ A tool handler receives `(args, rawData, agent)`. `args` holds the parsed argume
 The SDK handles these return values:
 
 - A `FunctionResult`, or a promise that resolves to one: serialized with `toDict()`.
-- A plain object with a `response` key: sent as it is.
-- A plain object without a `response` key: replaced by `{ response: "Function completed successfully" }`.
+- A plain object with a `response` or an `action` key: sent as it is.
+- Any other plain object: the handler's data, sent as its JSON in `response`. An empty object tells the model the outcome is unknown.
+- `undefined` or `null`, as from a handler that returns nothing: `{ response: "Function executed successfully" }`.
 - Any other value, such as a string: converted to a string and sent as the response, with a logged warning.
 
-If the handler throws, the SDK logs the error. It then returns the result of the tool's `onError` hook, or of the agent's `onError()` handler, when either returns a `FunctionResult`. Otherwise it returns the tool's `errorMessage`, or a default apology message.
+A handler that throws `new ToolRefusal(toolResult, toolPrompt?)` declines the call with an outcome it knows, such as an item out of stock: the model gets that `tool_result` and `tool_prompt`. Any other error is logged, not sent. The SDK then returns the result of the tool's `onError` hook, or of the agent's `onError()` handler, when either returns a `FunctionResult`. Otherwise it returns the tool's `errorMessage`, or the unknown-outcome result: the function failed before it finished, so whether it took effect is unknown, with a tool prompt not to tell the caller it worked or that it didn't. A crash can come after the work was done, so the model mustn't read it as a failure. See [defineTool()](api-reference.md#definetoolopts).
 
 Tools registered with `defineTool()` are secure by default. The SWML the agent renders gives each secure tool a per-call token (`__token`). The agent runs the handler only when a `/swaig` request carries a valid token for that function and call. Otherwise it returns a refusal response. Set `swaigSecret` or `SIGNALWIRE_SWAIG_SECRET` so tokens survive a restart and work across replicas. For details, see [Secure Tools (HMAC Tokens)](security.md#secure-tools-hmac-tokens).
 
@@ -870,6 +874,29 @@ const result = new FunctionResult('The order is confirmed.').setSemanticState({
 });
 ```
 
+### setSemanticGateMark
+
+Set a mark that semantic gates with `since: name` judge the dialogue from: the agent's first turn at or after it, at most the gate's `history` entries (`semantic_gate_mark`). The mark is set as of the start of the action object that sets it, so a `say` in the same object is the first turn after it, and setting it again moves it. Marks last for the call; the platform keeps a call's 16 newest. It needs a platform release that has it. See [Semantic gates](api-reference.md#semantic-gates).
+
+<!-- snippet: no-compile API signature reference, not runnable code -->
+```typescript
+setSemanticGateMark(name: string): this
+```
+
+| Parameter | Type     | Description                                         |
+|-----------|----------|-----------------------------------------------------|
+| `name`    | `string` | The mark's name, 1 to 64 letters, digits or underscores. |
+
+**Returns:** `this` for chaining.
+
+**Throws:** `Error` for any other name, which the platform would refuse.
+
+**Example:**
+
+```typescript
+const result = new FunctionResult('Read the order back.').setSemanticGateMark('read_back');
+```
+
 ### removeGlobalData
 
 Remove one or more keys from the global data (`unset_global_data`).
@@ -1077,6 +1104,29 @@ const result = new FunctionResult('The premium plan is confirmed. Collect paymen
   .swmlChangeStep('collect_payment');
 ```
 
+### refreshStep
+
+Enter the current step again, so its text shows new global data. A step's text is expanded once, when the step is entered, so its `${global_data.*}` values are the ones from then. After `updateGlobalData()` changes one, add `refreshStep()` with the current step's name, after the update, and the model gets the step's text again with the new values. It's the same action as `swmlChangeStep(stepName)`: entering a step starts it over, and its `history` mode applies again.
+
+<!-- snippet: no-compile API signature reference, not runnable code -->
+```typescript
+refreshStep(stepName: string): this
+```
+
+| Parameter  | Type     | Description                  |
+|------------|----------|------------------------------|
+| `stepName` | `string` | The name of the current step. |
+
+**Returns:** `this` for chaining.
+
+**Example:**
+
+```typescript
+const result = new FunctionResult('Added the drink.')
+  .updateGlobalData({ order_total: '$14.50' })
+  .refreshStep('take_order');
+```
+
 ### swmlChangeContext
 
 Move the conversation to another context (`change_context`). The context must exist in the agent's contexts, which you define with `defineContexts()`. A change from a tool isn't limited by `setValidContexts()`.
@@ -1180,6 +1230,30 @@ const r1 = new FunctionResult('The caller may go quiet while searching.')
 // Disallow them
 const r2 = new FunctionResult('Wait for the caller to answer.')
   .enableFunctionsOnTimeout(false);
+```
+
+### backToBackFunctions
+
+Set whether the model may call another function right after a function result, without answering in words first (`back_to_back_functions`). `'forever'`, the call's default, chains freely. `false` makes the model answer in words after a function result. `true`, while chaining is off, allows one more chain, and then it's off again; it never lowers `'forever'`. The setting lasts for the call. Realtime models don't read it.
+
+<!-- snippet: no-compile API signature reference, not runnable code -->
+```typescript
+backToBackFunctions(value?: boolean | 'forever'): this
+```
+
+| Parameter | Type                    | Default | Description                       |
+|-----------|-------------------------|---------|-----------------------------------|
+| `value`   | `boolean \| 'forever'` | `true`  | The chaining setting for the call. |
+
+**Returns:** `this` for chaining.
+
+**Throws:** `Error` for any other value, which the platform ignores.
+
+**Example:**
+
+```typescript
+// A read-back the caller must answer before anything else runs
+const result = new FunctionResult('Read the order back to the caller.').backToBackFunctions(false);
 ```
 
 ### updateSettings

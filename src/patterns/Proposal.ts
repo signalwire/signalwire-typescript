@@ -51,12 +51,19 @@ export interface ProposeOptions {
  *
  * @example
  * ```ts
+ * import { AgentBase, Proposal } from '@signalwire/sdk';
+ *
+ * const agent = new AgentBase({ name: 'shop' });
  * const order = new Proposal('place_order', { declineTool: 'change_order' });
  *
  * agent.defineTool({
  *   name: 'review_order',
  *   description: 'Read the order back',
- *   parameters: ORDER,
+ *   parameters: {
+ *     type: 'object',
+ *     properties: { item: { type: 'string' }, time: { type: 'string' } },
+ *     required: ['item', 'time'],
+ *   },
  *   handler: (args, rawData) =>
  *     order.propose(`That's ${args.item} for pickup at ${args.time}. Is that right?`, {
  *       rawData,
@@ -66,7 +73,7 @@ export interface ProposeOptions {
  * agent.defineTool({
  *   name: 'place_order',
  *   description: 'Place the order the caller said yes to',
- *   handler: placeOrder,
+ *   handler: () => order.complete('The order is placed.'),
  *   gates: order.confirmGates(),
  * });
  * ```

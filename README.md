@@ -265,6 +265,7 @@ The [`docs/`](docs/) directory has these guides. They're installed with the pack
 
 - [SWAIG Reference](docs/swaig-reference.md): function results, actions, post_data lifecycle
 - [Contexts and Steps](docs/contexts-guide.md): structured workflows, navigation, gather mode
+- [Conversation Patterns](docs/conversation_patterns.md): confirming a change, the caller's own words, numbers to say, testing a call flow
 - [DataMap Guide](docs/datamap-guide.md): serverless API tools without webhooks
 - [LLM Parameters](docs/llm_parameters.md): temperature, top_p, barge settings
 - [SWML Service Guide](docs/swml_service_guide.md): low-level construction of SWML documents

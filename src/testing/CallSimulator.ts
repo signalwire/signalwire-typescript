@@ -126,13 +126,17 @@ export interface CallSimulatorOptions {
  *
  * @example
  * ```ts
+ * import assert from 'node:assert';
+ * import { AgentBase, CallSimulator } from '@signalwire/sdk';
+ *
+ * declare const agent: AgentBase; // an agent with review_order and place_order steps
  * const sim = new CallSimulator(agent, { gates: () => true });
  * sim.caller("I'd like a large tea");
- * expect((await sim.call('place_order', { item: 'tea' })).ran).toBe(false); // not offered yet
+ * assert.equal((await sim.call('place_order', { item: 'tea' })).ran, false); // not offered yet
  * await sim.call('review_order', { item: 'large tea' });
  * sim.caller('yes');
- * expect((await sim.call('place_order')).ran).toBe(true);
- * expect(sim.step).toBe('done');
+ * assert.equal((await sim.call('place_order')).ran, true);
+ * assert.equal(sim.step, 'done');
  * ```
  */
 export class CallSimulator {
@@ -601,6 +605,9 @@ export interface RequestRecorderOptions {
  *
  * @example
  * ```ts
+ * import { AgentBase, CallSimulator, RequestRecorder } from '@signalwire/sdk';
+ *
+ * declare const agent: AgentBase;
  * const recorder = new RequestRecorder('tool_requests.jsonl');
  * agent.addToolMiddleware(recorder.middleware);
  * // ...
