@@ -9,7 +9,7 @@
 import type { AgentBase } from './AgentBase.js';
 import { Hono } from 'hono';
 import { TrieRouter } from 'hono/router/trie-router';
-import { getPattern, splitRoutingPath } from 'hono/utils/url';
+import { splitRoutingPath } from 'hono/utils/url';
 import type { Context, MiddlewareHandler } from 'hono';
 import type { HostAppRouter } from './web.js';
 import { cors } from 'hono/cors';
@@ -31,13 +31,18 @@ import type { Server } from 'node:http';
 
 // ── Verb handler interfaces ────────────────────────────────────────────
 
+/** Regex-escape a literal route label. */
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 /**
  * How long the mount prefix a route template describes is at the start of
- * `path`, matched with routing's own grammar (Hono's `splitRoutingPath` and
- * `getPattern`): a literal label matches itself, `:name` one segment, and
- * `:name{re}` its pattern, with the lookahead to the next label routing
- * uses. The labels are matched in one pass. Null when the path doesn't start
- * with the mount, or the template has a form this doesn't read.
+ * `path`, read with routing's own label grammar (Hono's `splitRoutingPath`,
+ * and its `:name{re}` form): a literal label matches itself, `:name` one
+ * segment, and `:name{re}` its pattern, grouped. A pattern followed by a
+ * literal label matches up to that label, as routing's lookahead does;
+ * otherwise it matches the rest of the path, or else the one segment. The
+ * labels are matched in one pass. Null when the path doesn't start with the
+ * mount, or the template has a form this doesn't read.
  */
 function mountPrefixLength(template: string, path: string): number | null {
   const labels = splitRoutingPath(template);
@@ -46,27 +51,37 @@ function mountPrefixLength(template: string, path: string): number | null {
     if (path[pos] !== '/') return null;
     pos++;
     const label = labels[i]!;
-    // The mount is followed by the dispatcher's '*'
-    const pattern = getPattern(label, labels[i + 1] ?? '*');
-    if (pattern === null) {
+    const next = labels[i + 1];
+    const segmentEnd = () => {
+      const end = path.indexOf('/', pos);
+      return end === -1 ? path.length : end;
+    };
+    if (label === '*') return null;
+    const param = /^:([^{}]+)(?:\{(.+)\})?$/.exec(label);
+    if (!param) {
       if (!path.startsWith(label, pos)) return null;
       pos += label.length;
-    } else if (pattern === '*') {
-      return null;
-    } else if (pattern[2] === true) {
-      const end = path.indexOf('/', pos);
-      const stop = end === -1 ? path.length : end;
+    } else if (param[2] === undefined) {
+      const stop = segmentEnd();
       if (stop === pos) return null;
       pos = stop;
     } else {
-      // As routing tries it: against the rest of the path, then the segment.
-      const found = pattern[2].exec(path.slice(pos));
-      if (found) {
+      let re: RegExp;
+      try {
+        re =
+          next && next[0] !== ':' && next[0] !== '*'
+            ? new RegExp(`^(?:${param[2]})(?=/${escapeRegExp(next)}(?:/|$))`)
+            : new RegExp(`^(?:${param[2]})$`);
+      } catch {
+        return null;
+      }
+      const rest = path.slice(pos);
+      const found = re.exec(rest);
+      if (found && (found[0].length === rest.length || next)) {
         pos += found[0].length;
       } else {
-        const end = path.indexOf('/', pos);
-        const stop = end === -1 ? path.length : end;
-        if (!pattern[2].test(path.slice(pos, stop))) return null;
+        const stop = segmentEnd();
+        if (!new RegExp(`^(?:${param[2]})$`).test(path.slice(pos, stop))) return null;
         pos = stop;
       }
     }

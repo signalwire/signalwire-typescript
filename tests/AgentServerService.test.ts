@@ -717,6 +717,11 @@ describe('routing callbacks, ninth review (found in review)', () => {
     ['/t/:id{(?:foo|bar)}', '/t/foo/sip'],
     ['/t/:id{a+?}', '/t/aa/sip'],
     ['/t/:tenant-id', '/t/acme/sip'],
+    // Codex's tenth review
+    ['/t/:id{[a-z]+}/v1[', '/t/acme/v1[/sip'],
+    ['/t/:id{[a-z]+}/v1(legacy)', '/t/acme/v1(legacy)/sip'],
+    ['/t/:id{a|ab}', '/t/ab/sip'],
+    ['/t/:id{foo|foobar}', '/t/foobar/sip'],
   ])('finds a callback under the mount %s', async (mount, path) => {
     const s = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
     s.registerRoutingCallback(() => '/target', '/sip');
