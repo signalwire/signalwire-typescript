@@ -8,7 +8,6 @@
 
 import type { AgentBase } from './AgentBase.js';
 import { Hono } from 'hono';
-import { TrieRouter } from 'hono/router/trie-router';
 import { splitRoutingPath } from 'hono/utils/url';
 import type { Context, MiddlewareHandler } from 'hono';
 import type { HostAppRouter } from './web.js';
@@ -34,45 +33,33 @@ import type { Server } from 'node:http';
 /** Regex-escape a literal route label. */
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** Mount-prefix patterns by route template, for {@link mountPrefixLength}. */
-const MOUNT_PATTERNS = new Map<string, RegExp | null>();
+/** Route patterns by template, for {@link routePattern}. */
+const ROUTE_PATTERNS = new Map<string, RegExp | null>();
 
 /**
- * How long the mount prefix a route template describes is at the start of
- * `path`. The template is read with routing's own label grammar (Hono's
- * `splitRoutingPath`, and its `:name{re}` form) and compiled as its router
- * compiles one, into a single pattern: a literal label matches itself,
- * `:name` one segment, and `:name{re}` its pattern, grouped, so every label
- * constrains the match. Null when the path doesn't start with the mount, or
- * the template has a form this doesn't read.
+ * A pattern matching the whole path of a route template, read with routing's
+ * own label grammar (Hono's `splitRoutingPath`, and its `:name{re}` form) and
+ * compiled as its router compiles one: a literal label matches itself,
+ * `:name` one segment, `:name{re}` its pattern, grouped, and `*` anything.
+ * A trailing slash is allowed. Null when the template doesn't compile.
  */
-function mountPrefixLength(template: string, path: string): number | null {
-  let pattern = MOUNT_PATTERNS.get(template);
-  if (pattern === undefined) {
+function routePattern(template: string): RegExp | null {
+  let pattern = ROUTE_PATTERNS.get(template);
+  if (pattern !== undefined) return pattern;
+  const parts = splitRoutingPath(template).map((label) => {
+    if (label === '*') return '.*';
+    const param = /^:([^{}]+)(?:\{(.+)\})?$/.exec(label);
+    if (!param) return escapeRegExp(label);
+    return param[2] === undefined ? '[^/]+' : `(?:${param[2]})`;
+  });
+  try {
+    pattern = new RegExp(parts.length ? `^/${parts.join('/')}/?$` : '^/?$');
+  } catch {
     pattern = null;
-    const parts: string[] = [];
-    for (const label of splitRoutingPath(template)) {
-      const param = /^:([^{}]+)(?:\{(.+)\})?$/.exec(label);
-      if (label === '*') {
-        parts.length = 0;
-        break;
-      }
-      parts.push(
-        !param ? escapeRegExp(label) : param[2] === undefined ? '[^/]+' : `(?:${param[2]})`,
-      );
-    }
-    if (parts.length > 0) {
-      try {
-        pattern = new RegExp(`^/${parts.join('/')}(?=/|$)`);
-      } catch {
-        pattern = null;
-      }
-    }
-    if (MOUNT_PATTERNS.size >= 256) MOUNT_PATTERNS.clear();
-    MOUNT_PATTERNS.set(template, pattern);
   }
-  const found = pattern?.exec(path);
-  return found ? found[0].length : null;
+  if (ROUTE_PATTERNS.size >= 512) ROUTE_PATTERNS.clear();
+  ROUTE_PATTERNS.set(template, pattern);
+  return pattern;
 }
 /**
  * Interface for custom SWML verb handlers.
@@ -477,11 +464,6 @@ export class SWMLService {
   protected _routingCallbacks = new Map<string, RoutingCallback>();
   /** The route-relative router {@link asRouter} returns, built on first use. */
   private _router: Hono | undefined;
-  /** Bumped when a routing callback is registered, to rebuild the matchers. */
-  private _callbackVersion = 0;
-  private _callbackRoutersVersion = 0;
-  /** Routing-callback matchers by path prefix, for {@link _matchCallback}. */
-  private _callbackRouters = new Map<string, TrieRouter<string>>();
   /** Whether the HTTP routes enforce basic auth (credentials weren't generated). */
   private _enforceAuth = false;
 
@@ -706,17 +688,16 @@ export class SWMLService {
 
     // Routing callbacks last, so the SWAIG and main routes keep precedence.
     // Looked up per request: one registered or replaced later still answers.
-    // A callback's path is the request's path after wherever the app is
-    // mounted, as routing matched the mount. The guards are part of the route's chain,
+    // A callback answers a request routing would send to its route under
+    // wherever the app is mounted. The guards are part of the route's chain,
     // so Hono composes them (an app's onError included), but each runs only
     // for a request a callback answers, so a neighbouring route is left alone.
     const answering = new WeakMap<Context, RoutingCallback>();
     const matchAt =
-      (rest: (c: Context) => string | null): MiddlewareHandler =>
+      (find: (c: Context) => RoutingCallback | undefined): MiddlewareHandler =>
       async (c, next) => {
         if (this._routingCallbacks.size > 0) {
-          const relative = rest(c);
-          const callbackFn = relative === null ? undefined : this._matchCallback(relative, base);
+          const callbackFn = find(c);
           if (callbackFn) answering.set(c, callbackFn);
         }
         await next();
@@ -738,14 +719,14 @@ export class SWMLService {
     on(
       callbackMethods,
       '/',
-      matchAt(() => '/'),
+      matchAt(() => this._routingCallbacks.get('/')),
       ...callbackGuards,
       serve,
     );
     on(
       callbackMethods,
       '/*',
-      matchAt((c) => this._mountedRest(c)),
+      matchAt((c) => this._matchCallback(c, base)),
       ...callbackGuards,
       serve,
     );
@@ -753,49 +734,29 @@ export class SWMLService {
   }
 
   /**
-   * The request's path after the app's mount, as routing matched it (so with
-   * the percent escapes routing keeps), without repeated or trailing
-   * slashes; null when the mount's prefix can't be found. The matched route's
-   * template, before its final `*`, is the mount.
-   */
-  private _mountedRest(c: Context): string | null {
-    const template = c.req.routePath.replace(/\/?\*$/, '');
-    let prefix = 0;
-    if (template && template !== '/') {
-      const length = mountPrefixLength(template, c.req.path);
-      if (length === null) return null;
-      prefix = length;
-    }
-    const rest = c.req.path.slice(prefix);
-    return `/${rest.split('/').filter(Boolean).join('/')}`;
-  }
-
-  /**
-   * The routing callback a path (relative to the app's mount) addresses, in an
-   * app built under `base`. A callback registered at `path` is served at
+   * The routing callback a request addresses, in an app built under `base`
+   * and mounted where routing matched it (the matched route's template,
+   * before its final `*`). A callback registered at `path` is served at
    * `base + path`, as the reference's router serves it; the service's own app
    * also serves it at `path` itself, where releases before 3.7.2 served it,
    * and such an exact path takes precedence over another callback's
-   * `base + path`. Paths match as routes do, parameters and wildcards included.
+   * `base + path`. Each candidate is matched as its whole route, mount and
+   * callback path together, as routing matched it when callbacks were routes,
+   * parameters and wildcards included.
    */
-  private _matchCallback(relative: string, base: string): RoutingCallback | undefined {
-    if (this._routingCallbacks.size === 0) return undefined;
-    if (this._callbackRoutersVersion !== this._callbackVersion) {
-      this._callbackRouters.clear();
-      this._callbackRoutersVersion = this._callbackVersion;
-    }
-    const find = (prefix: string): RoutingCallback | undefined => {
-      let router = this._callbackRouters.get(prefix);
-      if (!router) {
-        router = new TrieRouter<string>();
-        for (const cbPath of this._routingCallbacks.keys())
-          router.add('ALL', `${prefix}${cbPath}`, cbPath);
-        this._callbackRouters.set(prefix, router);
+  private _matchCallback(c: Context, base: string): RoutingCallback | undefined {
+    const mount = c.req.routePath.replace(/\/?\*$/, '').replace(/\/$/, '');
+    const path = c.req.path.replace(/\/{2,}/g, '/');
+    const paths = [...this._routingCallbacks.keys()];
+    const candidates = [...(base ? paths : []), ...paths.map((cb) => `${base}${cb}`)];
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i]!;
+      const template = `${mount}${candidate === '/' ? '' : candidate}`;
+      if (routePattern(template)?.test(path)) {
+        return this._routingCallbacks.get(paths[i % paths.length]!);
       }
-      const hit = router.match('ALL', relative)[0][0];
-      return hit ? this._routingCallbacks.get(hit[0]) : undefined;
-    };
-    return (base ? find('') : undefined) ?? find(base);
+    }
+    return undefined;
   }
 
   // ────────────────────────────────────────────────────────────────────
@@ -1285,7 +1246,6 @@ export class SWMLService {
     this.log.info(`Registering routing callback at ${normalized}`);
     // The apps look callbacks up per request, so it answers from now on.
     this._routingCallbacks.set(normalized, callbackFn);
-    this._callbackVersion++;
   }
 
   /**

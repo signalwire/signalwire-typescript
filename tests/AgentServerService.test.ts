@@ -765,3 +765,19 @@ it("answers the mount itself with the callback at '/' (found in review)", async 
   });
   expect(res.headers.get('location')).toBe('/root-target');
 });
+
+it('lets the callback path constrain an ambiguous mount (found in review)', async () => {
+  for (const which of ['getApp', 'asRouter'] as const) {
+    const s = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+    s.registerRoutingCallback(() => '/correct', '/sip');
+    s.registerRoutingCallback(() => '/wrong', '/b/sip');
+    const host = new Hono();
+    host.route('/t/:path{((a|a/b))}', which === 'getApp' ? s.getApp() : s.asRouter());
+    const res = await host.request('/t/a/b/sip', {
+      method: 'POST',
+      headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ call: {} }),
+    });
+    expect(res.headers.get('location'), which).toBe('/correct');
+  }
+});
