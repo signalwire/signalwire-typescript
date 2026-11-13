@@ -208,3 +208,46 @@ export function normalizePostPrompt(body: unknown): NormalizedPostPrompt {
     }),
   );
 }
+
+/**
+ * What the caller said, from a SWAIG request's conversation.
+ *
+ * A tool can check that an argument is something the caller said, not
+ * something the model inferred. The request carries the conversation only
+ * with `swaig_post_conversation` on: define the tool with
+ * `needsConversation: true`, which turns it on.
+ * @param rawData - The SWAIG request (the handler's `rawData`), or a call log
+ *   array.
+ * @param since - Only the turns from this time on: the platform's
+ *   `timestamp`, in microseconds since the epoch, of a call log entry.
+ * @param opts - `last`: only the newest this many turns.
+ * @returns The caller's turns, oldest first, as the recognizer's final text
+ *   (after hearing hints and number formatting). Empty when the request
+ *   carries no conversation.
+ */
+export function callerTurns(
+  rawData: unknown,
+  since?: number,
+  opts: { last?: number } = {},
+): string[] {
+  let callLog: unknown = rawData;
+  if (typeof rawData === 'object' && rawData !== null && !Array.isArray(rawData)) {
+    const r = rawData as Record<string, unknown>;
+    callLog =
+      Array.isArray(r['call_log']) && r['call_log'].length > 0 ? r['call_log'] : r['raw_call_log'];
+  }
+  if (!Array.isArray(callLog)) return [];
+  let turns: string[] = [];
+  for (const entry of callLog) {
+    if (typeof entry !== 'object' || entry === null || entry['role'] !== 'user') continue;
+    const content = (entry as Record<string, unknown>)['content'];
+    if (typeof content !== 'string' || !content.trim()) continue;
+    if (since !== undefined) {
+      const stamp = (entry as Record<string, unknown>)['timestamp'];
+      if (typeof stamp !== 'number' || stamp < since) continue;
+    }
+    turns.push(content);
+  }
+  if (opts.last !== undefined) turns = opts.last > 0 ? turns.slice(-opts.last) : [];
+  return turns;
+}

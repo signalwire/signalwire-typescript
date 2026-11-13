@@ -63,7 +63,7 @@
 
 // Core agent
 export { AgentBase } from './AgentBase.js';
-export type { RoutingCallback } from './AgentBase.js';
+export type { RoutingCallback, AiEventHandler } from './AgentBase.js';
 export { AgentServer } from './AgentServer.js';
 
 // SWML Service (non-AI call flows)
@@ -457,8 +457,11 @@ export {
   DIALOGUE_ROLES,
   NormalizedPostPrompt,
   dialogueTurns,
+  callerTurns,
   normalizePostPrompt,
   parsePostPromptData,
   stripJsonFence,
 } from './PostPrompt.js';
 export type { DialogueTurn } from './PostPrompt.js';
+export { SpeechLog, SPEECH_DETECT } from './AiEvents.js';
+export type { SpeechFinal, SpeechWord } from './AiEvents.js';

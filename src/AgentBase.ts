@@ -8,7 +8,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { Hono } from 'hono';
 import { getPathNoStrict } from 'hono/utils/url';
-import type { Context } from 'hono';
+import type { Context, MiddlewareHandler } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { HostAppRouter } from './web.js';
 import { basicAuth } from 'hono/basic-auth';
@@ -21,6 +21,17 @@ import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SWMLService } from './SWMLService.js';
 import type { ToolMiddleware } from './ToolMiddleware.js';
+import { SpeechLog, SPEECH_DETECT, type SpeechFinal } from './AiEvents.js';
+
+/**
+ * A handler for the AI events the platform posts during calls, as
+ * {@link AgentBase.onAiEvent} registers it.
+ */
+export type AiEventHandler = (
+  eventType: string,
+  params: Record<string, unknown>,
+  event: Record<string, unknown>,
+) => unknown;
 import { ConfigLoader } from './ConfigLoader.js';
 import { SwaigFunction, type SwaigHandler, type SwaigErrorHandler } from './SwaigFunction.js';
 import {
@@ -368,6 +379,10 @@ export class AgentBase extends SWMLService {
   private perCallConfigs: DynamicConfigCallback[] = [];
   /** Set once serve() runs an HTTP server; getFullUrl then ignores serverless environments. */
   private _serving = false;
+  /** Handlers registered with {@link onAiEvent}. */
+  private _aiEventHandlers: AiEventHandler[] = [];
+  /** The recognizer's finals per call, once {@link recordSpeechFinals} is on. */
+  private _speechLog: SpeechLog | null = null;
   /** Handlers registered with {@link onCallStart}. */
   private callStartHandlers: ((
     rawData: SwaigRequest,
@@ -2339,6 +2354,80 @@ export class AgentBase extends SWMLService {
   }
 
   /**
+   * Register a handler for the AI events the platform posts during calls.
+   *
+   * The agent sets the call's `event_webhook_url` to its own `/ai_events`
+   * endpoint, unless you set `event_webhook_url` yourself, and calls each
+   * handler with every event posted there. An event is `ai.speech_detect` for
+   * each final of the caller's speech, with its `text` and the recognizer's
+   * `words` and confidences, or one of the platform's other AI events.
+   * Register handlers on the agent, not in a per-call configuration callback:
+   * the endpoint runs on the agent. The handler may be async; its return value
+   * is ignored, and an error is logged.
+   * @param handler - Called with `(eventType, params, event)`: the event, such
+   *   as `'ai.speech_detect'`; its fields, with the `call_id`; and the whole
+   *   event as posted, with its `timestamp`.
+   * @returns The handler.
+   *
+   * @example
+   * ```ts
+   * agent.onAiEvent((eventType, params) => {
+   *   if (eventType === 'ai.speech_detect') console.log(params['call_id'], params['text']);
+   * });
+   * ```
+   */
+  onAiEvent(handler: AiEventHandler): AiEventHandler {
+    // Rebind rather than push: a per-request copy shares this array
+    this._aiEventHandlers = [...this._aiEventHandlers, handler];
+    this.warnIfEventWebhookTaken();
+    return handler;
+  }
+
+  /**
+   * Keep each call's recognizer finals, with their word confidences, for tool
+   * handlers to read with {@link speechFinals}.
+   *
+   * A final is what the recognizer heard for one turn of the caller's, from
+   * the platform's `ai.speech_detect` event: `{ text, words, timestamp }`, with
+   * `words` as `[{ word, confidence }]` as heard, before hearing hints and
+   * number formatting change the text. A handler can ask the caller again
+   * about a word the recognizer wasn't sure of, such as a letter of a spelled
+   * name. Like {@link onAiEvent}, it sets the call's `event_webhook_url` to the
+   * agent's `/ai_events`, unless you set it yourself. A call with
+   * `redact_prompt` sends no finals unless debug is on. The finals live in the
+   * process: replicas each keep their own.
+   * @param maxCalls - The most calls to keep finals for; the oldest call's go first.
+   * @param maxFinals - The most finals to keep for one call.
+   * @returns This agent instance for chaining.
+   */
+  recordSpeechFinals(maxCalls = 500, maxFinals = 200): this {
+    this._speechLog ??= new SpeechLog(maxCalls, maxFinals);
+    this.warnIfEventWebhookTaken();
+    return this;
+  }
+
+  /**
+   * The recognizer's finals for a call, oldest first, once
+   * {@link recordSpeechFinals} is on: `{ text, words, timestamp }`.
+   * @param callId - The call, as a tool request's `rawData.call_id`.
+   * @param since - Only the finals from this time on, in seconds since the
+   *   epoch (the event's `timestamp`).
+   * @returns The finals, empty for a call with none or with recording off.
+   */
+  speechFinals(callId: string, since?: number): SpeechFinal[] {
+    return this._speechLog ? this._speechLog.finals(callId, since) : [];
+  }
+
+  private warnIfEventWebhookTaken(): void {
+    if (this.params['event_webhook_url'] !== undefined) {
+      this.log.warn('event_webhook_url_already_set', {
+        message:
+          "event_webhook_url is set to another URL, so AI events go there and this agent's onAiEvent handlers and speech finals get none",
+      });
+    }
+  }
+
+  /**
    * Register a handler that runs when the call starts, before the AI speaks.
    *
    * Handlers run in registration order with `rawData`, the whole SWAIG request
@@ -3307,6 +3396,14 @@ export class AgentBase extends SWMLService {
     ) {
       params['swaig_post_conversation'] = true;
     }
+    // AI events go to this agent's /ai_events when it handles them, unless
+    // event_webhook_url was set to something else
+    if (
+      (this._aiEventHandlers.length > 0 || this._speechLog) &&
+      params['event_webhook_url'] === undefined
+    ) {
+      params['event_webhook_url'] = this.buildWebhookUrl('ai_events', { ...this.swaigQueryParams });
+    }
     if (Object.keys(params).length) aiConfig['params'] = params;
     if (Object.keys(this.globalData).length) aiConfig['global_data'] = this.globalData;
 
@@ -3835,6 +3932,63 @@ export class AgentBase extends SWMLService {
       app.on('POST', postPromptPaths, authMw, handlePostPrompt);
     }
 
+    // AI events (event_webhook_url): to the speech log and onAiEvent handlers.
+    // The body is read to the size limit before the signature check, which
+    // would otherwise read all of it first.
+    const readBounded: MiddlewareHandler = async (c, next) => {
+      if (!(c.req.header('content-type') ?? '').toLowerCase().startsWith('application/json')) {
+        return c.json({ error: 'Content-Type must be application/json' }, 415);
+      }
+      const text = await readBodyWithin(c.req.raw, maxRequestSize);
+      if (text === null) return c.json({ error: 'Request body too large' }, 413);
+      // The signature check and the handler read this, not the spent stream
+      (c.req as unknown as { bodyCache: Record<string, unknown> }).bodyCache['text'] =
+        Promise.resolve(text);
+      await next();
+    };
+    const handleAiEvents = async (c: Context) => {
+      const reqLog = this.log.bind({ endpoint: `${basePath}/ai_events` });
+      let event: unknown;
+      try {
+        event = await c.req.json();
+      } catch (err) {
+        reqLog.error('error_parsing_request_body', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        return c.json({ status: 'error', message: 'invalid JSON' });
+      }
+      if (typeof event !== 'object' || event === null || Array.isArray(event)) {
+        return c.json({ status: 'error', message: 'an event must be an object' });
+      }
+      const e = event as Record<string, unknown>;
+      const eventType = String(e['event_type'] ?? 'unknown');
+      const given = e['params'];
+      const params =
+        typeof given === 'object' && given !== null && !Array.isArray(given)
+          ? (given as Record<string, unknown>)
+          : {};
+      reqLog.debug('ai_event', { event_type: eventType, call_id: params['call_id'] });
+      if (this._speechLog && eventType === SPEECH_DETECT) this._speechLog.add(e);
+      for (const handler of this._aiEventHandlers) {
+        // Each handler is isolated, so one failure doesn't keep the others from the event
+        try {
+          await handler(eventType, params, e);
+        } catch (err) {
+          reqLog.error('ai_event_handler_error', {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+      return c.json({ status: 'ok' });
+    };
+    const aiEventsPaths = withSlash(`${basePath}/ai_events`);
+    app.on('GET', aiEventsPaths, authMw, (c: Context) => c.json({ error: 'POST required' }, 405));
+    if (sigMw) {
+      app.on('POST', aiEventsPaths, authMw, readBounded, sigMw, handleAiEvents);
+    } else {
+      app.on('POST', aiEventsPaths, authMw, readBounded, handleAiEvents);
+    }
+
     // Debug events handler
     const handleDebugEvents = async (c: Context) => {
       const reqLog = this.log.bind({ endpoint: `${basePath}/debug_events` });
@@ -4229,4 +4383,26 @@ export class AgentBase extends SWMLService {
     if (includeSource) return [...this.basicAuthCreds, this.basicAuthSource];
     return this.basicAuthCreds;
   }
+}
+
+/**
+ * A request's body as text, read no further than `limit` bytes; null when it
+ * is larger. The stream is read here, so the caller passes the text on.
+ */
+async function readBodyWithin(request: Request, limit: number): Promise<string | null> {
+  if (!request.body) return '';
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > limit) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks));
 }
