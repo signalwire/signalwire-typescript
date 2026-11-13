@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ e746de8fb092dc1d1b7f0e40f46affbdd6db9d34",
+  "generated_from": "signalwire-typescript @ 8421bb689ee442b4c411738ba24cb4b8fad2f017",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -1546,8 +1546,8 @@
     "signalwire.core.tool_middleware": {
       "classes": {
         "ResendDedupe": [
+          "__call__",
           "__init__",
-          "handle",
           "max_entries",
           "ttl"
         ]
@@ -4016,6 +4016,7 @@
       "classes": {
         "SimulatedCall": [
           "__init__",
+          "__repr__",
           "actions",
           "args",
           "blocked_by",
@@ -4023,7 +4024,6 @@
           "ran",
           "response",
           "result",
-          "to_string",
           "tool_prompt"
         ],
         "CallSimulator": [
@@ -4040,8 +4040,8 @@
           "semantic_state"
         ],
         "RequestRecorder": [
+          "__call__",
           "__init__",
-          "handle",
           "limit",
           "load",
           "path"

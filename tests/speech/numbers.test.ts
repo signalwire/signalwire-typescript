@@ -129,6 +129,11 @@ describe('the third checkpoint review (found in review)', () => {
     expect(sayMoney('٣.٥٠')).toBe('three dollars and fifty cents');
   });
 
+  it("rounds the amount to Decimal's 28 digits first, as the reference does", () => {
+    expect(sayMoney('0.004999999999999999999999999999999')).toBe('one cent');
+    expect(sayMoney('0.0049999999999999999999999999')).toBe('zero dollars');
+  });
+
   it('says a zero amount at once, whatever its exponent', () => {
     const started = Date.now();
     expect(sayMoney('0e2000000')).toBe('zero dollars');

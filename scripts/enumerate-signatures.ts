@@ -468,16 +468,21 @@ const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
  * by that name (typeToString() would expand it to its callable), and a data-shape
  * interface the reference passes as a plain dict is recorded as that dict.
  */
+/** A REFERENCE_TYPE_FOLDS value: the interface as `dict<string,T>`, T its fields' one type, else any. */
+const RECORD_SHAPE = '<record-shape>';
 const REFERENCE_TYPE_FOLDS: Record<string, string> = {
   // tool_middleware.py: `ToolMiddleware = Callable[...]`, `CallNext = Callable[...]`
   'ToolMiddleware:ToolMiddleware': 'class:signalwire.core.tool_middleware.ToolMiddleware',
   'ToolMiddleware:CallNext': 'class:signalwire.core.tool_middleware.CallNext',
   // AgentBase.on_ai_event(handler: Callable[..., Any])
   'AgentBase:AiEventHandler': 'callable<list<any>,any>',
-  // speech_finals()/SpeechLog.finals() return list[dict[str, Any]]
-  'AiEvents:SpeechFinal': 'dict<string,any>',
-  // RequestList.pending()/as_text() take and give list[dict[str, str]]
-  'patterns/RequestList:NotedRequest': 'dict<string,string>',
+  // CallSimulator(gates: GateCallback | None)
+  'testing/CallSimulator:GateCallback': 'class:signalwire.testing.call_simulator.GateCallback',
+  // speech_finals()/SpeechLog.finals() return list[dict[str, Any]], and
+  // RequestList.pending()/as_text() list[dict[str, str]]: a data-shape interface
+  // is recorded as the dict of its fields' type (RECORD_SHAPE)
+  'AiEvents:SpeechFinal': RECORD_SHAPE,
+  'patterns/RequestList:NotedRequest': RECORD_SHAPE,
 };
 const UNFOLD_ALL = process.env.UNFOLD_ALL === '1';
 
@@ -1016,6 +1021,22 @@ function translateType(
     const foldFile = foldSym?.declarations?.[0]?.getSourceFile().fileName;
     if (foldSym && foldFile) {
       const folded = REFERENCE_TYPE_FOLDS[`${srcSubpath(foldFile)}:${foldSym.getName()}`];
+      if (folded === RECORD_SHAPE) {
+        // The fields' types, so a field that changes type still shows as drift
+        const fieldTypes = new Set(
+          checker
+            .getPropertiesOfType(type)
+            .map((p) =>
+              translateType(
+                checker.getTypeOfSymbolAtLocation(p, p.valueDeclaration ?? p.declarations![0]!),
+                checker,
+                aliases,
+                `${context}.${p.getName()}`,
+              ),
+            ),
+        );
+        return `dict<string,${fieldTypes.size === 1 ? [...fieldTypes][0] : 'any'}>`;
+      }
       if (folded !== undefined) return folded;
     }
   }
@@ -2248,8 +2269,9 @@ function signatureFromMethod(
   // is a keyword-passing bag; it can't express Python's positional affordance).
   // Generated resources (genResource) have their own richer unfold below;
   // constructors keep the TS options-object idiom.
+  // Constructors keep the TS options-object idiom unless allowlisted by name.
   const shouldGeneralUnfold =
-    !isCtor && !genResource && (UNFOLD_ALL || GENERAL_OPTIONS_UNFOLD.has(ctx));
+    !genResource && (GENERAL_OPTIONS_UNFOLD.has(ctx) || (!isCtor && UNFOLD_ALL));
   let didGeneralUnfold = false;
 
   for (const p of m.parameters) {

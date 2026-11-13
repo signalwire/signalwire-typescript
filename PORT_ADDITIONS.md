@@ -789,9 +789,3 @@ signalwire.livewire.plugins.SileroVAD: port-only: livewire (LiveKit-agents integ
 signalwire.livewire.plugins.SileroVAD.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
 signalwire.livewire.plugins.SileroVAD.load: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
 signalwire.livewire.run_app: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
-
-## Voice-agent toolkit (reference 3.8.0)
-
-signalwire.core.tool_middleware.ResendDedupe.handle: TS objects are not callable (the reference's __call__); handle() is the call, and ResendDedupe.middleware is it as a ToolMiddleware function
-signalwire.testing.call_simulator.RequestRecorder.handle: TS objects are not callable (the reference's __call__); handle() is the call, and RequestRecorder.middleware is it as a ToolMiddleware function
-signalwire.testing.call_simulator.SimulatedCall.to_string: TS stringification (the reference's __repr__), for a test's failure message

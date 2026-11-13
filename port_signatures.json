@@ -12119,8 +12119,30 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "class:signalwire.patterns.proposal.ProposalOptions",
+                  "name": "decline_tool",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "threshold",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "unclear",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -12286,8 +12308,23 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "class:signalwire.patterns.request_list.RequestListOptions",
+                  "name": "openers",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "heading",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -34467,8 +34504,37 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "class:signalwire.testing.call_simulator.CallSimulatorOptions",
+                  "name": "call_id",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "gates",
+                  "type": "class:signalwire.testing.call_simulator.GateCallback",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "stubs",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "global_data",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -34608,8 +34674,16 @@
                   "default": null
                 },
                 {
-                  "name": "opts",
-                  "type": "class:signalwire.testing.call_simulator.RequestRecorderOptions",
+                  "name": "limit",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -34708,9 +34782,24 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "dict<string,any>",
-                  "required": true
+                  "name": "ran",
+                  "type": "bool",
+                  "required": true,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "blocked_by",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
+                  "required": false,
+                  "default": {}
                 }
               ],
               "returns": "void"
@@ -38272,7 +38361,7 @@
           "required": false
         },
         "gates": {
-          "type": "callable<list<dict<string,any>,class:signalwire.testing.call_simulator.CallSimulator,dict<string,any>>,any>",
+          "type": "class:signalwire.testing.call_simulator.GateCallback",
           "required": false
         },
         "global_data": {

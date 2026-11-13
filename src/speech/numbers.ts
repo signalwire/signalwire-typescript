@@ -220,7 +220,10 @@ export function sayMoney(amount: number | bigint | string, currency = 'USD'): st
   if (parsed.digits && String(parsed.digits).length + parsed.exponent > 16) {
     throw new Error(`${String(amount)} is too large to say`);
   }
-  const minorTotal = roundHalfUp(parsed.digits * BigInt(perMajor), parsed.exponent);
+  // The product in minor units, to 28 significant digits as the reference's
+  // Decimal context gives it, then rounded half up to a whole unit
+  const product = toPrecision(parsed.digits * BigInt(perMajor), parsed.exponent, 28);
+  const minorTotal = roundHalfUp(product.digits, product.exponent);
   const major = minorTotal / BigInt(perMajor);
   const minor = minorTotal % BigInt(perMajor);
   const parts: string[] = [];
@@ -257,6 +260,24 @@ function parseDecimal(
     digits: BigInt(whole + fraction || '0'),
     exponent: Number(m[4] ?? 0) - fraction.length,
   };
+}
+
+/**
+ * `digits * 10 ** exponent` to `precision` significant digits, half even: the
+ * rounding of a Decimal context (the reference's default is 28 digits).
+ */
+function toPrecision(
+  digits: bigint,
+  exponent: number,
+  precision: number,
+): { digits: bigint; exponent: number } {
+  const extra = String(digits).length - precision;
+  if (extra <= 0) return { digits, exponent };
+  const divisor = 10n ** BigInt(extra);
+  let kept = digits / divisor;
+  const twice = 2n * (digits % divisor);
+  if (twice > divisor || (twice === divisor && kept % 2n === 1n)) kept += 1n;
+  return { digits: kept, exponent: exponent + extra };
 }
 
 /** `digits * 10 ** exponent` rounded to a whole number, half up. */

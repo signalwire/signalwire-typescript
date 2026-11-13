@@ -295,6 +295,11 @@ const CLASS_NAME_ALIASES: Record<string, string> = {
  *  lexical differences rather than functional gaps. Applied when emitting a
  *  method for a class that exists in the Python reference. */
 const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
+  // TS objects aren't callable: the reference's __call__ is handle() (and the
+  // object as a ToolMiddleware is its `middleware`); its __repr__ is toString().
+  'signalwire.core.tool_middleware.ResendDedupe': { handle: '__call__' },
+  'signalwire.testing.call_simulator.RequestRecorder': { handle: '__call__' },
+  'signalwire.testing.call_simulator.SimulatedCall': { to_string: '__repr__' },
   // `userData` getter is snake_cased to `user_data` by camelToSnake, but
   // Python spells it as a flat `userdata` (no underscore).
   'signalwire.livewire.AgentSession': { user_data: 'userdata' },
