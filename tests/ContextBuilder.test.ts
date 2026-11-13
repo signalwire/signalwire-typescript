@@ -5,6 +5,7 @@ import {
   Step,
   GatherInfo,
   GatherQuestion,
+  HISTORY_MODES,
 } from '../src/ContextBuilder.js';
 
 describe('ContextBuilder', () => {
@@ -124,7 +125,7 @@ describe('ContextBuilder', () => {
 
   describe('setHistory (Step + Context)', () => {
     it('Step.setHistory emits "history" only when set, for each mode', () => {
-      for (const mode of ['keep', 'default', 'hide'] as const) {
+      for (const mode of ['keep', 'default', 'hide', 'isolate'] as const) {
         const step = new Step('s').setText('do a thing').setHistory(mode);
         expect(step.toDict().history).toBe(mode);
       }
@@ -145,7 +146,7 @@ describe('ContextBuilder', () => {
     });
 
     it('Context.setHistory emits "history" only when set, for each mode', () => {
-      for (const mode of ['keep', 'default', 'hide'] as const) {
+      for (const mode of ['keep', 'default', 'hide', 'isolate'] as const) {
         const ctx = new Context('default').setHistory(mode);
         ctx.addStep('s', { task: 'do a thing' });
         expect(ctx.toDict().history).toBe(mode);
@@ -161,6 +162,11 @@ describe('ContextBuilder', () => {
     it('Context.setHistory is fluent (returns the context)', () => {
       const ctx = new Context('default');
       expect(ctx.setHistory('hide')).toBe(ctx);
+    });
+
+    it('lists the modes the reference does, isolate included', () => {
+      // isolate: like hide, but only while the agent is in the step
+      expect([...HISTORY_MODES]).toEqual(['keep', 'default', 'hide', 'isolate']);
     });
 
     it('Context.setHistory rejects an invalid mode', () => {

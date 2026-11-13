@@ -3,6 +3,66 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## 3.7.2 (2026-11-12)
+
+Parity with signalwire-python 3.7.7: the chat-session token fix, a plain
+`SWMLService` on an `AgentServer`, the `isolate` history mode and the schema
+validator warning.
+
+### Added
+
+- A step's or context's history mode can be `"isolate"`:
+  `step.setHistory('isolate')`. While the agent is in the step, the model
+  sees none of the earlier dialogue and none of the earlier step
+  instructions, as with `"hide"`. When the agent leaves the step, the
+  earlier dialogue comes back, and the step's own turns stay; the earlier
+  instructions stay cleared, and what an earlier `"hide"` step hid stays
+  hidden. Entering the step again isolates it again. On a context, it
+  applies to every step that doesn't set its own mode. A platform without
+  isolate treats it as `"default"`. Parity with signalwire-python 3.7.7.
+
+### Fixed
+
+- A chat session's post-prompt summary was refused with `403`, so its
+  transcript never saved. The chat service fetches an agent's SWML under the
+  conversation's id, so the SDK mints that SWML's tokens for the
+  conversation, but the summary can arrive under the chat service's own call
+  id, with the conversation's id as `conversation_id`. A token is now
+  accepted when it names the request's `call_id` or its `conversation_id`,
+  for post-prompt summaries and secure functions alike. A voice call, where
+  the two are the same, is unchanged, and the token still has to name this
+  call or conversation. A `call_id` that isn't a non-empty string is
+  refused, and an accepted chat request logs no token mismatch. Parity with
+  signalwire-python 3.7.4 (#166).
+- `AgentServer` hosts a plain `SWMLService` next to its agents, as
+  signalwire-python 3.7.6 does. Registering one made every request under its
+  route answer with 500. Use `new AgentServer<SWMLService>()`:
+  `AgentServer<T extends SWMLService = AgentBase>` is now generic over what
+  it hosts, so `getAgent()` and `getAgents()` keep returning agents on a
+  plain `new AgentServer()`. The service answers at its route with or
+  without a trailing slash, under its own basic auth, and serves its
+  `/swaig` endpoint and routing callbacks; the agent endpoints
+  (`/post_prompt`, `/check_for_input`, `/debug`) aren't served for it.
+- `SWMLService.asRouter()` returns a router whose routes are relative to
+  the service's route, as the reference's `as_router()` does, so a host can
+  mount it at any prefix. It returned the service's own app, so a service at
+  `/menu` mounted at `/menu` served `/menu/menu`. The router's own routes
+  and callbacks carry the service's security headers, CORS and basic auth,
+  and it has no middleware for every path, so it leaves a host's other
+  routes alone; a route you add to the router checks auth itself, as with
+  `AgentBase.asRouter()`. A `SWMLService` route
+  drops a trailing slash (`/menu/` is stored as `/menu`), as the reference
+  does, so it's served the same mounted or on its own.
+- A plain `SWMLService` serves its routing callbacks under its route
+  (`/menu/sip`), as the reference does, and still at the bare path
+  (`/sip`), where earlier releases served them. A callback registered after
+  the service has served a request now answers; it used to throw.
+- Where the SWML schema can't be compiled, as on a runtime that blocks code
+  generation from strings (Cloudflare Workers), verb validation falls back
+  to checking verb names and required fields, and now logs
+  `schema_validator_unavailable` once instead of falling back silently, as
+  signalwire-python 3.7.2 does.
+
 ## 3.7.1 (2026-10-14)
 
 Parity with signalwire-python 3.7.1, and `onCallStart()` from its main branch (#118).

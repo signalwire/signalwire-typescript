@@ -311,11 +311,12 @@ List allowed model transitions when the model can choose among safe destinations
 
 **Solves:** P12-P14. **Use:** `Step.setHistory()`, `Context.setHistory()`, `${step_history.*}` references, context reset settings.
 
-`setHistory()` takes one of three modes:
+`setHistory()` takes one of these modes:
 
 - `keep`: keep prior instructions and dialogue.
 - `default`: remove prior step instructions and keep the dialogue; the behavior when unset.
 - `hide`: remove prior instructions and dialogue from the model's view. Use `${step_history.*}` references in the step's text to bring back selected information.
+- `isolate`: like `hide`, but only while the agent is in this step. When the step is left, the earlier dialogue returns and the step's own turns stay; the earlier instructions stay cleared, and what an earlier `hide` step hid stays hidden. Entering the step again isolates it again. Use it for a step that must see nothing else, such as a confirmation read-back. A platform without `isolate` treats it as `default`.
 
 Hidden turns remain in the call log, so don't describe `hide` as deletion. `Context.setIsolated()`, `setSystemPrompt()`, `setUserPrompt()`, `setConsolidate()` and `setFullReset()` add more controls for entering a context. Steps have `setResetSystemPrompt()`, `setResetUserPrompt()`, `setResetConsolidate()` and `setResetFullReset()`. Verify the combination you choose on the runtime rather than treating them all as a memory wipe. [S03]
 

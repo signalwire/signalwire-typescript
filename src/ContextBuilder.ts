@@ -18,10 +18,13 @@ const MAX_STEPS_PER_CONTEXT = 100;
  * - `hide`: prior instructions hidden **and** the prior dialogue pulled
  *   out of the model's context. The only way back in is an explicit
  *   `${step_history.*}` reference in the new prompt.
+ * - `isolate`: like `hide`, but only while the agent is in this step: the
+ *   earlier dialogue returns when the step is left, and the earlier step
+ *   instructions stay cleared.
  */
-export const HISTORY_MODES = ['keep', 'default', 'hide'] as const;
+export const HISTORY_MODES = ['keep', 'default', 'hide', 'isolate'] as const;
 
-/** One of the three valid `history` visibility modes. */
+/** One of the valid `history` visibility modes. */
 export type HistoryMode = (typeof HISTORY_MODES)[number];
 
 function validateHistory(mode: string): HistoryMode {
@@ -650,8 +653,16 @@ export class Step {
    *   - `"hide"`: hide the prior instructions *and* pull the prior dialogue
    *     out of the model's context. Pair it with a `${step_history.*}`
    *     reference in this step's text to choose exactly what comes back.
+   *   - `"isolate"`: like `"hide"` (the earlier dialogue leaves the model's
+   *     context and the earlier step instructions are cleared), but only
+   *     while the agent is in this step. When the agent leaves it, the
+   *     earlier dialogue comes back and this step's own turns stay; the
+   *     earlier instructions stay cleared, and what an earlier `"hide"` step
+   *     hid stays hidden. Entering the step again isolates it again. Use it
+   *     for a step that must see nothing else, such as one that reads back a
+   *     confirmation. A platform without isolate treats it as `"default"`.
    * @returns This step for chaining.
-   * @throws {Error} If `history` is not one of the three modes.
+   * @throws {Error} If `history` is not one of these modes.
    */
   setHistory(history: string): this {
     this._history = validateHistory(history);
@@ -1037,9 +1048,9 @@ export class Context {
    * A step's own `setHistory()` overrides this. See {@link Step.setHistory}
    * for what each mode does.
    *
-   * @param history - One of `"keep"`, `"default"`, or `"hide"`.
+   * @param history - One of `"keep"`, `"default"`, `"hide"`, or `"isolate"`.
    * @returns This context for chaining.
-   * @throws {Error} If `history` is not one of the three modes.
+   * @throws {Error} If `history` is not one of these modes.
    */
   setHistory(history: string): this {
     this._history = validateHistory(history);

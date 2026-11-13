@@ -115,6 +115,17 @@ export class SessionManager {
    * @returns True if the token is valid and not expired.
    */
   validateToken(callId: string, functionName: string, token: string): boolean {
+    return this._validateTokenFor([callId], functionName, token);
+  }
+
+  /**
+   * @internal Validate a token that may name any of `callIds`, logging a
+   * call-ID mismatch only when it names none of them. AgentBase uses it for a
+   * chat session, whose token names the conversation and whose requests can
+   * arrive under the chat service's own call ID.
+   */
+  _validateTokenFor(callIds: readonly string[], functionName: string, token: string): boolean {
+    const candidates = callIds.filter((id) => typeof id === 'string' && id !== '');
     try {
       const decoded = Buffer.from(token, 'base64url').toString();
       const parts = splitTokenParts(decoded);
@@ -124,7 +135,7 @@ export class SessionManager {
       }
       const [tokenCallId, tokenFunction, tokenExpiry, tokenNonce, tokenSignature] = parts;
 
-      if (!callId) {
+      if (candidates.length === 0) {
         this.log.warn('token_rejected_no_call_id', { function: functionName });
         return false;
       }
@@ -152,8 +163,11 @@ export class SessionManager {
         this.log.warn('token_invalid', { function: functionName });
         return false;
       }
-      if (tokenCallId !== callId) {
-        this.log.warn('token_call_id_mismatch', { expected: callId, got: tokenCallId });
+      if (!candidates.includes(tokenCallId)) {
+        this.log.warn('token_call_id_mismatch', {
+          expected: candidates.length === 1 ? candidates[0] : candidates,
+          got: tokenCallId,
+        });
         return false;
       }
 

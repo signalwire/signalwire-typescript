@@ -422,6 +422,35 @@ describe('SWMLService routing callbacks on the served app (found in the document
     expect(res.headers.get('location')).toBe('/sales');
   });
 
+  it("serves the callback under the service's route, as the reference does", async () => {
+    const res = await svc(async () => '/sales')
+      .getApp()
+      .request('/r/route', {
+        method: 'POST',
+        headers: { Authorization: 'Basic ' + btoa('u:p'), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ call: { to: 'sip:sales@example.com' } }),
+      });
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('/sales');
+  });
+
+  it('serves its routes relative to the prefix a host mounts asRouter() at', async () => {
+    const { Hono } = await import('hono');
+    const host = new Hono();
+    host.route('/voice', svc(async () => '/sales').asRouter());
+    const auth = { Authorization: 'Basic ' + btoa('u:p'), 'Content-Type': 'application/json' };
+    const doc = await host.request('/voice', { headers: auth });
+    expect(doc.status).toBe(200);
+    expect((await doc.json()).sections.main).toEqual([{ answer: {} }]);
+    const routed = await host.request('/voice/route', {
+      method: 'POST',
+      headers: auth,
+      body: JSON.stringify({ call: { to: 'sip:sales@example.com' } }),
+    });
+    expect(routed.status).toBe(307);
+    expect((await host.request('/voice')).status).toBe(401);
+  });
+
   it('serves the SWML when an async callback returns null', async () => {
     const res = await post(svc(async () => null));
     expect(res.status).toBe(200);
