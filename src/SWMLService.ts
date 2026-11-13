@@ -9,6 +9,7 @@
 import type { AgentBase } from './AgentBase.js';
 import { Hono } from 'hono';
 import { TrieRouter } from 'hono/router/trie-router';
+import { getPattern, splitRoutingPath } from 'hono/utils/url';
 import type { Context, MiddlewareHandler } from 'hono';
 import type { HostAppRouter } from './web.js';
 import { cors } from 'hono/cors';
@@ -30,49 +31,48 @@ import type { Server } from 'node:http';
 
 // ── Verb handler interfaces ────────────────────────────────────────────
 
-/** Mount-prefix patterns by route template, for {@link SWMLService._mountedRest}. */
-const MOUNT_PATTERNS = new Map<string, RegExp | null>();
-
 /**
- * A pattern matching the path a route template's mount prefix covers, built
- * as routing builds one: a literal segment matches itself, `:name` one
- * segment, and `:name{re}` its pattern. Null for a form it doesn't read (an
- * optional `?` parameter), so no callback matches under it.
+ * How long the mount prefix a route template describes is at the start of
+ * `path`, matched with routing's own grammar (Hono's `splitRoutingPath` and
+ * `getPattern`): a literal label matches itself, `:name` one segment, and
+ * `:name{re}` its pattern, with the lookahead to the next label routing
+ * uses. The labels are matched in one pass. Null when the path doesn't start
+ * with the mount, or the template has a form this doesn't read.
  */
-function mountPattern(template: string): RegExp | null {
-  const cached = MOUNT_PATTERNS.get(template);
-  if (cached !== undefined) return cached;
-  let source = '';
-  let ok = !template.includes('?');
-  for (let i = 0; ok && i < template.length;) {
-    const ch = template[i]!;
-    if (ch === ':') {
-      let j = i + 1;
-      while (j < template.length && /[\w$]/.test(template[j]!)) j++;
-      if (template[j] === '{') {
-        let depth = 0;
-        let k = j;
-        for (; k < template.length; k++) {
-          if (template[k] === '\\') k++;
-          else if (template[k] === '{') depth++;
-          else if (template[k] === '}' && --depth === 0) break;
-        }
-        if (k >= template.length) ok = false;
-        source += `(?:${template.slice(j + 1, k)})`;
-        i = k + 1;
-      } else {
-        source += '[^/]+';
-        i = j;
-      }
+function mountPrefixLength(template: string, path: string): number | null {
+  const labels = splitRoutingPath(template);
+  let pos = 0;
+  for (let i = 0; i < labels.length; i++) {
+    if (path[pos] !== '/') return null;
+    pos++;
+    const label = labels[i]!;
+    // The mount is followed by the dispatcher's '*'
+    const pattern = getPattern(label, labels[i + 1] ?? '*');
+    if (pattern === null) {
+      if (!path.startsWith(label, pos)) return null;
+      pos += label.length;
+    } else if (pattern === '*') {
+      return null;
+    } else if (pattern[2] === true) {
+      const end = path.indexOf('/', pos);
+      const stop = end === -1 ? path.length : end;
+      if (stop === pos) return null;
+      pos = stop;
     } else {
-      source += ch.replace(/[.*+^${}()|[\]\\]/g, '\\$&');
-      i++;
+      // As routing tries it: against the rest of the path, then the segment.
+      const found = pattern[2].exec(path.slice(pos));
+      if (found) {
+        pos += found[0].length;
+      } else {
+        const end = path.indexOf('/', pos);
+        const stop = end === -1 ? path.length : end;
+        if (!pattern[2].test(path.slice(pos, stop))) return null;
+        pos = stop;
+      }
     }
+    if (pos < path.length && path[pos] !== '/') return null;
   }
-  const pattern = ok ? new RegExp(`^${source}(?=/|$)`) : null;
-  if (MOUNT_PATTERNS.size > 256) MOUNT_PATTERNS.clear();
-  MOUNT_PATTERNS.set(template, pattern);
-  return pattern;
+  return pos;
 }
 /**
  * Interface for custom SWML verb handlers.
@@ -761,10 +761,9 @@ export class SWMLService {
     const template = c.req.routePath.replace(/\/?\*$/, '');
     let prefix = 0;
     if (template && template !== '/') {
-      const pattern = mountPattern(template);
-      const found = pattern?.exec(c.req.path);
-      if (!found) return null;
-      prefix = found[0].length;
+      const length = mountPrefixLength(template, c.req.path);
+      if (length === null) return null;
+      prefix = length;
     }
     const rest = c.req.path.slice(prefix);
     return `/${rest.split('/').filter(Boolean).join('/')}`;

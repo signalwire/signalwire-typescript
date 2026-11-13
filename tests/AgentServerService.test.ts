@@ -708,3 +708,26 @@ describe('routing callbacks, seventh review (found in review)', () => {
     expect((await post(host, '/tenant')).headers.get('location')).toBe('/root-target');
   });
 });
+
+/** Codex's ninth review: mounts written in routing's full grammar. */
+describe('routing callbacks, ninth review (found in review)', () => {
+  it.each([
+    ['/t/:id{[}a]+}', '/t/a/sip'],
+    ['/t/:id{[^/}]+}', '/t/a/sip'],
+    ['/t/:id{(?:foo|bar)}', '/t/foo/sip'],
+    ['/t/:id{a+?}', '/t/aa/sip'],
+    ['/t/:tenant-id', '/t/acme/sip'],
+  ])('finds a callback under the mount %s', async (mount, path) => {
+    const s = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+    s.registerRoutingCallback(() => '/target', '/sip');
+    const host = new Hono();
+    host.route(mount, s.asRouter());
+    const res = await host.request(path, {
+      method: 'POST',
+      headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ call: {} }),
+    });
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('/target');
+  });
+});
