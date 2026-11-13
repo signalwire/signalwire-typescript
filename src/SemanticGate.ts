@@ -34,6 +34,16 @@ export const MAX_CRITERIA_BYTES = 2048;
 export const MAX_ON_FAIL_BYTES = 8192;
 /** The most caller video frames a gate may ask for (the platform's AI_VISUAL_INPUT_MAX). */
 export const MAX_VISUAL_INPUT = 5;
+/** The most dialogue entries a gate's own `history` may ask for. */
+export const MAX_GATE_HISTORY = 100;
+/**
+ * The dialogues a gate can judge: the newest entries (`window`), or those
+ * since the proposal (`semantic_state`) last changed (`proposal`).
+ */
+export const GATE_DIALOGUES = ['window', 'proposal'] as const;
+
+/** A dialogue a gate can judge: one of {@link GATE_DIALOGUES}. */
+export type GateDialogue = (typeof GATE_DIALOGUES)[number];
 
 const GATE_KEYS: ReadonlySet<string> = new Set([
   'id',
@@ -41,7 +51,12 @@ const GATE_KEYS: ReadonlySet<string> = new Set([
   'criteria',
   'threshold',
   'on_fail',
+  'on_unclear',
+  'unclear',
   'visual_input',
+  'dialogue',
+  'history',
+  'since',
 ]);
 const GATE_ID = /^[A-Za-z0-9_]{1,64}$/;
 const UNPAIRED_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
@@ -88,6 +103,41 @@ export interface SemanticGateOptions {
    * blocks the call. Default: no frames, and the key is left out.
    */
   visualInput?: boolean | number;
+  /**
+   * What the model gets when this is the first gate answered unclear and none
+   * failed, in the same forms as `onFail`. It should ask the caller again.
+   * Default: the platform's own, which does.
+   */
+  onUnclear?: string | FunctionResult | Record<string, unknown>;
+  /**
+   * `true` to ask the decision model yes, no or unclear, where its provider
+   * can (OpenAI); a yes under the threshold counts as unclear too. Such a gate
+   * wants a lower threshold than a yes/no one. Unclear doesn't run the
+   * function: the model gets `onUnclear`. Two unclear answers in a row for the
+   * same function and `semantic_state` ask again, and the third is a fail.
+   * Default: yes or no.
+   */
+  unclear?: boolean;
+  /**
+   * The dialogue this gate judges, in place of the agent's
+   * `semantic_gate_dialogue` (`setSemanticGates({ dialogue })`): `'window'`,
+   * the newest entries, or `'proposal'`, those since `semantic_state` last
+   * changed. A gate about what the caller asked before the proposal started
+   * wants `'window'` on an agent that judges confirmations by the proposal.
+   */
+  dialogue?: GateDialogue;
+  /**
+   * How many of the newest dialogue entries this gate judges, a whole number
+   * from 1 to 100, in place of the agent's `semantic_gate_history`.
+   */
+  history?: number;
+  /**
+   * The name of a mark your code sets with
+   * `FunctionResult.setSemanticGateMark(name)`: the gate judges the dialogue
+   * from the agent's first turn at or after the mark, at most `history`
+   * entries. Until the mark is set, it judges its `dialogue` as usual.
+   */
+  since?: string;
 }
 
 /**
@@ -122,6 +172,11 @@ export interface SemanticGateOptions {
  *   },
  * );
  * ```
+ *
+ * Every gate on one function must have the same `dialogue`, `history` and
+ * `since`, set or not: they're asked together, about one dialogue. These keys,
+ * like `unclear` and `onUnclear`, need a platform release that has them: one
+ * with gates but without a key refuses the function.
  */
 export class SemanticGate {
   /** The yes/no question. */
@@ -136,6 +191,16 @@ export class SemanticGate {
   onFail: Record<string, unknown>;
   /** The caller's video frames the decision model sees, or undefined for none. */
   visualInput?: boolean | number;
+  /** The output the model gets when this is the first gate answered unclear, or undefined for the platform's own. */
+  onUnclear?: Record<string, unknown>;
+  /** Whether the decision model may answer unclear, or undefined for yes or no. */
+  unclear?: boolean;
+  /** The dialogue this gate judges, or undefined for the agent's. */
+  dialogue?: GateDialogue;
+  /** How many dialogue entries this gate judges, or undefined for the agent's. */
+  history?: number;
+  /** The mark this gate judges the dialogue from, or undefined for none. */
+  since?: string;
 
   /**
    * @param question - The yes/no question, at most 8 KB. Its `${...}`
@@ -169,12 +234,18 @@ export class SemanticGate {
     if (opts.falseMeans !== undefined) this.criteria.false = opts.falseMeans;
     this.onFail = onFailOutput(onFail);
     this.visualInput = opts.visualInput;
+    if (opts.onUnclear !== undefined) this.onUnclear = onFailOutput(opts.onUnclear, 'on_unclear');
+    this.unclear = opts.unclear;
+    this.dialogue = opts.dialogue;
+    this.history = opts.history;
+    this.since = opts.since;
   }
 
   /**
    * The gate as the platform reads it.
    * @returns The gate object: `id` (when set), `question`, `criteria` (when
-   *   set), `threshold`, `on_fail` and `visual_input` (when set).
+   *   set), `threshold`, `on_fail`, and `on_unclear`, `unclear`,
+   *   `visual_input`, `dialogue`, `history` and `since` when set.
    */
   toDict(): Record<string, unknown> {
     const gate: Record<string, unknown> = {};
@@ -183,14 +254,20 @@ export class SemanticGate {
     if (Object.keys(this.criteria).length > 0) gate['criteria'] = { ...this.criteria };
     gate['threshold'] = this.threshold;
     gate['on_fail'] = deepCopy(this.onFail);
+    if (this.onUnclear !== undefined) gate['on_unclear'] = deepCopy(this.onUnclear);
+    if (this.unclear !== undefined) gate['unclear'] = this.unclear;
     if (this.visualInput !== undefined) gate['visual_input'] = this.visualInput;
+    if (this.dialogue !== undefined) gate['dialogue'] = this.dialogue;
+    if (this.history !== undefined) gate['history'] = this.history;
+    if (this.since !== undefined) gate['since'] = this.since;
     return gate;
   }
 }
 
-/** Build an on_fail output object from a string, FunctionResult or object. */
+/** Build an on_fail (or on_unclear) output object from a string, FunctionResult or object. */
 function onFailOutput(
   onFail: string | FunctionResult | Record<string, unknown>,
+  name = 'on_fail',
 ): Record<string, unknown> {
   if (onFail instanceof FunctionResult) {
     const dict = onFail.toDict() as Record<string, unknown>;
@@ -198,7 +275,7 @@ function onFailOutput(
     // blocked call must never read as a success, so the platform requires one.
     const hasResponse = typeof dict['response'] === 'object' || onFail.response !== '';
     if (!hasResponse) {
-      throw new Error("on_fail needs a response saying the function didn't run");
+      throw new Error(`${name} needs a response saying the function didn't run`);
     }
     const output: Record<string, unknown> = { response: dict['response'] };
     if (onFail.action.length > 0) {
@@ -208,7 +285,7 @@ function onFailOutput(
     return output;
   }
   if (typeof onFail === 'string') {
-    if (!onFail) throw new Error("on_fail needs a response saying the function didn't run");
+    if (!onFail) throw new Error(`${name} needs a response saying the function didn't run`);
     return { response: onFail };
   }
   return onFail;
@@ -342,34 +419,34 @@ function checkText(value: unknown, where: string): string {
   return '';
 }
 
-/** Why the platform would refuse `on_fail`, or an empty string. */
-function checkOnFail(onFail: unknown): string {
-  if (!isPlainObject(onFail)) return 'on_fail must be an object';
+/** Why the platform would refuse `on_fail` (or `on_unclear`, checked the same way), or an empty string. */
+function checkOnFail(onFail: unknown, name = 'on_fail'): string {
+  if (!isPlainObject(onFail)) return `${name} must be an object`;
   const response = cjsonGet(onFail, 'response');
   if (typeof response === 'string') {
-    if (!response) return 'on_fail.response is empty';
+    if (!response) return `${name}.response is empty`;
   } else if (isPlainObject(response)) {
     const toolResult = cjsonGet(response, 'tool_result');
     if (typeof toolResult !== 'string' || !toolResult) {
-      return 'on_fail.response.tool_result is missing or empty';
+      return `${name}.response.tool_result is missing or empty`;
     }
     if (
       cjsonHas(response, 'tool_prompt') &&
       typeof cjsonGet(response, 'tool_prompt') !== 'string'
     ) {
-      return 'on_fail.response.tool_prompt must be a string';
+      return `${name}.response.tool_prompt must be a string`;
     }
   } else {
-    return 'on_fail.response is missing';
+    return `${name}.response is missing`;
   }
   if (cjsonHas(onFail, 'action') && !Array.isArray(cjsonGet(onFail, 'action'))) {
-    return 'on_fail.action must be an array';
+    return `${name}.action must be an array`;
   }
-  const textWhy = checkText(onFail, 'on_fail');
+  const textWhy = checkText(onFail, name);
   if (textWhy) return textWhy;
   // Measured as the platform measures it: cJSON_PrintUnformatted of the JSON sent
   if (_cjsonPrintedLength(deepCopy(onFail)) > MAX_ON_FAIL_BYTES) {
-    return `on_fail is larger than ${MAX_ON_FAIL_BYTES} bytes`;
+    return `${name} is larger than ${MAX_ON_FAIL_BYTES} bytes`;
   }
   return '';
 }
@@ -402,6 +479,34 @@ function validVisualInput(value: unknown): boolean {
   return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= MAX_VISUAL_INPUT;
 }
 
+/**
+ * The dialogue a gate names, as the platform reads it, without regard to
+ * case; undefined when it names none it knows.
+ */
+function gateDialogue(gate: Record<string, unknown>): GateDialogue | undefined {
+  const dialogue = gate['dialogue'];
+  if (typeof dialogue !== 'string') return undefined;
+  const lower = dialogue.toLowerCase();
+  return (GATE_DIALOGUES as readonly string[]).includes(lower)
+    ? (lower as GateDialogue)
+    : undefined;
+}
+
+/** Whether `value` is a JSON number, whole, from `low` to `high`. */
+function wholeNumberIn(value: unknown, low: number, high: number): boolean {
+  return Number.isInteger(value) && (value as number) >= low && (value as number) <= high;
+}
+
+/** What a gate sets of the dialogue it judges, for comparing a function's gates. */
+function dialogueWindow(gate: Record<string, unknown>): string {
+  const history = gate['history'];
+  return JSON.stringify([
+    gateDialogue(gate) ?? null,
+    history === undefined ? null : Number(history),
+    gate['since'] ?? null,
+  ]);
+}
+
 /** Why the platform would refuse one gate, or an empty string. */
 function checkGate(gate: unknown): string {
   if (!isPlainObject(gate)) return 'must be an object';
@@ -426,12 +531,28 @@ function checkGate(gate: unknown): string {
   if (!('on_fail' in gate)) return 'on_fail is missing';
   const onFailWhy = checkOnFail(gate['on_fail']);
   if (onFailWhy) return onFailWhy;
+  if ('on_unclear' in gate) {
+    const onUnclearWhy = checkOnFail(gate['on_unclear'], 'on_unclear');
+    if (onUnclearWhy) return onUnclearWhy;
+  }
+  if ('unclear' in gate && typeof gate['unclear'] !== 'boolean') {
+    return 'unclear must be true or false';
+  }
   if ('criteria' in gate) {
     const criteriaWhy = checkCriteria(gate['criteria']);
     if (criteriaWhy) return criteriaWhy;
   }
   if ('visual_input' in gate && !validVisualInput(gate['visual_input'])) {
     return `visual_input must be true, false or a whole number from 0 to ${MAX_VISUAL_INPUT}`;
+  }
+  if ('dialogue' in gate && gateDialogue(gate) === undefined) {
+    return 'dialogue must be window or proposal';
+  }
+  if ('history' in gate && !wholeNumberIn(gate['history'], 1, MAX_GATE_HISTORY)) {
+    return `history must be a whole number from 1 to ${MAX_GATE_HISTORY}`;
+  }
+  if ('since' in gate && !(typeof gate['since'] === 'string' && GATE_ID.test(gate['since']))) {
+    return 'since must be a mark name of 1 to 64 letters, digits or underscores';
   }
   if ('id' in gate) {
     const id = gate['id'];
@@ -482,6 +603,16 @@ export function gateDefinitions(
       );
     }
     ids.push(id);
+    // The gates are asked together, about one dialogue, so the platform
+    // refuses a function whose gates name different ones, set or not
+    if (
+      definitions.length > 0 &&
+      dialogueWindow(gateDefinition) !== dialogueWindow(definitions[0]!)
+    ) {
+      throw new Error(
+        `${functionName}: gate ${index + 1}: dialogue, history and since must be the same on every gate of a function`,
+      );
+    }
     definitions.push(gateDefinition);
   }
   return definitions;

@@ -548,6 +548,50 @@ export class FunctionResult {
   }
 
   /**
+   * Set a mark that semantic gates judge the dialogue from (`semantic_gate_mark`).
+   *
+   * A gate with `since: name` judges the dialogue from the agent's first turn
+   * at or after the mark, at most its `history` entries. The mark is set as of
+   * the start of the action object that sets it, so a `say` in the same object
+   * is the first turn after it; setting it again moves it. Marks last for the
+   * call. It needs a platform release that has it.
+   * @param name - 1 to 64 letters, digits or underscores.
+   * @returns This instance for chaining.
+   * @throws {Error} For a name the platform would refuse.
+   */
+  setSemanticGateMark(name: string): this {
+    if (typeof name !== 'string' || !/^[A-Za-z0-9_]{1,64}$/.test(name)) {
+      throw new Error(
+        `a mark name is 1 to 64 letters, digits or underscores, got ${JSON.stringify(name)}`,
+      );
+    }
+    return this.addAction('semantic_gate_mark', name);
+  }
+
+  /**
+   * Set whether the model may call another function right after a function
+   * result, without answering in words first (`back_to_back_functions`).
+   *
+   * `'forever'`, the call's default, chains freely. `false` makes the model
+   * answer in words after a function result: the request after one goes out
+   * with `tool_choice: "none"`. `true`, while chaining is off, allows one more
+   * chain: the next request after a function result may call one, and then
+   * it's off again. `true` never lowers `'forever'`. The setting lasts for the
+   * call. Text pipeline only: a realtime model doesn't read it.
+   * @param value - `true`, `false` or `'forever'`. Default `true`.
+   * @returns This instance for chaining.
+   * @throws {Error} For any other value, which the platform ignores.
+   */
+  backToBackFunctions(value: boolean | 'forever' = true): this {
+    if (typeof value !== 'boolean' && value !== 'forever') {
+      throw new Error(
+        `back_to_back_functions takes true, false or "forever", got ${JSON.stringify(value)}`,
+      );
+    }
+    return this.addAction('back_to_back_functions', value);
+  }
+
+  /**
    * Set the semantic state the call's semantic gates judge, besides the
    * dialogue.
    *
@@ -661,6 +705,30 @@ export class FunctionResult {
    */
   swmlChangeStep(stepName: string): this {
     return this.addAction('change_step', stepName);
+  }
+
+  /**
+   * Enter the current step again, so its text shows new global data.
+   *
+   * A step's text is expanded once, when the step is entered, so its
+   * `${global_data.*}` values are the ones from then. After
+   * {@link updateGlobalData} changes one, return this with the current step's
+   * name, after the update in the same result, and the model gets the step's
+   * text again with the new values. Entering a step starts it over: its
+   * `history` mode applies again, so under `'hide'` the step's dialogue so far
+   * leaves the model's context too. The same action as {@link swmlChangeStep}.
+   * @param stepName - The name of the step the call is in.
+   * @returns This instance for chaining.
+   *
+   * @example
+   * ```ts
+   * new FunctionResult('Added the drink.')
+   *   .updateGlobalData({ order_total: '$14.50' })
+   *   .refreshStep('take_order');
+   * ```
+   */
+  refreshStep(stepName: string): this {
+    return this.swmlChangeStep(stepName);
   }
 
   /**

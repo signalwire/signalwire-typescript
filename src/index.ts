@@ -92,9 +92,11 @@ export {
   MAX_CRITERIA_BYTES,
   MAX_ON_FAIL_BYTES,
   MAX_VISUAL_INPUT,
+  MAX_GATE_HISTORY,
+  GATE_DIALOGUES,
   RESERVED_FUNCTION_NAMES,
 } from './SemanticGate.js';
-export type { SemanticGateOptions, FillerPhrases } from './SemanticGate.js';
+export type { SemanticGateOptions, FillerPhrases, GateDialogue } from './SemanticGate.js';
 export type { SwaigHandler, SwaigFunctionOptions } from './SwaigFunction.js';
 
 // Typed SWAIG tool-parameter builder (Tier-2 flagship affordance for the
@@ -153,8 +155,10 @@ export {
   GatherQuestion,
   createSimpleContext,
   HISTORY_MODES,
+  expectedAnswer,
+  MAX_EXPECTED_DIGITS,
 } from './ContextBuilder.js';
-export type { HistoryMode } from './ContextBuilder.js';
+export type { HistoryMode, ExpectedAnswer } from './ContextBuilder.js';
 
 // Security
 export { SessionManager } from './SessionManager.js';

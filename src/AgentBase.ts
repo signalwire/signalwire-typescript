@@ -27,7 +27,12 @@ import {
   type SwaigHandler,
   type SwaigErrorHandler,
 } from './SwaigFunction.js';
-import { _checkGatedFunction, type FillerPhrases, type SemanticGate } from './SemanticGate.js';
+import {
+  _checkGatedFunction,
+  GATE_DIALOGUES,
+  type FillerPhrases,
+  type SemanticGate,
+} from './SemanticGate.js';
 import { inferSchema, createTypedHandlerWrapper, type TypedToolHandler } from './TypeInference.js';
 import { FunctionResult, type SwaigResultDict } from './FunctionResult.js';
 import {
@@ -1218,14 +1223,37 @@ export class AgentBase extends SWMLService {
    *   `semantic_gate_timeout_ms`.
    * @param opts.history - How many recent dialogue entries the decision model
    *   sees, 0 to 100. Default 20. Sent as `semantic_gate_history`.
+   * @param opts.dialogue - Which dialogue the decision model judges:
+   *   `'window'`, the newest `history` entries, or `'proposal'`, those since
+   *   `global_data.semantic_state` last changed (see
+   *   {@link FunctionResult.setSemanticState}), from the agent's first turn
+   *   after it: the read-back and the caller's reply. With no
+   *   `semantic_state` set, the window. A gate's own `dialogue` and `history`
+   *   take the place of these for its function. Default `'window'`. Sent as
+   *   `semantic_gate_dialogue`; it needs a platform release that has it.
    * @returns This agent instance for chaining.
    * @throws {Error} When a value has the wrong type or is out of range.
    */
-  setSemanticGates(opts: { enabled?: boolean; timeoutMs?: number; history?: number } = {}): this {
+  setSemanticGates(
+    opts: {
+      enabled?: boolean;
+      timeoutMs?: number;
+      history?: number;
+      dialogue?: 'window' | 'proposal';
+    } = {},
+  ): this {
     // Check every value before setting any, so a refused call changes nothing
-    const { enabled, timeoutMs, history } = opts;
+    const { enabled, timeoutMs, history, dialogue } = opts;
     if (enabled !== undefined && typeof enabled !== 'boolean') {
       throw new Error(`enabled must be a boolean, got ${JSON.stringify(enabled)}`);
+    }
+    if (
+      dialogue !== undefined &&
+      (typeof dialogue !== 'string' || !(GATE_DIALOGUES as readonly string[]).includes(dialogue))
+    ) {
+      throw new Error(
+        `dialogue must be one of ${JSON.stringify(GATE_DIALOGUES)}, got ${JSON.stringify(dialogue)}`,
+      );
     }
     const ranges: Array<[string, string, unknown, number, number]> = [
       ['semantic_gate_timeout_ms', 'timeout_ms', timeoutMs, 500, 10000],
@@ -1240,9 +1268,30 @@ export class AgentBase extends SWMLService {
       }
     }
     if (enabled !== undefined) this.params['semantic_gates_enabled'] = enabled;
+    if (dialogue !== undefined) this.params['semantic_gate_dialogue'] = dialogue;
     for (const [param, , value] of ranges) {
       if (value !== undefined) this.params[param] = value;
     }
+    return this;
+  }
+
+  /**
+   * Set what the model is told when it calls a tool it can't use now.
+   *
+   * Without it, the platform says nothing ran, which steps offer the tool, and
+   * which tools are available now. `text` takes its place, with `${function}`
+   * for the tool's name, `${tools}` for the tools the request offered,
+   * comma-separated, and `${steps}` for the current context's steps whose
+   * functions include it (empty for a name the agent doesn't have). Sent as
+   * the `unavailable_function_response` param; it needs a platform release
+   * that has it.
+   * @param text - The text.
+   * @returns This agent instance for chaining.
+   * @throws {Error} When `text` isn't a non-empty string.
+   */
+  setUnavailableFunctionResponse(text: string): this {
+    if (typeof text !== 'string' || !text) throw new Error('text must be a non-empty string');
+    this.params['unavailable_function_response'] = text;
     return this;
   }
 
