@@ -90,6 +90,8 @@ export {
 /** @deprecated Use {@link FunctionResult} instead. */
 export { FunctionResult as SwaigFunctionResult } from './FunctionResult.js';
 export type { PaymentPrompt, PaymentAction, PaymentParameter } from './FunctionResult.js';
+export { ResendDedupe, resolve, runChain } from './ToolMiddleware.js';
+export type { ToolMiddleware, CallNext } from './ToolMiddleware.js';
 export {
   SwaigFunction,
   VOUCHED_PARAMETER,

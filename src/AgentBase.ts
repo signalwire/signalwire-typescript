@@ -20,13 +20,9 @@ import { PromptObjectModel } from './POM/PromptObjectModel.js';
 import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SWMLService } from './SWMLService.js';
+import type { ToolMiddleware } from './ToolMiddleware.js';
 import { ConfigLoader } from './ConfigLoader.js';
-import {
-  SwaigFunction,
-  NATIVE_WEBHOOK_URL,
-  type SwaigHandler,
-  type SwaigErrorHandler,
-} from './SwaigFunction.js';
+import { SwaigFunction, type SwaigHandler, type SwaigErrorHandler } from './SwaigFunction.js';
 import {
   _checkGatedFunction,
   GATE_DIALOGUES,
@@ -372,8 +368,6 @@ export class AgentBase extends SWMLService {
   private perCallConfigs: DynamicConfigCallback[] = [];
   /** Set once serve() runs an HTTP server; getFullUrl then ignores serverless environments. */
   private _serving = false;
-  /** Whether optional tool arguments take null, as {@link setNullableOptionalParameters} sets it. */
-  private _nullableOptionalParameters = false;
   /** Handlers registered with {@link onCallStart}. */
   private callStartHandlers: ((
     rawData: SwaigRequest,
@@ -1893,6 +1887,8 @@ export class AgentBase extends SWMLService {
     nullableOptional?: boolean;
     /** Whether the handler reads the conversation (see `SwaigFunctionOptions.needsConversation`). */
     needsConversation?: boolean;
+    /** Middleware around this tool's calls (see `SwaigFunctionOptions.middleware`). */
+    middleware?: readonly ToolMiddleware[];
   }): this {
     let params = opts.parameters;
     let required = opts.required ?? [];
@@ -1933,67 +1929,10 @@ export class AgentBase extends SWMLService {
       vouched: opts.vouched,
       nullableOptional: opts.nullableOptional,
       needsConversation: opts.needsConversation,
+      middleware: opts.middleware,
     });
     this.toolRegistry.set(opts.name, fn);
     return this;
-  }
-
-  /**
-   * Define a function the platform implements itself, under your own
-   * description and parameters.
-   *
-   * The platform runs its own implementation of a function whose
-   * `web_hook_url` is `"native"`, by name, and never calls a webhook. A tool
-   * defined with {@link defineTool} gets the agent's webhook URL, so it can't
-   * be one. Use this to describe a function the platform implements, such as
-   * `end_call`, in your own words, or to put it in a step's function list.
-   * @param name - The function's name, one the platform implements.
-   * @param description - The description the model reads.
-   * @param parameters - The JSON schema of its arguments, as the platform's
-   *   implementation reads them. Default: none.
-   * @param fields - Other SWAIG fields, such as `fillers`. Its
-   *   `web_hook_url` is always `"native"`.
-   * @returns This agent instance for chaining.
-   */
-  defineNativeTool(
-    name: string,
-    description: string,
-    parameters?: Record<string, unknown>,
-    fields: Record<string, unknown> = {},
-  ): this {
-    return this.registerSwaigFunction({
-      function: name,
-      description,
-      parameters: parameters ?? { type: 'object', properties: {} },
-      ...fields,
-      web_hook_url: NATIVE_WEBHOOK_URL,
-    });
-  }
-
-  /**
-   * Let the model send null for any tool's optional arguments.
-   *
-   * Some providers' strict schemas make every argument required and refuse a
-   * call that leaves one out, so an optional argument has to take null
-   * instead. With this on, each optional argument of every tool defined with
-   * {@link defineTool} takes null as well as its type, and a null reaches the
-   * handler as an argument not given. A tool's own `nullableOptional`
-   * overrides it. It applies when the SWML is rendered, so it covers tools
-   * defined before or after it.
-   * @param enabled - `true` to turn it on, `false` to turn it off.
-   * @returns This agent instance for chaining.
-   */
-  setNullableOptionalParameters(enabled = true): this {
-    this._nullableOptionalParameters = enabled;
-    return this;
-  }
-
-  /**
-   * The agent's default for whether optional tool arguments take null.
-   * @internal
-   */
-  _nullableOptionalDefault(): boolean {
-    return this._nullableOptionalParameters;
   }
 
   // getRegisteredTools / getTool / registerSwaigFunction are inherited from
@@ -2155,6 +2094,7 @@ export class AgentBase extends SWMLService {
       vouched: skillVouched,
       nullable_optional: skillNullable,
       needs_conversation: skillNeedsConversation,
+      middleware: skillMiddleware,
       ...skillExtraFields
     } = skill.swaigFields;
     const skillBool = (value: unknown) => (typeof value === 'boolean' ? value : undefined);
@@ -2191,6 +2131,9 @@ export class AgentBase extends SWMLService {
         vouched: toolDef.vouched ?? skillBool(skillVouched),
         nullableOptional: toolDef.nullable_optional ?? skillBool(skillNullable),
         needsConversation: toolDef.needs_conversation ?? skillBool(skillNeedsConversation),
+        middleware:
+          toolDef.middleware ??
+          (Array.isArray(skillMiddleware) ? (skillMiddleware as ToolMiddleware[]) : undefined),
         extraFields,
       });
     }

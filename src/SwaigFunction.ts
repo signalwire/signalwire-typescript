@@ -13,6 +13,8 @@ import {
 import { getLogger } from './Logger.js';
 import type { SwaigRequest } from './SwaigContracts.js';
 import type { AgentBase } from './AgentBase.js';
+import type { SWMLService } from './SWMLService.js';
+import { runChain, type ToolMiddleware } from './ToolMiddleware.js';
 import {
   applyGateFields,
   _checkGatedFunction,
@@ -320,6 +322,11 @@ export interface SwaigFunctionOptions {
    * was set to `false`.
    */
   needsConversation?: boolean;
+  /**
+   * Middleware that runs around this tool's calls only, inside the
+   * service's ({@link SWMLService.addToolMiddleware}).
+   */
+  middleware?: readonly ToolMiddleware[];
 }
 
 /**
@@ -390,6 +397,8 @@ export class SwaigFunction {
   nullableOptional?: boolean;
   /** Whether the handler reads the conversation (turns on `swaig_post_conversation`). */
   needsConversation: boolean;
+  /** Middleware around this tool's calls, inside the service's. */
+  middleware: readonly ToolMiddleware[];
 
   /**
    * Create a new SwaigFunction.
@@ -436,6 +445,7 @@ export class SwaigFunction {
     this.vouched = opts.vouched ?? false;
     this.nullableOptional = opts.nullableOptional;
     this.needsConversation = opts.needsConversation ?? false;
+    this.middleware = [...(opts.middleware ?? [])];
   }
 
   private ensureParameterStructure(nullableDefault?: boolean): Record<string, unknown> {
@@ -581,8 +591,9 @@ export class SwaigFunction {
     args: Record<string, unknown>,
     rawData?: SwaigRequest,
     agentOnError?: SwaigErrorHandler,
+    service: SWMLService | undefined = agent,
   ): Promise<SwaigResultDict> {
-    const nullableDefault = agent?._nullableOptionalDefault();
+    const nullableDefault = service?._nullableOptionalDefault();
     // Soft validation, as the reference's tool_mixin does: arguments that
     // don't match the schema are logged, and the handler still runs.
     if (args && Object.keys(args).length > 0) {
@@ -597,71 +608,98 @@ export class SwaigFunction {
         );
       }
     }
-    // A vouched tool runs only when the model vouches for its arguments
-    const refusal = this._vouchedRefusal(args);
-    if (refusal) return refusal.toDict();
-    try {
-      // Runtime fallback is the empty object (unchanged); the cast is
-      // compile-time only — the backend always sends the full payload, but
-      // `execute` allows callers to omit it (e.g. CLI/test harnesses).
-      const handlerArgs = this._handlerArgs(args, nullableDefault);
-      const result = settleResult(
-        this.name,
-        await this.handler(handlerArgs, rawData ?? ({} as SwaigRequest), agent),
-      );
-      if (result instanceof FunctionResult) {
-        return result.toDict();
-      }
-      if (typeof result === 'object' && result !== null) {
-        // A SWAIG result already: settleResult made sure it has a response
-        // or an action.
-        return result as SwaigResultDict;
-      }
-      // Neither a FunctionResult nor an object — warn and fall back to
-      // wrapping the stringified value. See Python's web_mixin /
-      // serverless_mixin / tool_mixin for the equivalent check.
-      if (typeof result !== 'string') {
-        log.warn(
-          `SWAIG function "${this.name}" returned a value of type "${typeof result}" ` +
-            `that is neither FunctionResult nor object; falling back to str(result). ` +
-            `The AI will see the stringified value as its tool response. Wrap your ` +
-            `return in new FunctionResult(...) or return an object with at least a ` +
-            `"response" key.`,
+    const dispatch = async (
+      a: Record<string, unknown>,
+      raw: Record<string, unknown>,
+    ): Promise<SwaigResultDict> => {
+      // A vouched tool runs only when the model vouches for its arguments
+      const refusal = this._vouchedRefusal(a);
+      if (refusal) return refusal.toDict();
+      try {
+        // Runtime fallback is the empty object (unchanged); the cast is
+        // compile-time only — the backend always sends the full payload, but
+        // `execute` allows callers to omit it (e.g. CLI/test harnesses).
+        const handlerArgs = this._handlerArgs(a, nullableDefault);
+        const result = settleResult(
+          this.name,
+          await this.handler(handlerArgs, raw as SwaigRequest, agent),
         );
-      }
-      return new FunctionResult(String(result)).toDict();
-    } catch (err) {
-      // A refusal is the handler's own outcome, not an error
-      if (err instanceof ToolRefusal) return err.result().toDict();
-
-      // Preserve the stack for Error instances (plain `${err}` discards it).
-      const detail =
-        err instanceof Error ? (err.stack ?? `${err.name}: ${err.message}`) : String(err);
-      log.error(`Error executing SWAIG function ${this.name}: ${detail}`);
-
-      // Give authors a programmatic surface: per-tool hook first, then the
-      // agent-level hook. Either may return a FunctionResult to control what
-      // the AI sees; if a hook itself throws, that's logged and we continue to
-      // the next fallback (the error is always contained — a thrown handler
-      // must never break the live call).
-      const ctx: SwaigErrorContext = { functionName: this.name, args, rawData };
-      for (const hook of [this.onError, agentOnError]) {
-        if (!hook) continue;
-        try {
-          const handled = await hook(err, ctx);
-          if (handled instanceof FunctionResult) {
-            return handled.toDict();
-          }
-        } catch (hookErr) {
-          log.error(`onError hook for SWAIG function ${this.name} threw: ${hookErr}`);
+        if (result instanceof FunctionResult) {
+          return result.toDict();
         }
-      }
+        if (typeof result === 'object' && result !== null) {
+          // A SWAIG result already: settleResult made sure it has a response
+          // or an action.
+          return result as SwaigResultDict;
+        }
+        // Neither a FunctionResult nor an object — warn and fall back to
+        // wrapping the stringified value. See Python's web_mixin /
+        // serverless_mixin / tool_mixin for the equivalent check.
+        if (typeof result !== 'string') {
+          log.warn(
+            `SWAIG function "${this.name}" returned a value of type "${typeof result}" ` +
+              `that is neither FunctionResult nor object; falling back to str(result). ` +
+              `The AI will see the stringified value as its tool response. Wrap your ` +
+              `return in new FunctionResult(...) or return an object with at least a ` +
+              `"response" key.`,
+          );
+        }
+        return new FunctionResult(String(result)).toDict();
+      } catch (err) {
+        // A refusal is the handler's own outcome, not an error
+        if (err instanceof ToolRefusal) return err.result().toDict();
 
-      // The error itself isn't sent: its text can hold internals, and the
-      // model would read it as the outcome, which is unknown.
-      if (this.errorMessage !== undefined) return new FunctionResult(this.errorMessage).toDict();
+        // Preserve the stack for Error instances (plain `${err}` discards it).
+        const detail =
+          err instanceof Error ? (err.stack ?? `${err.name}: ${err.message}`) : String(err);
+        log.error(`Error executing SWAIG function ${this.name}: ${detail}`);
+
+        // Give authors a programmatic surface: per-tool hook first, then the
+        // agent-level hook. Either may return a FunctionResult to control what
+        // the AI sees; if a hook itself throws, that's logged and we continue to
+        // the next fallback (the error is always contained — a thrown handler
+        // must never break the live call).
+        const ctx: SwaigErrorContext = {
+          functionName: this.name,
+          args: a,
+          rawData: raw as SwaigRequest,
+        };
+        for (const hook of [this.onError, agentOnError]) {
+          if (!hook) continue;
+          try {
+            const handled = await hook(err, ctx);
+            if (handled instanceof FunctionResult) {
+              return handled.toDict();
+            }
+          } catch (hookErr) {
+            log.error(`onError hook for SWAIG function ${this.name} threw: ${hookErr}`);
+          }
+        }
+
+        // The error itself isn't sent: its text can hold internals, and the
+        // model would read it as the outcome, which is unknown.
+        if (this.errorMessage !== undefined) return new FunctionResult(this.errorMessage).toDict();
+        return toolErrorResult(this.name).toDict();
+      }
+    };
+
+    const raw = (rawData ?? {}) as Record<string, unknown>;
+    const middleware = service?._toolMiddlewareFor(this) ?? this.middleware;
+    if (middleware.length === 0) return dispatch(args, raw);
+    let outcome: unknown;
+    try {
+      outcome = await runChain(middleware, this.name, args, raw, dispatch);
+    } catch (err) {
+      if (err instanceof ToolRefusal) return err.result().toDict();
+      log.error(
+        `Tool middleware for '${this.name}' threw: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`,
+      );
       return toolErrorResult(this.name).toDict();
     }
+    const settled = settleResult(this.name, outcome);
+    if (settled instanceof FunctionResult) return settled.toDict();
+    if (typeof settled === 'object' && settled !== null) return settled as SwaigResultDict;
+    return new FunctionResult(String(settled)).toDict();
   }
 
   /**

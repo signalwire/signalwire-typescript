@@ -5,6 +5,7 @@
  * They define tools, prompt sections, hints, and global data.
  */
 
+import type { ToolMiddleware } from '../ToolMiddleware.js';
 import { randomBytes } from 'node:crypto';
 import type { SwaigHandler } from '../SwaigFunction.js';
 import type { FillerPhrases, SemanticGate } from '../SemanticGate.js';
@@ -75,6 +76,11 @@ export interface SkillToolDefinition {
    * `swaig_fields`.
    */
   needs_conversation?: boolean;
+  /**
+   * Middleware around this tool's calls (see `SwaigFunctionOptions.middleware`).
+   * Wins over the skill's `swaig_fields`.
+   */
+  middleware?: readonly ToolMiddleware[];
 }
 
 /**

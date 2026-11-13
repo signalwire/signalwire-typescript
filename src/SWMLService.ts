@@ -21,7 +21,13 @@ import { SchemaUtils } from './SchemaUtils.js';
 import { SslConfig } from './SslConfig.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import { getLogger, Logger } from './Logger.js';
-import { SwaigFunction, type SwaigFunctionOptions, type SwaigHandler } from './SwaigFunction.js';
+import {
+  SwaigFunction,
+  NATIVE_WEBHOOK_URL,
+  type SwaigFunctionOptions,
+  type SwaigHandler,
+} from './SwaigFunction.js';
+import { ResendDedupe, type ToolMiddleware } from './ToolMiddleware.js';
 import { applyGateFields, _hasGateFields } from './SemanticGate.js';
 import type { ToolParameters, ToolArgs } from './ParameterSchema.js';
 import { FunctionResult } from './FunctionResult.js';
@@ -494,6 +500,16 @@ export class SWMLService {
   // SwaigFunction instances (the canonical rich form) or raw descriptor maps
   // for DataMap-style functions. AgentBase reads/writes this same registry.
   protected toolRegistry: Map<string, SwaigFunction | Record<string, unknown>> = new Map();
+  /** Middleware around every tool call, as {@link addToolMiddleware} adds it. */
+  private _toolMiddleware: ToolMiddleware[] = [];
+  /**
+   * The transport-retry dedupe that runs first, or null when it's off.
+   * Created here, not lazily: a per-request copy shares the service's
+   * object, so every request sees one dedupe.
+   */
+  private _toolResendDedupe: ResendDedupe | null = new ResendDedupe();
+  /** Whether optional tool arguments take null, as {@link setNullableOptionalParameters} sets it. */
+  private _nullableOptionalParameters = false;
 
   constructor(opts: SWMLServiceOptions);
   /** @deprecated Prefer passing an options object with a required `name`. The no-arg form defaults name to 'swml-service'. */
@@ -836,6 +852,129 @@ export class SWMLService {
   }
 
   /**
+   * Define a function the platform implements itself, under your own
+   * description and parameters.
+   *
+   * The platform runs its own implementation of a function whose
+   * `web_hook_url` is `"native"`, by name, and never calls a webhook. A tool
+   * defined with {@link defineTool} gets the agent's webhook URL, so it can't
+   * be one. Use this to describe a function the platform implements, such as
+   * `end_call`, in your own words, or to put it in a step's function list.
+   * @param name - The function's name, one the platform implements.
+   * @param description - The description the model reads.
+   * @param parameters - The JSON schema of its arguments, as the platform's
+   *   implementation reads them. Default: none.
+   * @param fields - Other SWAIG fields, such as `fillers`. Its
+   *   `web_hook_url` is always `"native"`.
+   * @returns This service, for chaining.
+   */
+  defineNativeTool(
+    name: string,
+    description: string,
+    parameters?: Record<string, unknown>,
+    fields: Record<string, unknown> = {},
+  ): this {
+    return this.registerSwaigFunction({
+      function: name,
+      description,
+      parameters: parameters ?? { type: 'object', properties: {} },
+      ...fields,
+      web_hook_url: NATIVE_WEBHOOK_URL,
+    });
+  }
+
+  /**
+   * Let the model send null for any tool's optional arguments.
+   *
+   * Some providers' strict schemas make every argument required and refuse a
+   * call that leaves one out, so an optional argument has to take null
+   * instead. With this on, each optional argument of every tool defined with
+   * {@link defineTool} takes null as well as its type, and a null reaches the
+   * handler as an argument not given. A tool's own `nullableOptional`
+   * overrides it. It applies when the SWML is rendered, so it covers tools
+   * defined before or after it.
+   * @param enabled - `true` to turn it on, `false` to turn it off.
+   * @returns This service, for chaining.
+   */
+  setNullableOptionalParameters(enabled = true): this {
+    this._nullableOptionalParameters = enabled;
+    return this;
+  }
+
+  /**
+   * The agent's default for whether optional tool arguments take null.
+   * @internal
+   */
+  _nullableOptionalDefault(): boolean {
+    return this._nullableOptionalParameters;
+  }
+
+  /**
+   * Run `middleware` around every tool call, after any added before it.
+   *
+   * A middleware is `(name, args, rawData, callNext)`. It runs before the
+   * handler and calls `callNext(args, rawData)` for the rest of the chain and
+   * the handler, possibly with changed arguments. What it returns is the
+   * call's result: the handler's, a changed one, or its own without calling
+   * `callNext`, as a `FunctionResult` or an object. `callNext` returns a
+   * promise. One that throws {@link ToolRefusal} declines the call, and any
+   * other error gives the model the unknown-outcome result.
+   *
+   * It covers tools defined with {@link defineTool}, not DataMap or native
+   * tools, which run on the platform. Handlers for different calls interleave
+   * at every `await`, so guard shared state.
+   * @param middleware - The middleware.
+   * @returns This service, for chaining.
+   *
+   * @example
+   * ```ts
+   * agent.addToolMiddleware(async (name, args, rawData, callNext) => {
+   *   const started = Date.now();
+   *   const result = await callNext(args, rawData);
+   *   console.log(`${name} took ${Date.now() - started} ms`);
+   *   return result;
+   * });
+   * ```
+   */
+  addToolMiddleware(middleware: ToolMiddleware): this {
+    // Rebind rather than push: a per-request copy shares this array
+    this._toolMiddleware = [...this._toolMiddleware, middleware];
+    return this;
+  }
+
+  /**
+   * Turn the dedupe of transport retries on or off. It's on by default.
+   *
+   * SignalWire sends a tool request again, with the same body, after a
+   * timeout, a failed connection or a 5xx, so a slow tool can run twice. The
+   * dedupe answers a retry with the first attempt's result: one that arrives
+   * while the first is still running waits for it. A retry is a call with the
+   * same `call_id`, `tool_call_id` and function name; a call the model makes
+   * again has a new `tool_call_id` and runs, and a call without one always
+   * runs. The state lives in the process: replicas each keep their own.
+   * @param enabled - `false` to run every request, retries included.
+   * @returns This service, for chaining.
+   */
+  setToolResendDedupe(enabled = true): this {
+    if (!enabled) this._toolResendDedupe = null;
+    else this._toolResendDedupe ??= new ResendDedupe();
+    return this;
+  }
+
+  /**
+   * The middleware around a call of `fn`, outermost first: the resend
+   * dedupe, the service's, then the tool's own.
+   * @internal
+   */
+  _toolMiddlewareFor(fn: SwaigFunction): ToolMiddleware[] {
+    return [
+      ...(this._toolResendDedupe ? [this._toolResendDedupe.middleware] : []),
+      ...this._toolMiddleware,
+      ...fn.middleware,
+    ];
+  }
+
+  /**
    * Register a SwaigFunction instance or a raw function descriptor (DataMap).
    *
    * A raw descriptor with `gates` or `gate_fillers` is checked by the
@@ -889,7 +1028,9 @@ export class SWMLService {
     if (fn instanceof SwaigFunction) {
       // Through the function's own execution, so a plain service's tools get
       // the same vouched check, refusals and outcome rules as an agent's.
-      return fn._executeAs(undefined, args, rawData) as Promise<Record<string, unknown>>;
+      return fn._executeAs(undefined, args, rawData, undefined, this) as Promise<
+        Record<string, unknown>
+      >;
     }
     return null;
   }
