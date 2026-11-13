@@ -516,3 +516,70 @@ describe('mounting a service, third review (found in review)', () => {
     expect(res.status).toBe(401);
   });
 });
+
+/** Codex's fourth review: routes added to a mounted router, however spelled, stay guarded. */
+describe('mounting a service, fourth review (found in review)', () => {
+  const auth = { Authorization: AUTH, 'Content-Type': 'application/json' };
+  const service = () => {
+    const s = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+    s.addVerb('answer', {});
+    return s;
+  };
+
+  it.each([
+    ['/private/*', '/voice/private/key'],
+    ['/private/:id{.*}', '/voice/private/a'],
+    ['/private/', '/voice/private/'],
+    ['/x//private', '/voice/x//private'],
+    ['/literal%25', '/voice/literal%25'],
+  ])('guards an added route %s', async (route, path) => {
+    const router = service().asRouter();
+    router.get(route, (c) => c.text('secret'));
+    const host = new Hono();
+    host.route('/voice', router);
+    const res = await host.request(path);
+    expect(await res.text()).not.toBe('secret');
+  });
+
+  it('guards routes under odd mounts, and still finds callbacks there', async () => {
+    for (const [mount, path, cbPath] of [
+      ['/percent%25', '/percent%25/%ZZ', '/percent%25/sip'],
+      ['/t/:id{[0-9]+}', '/t/7/private', '/t/7/sip'],
+    ] as const) {
+      const s = service();
+      s.registerRoutingCallback(() => '/routed', '/sip');
+      const router = s.asRouter();
+      router.get('/:id', (c) => c.text('secret'));
+      router.get('/private', (c) => c.text('secret'));
+      const host = new Hono();
+      host.route(mount, router);
+      expect(await (await host.request(path)).text(), mount).not.toBe('secret');
+      const routed = await host.request(cbPath, {
+        method: 'POST',
+        headers: auth,
+        body: JSON.stringify({ call: {} }),
+      });
+      expect(routed.headers.get('location'), mount).toBe('/routed');
+    }
+  });
+
+  it("lets a hook's middleware at a neighbour's path leave the neighbour alone", async () => {
+    class Hooked extends SWMLService {
+      protected override registerAdditionalRoutes(app: Hono): void {
+        app.use('/support', async (_c, next) => next());
+      }
+    }
+    const host = new Hono();
+    host.route('/', new Hooked({ name: 'h', route: '/h', basicAuth: ['u', 'p'] }).asRouter());
+    host.get('/support', (c) => c.text('public'));
+    expect(await (await host.request('/support')).text()).toBe('public');
+  });
+
+  it('checks the credentials of each dispatch of a reused Request', async () => {
+    const app = service().getApp();
+    const req = new Request('http://localhost/menu', { headers: { Authorization: AUTH } });
+    expect((await app.fetch(req)).status).toBe(200);
+    req.headers.delete('authorization');
+    expect((await app.fetch(req)).status).toBe(401);
+  });
+});
