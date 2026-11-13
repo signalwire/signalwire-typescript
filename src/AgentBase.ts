@@ -8,7 +8,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { Hono } from 'hono';
 import { getPathNoStrict } from 'hono/utils/url';
-import type { Context, MiddlewareHandler } from 'hono';
+import type { Context, HonoRequest, MiddlewareHandler } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { HostAppRouter } from './web.js';
 import { basicAuth } from 'hono/basic-auth';
@@ -3963,7 +3963,7 @@ export class AgentBase extends SWMLService {
       if (!(c.req.header('content-type') ?? '').toLowerCase().startsWith('application/json')) {
         return c.json({ error: 'Content-Type must be application/json' }, 415);
       }
-      const text = await readBodyWithin(c.req.raw, maxRequestSize);
+      const text = await readBodyWithin(c.req, maxRequestSize);
       if (text === null) return c.json({ error: 'Request body too large' }, 413);
       // The signature check and the handler read this, not the spent stream
       (c.req as unknown as { bodyCache: Record<string, unknown> }).bodyCache['text'] =
@@ -4410,10 +4410,18 @@ export class AgentBase extends SWMLService {
 }
 
 /**
- * A request's body as text, read no further than `limit` bytes; null when it
- * is larger. The stream is read here, so the caller passes the text on.
+ * A request's body as text, or null when it's over `limit` bytes. The body is
+ * read in chunks and abandoned as soon as it passes the limit. One that
+ * middleware ahead of the route already read (`c.req.text()`, `json()`,
+ * `arrayBuffer()`) is in Hono's cache, so it's read from there and measured.
  */
-async function readBodyWithin(request: Request, limit: number): Promise<string | null> {
+async function readBodyWithin(req: HonoRequest, limit: number): Promise<string | null> {
+  const request = req.raw;
+  if (request.bodyUsed || Object.keys(req.bodyCache).length > 0) {
+    // Already in memory: only its size is left to check
+    const text = await req.text();
+    return Buffer.byteLength(text, 'utf8') > limit ? null : text;
+  }
   if (!request.body) return '';
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -4423,10 +4431,15 @@ async function readBodyWithin(request: Request, limit: number): Promise<string |
     if (done) break;
     size += value.byteLength;
     if (size > limit) {
-      await reader.cancel();
+      // Not awaited: when middleware has cloned the request, the body is one
+      // branch of a tee, and cancelling it waits until the other branch is
+      // read, which that middleware can do only after this route has answered.
+      reader.cancel().catch(() => undefined);
+      reader.releaseLock();
       return null;
     }
     chunks.push(value);
   }
+  reader.releaseLock();
   return new TextDecoder().decode(Buffer.concat(chunks));
 }

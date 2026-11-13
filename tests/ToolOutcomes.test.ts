@@ -407,3 +407,37 @@ describe('the second checkpoint review (found in review)', () => {
     expect(((await fn.execute({})) as Json)['response']).toBe('{"balance":"1"}');
   });
 });
+
+describe('camel-case options on a skill tool registered imperatively (found in review)', () => {
+  it.each([
+    [true, false],
+    [false, true],
+  ])("lets the tool's own option win over the skill's (%s default, %s own)", async (dflt, own) => {
+    const { SkillBase } = await import('../src/skills/SkillBase.js');
+    class Imperative extends SkillBase {
+      static override SKILL_NAME = 'imperative';
+      static override SKILL_DESCRIPTION = 'Imperative';
+      constructor() {
+        super({ swaig_fields: { nullable_optional: dflt, needs_conversation: dflt } });
+      }
+      override async setup(): Promise<boolean> {
+        const tool: import('../src/SwaigFunction.js').SwaigFunctionOptions = {
+          name: 'order',
+          description: 'Order',
+          parameters: { type: 'object', properties: { size: { type: 'string' } } },
+          nullableOptional: own,
+          needsConversation: own,
+          handler: () => 'ok',
+        };
+        this.defineTool(
+          tool as unknown as import('../src/skills/SkillBase.js').SkillToolDefinition,
+        );
+        return true;
+      }
+    }
+    const a = agent();
+    await a.addSkill(new Imperative());
+    const fn = a.getTool('order') as SwaigFunction;
+    expect([fn.nullableOptional, fn.needsConversation]).toEqual([own, own]);
+  });
+});

@@ -696,10 +696,20 @@ export class SwaigFunction {
       );
       return toolErrorResult(this.name).toDict();
     }
-    const settled = settleResult(this.name, outcome);
-    if (settled instanceof FunctionResult) return settled.toDict();
-    if (typeof settled === 'object' && settled !== null) return settled as SwaigResultDict;
-    return new FunctionResult(String(settled)).toDict();
+    // Settled inside the boundary, as the reference's async path settles: a
+    // result that can't be (a circular object, say) is the unknown outcome,
+    // not a failed request, on the first attempt and on every retry of it
+    try {
+      const settled = settleResult(this.name, outcome);
+      if (settled instanceof FunctionResult) return settled.toDict();
+      if (typeof settled === 'object' && settled !== null) return settled as SwaigResultDict;
+      return new FunctionResult(String(settled)).toDict();
+    } catch (err) {
+      log.error(
+        `The result of tool middleware for '${this.name}' couldn't be settled: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return toolErrorResult(this.name).toDict();
+    }
   }
 
   /**

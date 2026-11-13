@@ -494,9 +494,19 @@ export abstract class SkillBase {
    */
   protected defineTool(toolDef: SkillToolDefinition): void {
     const swaigDefaults = this.swaigFields as Partial<SkillToolDefinition>;
+    // A tool given as SwaigFunctionOptions spells these in camel case; its own
+    // value is carried in the snake-case spelling too, so it wins over the
+    // skill's default for it
+    const own: Record<string, unknown> = { ...toolDef };
+    for (const [camel, snake] of [
+      ['nullableOptional', 'nullable_optional'],
+      ['needsConversation', 'needs_conversation'],
+    ] as const) {
+      if (own[camel] !== undefined && own[snake] === undefined) own[snake] = own[camel];
+    }
     const merged: SkillToolDefinition = {
       ...swaigDefaults,
-      ...toolDef,
+      ...(own as unknown as SkillToolDefinition),
     };
     this._dynamicTools.push(merged);
   }

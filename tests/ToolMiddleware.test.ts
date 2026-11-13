@@ -280,3 +280,32 @@ describe('the resend dedupe', () => {
     expect(bRuns).toHaveLength(1);
   });
 });
+
+describe('a middleware result that cannot be settled (found in review)', () => {
+  it('gives the unknown outcome, on the first attempt and its retry', async () => {
+    let charges = 0;
+    const a = agent();
+    a.addToolMiddleware(async (_name, args, r, next) => {
+      await next(args, r);
+      const circular: Json = { charged: true };
+      circular['self'] = circular;
+      return circular;
+    });
+    a.defineTool({
+      name: 'charge',
+      description: 'Charge',
+      handler: () => {
+        charges += 1;
+        return 'charged';
+      },
+    });
+    const first = await run(a, 'charge', {}, raw('tc-9'));
+    const retry = await run(a, 'charge', {}, raw('tc-9'));
+    expect(charges).toBe(1);
+    for (const result of [first, retry]) {
+      expect(result['response']['tool_result']).toBe(
+        'charge failed before it finished, so whether it took effect is unknown.',
+      );
+    }
+  });
+});

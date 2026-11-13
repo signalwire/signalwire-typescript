@@ -6,6 +6,8 @@
  * event_webhook_url as { event_type, timestamp, params: { text, words, call_id } }
  * (webhook.c build_event_webhook_envelope, with "calling." dropped).
  */
+import { createHmac } from 'node:crypto';
+import { Hono, type Context } from 'hono';
 import { AgentBase } from '../src/AgentBase.js';
 import { SpeechLog, callerTurns } from '../src/index.js';
 
@@ -211,5 +213,99 @@ describe('AI events with a per-request copy', () => {
     expect(String(block['params']['event_webhook_url'])).toContain('/ai_events');
     expect((await post(a, event('hi', []))).status).toBe(200);
     expect(seen).toEqual(['ai.speech_detect']);
+  });
+});
+
+describe('the AI event body after host middleware (found in review)', () => {
+  const KEY = 'PSKtest1234567890abcdef';
+  const sign = (url: string, body: string) =>
+    createHmac('sha1', KEY)
+      .update(url + body, 'utf8')
+      .digest('hex');
+
+  function mounted(read: (c: Context) => Promise<unknown>) {
+    const seen: string[] = [];
+    const a = new AgentBase({ name: 'm', route: '/', basicAuth: ['u', 'p'], signingKey: KEY });
+    a.setPromptText('x');
+    a.onAiEvent((_t, params) => void seen.push(String(params['text'])));
+    const host = new Hono();
+    host.use('*', async (c, next) => {
+      await read(c);
+      await next();
+    });
+    host.route('/agent', a.asRouter());
+    return { host, seen };
+  }
+
+  it.each([
+    ['text', (c: Context) => c.req.text()],
+    ['arrayBuffer', (c: Context) => c.req.arrayBuffer()],
+    ['json', (c: Context) => c.req.json()],
+  ])('reads an event the host already read with %s()', async (_name, read) => {
+    const { host, seen } = mounted(read);
+    const body = JSON.stringify(event('hi', []));
+    const res = await host.request('/agent/ai_events', {
+      method: 'POST',
+      headers: {
+        Authorization: AUTH,
+        'Content-Type': 'application/json',
+        'X-SignalWire-Signature': sign('http://localhost/agent/ai_events', body),
+      },
+      body,
+    });
+    expect(res.status).toBe(200);
+    expect(seen).toEqual(['hi']);
+  });
+
+  it('refuses an oversized event the host already read', async () => {
+    const previous = process.env['SWML_MAX_REQUEST_SIZE'];
+    process.env['SWML_MAX_REQUEST_SIZE'] = '100';
+    try {
+      const { host, seen } = mounted((c) => c.req.text());
+      const body = JSON.stringify(event('x'.repeat(200), []));
+      const res = await host.request('/agent/ai_events', {
+        method: 'POST',
+        headers: {
+          Authorization: AUTH,
+          'Content-Type': 'application/json',
+          'X-SignalWire-Signature': sign('http://localhost/agent/ai_events', body),
+        },
+        body,
+      });
+      expect(res.status).toBe(413);
+      expect(seen).toEqual([]);
+    } finally {
+      if (previous === undefined) delete process.env['SWML_MAX_REQUEST_SIZE'];
+      else process.env['SWML_MAX_REQUEST_SIZE'] = previous;
+    }
+  });
+
+  it('answers an oversized event when middleware cloned the request', async () => {
+    const previous = process.env['SWML_MAX_REQUEST_SIZE'];
+    process.env['SWML_MAX_REQUEST_SIZE'] = '100';
+    try {
+      const a = agent();
+      a.onAiEvent(() => undefined);
+      const host = new Hono();
+      // Logging middleware that reads its copy after the route has answered
+      host.use('*', async (c, next) => {
+        const copy = c.req.raw.clone();
+        await next();
+        await copy.text();
+      });
+      host.route('/', a.asRouter());
+      const res = await Promise.race([
+        host.request('/ai_events', {
+          method: 'POST',
+          headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+          body: JSON.stringify(event('x'.repeat(200), [])),
+        }),
+        new Promise<'hung'>((resolve) => setTimeout(() => resolve('hung'), 2000)),
+      ]);
+      expect(res === 'hung' ? res : res.status).toBe(413);
+    } finally {
+      if (previous === undefined) delete process.env['SWML_MAX_REQUEST_SIZE'];
+      else process.env['SWML_MAX_REQUEST_SIZE'] = previous;
+    }
   });
 });
