@@ -1115,7 +1115,8 @@ describe('AgentBase', () => {
     const body = await res.json();
     // SwaigFunction.execute catches errors and returns a friendly message
     expect(JSON.stringify(body)).not.toContain('secret internal error details');
-    expect(body.response).toContain('try again');
+    expect(body.response.tool_result).toContain('whether it took effect is unknown');
+    expect(body.response.tool_prompt).toContain('try again');
   });
 
   it('CSP and Permissions-Policy headers are present', async () => {

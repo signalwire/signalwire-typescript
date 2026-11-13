@@ -534,13 +534,17 @@ The third argument is the agent the request was configured on: the per-request c
 Handler returns:
   |
   |-- FunctionResult             -->  result.toDict()
-  |-- { response: ... }          -->  sent as it is
-  |-- object without response    -->  FunctionResult("Function completed successfully").toDict()
+  |-- { response } or { action } -->  sent as it is
+  |-- any other object           -->  { response: JSON of the object }; {} -> the outcome is unknown
+  |-- undefined or null          -->  FunctionResult("Function executed successfully").toDict()
   |-- anything else (a string)   -->  FunctionResult(String(value)).toDict()
-  |-- throws                     -->  the tool's onError hook, then the agent's onError hook;
+  |-- throws ToolRefusal         -->  its tool_result and tool_prompt
+  |-- throws anything else       -->  the tool's onError hook, then the agent's onError hook;
                                       a FunctionResult either returns is sent. Otherwise
-                                      FunctionResult(errorMessage or the default message).toDict()
+                                      errorMessage, or toolErrorResult(name): the outcome is unknown
 ```
+
+The tool middleware runs around this: the resend dedupe, the agent's middleware (`addToolMiddleware()`), then the tool's own, with the same rules for what a middleware returns.
 
 `FunctionResult.toDict()` produces an object like this one:
 

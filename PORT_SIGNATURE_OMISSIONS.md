@@ -127,8 +127,11 @@ signalwire.core.security_config.SecurityConfig.__init__: TS constructor signatur
 signalwire.core.skill_base.SkillBase.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.skill_manager.SkillManager.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.swaig_function.SWAIGFunction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.core.swaig_function.SWAIGFunction.middleware: the tool's middleware is a ToolMiddleware[]; the reference stores tuple[ToolMiddleware, ...], which the oracle encodes as tuple<class:ToolMiddleware,any>, a list of middleware (same encoding limit as signalwire.core.post_prompt.dialogue_turns' roles)
 signalwire.core.swml_builder.SWMLBuilder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.core.swml_service.SWMLService.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.core.tool_middleware.ResendDedupe.handle: ADDITION: the reference's ResendDedupe.__call__ (TS objects aren't callable; the surface records it as __call__), which the reference signature oracle doesn't enumerate, as it enumerates no dunder methods
+signalwire.core.tool_middleware.ResendDedupe.middleware: ADDITION: TS objects are not callable, so the reference's ResendDedupe.__call__ (a callable middleware object) is this property: the dedupe as a ToolMiddleware function, passed to addToolMiddleware. No reference twin because Python passes the object itself
 signalwire.livewire.Agent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.AgentServer.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.livewire.AgentSession.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
@@ -171,6 +174,11 @@ signalwire.rest._base.HttpClient.__init__: TS constructor signature follows TS c
 signalwire.rest.client.RestClient.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.skills.spider.skill.SpiderSkill.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.skills.spider.skill.SpiderSkill.session: impossible: Python exposes the skill's requests.Session (a _PublicSession that refuses private addresses); TS fetches through _publicFetch, whose guarded transport does the same per request, and fetch has no session object to expose
+signalwire.speech.numbers.say_money: amount takes number | bigint | string; JavaScript has no Decimal type, so a decimal amount is given as its string ("14.50"), which is rounded as the reference's Decimal is: to 28 significant digits (half even) in minor units, then half up to a whole unit
+signalwire.testing.call_simulator.RequestRecorder.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs (new RequestRecorder(path?, opts?): Node has no pathlib.Path, so the path is a string; the keyword-only limit is { limit })
+signalwire.testing.call_simulator.RequestRecorder.handle: ADDITION: the reference's RequestRecorder.__call__ (TS objects aren't callable; the surface records it as __call__), which the reference signature oracle doesn't enumerate, as it enumerates no dunder methods
+signalwire.testing.call_simulator.RequestRecorder.load: path is a string: Node has no pathlib.Path type (node:fs takes string paths), so the reference's Path | str is string
+signalwire.testing.call_simulator.RequestRecorder.middleware: ADDITION: TS objects are not callable, so the reference's RequestRecorder.__call__ (a callable middleware object) is this property: the recorder as a ToolMiddleware function, passed to addToolMiddleware. No reference twin because Python passes the object itself
 signalwire.utils.schema_utils.SchemaUtils.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.web.web_service.WebService.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.rest._request_options.RequestOptions.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs (RequestOptions(init?: RequestOptionsInit) collapses the reference's timeout/retries/retry_on_status/retry_backoff/abort_signal positional-or-keyword params into one options-object init; same fields, same resolved values).

@@ -8,7 +8,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { Hono } from 'hono';
 import { getPathNoStrict } from 'hono/utils/url';
-import type { Context } from 'hono';
+import type { Context, HonoRequest, MiddlewareHandler } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { HostAppRouter } from './web.js';
 import { basicAuth } from 'hono/basic-auth';
@@ -20,14 +20,26 @@ import { PromptObjectModel } from './POM/PromptObjectModel.js';
 import { SessionManager } from './SessionManager.js';
 import { SwmlBuilder } from './SwmlBuilder.js';
 import { SWMLService } from './SWMLService.js';
+import type { ToolMiddleware } from './ToolMiddleware.js';
+import { SpeechLog, SPEECH_DETECT, type SpeechFinal } from './AiEvents.js';
+
+/**
+ * A handler for the AI events the platform posts during calls, as
+ * {@link AgentBase.onAiEvent} registers it.
+ */
+export type AiEventHandler = (
+  eventType: string,
+  params: Record<string, unknown>,
+  event: Record<string, unknown>,
+) => unknown;
 import { ConfigLoader } from './ConfigLoader.js';
+import { SwaigFunction, type SwaigHandler, type SwaigErrorHandler } from './SwaigFunction.js';
 import {
-  SwaigFunction,
-  normalizeParameters,
-  type SwaigHandler,
-  type SwaigErrorHandler,
-} from './SwaigFunction.js';
-import { _checkGatedFunction, type FillerPhrases, type SemanticGate } from './SemanticGate.js';
+  _checkGatedFunction,
+  GATE_DIALOGUES,
+  type FillerPhrases,
+  type SemanticGate,
+} from './SemanticGate.js';
 import { inferSchema, createTypedHandlerWrapper, type TypedToolHandler } from './TypeInference.js';
 import { FunctionResult, type SwaigResultDict } from './FunctionResult.js';
 import {
@@ -367,6 +379,10 @@ export class AgentBase extends SWMLService {
   private perCallConfigs: DynamicConfigCallback[] = [];
   /** Set once serve() runs an HTTP server; getFullUrl then ignores serverless environments. */
   private _serving = false;
+  /** Handlers registered with {@link onAiEvent}. */
+  private _aiEventHandlers: AiEventHandler[] = [];
+  /** The recognizer's finals per call, once {@link recordSpeechFinals} is on. */
+  private _speechLog: SpeechLog | null = null;
   /** Handlers registered with {@link onCallStart}. */
   private callStartHandlers: ((
     rawData: SwaigRequest,
@@ -394,6 +410,8 @@ export class AgentBase extends SWMLService {
 
   // Contexts
   private contextsBuilder: ContextBuilder | null = null;
+  /** Tools the contexts reported as offered by no step; shared with per-request copies. */
+  private _unofferedToolsWarned = new Set<string>();
   /** Contexts given as a plain object, rendered as they are. */
   private _rawContexts: Record<string, unknown> | null = null;
 
@@ -952,7 +970,7 @@ export class AgentBase extends SWMLService {
     }
     // Attach agent reference so ContextBuilder.validate() can check
     // user tool names against reserved native tool names.
-    this.contextsBuilder.attachAgent(this);
+    this.contextsBuilder.attachAgent(this)._shareUnofferedWarnings(this._unofferedToolsWarned);
     return this.contextsBuilder;
   }
 
@@ -1218,14 +1236,37 @@ export class AgentBase extends SWMLService {
    *   `semantic_gate_timeout_ms`.
    * @param opts.history - How many recent dialogue entries the decision model
    *   sees, 0 to 100. Default 20. Sent as `semantic_gate_history`.
+   * @param opts.dialogue - Which dialogue the decision model judges:
+   *   `'window'`, the newest `history` entries, or `'proposal'`, those since
+   *   `global_data.semantic_state` last changed (see
+   *   {@link FunctionResult.setSemanticState}), from the agent's first turn
+   *   after it: the read-back and the caller's reply. With no
+   *   `semantic_state` set, the window. A gate's own `dialogue` and `history`
+   *   take the place of these for its function. Default `'window'`. Sent as
+   *   `semantic_gate_dialogue`; it needs a platform release that has it.
    * @returns This agent instance for chaining.
    * @throws {Error} When a value has the wrong type or is out of range.
    */
-  setSemanticGates(opts: { enabled?: boolean; timeoutMs?: number; history?: number } = {}): this {
+  setSemanticGates(
+    opts: {
+      enabled?: boolean;
+      timeoutMs?: number;
+      history?: number;
+      dialogue?: 'window' | 'proposal';
+    } = {},
+  ): this {
     // Check every value before setting any, so a refused call changes nothing
-    const { enabled, timeoutMs, history } = opts;
+    const { enabled, timeoutMs, history, dialogue } = opts;
     if (enabled !== undefined && typeof enabled !== 'boolean') {
       throw new Error(`enabled must be a boolean, got ${JSON.stringify(enabled)}`);
+    }
+    if (
+      dialogue !== undefined &&
+      (typeof dialogue !== 'string' || !(GATE_DIALOGUES as readonly string[]).includes(dialogue))
+    ) {
+      throw new Error(
+        `dialogue must be one of ${JSON.stringify(GATE_DIALOGUES)}, got ${JSON.stringify(dialogue)}`,
+      );
     }
     const ranges: Array<[string, string, unknown, number, number]> = [
       ['semantic_gate_timeout_ms', 'timeout_ms', timeoutMs, 500, 10000],
@@ -1240,9 +1281,30 @@ export class AgentBase extends SWMLService {
       }
     }
     if (enabled !== undefined) this.params['semantic_gates_enabled'] = enabled;
+    if (dialogue !== undefined) this.params['semantic_gate_dialogue'] = dialogue;
     for (const [param, , value] of ranges) {
       if (value !== undefined) this.params[param] = value;
     }
+    return this;
+  }
+
+  /**
+   * Set what the model is told when it calls a tool it can't use now.
+   *
+   * Without it, the platform says nothing ran, which steps offer the tool, and
+   * which tools are available now. `text` takes its place, with `${function}`
+   * for the tool's name, `${tools}` for the tools the request offered,
+   * comma-separated, and `${steps}` for the current context's steps whose
+   * functions include it (empty for a name the agent doesn't have). Sent as
+   * the `unavailable_function_response` param; it needs a platform release
+   * that has it.
+   * @param text - The text.
+   * @returns This agent instance for chaining.
+   * @throws {Error} When `text` isn't a non-empty string.
+   */
+  setUnavailableFunctionResponse(text: string): this {
+    if (typeof text !== 'string' || !text) throw new Error('text must be a non-empty string');
+    this.params['unavailable_function_response'] = text;
     return this;
   }
 
@@ -1698,7 +1760,7 @@ export class AgentBase extends SWMLService {
           name,
           description: fn.description || name,
         };
-        tool['inputSchema'] = normalizeParameters(fn.parameters, fn.required);
+        tool['inputSchema'] = fn._parameterSchema(this._nullableOptionalDefault());
         tools.push(tool);
       }
     }
@@ -1764,7 +1826,7 @@ export class AgentBase extends SWMLService {
           function: toolName,
           argument: { parsed: [args] },
         } as unknown as SwaigRequest;
-        const resultDict = await fn._executeAs(this, args, rawData, this._onError);
+        const resultDict = await this._executeFunction(fn, args, rawData);
         // MCP content is text: a structured { tool_result, tool_prompt }
         // response goes as its JSON.
         const response = resultDict['response'] ?? '';
@@ -1836,6 +1898,14 @@ export class AgentBase extends SWMLService {
     gates?: ReadonlyArray<SemanticGate | Record<string, unknown>>;
     /** Phrases said while the gates are checked (see `SwaigFunctionOptions.gateFillers`). */
     gateFillers?: FillerPhrases;
+    /** Whether the model must vouch for the arguments (see `SwaigFunctionOptions.vouched`). */
+    vouched?: boolean;
+    /** Whether optional arguments take null (see `SwaigFunctionOptions.nullableOptional`). */
+    nullableOptional?: boolean;
+    /** Whether the handler reads the conversation (see `SwaigFunctionOptions.needsConversation`). */
+    needsConversation?: boolean;
+    /** Middleware around this tool's calls (see `SwaigFunctionOptions.middleware`). */
+    middleware?: readonly ToolMiddleware[];
   }): this {
     let params = opts.parameters;
     let required = opts.required ?? [];
@@ -1873,6 +1943,10 @@ export class AgentBase extends SWMLService {
       isTypedHandler: true,
       gates: opts.gates,
       gateFillers: opts.gateFillers,
+      vouched: opts.vouched,
+      nullableOptional: opts.nullableOptional,
+      needsConversation: opts.needsConversation,
+      middleware: opts.middleware,
     });
     this.toolRegistry.set(opts.name, fn);
     return this;
@@ -2030,7 +2104,17 @@ export class AgentBase extends SWMLService {
     // (skill_base.py:59-79), swaig_fields are define_tool arguments with the
     // tool's own fields winning: `secure` sets whether the tool needs a token,
     // and the other keys go into the SWAIG definition.
-    const { secure: skillSecure, ...skillExtraFields } = skill.swaigFields;
+    // The SDK's own execution options aren't wire fields: they become tool
+    // options, so the SDK enforces them (a vouched tool's refusal, say).
+    const {
+      secure: skillSecure,
+      vouched: skillVouched,
+      nullable_optional: skillNullable,
+      needs_conversation: skillNeedsConversation,
+      middleware: skillMiddleware,
+      ...skillExtraFields
+    } = skill.swaigFields;
+    const skillBool = (value: unknown) => (typeof value === 'boolean' ? value : undefined);
     for (const toolDef of skill.getTools()) {
       // Skill-level swaigFields are the base and the tool's own fields win —
       // Python skill_base.py:70-73 (swaig_fields base, explicit kwargs win) and
@@ -2056,11 +2140,23 @@ export class AgentBase extends SWMLService {
       }
       if (toolDef.gates !== undefined) extraFields['gates'] = toolDef.gates;
       if (toolDef.gate_fillers !== undefined) extraFields['gate_fillers'] = toolDef.gate_fillers;
+      // The options as SwaigFunctionOptions spells them, for a tool given that way
+      const camel = toolDef as { nullableOptional?: boolean; needsConversation?: boolean };
       this.defineTool({
         ...toolDef,
         ...(toolDef.secure === undefined && typeof skillSecure === 'boolean'
           ? { secure: skillSecure }
           : {}),
+        vouched: toolDef.vouched ?? skillBool(skillVouched),
+        nullableOptional:
+          toolDef.nullable_optional ?? camel.nullableOptional ?? skillBool(skillNullable),
+        needsConversation:
+          toolDef.needs_conversation ??
+          camel.needsConversation ??
+          skillBool(skillNeedsConversation),
+        middleware:
+          toolDef.middleware ??
+          (Array.isArray(skillMiddleware) ? (skillMiddleware as ToolMiddleware[]) : undefined),
         extraFields,
       });
     }
@@ -2263,6 +2359,80 @@ export class AgentBase extends SWMLService {
     // Rebind rather than push: a per-request copy shares this array.
     this.perCallConfigs = [...this.perCallConfigs, cb];
     return this;
+  }
+
+  /**
+   * Register a handler for the AI events the platform posts during calls.
+   *
+   * The agent sets the call's `event_webhook_url` to its own `/ai_events`
+   * endpoint, unless you set `event_webhook_url` yourself, and calls each
+   * handler with every event posted there. An event is `ai.speech_detect` for
+   * each final of the caller's speech, with its `text` and the recognizer's
+   * `words` and confidences, or one of the platform's other AI events.
+   * Register handlers on the agent, not in a per-call configuration callback:
+   * the endpoint runs on the agent. The handler may be async; its return value
+   * is ignored, and an error is logged.
+   * @param handler - Called with `(eventType, params, event)`: the event, such
+   *   as `'ai.speech_detect'`; its fields, with the `call_id`; and the whole
+   *   event as posted, with its `timestamp`.
+   * @returns The handler.
+   *
+   * @example
+   * ```ts
+   * agent.onAiEvent((eventType, params) => {
+   *   if (eventType === 'ai.speech_detect') console.log(params['call_id'], params['text']);
+   * });
+   * ```
+   */
+  onAiEvent(handler: AiEventHandler): AiEventHandler {
+    // Rebind rather than push: a per-request copy shares this array
+    this._aiEventHandlers = [...this._aiEventHandlers, handler];
+    this.warnIfEventWebhookTaken();
+    return handler;
+  }
+
+  /**
+   * Keep each call's recognizer finals, with their word confidences, for tool
+   * handlers to read with {@link speechFinals}.
+   *
+   * A final is what the recognizer heard for one turn of the caller's, from
+   * the platform's `ai.speech_detect` event: `{ text, words, timestamp }`, with
+   * `words` as `[{ word, confidence }]` as heard, before hearing hints and
+   * number formatting change the text. A handler can ask the caller again
+   * about a word the recognizer wasn't sure of, such as a letter of a spelled
+   * name. Like {@link onAiEvent}, it sets the call's `event_webhook_url` to the
+   * agent's `/ai_events`, unless you set it yourself. A call with
+   * `redact_prompt` sends no finals unless debug is on. The finals live in the
+   * process: replicas each keep their own.
+   * @param maxCalls - The most calls to keep finals for; the oldest call's go first.
+   * @param maxFinals - The most finals to keep for one call.
+   * @returns This agent instance for chaining.
+   */
+  recordSpeechFinals(maxCalls = 500, maxFinals = 200): this {
+    this._speechLog ??= new SpeechLog(maxCalls, maxFinals);
+    this.warnIfEventWebhookTaken();
+    return this;
+  }
+
+  /**
+   * The recognizer's finals for a call, oldest first, once
+   * {@link recordSpeechFinals} is on: `{ text, words, timestamp }`.
+   * @param callId - The call, as a tool request's `rawData.call_id`.
+   * @param since - Only the finals from this time on, in seconds since the
+   *   epoch (the event's `timestamp`).
+   * @returns The finals, empty for a call with none or with recording off.
+   */
+  speechFinals(callId: string, since?: number): SpeechFinal[] {
+    return this._speechLog ? this._speechLog.finals(callId, since) : [];
+  }
+
+  private warnIfEventWebhookTaken(): void {
+    if (this.params['event_webhook_url'] !== undefined) {
+      this.log.warn('event_webhook_url_already_set', {
+        message:
+          "event_webhook_url is set to another URL, so AI events go there and this agent's onAiEvent handlers and speech finals get none",
+      });
+    }
   }
 
   /**
@@ -2959,6 +3129,20 @@ export class AgentBase extends SWMLService {
   }
 
   /**
+   * Run a tool on this agent as the `/swaig` route does once the request is
+   * checked: its middleware, handler and outcome rules, with the agent's
+   * error hook. The MCP bridge and the call simulator run tools through it too.
+   * @internal
+   */
+  _executeFunction(
+    fn: SwaigFunction,
+    args: Record<string, unknown>,
+    rawData: Record<string, unknown>,
+  ): Promise<SwaigResultDict> {
+    return fn._executeAs(this, args, rawData, this._onError);
+  }
+
+  /**
    * Extract the tool-call arguments from a SWAIG request body.
    *
    * The real platform (mod_openai) POSTs a tool call with the args nested under
@@ -3032,7 +3216,11 @@ export class AgentBase extends SWMLService {
     return this.sessionManager._validateTokenFor(ids, functionName, token);
   }
 
-  private extractSwaigArgs(body: Record<string, unknown>, reqLog: Logger): Record<string, unknown> {
+  /** @internal The call simulator replays recorded requests through it. */
+  _extractSwaigArgs(
+    body: Record<string, unknown>,
+    reqLog: Logger = this.log,
+  ): Record<string, unknown> {
     const isPlainObject = (v: unknown): v is Record<string, unknown> =>
       v !== null && typeof v === 'object' && !Array.isArray(v);
 
@@ -3108,7 +3296,7 @@ export class AgentBase extends SWMLService {
         const entry: Record<string, unknown> = {
           function: name,
           description: fn.description,
-          parameters: normalizeParameters(fn.parameters, fn.required),
+          parameters: fn._parameterSchema(this._nullableOptionalDefault()),
         };
         if (fn.fillers && Object.keys(fn.fillers).length) entry['fillers'] = fn.fillers;
         if (fn.waitFile) entry['wait_file'] = fn.waitFile;
@@ -3226,7 +3414,23 @@ export class AgentBase extends SWMLService {
     // ASR-driven multilingual mode: a top-level `multilingual` object on the AI verb.
     if (Object.keys(this.multilingual).length) aiConfig['multilingual'] = this.multilingual;
     if (this.pronounce.length) aiConfig['pronounce'] = this.pronounce;
-    if (Object.keys(this.params).length) aiConfig['params'] = this.params;
+    const params = { ...this.params };
+    // A tool that reads the conversation needs it in its requests
+    if (
+      !('swaig_post_conversation' in params) &&
+      [...this.toolRegistry.values()].some((f) => f instanceof SwaigFunction && f.needsConversation)
+    ) {
+      params['swaig_post_conversation'] = true;
+    }
+    // AI events go to this agent's /ai_events when it handles them, unless
+    // event_webhook_url was set to something else
+    if (
+      (this._aiEventHandlers.length > 0 || this._speechLog) &&
+      params['event_webhook_url'] === undefined
+    ) {
+      params['event_webhook_url'] = this.buildWebhookUrl('ai_events', { ...this.swaigQueryParams });
+    }
+    if (Object.keys(params).length) aiConfig['params'] = params;
     if (Object.keys(this.globalData).length) aiConfig['global_data'] = this.globalData;
 
     // Debug events
@@ -3305,6 +3509,8 @@ export class AgentBase extends SWMLService {
     copy._sipUsernames = this._sipUsernames ? new Map(this._sipUsernames) : null;
     copy._routingCallbacks = new Map(this._routingCallbacks);
     copy.contextsBuilder = clone(this.contextsBuilder);
+    // The warnings already logged stay shared, so each request doesn't repeat them
+    copy.contextsBuilder?._shareUnofferedWarnings(this._unofferedToolsWarned);
     copy._rawContexts = clone(this._rawContexts);
     // Back-reference points at the COPY, not `this` (see _promptManager above).
     copy.swmlBuilder = new SwmlBuilder({ service: copy, ...this._builderSchemaOptions });
@@ -3640,7 +3846,7 @@ export class AgentBase extends SWMLService {
       );
       if (refusal) return c.json(refusal);
 
-      const args = this.extractSwaigArgs(body, reqLog);
+      const args = this._extractSwaigArgs(body, reqLog);
       reqLog.debug('executing_function', { args: JSON.stringify(args) });
       const hookResult = await target.onFunctionCall(fnName, args, body);
 
@@ -3651,7 +3857,7 @@ export class AgentBase extends SWMLService {
       }
 
       try {
-        const result = await fn._executeAs(target, args, body, target._onError);
+        const result = await target._executeFunction(fn, args, body);
         reqLog.info('function_executed_successfully');
         reqLog.debug('function_result', { result_size: JSON.stringify(result).length });
         return c.json(result);
@@ -3752,6 +3958,63 @@ export class AgentBase extends SWMLService {
       app.on('POST', postPromptPaths, authMw, sigMw, handlePostPrompt);
     } else {
       app.on('POST', postPromptPaths, authMw, handlePostPrompt);
+    }
+
+    // AI events (event_webhook_url): to the speech log and onAiEvent handlers.
+    // The body is read to the size limit before the signature check, which
+    // would otherwise read all of it first.
+    const readBounded: MiddlewareHandler = async (c, next) => {
+      if (!(c.req.header('content-type') ?? '').toLowerCase().startsWith('application/json')) {
+        return c.json({ error: 'Content-Type must be application/json' }, 415);
+      }
+      const text = await readBodyWithin(c.req, maxRequestSize);
+      if (text === null) return c.json({ error: 'Request body too large' }, 413);
+      // The signature check and the handler read this, not the spent stream
+      (c.req as unknown as { bodyCache: Record<string, unknown> }).bodyCache['text'] =
+        Promise.resolve(text);
+      await next();
+    };
+    const handleAiEvents = async (c: Context) => {
+      const reqLog = this.log.bind({ endpoint: `${basePath}/ai_events` });
+      let event: unknown;
+      try {
+        event = await c.req.json();
+      } catch (err) {
+        reqLog.error('error_parsing_request_body', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        return c.json({ status: 'error', message: 'invalid JSON' });
+      }
+      if (typeof event !== 'object' || event === null || Array.isArray(event)) {
+        return c.json({ status: 'error', message: 'an event must be an object' });
+      }
+      const e = event as Record<string, unknown>;
+      const eventType = String(e['event_type'] ?? 'unknown');
+      const given = e['params'];
+      const params =
+        typeof given === 'object' && given !== null && !Array.isArray(given)
+          ? (given as Record<string, unknown>)
+          : {};
+      reqLog.debug('ai_event', { event_type: eventType, call_id: params['call_id'] });
+      if (this._speechLog && eventType === SPEECH_DETECT) this._speechLog.add(e);
+      for (const handler of this._aiEventHandlers) {
+        // Each handler is isolated, so one failure doesn't keep the others from the event
+        try {
+          await handler(eventType, params, e);
+        } catch (err) {
+          reqLog.error('ai_event_handler_error', {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+      return c.json({ status: 'ok' });
+    };
+    const aiEventsPaths = withSlash(`${basePath}/ai_events`);
+    app.on('GET', aiEventsPaths, authMw, (c: Context) => c.json({ error: 'POST required' }, 405));
+    if (sigMw) {
+      app.on('POST', aiEventsPaths, authMw, readBounded, sigMw, handleAiEvents);
+    } else {
+      app.on('POST', aiEventsPaths, authMw, readBounded, handleAiEvents);
     }
 
     // Debug events handler
@@ -4148,4 +4411,39 @@ export class AgentBase extends SWMLService {
     if (includeSource) return [...this.basicAuthCreds, this.basicAuthSource];
     return this.basicAuthCreds;
   }
+}
+
+/**
+ * A request's body as text, or null when it's over `limit` bytes. The body is
+ * read in chunks and abandoned as soon as it passes the limit. One that
+ * middleware ahead of the route already read (`c.req.text()`, `json()`,
+ * `arrayBuffer()`) is in Hono's cache, so it's read from there and measured.
+ */
+async function readBodyWithin(req: HonoRequest, limit: number): Promise<string | null> {
+  const request = req.raw;
+  if (request.bodyUsed || Object.keys(req.bodyCache).length > 0) {
+    // Already in memory: only its size is left to check
+    const text = await req.text();
+    return Buffer.byteLength(text, 'utf8') > limit ? null : text;
+  }
+  if (!request.body) return '';
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > limit) {
+      // Not awaited: when middleware has cloned the request, the body is one
+      // branch of a tee, and cancelling it waits until the other branch is
+      // read, which that middleware can do only after this route has answered.
+      reader.cancel().catch(() => undefined);
+      reader.releaseLock();
+      return null;
+    }
+    chunks.push(value);
+  }
+  reader.releaseLock();
+  return new TextDecoder().decode(Buffer.concat(chunks));
 }

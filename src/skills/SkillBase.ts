@@ -5,6 +5,7 @@
  * They define tools, prompt sections, hints, and global data.
  */
 
+import type { ToolMiddleware } from '../ToolMiddleware.js';
 import { randomBytes } from 'node:crypto';
 import type { SwaigHandler } from '../SwaigFunction.js';
 import type { FillerPhrases, SemanticGate } from '../SemanticGate.js';
@@ -58,6 +59,28 @@ export interface SkillToolDefinition {
   gates?: ReadonlyArray<SemanticGate | Record<string, unknown>>;
   /** Phrases the AI says while the gates are checked, shaped like `fillers`. */
   gate_fillers?: FillerPhrases;
+  /**
+   * Whether the model must vouch that the arguments came from the user (see
+   * `SwaigFunctionOptions.vouched`). Wins over the skill's `swaig_fields`.
+   */
+  vouched?: boolean;
+  /**
+   * Whether optional arguments take null (see
+   * `SwaigFunctionOptions.nullableOptional`). Wins over the skill's
+   * `swaig_fields`.
+   */
+  nullable_optional?: boolean;
+  /**
+   * Whether the handler reads the conversation (see
+   * `SwaigFunctionOptions.needsConversation`). Wins over the skill's
+   * `swaig_fields`.
+   */
+  needs_conversation?: boolean;
+  /**
+   * Middleware around this tool's calls (see `SwaigFunctionOptions.middleware`).
+   * Wins over the skill's `swaig_fields`.
+   */
+  middleware?: readonly ToolMiddleware[];
 }
 
 /**
@@ -129,7 +152,10 @@ export function defineSkillTool<
       | FunctionResult
       | Record<string, unknown>
       | string
-      | Promise<FunctionResult | Record<string, unknown> | string>;
+      | null
+      | undefined
+      | void
+      | Promise<FunctionResult | Record<string, unknown> | string | null | undefined | void>;
   },
 ): SkillToolDefinition {
   return {
@@ -468,9 +494,19 @@ export abstract class SkillBase {
    */
   protected defineTool(toolDef: SkillToolDefinition): void {
     const swaigDefaults = this.swaigFields as Partial<SkillToolDefinition>;
+    // A tool given as SwaigFunctionOptions spells these in camel case; its own
+    // value is carried in the snake-case spelling too, so it wins over the
+    // skill's default for it
+    const own: Record<string, unknown> = { ...toolDef };
+    for (const [camel, snake] of [
+      ['nullableOptional', 'nullable_optional'],
+      ['needsConversation', 'needs_conversation'],
+    ] as const) {
+      if (own[camel] !== undefined && own[snake] === undefined) own[snake] = own[camel];
+    }
     const merged: SkillToolDefinition = {
       ...swaigDefaults,
-      ...toolDef,
+      ...(own as unknown as SkillToolDefinition),
     };
     this._dynamicTools.push(merged);
   }

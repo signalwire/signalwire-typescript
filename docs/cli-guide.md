@@ -2,6 +2,8 @@
 
 `swaig-test` loads an agent file and lets you inspect its SWML, list its SWAIG functions, and call one, without a phone call or a deployment.
 
+To test a whole call flow, such as a confirmation across steps, rather than one tool call, use `CallSimulator`; see [Conversation Patterns](conversation_patterns.md#testing-a-call-flow).
+
 ---
 
 ## Table of Contents

@@ -63,7 +63,7 @@
 
 // Core agent
 export { AgentBase } from './AgentBase.js';
-export type { RoutingCallback } from './AgentBase.js';
+export type { RoutingCallback, AiEventHandler } from './AgentBase.js';
 export { AgentServer } from './AgentServer.js';
 
 // SWML Service (non-AI call flows)
@@ -78,11 +78,27 @@ export type { WebServiceOptions } from './WebService.js';
 export type { HostAppRouter } from './web.js';
 
 // Tool results & functions
-export { FunctionResult } from './FunctionResult.js';
+export {
+  FunctionResult,
+  ToolRefusal,
+  toolErrorResult,
+  settleResult,
+  TOOL_ERROR_RESULT,
+  TOOL_ERROR_PROMPT,
+  TOOL_NO_RESULT,
+} from './FunctionResult.js';
 /** @deprecated Use {@link FunctionResult} instead. */
 export { FunctionResult as SwaigFunctionResult } from './FunctionResult.js';
 export type { PaymentPrompt, PaymentAction, PaymentParameter } from './FunctionResult.js';
-export { SwaigFunction } from './SwaigFunction.js';
+export { ResendDedupe, resolve, runChain } from './ToolMiddleware.js';
+export type { ToolMiddleware, CallNext } from './ToolMiddleware.js';
+export {
+  SwaigFunction,
+  VOUCHED_PARAMETER,
+  VOUCHED_DESCRIPTION,
+  VOUCHED_PROMPT,
+  NATIVE_WEBHOOK_URL,
+} from './SwaigFunction.js';
 export {
   SemanticGate,
   gateDefinitions,
@@ -92,9 +108,11 @@ export {
   MAX_CRITERIA_BYTES,
   MAX_ON_FAIL_BYTES,
   MAX_VISUAL_INPUT,
+  MAX_GATE_HISTORY,
+  GATE_DIALOGUES,
   RESERVED_FUNCTION_NAMES,
 } from './SemanticGate.js';
-export type { SemanticGateOptions, FillerPhrases } from './SemanticGate.js';
+export type { SemanticGateOptions, FillerPhrases, GateDialogue } from './SemanticGate.js';
 export type { SwaigHandler, SwaigFunctionOptions } from './SwaigFunction.js';
 
 // Typed SWAIG tool-parameter builder (Tier-2 flagship affordance for the
@@ -153,8 +171,10 @@ export {
   GatherQuestion,
   createSimpleContext,
   HISTORY_MODES,
+  expectedAnswer,
+  MAX_EXPECTED_DIGITS,
 } from './ContextBuilder.js';
-export type { HistoryMode } from './ContextBuilder.js';
+export type { HistoryMode, ExpectedAnswer } from './ContextBuilder.js';
 
 // Security
 export { SessionManager } from './SessionManager.js';
@@ -437,8 +457,32 @@ export {
   DIALOGUE_ROLES,
   NormalizedPostPrompt,
   dialogueTurns,
+  callerTurns,
   normalizePostPrompt,
   parsePostPromptData,
   stripJsonFence,
 } from './PostPrompt.js';
 export type { DialogueTurn } from './PostPrompt.js';
+export { SpeechLog, SPEECH_DETECT } from './AiEvents.js';
+export type { SpeechFinal, SpeechWord } from './AiEvents.js';
+
+// Speech helpers: numbers as a voice says them, and what a caller spelled
+export { numberWords, sayDigits, sayLastDigits, sayMoney } from './speech/numbers.js';
+export type { SayDigitsOptions } from './speech/numbers.js';
+export { readSpelled, spokenEmail, spellingVariants } from './speech/spelling.js';
+export type { ReadSpelledOptions, SpellingVariantsOptions } from './speech/spelling.js';
+
+// Conversation patterns: a change the caller confirms, and requests to come back to
+export { Proposal, current, PROPOSAL_KEY } from './patterns/Proposal.js';
+export type { ProposalOptions, ProposeOptions } from './patterns/Proposal.js';
+export { RequestList } from './patterns/RequestList.js';
+export type { NotedRequest, RequestListOptions } from './patterns/RequestList.js';
+
+// Testing: a simulated call, and recorded tool requests to replay
+export { CallSimulator, SimulatedCall, RequestRecorder } from './testing/CallSimulator.js';
+export type {
+  CallSimulatorOptions,
+  GateCallback,
+  RequestRecorderOptions,
+  ToolStub,
+} from './testing/CallSimulator.js';

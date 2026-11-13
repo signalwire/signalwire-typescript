@@ -5,8 +5,79 @@
  * completion criteria, function restrictions, and navigation rules.
  */
 
+import { getLogger } from './Logger.js';
+import { RESERVED_FUNCTION_NAMES } from './SemanticGate.js';
+
 const MAX_CONTEXTS = 50;
 const MAX_STEPS_PER_CONTEXT = 100;
+
+const log = getLogger('contexts');
+
+/** The most digits an expected answer can name. */
+export const MAX_EXPECTED_DIGITS = 64;
+
+/**
+ * An `expected_answer` as the platform reads it: an exact count of digits, or
+ * a range. {@link expectedAnswer} builds one.
+ */
+export type ExpectedAnswer = { digits: number } | { min_digits: number; max_digits: number };
+
+/**
+ * An `expected_answer` as the platform reads it: `{ digits: N }`, or
+ * `{ min_digits: a, max_digits: b }` with a at most b, each count from 1 to
+ * 64. The platform logs and ignores any other shape.
+ * @param digits - The exact number of digits.
+ * @param opts - Or, without `digits`, the fewest and most digits.
+ * @returns The expected answer.
+ * @throws {Error} For a shape or count the platform would ignore.
+ */
+export function expectedAnswer(
+  digits?: number,
+  opts: { minDigits?: number; maxDigits?: number } = {},
+): ExpectedAnswer {
+  const count = (name: string, value: unknown): number => {
+    if (
+      !Number.isInteger(value) ||
+      (value as number) < 1 ||
+      (value as number) > MAX_EXPECTED_DIGITS
+    ) {
+      throw new Error(
+        `${name} must be a whole number from 1 to ${MAX_EXPECTED_DIGITS}, got ${JSON.stringify(value)}`,
+      );
+    }
+    return value as number;
+  };
+  const { minDigits, maxDigits } = opts;
+  if (digits !== undefined && digits !== null) {
+    if (minDigits !== undefined || maxDigits !== undefined) {
+      throw new Error('expected_answer takes digits, or min_digits and max_digits, not both');
+    }
+    return { digits: count('digits', digits) };
+  }
+  if (minDigits === undefined || maxDigits === undefined) {
+    throw new Error('expected_answer needs digits, or both min_digits and max_digits');
+  }
+  const low = count('min_digits', minDigits);
+  const high = count('max_digits', maxDigits);
+  if (low > high) throw new Error(`min_digits (${low}) must be at most max_digits (${high})`);
+  return { min_digits: low, max_digits: high };
+}
+
+/** A given expected_answer object, checked by the platform's rules. */
+function checkExpectedAnswer(value: unknown): ExpectedAnswer {
+  const keys = new Set(['digits', 'min_digits', 'max_digits']);
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    Array.isArray(value) ||
+    Object.keys(value).length === 0 ||
+    Object.keys(value).some((k) => !keys.has(k))
+  ) {
+    throw new Error('expected_answer must be {"digits": N} or {"min_digits": a, "max_digits": b}');
+  }
+  const v = value as Record<string, number | undefined>;
+  return expectedAnswer(v['digits'], { minDigits: v['min_digits'], maxDigits: v['max_digits'] });
+}
 
 /**
  * Valid values for a step's or context's `history` visibility mode.
@@ -100,6 +171,8 @@ export interface StepDict {
   skip_to_next_step?: boolean;
   /** Optional history visibility mode; present only when explicitly set. */
   history?: HistoryMode;
+  /** Optional number of digits the caller's answer has, for the recognizer. */
+  expected_answer?: ExpectedAnswer;
   /** Optional prompt-reset directives for this step. */
   reset?: {
     system_prompt?: string;
@@ -169,10 +242,16 @@ export class GatherQuestion {
    * unset — it is emitted to SWML so it can override an isolated gather.
    */
   isolated?: boolean;
+  /**
+   * The number of digits the answer has, for the recognizer: while this
+   * question is asked, it replaces the step's expected answer.
+   */
+  expectedAnswer?: ExpectedAnswer;
 
   /**
    * Creates a new GatherQuestion.
-   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions/isolated.
+   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions/isolated/expectedAnswer.
+   * @throws {Error} For an `expectedAnswer` the platform would ignore.
    */
   constructor(opts: {
     key: string;
@@ -182,6 +261,7 @@ export class GatherQuestion {
     prompt?: string;
     functions?: string[];
     isolated?: boolean;
+    expectedAnswer?: ExpectedAnswer;
   }) {
     this.key = opts.key;
     this.question = opts.question;
@@ -192,6 +272,9 @@ export class GatherQuestion {
     // Tri-state: undefined means "inherit the gather_info default". Do NOT
     // collapse to a boolean — `false` must survive to the wire.
     this.isolated = opts.isolated;
+    if (opts.expectedAnswer !== undefined) {
+      this.expectedAnswer = checkExpectedAnswer(opts.expectedAnswer);
+    }
   }
 
   /**
@@ -206,6 +289,7 @@ export class GatherQuestion {
     if (this.functions) d['functions'] = this.functions;
     // Emitted even when false, so it can override an isolated gather.
     if (this.isolated !== undefined && this.isolated !== null) d['isolated'] = this.isolated;
+    if (this.expectedAnswer !== undefined) d['expected_answer'] = { ...this.expectedAnswer };
     return d;
   }
 
@@ -257,6 +341,7 @@ export class GatherInfo {
     prompt?: string;
     functions?: string[];
     isolated?: boolean;
+    expectedAnswer?: ExpectedAnswer;
   }): this {
     this.questions.push(new GatherQuestion(opts));
     return this;
@@ -320,6 +405,8 @@ export class Step {
   private text: string | null = null;
   private stepCriteria: string | null = null;
   private functions: string | string[] | null = null;
+  /** The recognizer's hint for a number the caller is asked for. */
+  private _expectedAnswer: ExpectedAnswer | null = null;
   private validSteps: string[] | null = null;
   private validContexts: string[] | null = null;
   private sections: StepSection[] = [];
@@ -546,6 +633,13 @@ export class Step {
     prompt?: string;
     functions?: string[];
     isolated?: boolean;
+    /**
+     * The number of digits the answer has, for the recognizer, as
+     * {@link expectedAnswer} builds it: `{ digits: 5 }` or
+     * `{ min_digits: 4, max_digits: 6 }`. While this question is asked, it
+     * replaces the step's.
+     */
+    expectedAnswer?: ExpectedAnswer;
   }): this {
     if (!this.gatherInfo) throw new Error('Must call setGatherInfo() before addGatherQuestion()');
     this.gatherInfo.addQuestion(opts);
@@ -574,6 +668,34 @@ export class Step {
    */
   getStepValidContexts(): string[] | null {
     return this.validContexts;
+  }
+
+  /**
+   * Tell the recognizer how many digits the caller's answer in this step has,
+   * such as a ZIP code or a PIN.
+   *
+   * The recognizer ends its wait for a number once the caller has said that
+   * many digits. A gather question's own expected answer replaces this while
+   * that question is asked. Pass `digits` for an exact count, or `minDigits`
+   * and `maxDigits` for a range, each from 1 to 64. Sent as `expected_answer`;
+   * it needs a platform release that has it.
+   * @param digits - The exact number of digits.
+   * @param opts - Or, without `digits`, the fewest and most digits.
+   * @returns This step for chaining.
+   * @throws {Error} For a count or combination the platform would ignore.
+   */
+  setExpectedAnswer(digits?: number, opts: { minDigits?: number; maxDigits?: number } = {}): this {
+    this._expectedAnswer = expectedAnswer(digits, opts);
+    return this;
+  }
+
+  /**
+   * Whether this step sets its own function list (an array or a string
+   * sentinel such as `'none'`), rather than keeping the one before it.
+   * @internal
+   */
+  _hasFunctionList(): boolean {
+    return this.functions !== null;
   }
 
   /**
@@ -700,6 +822,7 @@ export class Step {
     if (this.skipUserTurn) d.skip_user_turn = true;
     if (this._skipToNextStep) d.skip_to_next_step = true;
     if (this._history !== null) d.history = this._history;
+    if (this._expectedAnswer !== null) d.expected_answer = { ...this._expectedAnswer };
 
     const reset: NonNullable<StepDict['reset']> = {};
     if (this.resetSystemPrompt !== null) reset.system_prompt = this.resetSystemPrompt;
@@ -1219,6 +1342,12 @@ export class Context {
 export class ContextBuilder {
   private contexts: Map<string, Context> = new Map();
   private contextOrder: string[] = [];
+  /**
+   * Tools already reported as offered by no step, so a render on every request
+   * doesn't repeat it. The agent shares its own set, so its per-request copies
+   * don't repeat it either.
+   */
+  private unofferedWarned = new Set<string>();
   private agent: { getTool?: (name: string) => unknown; [k: string]: unknown } | null = null;
 
   /**
@@ -1229,6 +1358,16 @@ export class ContextBuilder {
    */
   attachAgent(agent: unknown): this {
     this.agent = agent as typeof this.agent;
+    return this;
+  }
+
+  /**
+   * Record the tools reported as offered by no step in `warned`, a set the
+   * agent keeps for itself and its per-request copies.
+   * @internal
+   */
+  _shareUnofferedWarnings(warned: Set<string>): this {
+    this.unofferedWarned = warned;
     return this;
   }
 
@@ -1469,6 +1608,60 @@ export class ContextBuilder {
             `Fix the tool name or register the missing tool.`,
         );
       }
+
+      this.warnUnofferedTools(
+        registered.map((t) => t?.name).filter((n): n is string => typeof n === 'string'),
+      );
+    }
+  }
+
+  /**
+   * The steps whose function list offers `functionName`, as
+   * `[context, step]` pairs in order, including a gather question's functions.
+   *
+   * A step without `setFunctions()` keeps whatever was active before it, so it
+   * isn't counted: what it offers depends on the step the call came from. The
+   * platform's reply to a call of a tool the current step doesn't offer names
+   * the same steps.
+   * @param functionName - The function's name.
+   * @returns The `[context name, step name]` pairs, empty when no step lists it.
+   */
+  stepsOffering(functionName: string): Array<[string, string]> {
+    const found: Array<[string, string]> = [];
+    for (const contextName of this.contextOrder) {
+      const ctx = this.contexts.get(contextName);
+      if (!ctx) continue;
+      for (const [stepName, step] of ctx.getSteps()) {
+        if (stepOffers(step, functionName)) found.push([contextName, stepName]);
+      }
+    }
+    return found;
+  }
+
+  /**
+   * Log, once per tool, a tool no step can offer: when every step lists its
+   * functions and none lists it, the model never gets it, unless a function
+   * result turns it on.
+   */
+  private warnUnofferedTools(registered: string[]): void {
+    const steps = [...this.contexts.values()].flatMap((c) => [...c.getSteps().values()]);
+    if (steps.length === 0 || steps.some((step) => !step._hasFunctionList())) return;
+    for (const name of registered) {
+      if (
+        this.unofferedWarned.has(name) ||
+        RESERVED_FUNCTION_NAMES.has(name) ||
+        RESERVED_NATIVE_TOOL_NAMES.has(name) ||
+        this.stepsOffering(name).length > 0
+      ) {
+        continue;
+      }
+      this.unofferedWarned.add(name);
+      log.warn('tool_offered_by_no_step', {
+        function: name,
+        hint:
+          'Every step lists its functions and none lists this one, so the model never gets it ' +
+          'unless a function result turns it on (toggle_functions). Add it to the steps that need it.',
+      });
     }
   }
 
@@ -1503,4 +1696,11 @@ export class ContextBuilder {
  */
 export function createSimpleContext(name = 'default'): Context {
   return new Context(name);
+}
+
+/** Whether a step's own function list, or one of its gather questions', names `functionName`. */
+function stepOffers(step: Step, functionName: string): boolean {
+  if (step.getFunctions()?.includes(functionName)) return true;
+  const gather = step.getGatherInfo();
+  return !!gather && gather.getQuestions().some((q) => q.functions?.includes(functionName));
 }

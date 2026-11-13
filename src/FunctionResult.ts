@@ -548,6 +548,50 @@ export class FunctionResult {
   }
 
   /**
+   * Set a mark that semantic gates judge the dialogue from (`semantic_gate_mark`).
+   *
+   * A gate with `since: name` judges the dialogue from the agent's first turn
+   * at or after the mark, at most its `history` entries. The mark is set as of
+   * the start of the action object that sets it, so a `say` in the same object
+   * is the first turn after it; setting it again moves it. Marks last for the
+   * call. It needs a platform release that has it.
+   * @param name - 1 to 64 letters, digits or underscores.
+   * @returns This instance for chaining.
+   * @throws {Error} For a name the platform would refuse.
+   */
+  setSemanticGateMark(name: string): this {
+    if (typeof name !== 'string' || !/^[A-Za-z0-9_]{1,64}$/.test(name)) {
+      throw new Error(
+        `a mark name is 1 to 64 letters, digits or underscores, got ${JSON.stringify(name)}`,
+      );
+    }
+    return this.addAction('semantic_gate_mark', name);
+  }
+
+  /**
+   * Set whether the model may call another function right after a function
+   * result, without answering in words first (`back_to_back_functions`).
+   *
+   * `'forever'`, the call's default, chains freely. `false` makes the model
+   * answer in words after a function result: the request after one goes out
+   * with `tool_choice: "none"`. `true`, while chaining is off, allows one more
+   * chain: the next request after a function result may call one, and then
+   * it's off again. `true` never lowers `'forever'`. The setting lasts for the
+   * call. Text pipeline only: a realtime model doesn't read it.
+   * @param value - `true`, `false` or `'forever'`. Default `true`.
+   * @returns This instance for chaining.
+   * @throws {Error} For any other value, which the platform ignores.
+   */
+  backToBackFunctions(value: boolean | 'forever' = true): this {
+    if (typeof value !== 'boolean' && value !== 'forever') {
+      throw new Error(
+        `back_to_back_functions takes true, false or "forever", got ${JSON.stringify(value)}`,
+      );
+    }
+    return this.addAction('back_to_back_functions', value);
+  }
+
+  /**
    * Set the semantic state the call's semantic gates judge, besides the
    * dialogue.
    *
@@ -661,6 +705,30 @@ export class FunctionResult {
    */
   swmlChangeStep(stepName: string): this {
     return this.addAction('change_step', stepName);
+  }
+
+  /**
+   * Enter the current step again, so its text shows new global data.
+   *
+   * A step's text is expanded once, when the step is entered, so its
+   * `${global_data.*}` values are the ones from then. After
+   * {@link updateGlobalData} changes one, return this with the current step's
+   * name, after the update in the same result, and the model gets the step's
+   * text again with the new values. Entering a step starts it over: its
+   * `history` mode applies again, so under `'hide'` the step's dialogue so far
+   * leaves the model's context too. The same action as {@link swmlChangeStep}.
+   * @param stepName - The name of the step the call is in.
+   * @returns This instance for chaining.
+   *
+   * @example
+   * ```ts
+   * new FunctionResult('Added the drink.')
+   *   .updateGlobalData({ order_total: '$14.50' })
+   *   .refreshStep('take_order');
+   * ```
+   */
+  refreshStep(stepName: string): this {
+    return this.swmlChangeStep(stepName);
   }
 
   /**
@@ -1326,4 +1394,117 @@ export class FunctionResult {
   toJSON(): SwaigResultDict {
     return this.toDict();
   }
+}
+
+/**
+ * The tool result a handler that threw gets, `{function}` its name. A handler
+ * can fail after it did what it was asked, so the model must not report
+ * success or failure.
+ */
+export const TOOL_ERROR_RESULT =
+  '{function} failed before it finished, so whether it took effect is unknown.';
+/** The tool prompt that goes with {@link TOOL_ERROR_RESULT}. */
+export const TOOL_ERROR_PROMPT =
+  "Don't tell the user it worked or that it didn't. Tell them it couldn't be confirmed, and offer to check or try again.";
+/** The tool result for a handler that returned an empty object, `{function}` its name. */
+export const TOOL_NO_RESULT =
+  '{function} returned no result, so whether it took effect is unknown.';
+
+/**
+ * The result the model gets when `functionName`'s handler threw.
+ *
+ * The error itself is logged, not sent: its text can hold internals, and the
+ * model would read it as the outcome.
+ * @param functionName - The function's name.
+ * @returns The unknown-outcome result.
+ */
+export function toolErrorResult(functionName: string): FunctionResult {
+  return new FunctionResult(
+    undefined,
+    false,
+    TOOL_ERROR_RESULT.replace('{function}', functionName),
+    TOOL_ERROR_PROMPT,
+  );
+}
+
+/**
+ * Throw from a tool handler to decline the call with a known outcome.
+ *
+ * The model gets `toolResult`, what is true now (nothing was done, and why),
+ * and `toolPrompt`, what to do next, in place of a crash result that says the
+ * outcome is unknown. Use it for a precondition the handler checks itself: an
+ * item out of stock, an account that isn't found. A tool's and the agent's
+ * `onError` hooks don't see it.
+ *
+ * @example
+ * ```ts
+ * if (!stock.available(item)) {
+ *   throw new ToolRefusal(
+ *     `place_order was not run: ${item} is out of stock.`,
+ *     'Tell the caller, and offer the similar items in stock.',
+ *   );
+ * }
+ * ```
+ */
+export class ToolRefusal extends Error {
+  /** What is true now: nothing was done, and why. */
+  readonly toolResult: string;
+  /** What the model should do next, if anything. */
+  readonly toolPrompt?: string;
+
+  /**
+   * @param toolResult - What is true now: nothing was done, and why.
+   * @param toolPrompt - What the model should do next.
+   */
+  constructor(toolResult: string, toolPrompt?: string) {
+    super(toolResult);
+    this.name = 'ToolRefusal';
+    this.toolResult = toolResult;
+    this.toolPrompt = toolPrompt;
+  }
+
+  /**
+   * The FunctionResult the model gets.
+   * @returns The refusal's result.
+   */
+  result(): FunctionResult {
+    return new FunctionResult(undefined, false, this.toolResult, this.toolPrompt);
+  }
+}
+
+/**
+ * Shape what `functionName`'s handler returned into a result the model can
+ * read as it is, without claiming an outcome the handler didn't report.
+ *
+ * Nothing (`undefined` or `null`) keeps its long-standing "Function executed
+ * successfully". An object with a `response` or an `action` is a SWAIG result
+ * already. Any other object is the handler's data: the model gets it as JSON.
+ * An empty object says the outcome is unknown. Anything else is returned as it
+ * is.
+ * @param functionName - The function's name.
+ * @param result - What the handler returned.
+ * @returns The result.
+ */
+export function settleResult(functionName: string, result: unknown): unknown {
+  if (result === undefined || result === null) {
+    return new FunctionResult('Function executed successfully');
+  }
+  if (
+    typeof result === 'object' &&
+    !Array.isArray(result) &&
+    !(result instanceof FunctionResult) &&
+    !('response' in result) &&
+    !('action' in result)
+  ) {
+    if (Object.keys(result).length === 0) {
+      return { response: TOOL_NO_RESULT.replace('{function}', functionName) };
+    }
+    // A bigint (a database id, say) is given as its digits, not as a failure
+    return {
+      response: JSON.stringify(result, (_key, value: unknown) =>
+        typeof value === 'bigint' ? value.toString() : value,
+      ),
+    };
+  }
+  return result;
 }

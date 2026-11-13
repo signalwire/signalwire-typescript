@@ -40,7 +40,10 @@ export type TypedToolHandler = (
   | FunctionResult
   | Record<string, unknown>
   | string
-  | Promise<FunctionResult | Record<string, unknown> | string>;
+  | null
+  | undefined
+  | void
+  | Promise<FunctionResult | Record<string, unknown> | string | null | undefined | void>;
 
 /**
  * A function the SDK *introspects* (reads `fn.toString()` to recover parameter

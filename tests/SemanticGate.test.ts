@@ -585,3 +585,132 @@ describe('a gate with visual_input', () => {
     expect(sdk.MAX_VISUAL_INPUT).toBe(5);
   });
 });
+
+/**
+ * A gate's dialogue, history, since, unclear and on_unclear, as the platform's
+ * semantic_gates.c reads them (sg_parse_one, on mod_openai's
+ * filler_volume_and_steps): dialogue is window or proposal without regard to
+ * case, history a whole number from 1 to 100, since a mark name, unclear a
+ * boolean, and on_unclear an output shaped as on_fail. Every gate of a
+ * function must name the same dialogue, history and since, set or not.
+ * From signalwire-python 3.8.0.
+ */
+describe('a gate with dialogue, history, since, unclear and on_unclear', () => {
+  it('sends each only when it is set', () => {
+    const dict = new SemanticGate(
+      'Did the caller say yes to the read-back in `conversation`?',
+      0.6,
+      'place_order was not run.',
+      {
+        unclear: true,
+        onUnclear: new FunctionResult(
+          undefined,
+          false,
+          'place_order was not run.',
+          'Ask the caller again.',
+        ),
+        dialogue: 'proposal',
+        history: 6,
+        since: 'read_back',
+      },
+    ).toDict();
+    expect(dict).toEqual({
+      question: 'Did the caller say yes to the read-back in `conversation`?',
+      threshold: 0.6,
+      on_fail: { response: 'place_order was not run.' },
+      on_unclear: {
+        response: { tool_result: 'place_order was not run.', tool_prompt: 'Ask the caller again.' },
+      },
+      unclear: true,
+      dialogue: 'proposal',
+      history: 6,
+      since: 'read_back',
+    });
+    const plain = new SemanticGate('Q?', 0.9, 'no').toDict();
+    for (const key of ['on_unclear', 'unclear', 'dialogue', 'history', 'since']) {
+      expect(key in plain).toBe(false);
+    }
+  });
+
+  it('refuses an on_unclear without a response', () => {
+    expect(() => new SemanticGate('Q?', 0.5, 'no', { onUnclear: new FunctionResult() })).toThrow(
+      'on_unclear needs a response',
+    );
+  });
+
+  it.each([
+    { dialogue: 'window' },
+    { dialogue: 'Proposal' },
+    { history: 1 },
+    { history: 100 },
+    { history: 20.0 },
+    { unclear: false },
+    { on_unclear: { response: 'Ask again.' } },
+    { since: 'read_back' },
+  ])('accepts %j, which the platform reads', (fields) => {
+    const definition = gateDefinitions([gate(fields)], 'place_order')[0]!;
+    for (const [key, value] of Object.entries(fields)) expect(definition[key]).toEqual(value);
+  });
+
+  it.each([
+    [{ dialogue: 'recent' }, 'dialogue must be window or proposal'],
+    [{ dialogue: 1 }, 'dialogue must be window or proposal'],
+    [{ history: 0 }, 'history must be a whole number from 1 to 100'],
+    [{ history: 101 }, 'history must be a whole number from 1 to 100'],
+    [{ history: 2.5 }, 'history must be a whole number from 1 to 100'],
+    [{ history: '6' }, 'history must be a whole number from 1 to 100'],
+    [{ history: true }, 'history must be a whole number from 1 to 100'],
+    [{ unclear: 'yes' }, 'unclear must be true or false'],
+    [{ on_unclear: 'ask' }, 'on_unclear must be an object'],
+    [{ on_unclear: { response: '' } }, 'on_unclear.response is empty'],
+    [{ since: '' }, 'since must be a mark name of 1 to 64 letters, digits or underscores'],
+    [{ since: 'has space' }, 'since must be a mark name of 1 to 64 letters, digits or underscores'],
+    [{ since: 3 }, 'since must be a mark name of 1 to 64 letters, digits or underscores'],
+    [{ Dialogue: 'window' }, "unknown key 'Dialogue'"],
+  ])('refuses %j: %s', (fields, reason) => {
+    expect(() => gateDefinitions([gate(fields)], 'place_order')).toThrow(
+      `place_order: gate 1: ${reason}`,
+    );
+  });
+
+  it('checks the keys in the order the platform does', () => {
+    expect(() =>
+      gateDefinitions([gate({ dialogue: 'recent', id: 'bad id' })], 'place_order'),
+    ).toThrow('dialogue must be window or proposal');
+  });
+
+  it.each([
+    [{ since: 'read_back' }, {}],
+    [{ since: 'a' }, { since: 'b' }],
+    [{ dialogue: 'proposal' }, {}],
+    [{}, { history: 6 }],
+    [
+      { dialogue: 'window', history: 6 },
+      { dialogue: 'window', history: 7 },
+    ],
+    [{ dialogue: 'window' }, { dialogue: 'proposal' }],
+  ])('needs every gate of a function to judge the same dialogue: %j, %j', (first, second) => {
+    expect(() =>
+      gateDefinitions([gate({ id: 'a', ...first }), gate({ id: 'b', ...second })], 'place_order'),
+    ).toThrow(
+      'place_order: gate 2: dialogue, history and since must be the same on every gate of a function',
+    );
+  });
+
+  it('takes the same dialogue named differently as the same', () => {
+    const gates = gateDefinitions(
+      [
+        gate({ id: 'a', dialogue: 'proposal', history: 6 }),
+        gate({ id: 'b', dialogue: 'PROPOSAL', history: 6.0 }),
+      ],
+      'place_order',
+    );
+    expect(gates).toHaveLength(2);
+  });
+
+  it('exports the limits', async () => {
+    const sdk = await import('../src/index.js');
+    expect(sdk.MAX_GATE_HISTORY).toBe(100);
+    expect([...sdk.GATE_DIALOGUES]).toEqual(['window', 'proposal']);
+  });
+});

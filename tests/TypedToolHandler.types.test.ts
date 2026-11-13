@@ -117,17 +117,17 @@ describe('TypedToolHandler — precise typed-tool handler signature', () => {
   );
 
   it(
-    'REJECTS a callable whose return cannot be a SWAIG result (void / boolean)',
+    'accepts a handler that returns nothing, and REJECTS one whose return cannot be a SWAIG result (boolean)',
     { timeout: 30000 },
     () => {
       const errs = typeCheckHandler(
         `const voidH: TypedToolHandler = (city: string): void => { void city; }; void voidH;\n` + // line 0 → diag 2
           `const boolH: TypedToolHandler = (city: string): boolean => true; void boolH;`, // line 1 → diag 3
       );
-      // A `() => void` / `() => boolean` is NOT assignable to a handler whose
-      // declared return is FunctionResult | record | string | Promise<…>.
-      expect(errs.get(2)).toBeDefined();
-      expect(errs.get(2)!).toMatch(/not assignable to type 'TypedToolHandler'/);
+      // Since 3.8.0 a handler may return nothing ("Function executed
+      // successfully"), as the reference's may return None; a boolean still
+      // isn't a SWAIG result.
+      expect(errs.get(2)).toBeUndefined();
       expect(errs.get(3)).toBeDefined();
       expect(errs.get(3)!).toMatch(/not assignable to type 'TypedToolHandler'/);
     },

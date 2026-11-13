@@ -15,6 +15,7 @@ Run `npx sw-tsdocs` for a map of the SDK, `npx sw-tsdocs <topic>` for an area, a
 - [docs/pgi_agent_guide.md](../docs/pgi_agent_guide.md): How to design agents that stay within their rules
 - [docs/llm_parameters.md](../docs/llm_parameters.md): Model parameters for the prompt and post-prompt
 - [docs/swaig-reference.md](../docs/swaig-reference.md): Every FunctionResult method and action
+- [docs/conversation_patterns.md](../docs/conversation_patterns.md): Confirming a change, the caller's own words, honest outcomes, testing a call flow
 - [docs/datamap-guide.md](../docs/datamap-guide.md): The DataMap builder, templates, expressions and testing
 - [docs/contexts-guide.md](../docs/contexts-guide.md): Contexts, steps, navigation, gather mode and history
 - [docs/skills-guide.md](../docs/skills-guide.md): Using the built-in skills
