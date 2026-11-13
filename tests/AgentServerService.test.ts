@@ -722,6 +722,8 @@ describe('routing callbacks, ninth review (found in review)', () => {
     ['/t/:id{[a-z]+}/v1(legacy)', '/t/acme/v1(legacy)/sip'],
     ['/t/:id{a|ab}', '/t/ab/sip'],
     ['/t/:id{foo|foobar}', '/t/foobar/sip'],
+    // Codex's eleventh review: later labels constrain an earlier pattern
+    ['/t/:path{a/b}/:version/api', '/t/a/b/v1/api/sip'],
   ])('finds a callback under the mount %s', async (mount, path) => {
     const s = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
     s.registerRoutingCallback(() => '/target', '/sip');
@@ -735,4 +737,17 @@ describe('routing callbacks, ninth review (found in review)', () => {
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toBe('/target');
   });
+});
+
+it('lets later mount labels constrain an earlier pattern (found in review)', async () => {
+  const s = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+  s.registerRoutingCallback(() => '/target', '/sip/v1/other');
+  const host = new Hono();
+  host.route('/t/:path{.+}/v1/end', s.asRouter());
+  const res = await host.request('/t/a/v1/end/sip/v1/other', {
+    method: 'POST',
+    headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ call: {} }),
+  });
+  expect(res.headers.get('location')).toBe('/target');
 });

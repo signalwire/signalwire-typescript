@@ -34,60 +34,45 @@ import type { Server } from 'node:http';
 /** Regex-escape a literal route label. */
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+/** Mount-prefix patterns by route template, for {@link mountPrefixLength}. */
+const MOUNT_PATTERNS = new Map<string, RegExp | null>();
+
 /**
  * How long the mount prefix a route template describes is at the start of
- * `path`, read with routing's own label grammar (Hono's `splitRoutingPath`,
- * and its `:name{re}` form): a literal label matches itself, `:name` one
- * segment, and `:name{re}` its pattern, grouped. A pattern followed by a
- * literal label matches up to that label, as routing's lookahead does;
- * otherwise it matches the rest of the path, or else the one segment. The
- * labels are matched in one pass. Null when the path doesn't start with the
- * mount, or the template has a form this doesn't read.
+ * `path`. The template is read with routing's own label grammar (Hono's
+ * `splitRoutingPath`, and its `:name{re}` form) and compiled as its router
+ * compiles one, into a single pattern: a literal label matches itself,
+ * `:name` one segment, and `:name{re}` its pattern, grouped, so every label
+ * constrains the match. Null when the path doesn't start with the mount, or
+ * the template has a form this doesn't read.
  */
 function mountPrefixLength(template: string, path: string): number | null {
-  const labels = splitRoutingPath(template);
-  let pos = 0;
-  for (let i = 0; i < labels.length; i++) {
-    if (path[pos] !== '/') return null;
-    pos++;
-    const label = labels[i]!;
-    const next = labels[i + 1];
-    const segmentEnd = () => {
-      const end = path.indexOf('/', pos);
-      return end === -1 ? path.length : end;
-    };
-    if (label === '*') return null;
-    const param = /^:([^{}]+)(?:\{(.+)\})?$/.exec(label);
-    if (!param) {
-      if (!path.startsWith(label, pos)) return null;
-      pos += label.length;
-    } else if (param[2] === undefined) {
-      const stop = segmentEnd();
-      if (stop === pos) return null;
-      pos = stop;
-    } else {
-      let re: RegExp;
-      try {
-        re =
-          next && next[0] !== ':' && next[0] !== '*'
-            ? new RegExp(`^(?:${param[2]})(?=/${escapeRegExp(next)}(?:/|$))`)
-            : new RegExp(`^(?:${param[2]})$`);
-      } catch {
-        return null;
+  let pattern = MOUNT_PATTERNS.get(template);
+  if (pattern === undefined) {
+    pattern = null;
+    const parts: string[] = [];
+    for (const label of splitRoutingPath(template)) {
+      const param = /^:([^{}]+)(?:\{(.+)\})?$/.exec(label);
+      if (label === '*') {
+        parts.length = 0;
+        break;
       }
-      const rest = path.slice(pos);
-      const found = re.exec(rest);
-      if (found && (found[0].length === rest.length || next)) {
-        pos += found[0].length;
-      } else {
-        const stop = segmentEnd();
-        if (!new RegExp(`^(?:${param[2]})$`).test(path.slice(pos, stop))) return null;
-        pos = stop;
+      parts.push(
+        !param ? escapeRegExp(label) : param[2] === undefined ? '[^/]+' : `(?:${param[2]})`,
+      );
+    }
+    if (parts.length > 0) {
+      try {
+        pattern = new RegExp(`^/${parts.join('/')}(?=/|$)`);
+      } catch {
+        pattern = null;
       }
     }
-    if (pos < path.length && path[pos] !== '/') return null;
+    if (MOUNT_PATTERNS.size >= 256) MOUNT_PATTERNS.clear();
+    MOUNT_PATTERNS.set(template, pattern);
   }
-  return pos;
+  const found = pattern?.exec(path);
+  return found ? found[0].length : null;
 }
 /**
  * Interface for custom SWML verb handlers.
