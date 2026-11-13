@@ -366,3 +366,31 @@ describe('the TypeScript dispatch (found in review)', () => {
     expect(readFileSync(path, 'utf-8').endsWith('\n')).toBe(true);
   });
 });
+
+describe('the third checkpoint review (found in review)', () => {
+  it('replays a request with flat arguments as the /swaig route reads it', async () => {
+    const seen: Json[] = [];
+    const agent = bare();
+    agent.defineTool({
+      name: 'echo',
+      description: 'Echo',
+      handler: (args) => {
+        seen.push(args);
+        return 'ok';
+      },
+    });
+    const replayed = await new CallSimulator(agent).replay([
+      { function: 'echo', argument: null, arguments: { item: 'tea' } },
+    ]);
+    expect(replayed[0]!.args).toEqual({ item: 'tea' });
+    expect(seen).toEqual([{ item: 'tea' }]);
+  });
+
+  it('offers and runs a tool named __proto__', async () => {
+    const agent = bare();
+    agent.defineTool({ name: '__proto__', description: 'Odd', handler: () => 'ran' });
+    const sim = new CallSimulator(agent);
+    expect(sim.offered()).toEqual(['__proto__']);
+    expect((await sim.call('__proto__')).response).toBe('ran');
+  });
+});

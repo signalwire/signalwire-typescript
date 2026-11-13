@@ -119,3 +119,20 @@ describe('sayMoney', () => {
     expect(() => sayMoney(amount as number, currency)).toThrow();
   });
 });
+
+describe('the third checkpoint review (found in review)', () => {
+  it('reads Unicode decimal digits, as the reference does', () => {
+    expect(sayDigits('1٢3４')).toBe('one two three four');
+    expect(sayDigits('𝟏𝟐')).toBe('one two');
+    expect(sayLastDigits('１２３４')).toBe('one two three four');
+    expect(sayMoney('１２３４')).toBe('one thousand two hundred thirty-four dollars');
+    expect(sayMoney('٣.٥٠')).toBe('three dollars and fifty cents');
+  });
+
+  it('says a zero amount at once, whatever its exponent', () => {
+    const started = Date.now();
+    expect(sayMoney('0e2000000')).toBe('zero dollars');
+    expect(sayMoney('0e9999999999999999')).toBe('zero dollars');
+    expect(Date.now() - started).toBeLessThan(50);
+  });
+});

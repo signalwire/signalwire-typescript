@@ -48,6 +48,23 @@ const CURRENCIES: Record<string, [string, string, string | null, string | null, 
 };
 
 /**
+ * `text` with every Unicode decimal digit (`٢`, `４`, `𝟏`) as its ASCII digit, as
+ * the reference's `\d` and `int()` read them. Each script's digits are a run of
+ * ten code points, 0 to 9, so a digit's value is its place in its run.
+ */
+function asciiDigits(text: string): string {
+  return text.replace(/\p{Nd}/gu, (digit) => {
+    let cp = digit.codePointAt(0)!;
+    let place = 0;
+    while (/\p{Nd}/u.test(String.fromCodePoint(cp - 1))) {
+      cp -= 1;
+      place += 1;
+    }
+    return String(place % 10);
+  });
+}
+
+/**
  * `n` in English words: `numberWords(1405)` is "one thousand four hundred five".
  * @param n - A whole number, as a safe integer or a bigint.
  * @returns The words.
@@ -119,7 +136,7 @@ export function sayDigits(
   group?: number | readonly number[] | null,
   opts: SayDigitsOptions = {},
 ): string {
-  const str = String(text);
+  const str = asciiDigits(String(text));
   let groups: string[];
   if (group === undefined || group === null) {
     groups = str.match(/\d+/g) ?? [];
@@ -168,7 +185,7 @@ export function sayLastDigits(
   if (typeof n !== 'number' || !Number.isInteger(n) || n < 1) {
     throw new Error(`n must be a positive whole number, got ${String(n)}`);
   }
-  const digits = String(text).replace(/\D/g, '');
+  const digits = asciiDigits(String(text)).replace(/\D/g, '');
   return sayDigits(digits.slice(-n), n, opts);
 }
 
@@ -228,7 +245,7 @@ function parseDecimal(
   if (typeof amount !== 'number' && typeof amount !== 'string') return null;
   // A number's shortest text, as Python's str() gives a float's; underscores
   // between digits are allowed, as Python's Decimal allows them
-  const text = String(amount)
+  const text = asciiDigits(String(amount))
     .trim()
     .replace(/(?<=\d)_(?=\d)/g, '');
   const m = /^([+-]?)(\d*)(?:\.(\d*))?(?:e([+-]?\d+))?$/i.exec(text);
@@ -244,6 +261,7 @@ function parseDecimal(
 
 /** `digits * 10 ** exponent` rounded to a whole number, half up. */
 function roundHalfUp(digits: bigint, exponent: number): bigint {
+  if (digits === 0n) return 0n;
   if (exponent >= 0) return digits * 10n ** BigInt(exponent);
   // Below a tenth of a unit it rounds to 0, however small
   if (-exponent > String(digits).length + 1) return 0n;

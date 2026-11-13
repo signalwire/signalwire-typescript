@@ -190,7 +190,8 @@ export class CallSimulator {
     };
     const swaig = asRecord(ai['SWAIG']);
     const functions = Array.isArray(swaig['functions']) ? (swaig['functions'] as unknown[]) : [];
-    this.functions = {};
+    // No prototype, so a tool named __proto__ is a tool like any other
+    this.functions = Object.create(null) as Record<string, Json>;
     for (const f of functions) {
       if (isRecord(f) && 'function' in f) this.functions[String(f['function'])] = f;
     }
@@ -302,7 +303,7 @@ export class CallSimulator {
     const outcomes: SimulatedCall[] = [];
     for (const body of requests) {
       const name = String(body['function'] ?? '');
-      const args = argumentsOf(body);
+      const args = { ...this.agent._extractSwaigArgs(body) };
       const result = await this.run(name, args, structuredClone(body));
       outcomes.push(new SimulatedCall(name, args, result, { ran: true }));
     }
@@ -680,24 +681,6 @@ function aiVerb(swml: Json): Json {
     if (isRecord(verb) && isRecord(verb['ai'])) return verb['ai'];
   }
   throw new Error("the agent's SWML has no ai verb");
-}
-
-function argumentsOf(body: Json): Json {
-  const argument = body['argument'];
-  if (isRecord(argument)) {
-    const parsed = argument['parsed'];
-    if (Array.isArray(parsed) && isRecord(parsed[0])) return { ...parsed[0] };
-    const raw = argument['raw'];
-    if (typeof raw === 'string' && raw) {
-      try {
-        const loaded: unknown = JSON.parse(raw);
-        return isRecord(loaded) ? loaded : {};
-      } catch {
-        return {};
-      }
-    }
-  }
-  return {};
 }
 
 function asResult(result: unknown): Json {

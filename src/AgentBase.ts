@@ -3216,7 +3216,11 @@ export class AgentBase extends SWMLService {
     return this.sessionManager._validateTokenFor(ids, functionName, token);
   }
 
-  private extractSwaigArgs(body: Record<string, unknown>, reqLog: Logger): Record<string, unknown> {
+  /** @internal The call simulator replays recorded requests through it. */
+  _extractSwaigArgs(
+    body: Record<string, unknown>,
+    reqLog: Logger = this.log,
+  ): Record<string, unknown> {
     const isPlainObject = (v: unknown): v is Record<string, unknown> =>
       v !== null && typeof v === 'object' && !Array.isArray(v);
 
@@ -3842,7 +3846,7 @@ export class AgentBase extends SWMLService {
       );
       if (refusal) return c.json(refusal);
 
-      const args = this.extractSwaigArgs(body, reqLog);
+      const args = this._extractSwaigArgs(body, reqLog);
       reqLog.debug('executing_function', { args: JSON.stringify(args) });
       const hookResult = await target.onFunctionCall(fnName, args, body);
 
