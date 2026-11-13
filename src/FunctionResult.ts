@@ -1395,3 +1395,111 @@ export class FunctionResult {
     return this.toDict();
   }
 }
+
+/**
+ * The tool result a handler that threw gets, `{function}` its name. A handler
+ * can fail after it did what it was asked, so the model must not report
+ * success or failure.
+ */
+export const TOOL_ERROR_RESULT =
+  '{function} failed before it finished, so whether it took effect is unknown.';
+/** The tool prompt that goes with {@link TOOL_ERROR_RESULT}. */
+export const TOOL_ERROR_PROMPT =
+  "Don't tell the user it worked or that it didn't. Tell them it couldn't be confirmed, and offer to check or try again.";
+/** The tool result for a handler that returned an empty object, `{function}` its name. */
+export const TOOL_NO_RESULT =
+  '{function} returned no result, so whether it took effect is unknown.';
+
+/**
+ * The result the model gets when `functionName`'s handler threw.
+ *
+ * The error itself is logged, not sent: its text can hold internals, and the
+ * model would read it as the outcome.
+ * @param functionName - The function's name.
+ * @returns The unknown-outcome result.
+ */
+export function toolErrorResult(functionName: string): FunctionResult {
+  return new FunctionResult(
+    undefined,
+    false,
+    TOOL_ERROR_RESULT.replace('{function}', functionName),
+    TOOL_ERROR_PROMPT,
+  );
+}
+
+/**
+ * Throw from a tool handler to decline the call with a known outcome.
+ *
+ * The model gets `toolResult`, what is true now (nothing was done, and why),
+ * and `toolPrompt`, what to do next, in place of a crash result that says the
+ * outcome is unknown. Use it for a precondition the handler checks itself: an
+ * item out of stock, an account that isn't found. A tool's and the agent's
+ * `onError` hooks don't see it.
+ *
+ * @example
+ * ```ts
+ * if (!stock.available(item)) {
+ *   throw new ToolRefusal(
+ *     `place_order was not run: ${item} is out of stock.`,
+ *     'Tell the caller, and offer the similar items in stock.',
+ *   );
+ * }
+ * ```
+ */
+export class ToolRefusal extends Error {
+  /** What is true now: nothing was done, and why. */
+  readonly toolResult: string;
+  /** What the model should do next, if anything. */
+  readonly toolPrompt?: string;
+
+  /**
+   * @param toolResult - What is true now: nothing was done, and why.
+   * @param toolPrompt - What the model should do next.
+   */
+  constructor(toolResult: string, toolPrompt?: string) {
+    super(toolResult);
+    this.name = 'ToolRefusal';
+    this.toolResult = toolResult;
+    this.toolPrompt = toolPrompt;
+  }
+
+  /**
+   * The FunctionResult the model gets.
+   * @returns The refusal's result.
+   */
+  result(): FunctionResult {
+    return new FunctionResult(undefined, false, this.toolResult, this.toolPrompt);
+  }
+}
+
+/**
+ * Shape what `functionName`'s handler returned into a result the model can
+ * read as it is, without claiming an outcome the handler didn't report.
+ *
+ * Nothing (`undefined` or `null`) keeps its long-standing "Function executed
+ * successfully". An object with a `response` or an `action` is a SWAIG result
+ * already. Any other object is the handler's data: the model gets it as JSON.
+ * An empty object says the outcome is unknown. Anything else is returned as it
+ * is.
+ * @param functionName - The function's name.
+ * @param result - What the handler returned.
+ * @returns The result.
+ */
+export function settleResult(functionName: string, result: unknown): unknown {
+  if (result === undefined || result === null) {
+    return new FunctionResult('Function executed successfully');
+  }
+  if (
+    typeof result === 'object' &&
+    !Array.isArray(result) &&
+    !(result instanceof FunctionResult) &&
+    !('response' in result) &&
+    !('action' in result)
+  ) {
+    if (Object.keys(result).length === 0) {
+      return { response: TOOL_NO_RESULT.replace('{function}', functionName) };
+    }
+    return { response: JSON.stringify(result) };
+  }
+  return result;
+}

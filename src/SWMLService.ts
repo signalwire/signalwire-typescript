@@ -816,7 +816,10 @@ export class SWMLService {
         | FunctionResult
         | Record<string, unknown>
         | string
-        | Promise<FunctionResult | Record<string, unknown> | string>;
+        | null
+        | undefined
+        | void
+        | Promise<FunctionResult | Record<string, unknown> | string | null | undefined | void>;
     },
   ): this {
     const fn = new SwaigFunction({
@@ -884,7 +887,9 @@ export class SWMLService {
     const fn = this.toolRegistry.get(name);
     if (!fn) return null;
     if (fn instanceof SwaigFunction) {
-      return fn.handler(args, rawData);
+      // Through the function's own execution, so a plain service's tools get
+      // the same vouched check, refusals and outcome rules as an agent's.
+      return fn._executeAs(undefined, args, rawData) as Promise<Record<string, unknown>>;
     }
     return null;
   }

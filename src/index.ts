@@ -78,11 +78,25 @@ export type { WebServiceOptions } from './WebService.js';
 export type { HostAppRouter } from './web.js';
 
 // Tool results & functions
-export { FunctionResult } from './FunctionResult.js';
+export {
+  FunctionResult,
+  ToolRefusal,
+  toolErrorResult,
+  settleResult,
+  TOOL_ERROR_RESULT,
+  TOOL_ERROR_PROMPT,
+  TOOL_NO_RESULT,
+} from './FunctionResult.js';
 /** @deprecated Use {@link FunctionResult} instead. */
 export { FunctionResult as SwaigFunctionResult } from './FunctionResult.js';
 export type { PaymentPrompt, PaymentAction, PaymentParameter } from './FunctionResult.js';
-export { SwaigFunction } from './SwaigFunction.js';
+export {
+  SwaigFunction,
+  VOUCHED_PARAMETER,
+  VOUCHED_DESCRIPTION,
+  VOUCHED_PROMPT,
+  NATIVE_WEBHOOK_URL,
+} from './SwaigFunction.js';
 export {
   SemanticGate,
   gateDefinitions,

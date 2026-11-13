@@ -23,7 +23,7 @@ import { SWMLService } from './SWMLService.js';
 import { ConfigLoader } from './ConfigLoader.js';
 import {
   SwaigFunction,
-  normalizeParameters,
+  NATIVE_WEBHOOK_URL,
   type SwaigHandler,
   type SwaigErrorHandler,
 } from './SwaigFunction.js';
@@ -372,6 +372,8 @@ export class AgentBase extends SWMLService {
   private perCallConfigs: DynamicConfigCallback[] = [];
   /** Set once serve() runs an HTTP server; getFullUrl then ignores serverless environments. */
   private _serving = false;
+  /** Whether optional tool arguments take null, as {@link setNullableOptionalParameters} sets it. */
+  private _nullableOptionalParameters = false;
   /** Handlers registered with {@link onCallStart}. */
   private callStartHandlers: ((
     rawData: SwaigRequest,
@@ -1747,7 +1749,7 @@ export class AgentBase extends SWMLService {
           name,
           description: fn.description || name,
         };
-        tool['inputSchema'] = normalizeParameters(fn.parameters, fn.required);
+        tool['inputSchema'] = fn._parameterSchema(this._nullableOptionalDefault());
         tools.push(tool);
       }
     }
@@ -1885,6 +1887,12 @@ export class AgentBase extends SWMLService {
     gates?: ReadonlyArray<SemanticGate | Record<string, unknown>>;
     /** Phrases said while the gates are checked (see `SwaigFunctionOptions.gateFillers`). */
     gateFillers?: FillerPhrases;
+    /** Whether the model must vouch for the arguments (see `SwaigFunctionOptions.vouched`). */
+    vouched?: boolean;
+    /** Whether optional arguments take null (see `SwaigFunctionOptions.nullableOptional`). */
+    nullableOptional?: boolean;
+    /** Whether the handler reads the conversation (see `SwaigFunctionOptions.needsConversation`). */
+    needsConversation?: boolean;
   }): this {
     let params = opts.parameters;
     let required = opts.required ?? [];
@@ -1922,9 +1930,70 @@ export class AgentBase extends SWMLService {
       isTypedHandler: true,
       gates: opts.gates,
       gateFillers: opts.gateFillers,
+      vouched: opts.vouched,
+      nullableOptional: opts.nullableOptional,
+      needsConversation: opts.needsConversation,
     });
     this.toolRegistry.set(opts.name, fn);
     return this;
+  }
+
+  /**
+   * Define a function the platform implements itself, under your own
+   * description and parameters.
+   *
+   * The platform runs its own implementation of a function whose
+   * `web_hook_url` is `"native"`, by name, and never calls a webhook. A tool
+   * defined with {@link defineTool} gets the agent's webhook URL, so it can't
+   * be one. Use this to describe a function the platform implements, such as
+   * `end_call`, in your own words, or to put it in a step's function list.
+   * @param name - The function's name, one the platform implements.
+   * @param description - The description the model reads.
+   * @param parameters - The JSON schema of its arguments, as the platform's
+   *   implementation reads them. Default: none.
+   * @param fields - Other SWAIG fields, such as `fillers`. Its
+   *   `web_hook_url` is always `"native"`.
+   * @returns This agent instance for chaining.
+   */
+  defineNativeTool(
+    name: string,
+    description: string,
+    parameters?: Record<string, unknown>,
+    fields: Record<string, unknown> = {},
+  ): this {
+    return this.registerSwaigFunction({
+      function: name,
+      description,
+      parameters: parameters ?? { type: 'object', properties: {} },
+      ...fields,
+      web_hook_url: NATIVE_WEBHOOK_URL,
+    });
+  }
+
+  /**
+   * Let the model send null for any tool's optional arguments.
+   *
+   * Some providers' strict schemas make every argument required and refuse a
+   * call that leaves one out, so an optional argument has to take null
+   * instead. With this on, each optional argument of every tool defined with
+   * {@link defineTool} takes null as well as its type, and a null reaches the
+   * handler as an argument not given. A tool's own `nullableOptional`
+   * overrides it. It applies when the SWML is rendered, so it covers tools
+   * defined before or after it.
+   * @param enabled - `true` to turn it on, `false` to turn it off.
+   * @returns This agent instance for chaining.
+   */
+  setNullableOptionalParameters(enabled = true): this {
+    this._nullableOptionalParameters = enabled;
+    return this;
+  }
+
+  /**
+   * The agent's default for whether optional tool arguments take null.
+   * @internal
+   */
+  _nullableOptionalDefault(): boolean {
+    return this._nullableOptionalParameters;
   }
 
   // getRegisteredTools / getTool / registerSwaigFunction are inherited from
@@ -2079,7 +2148,16 @@ export class AgentBase extends SWMLService {
     // (skill_base.py:59-79), swaig_fields are define_tool arguments with the
     // tool's own fields winning: `secure` sets whether the tool needs a token,
     // and the other keys go into the SWAIG definition.
-    const { secure: skillSecure, ...skillExtraFields } = skill.swaigFields;
+    // The SDK's own execution options aren't wire fields: they become tool
+    // options, so the SDK enforces them (a vouched tool's refusal, say).
+    const {
+      secure: skillSecure,
+      vouched: skillVouched,
+      nullable_optional: skillNullable,
+      needs_conversation: skillNeedsConversation,
+      ...skillExtraFields
+    } = skill.swaigFields;
+    const skillBool = (value: unknown) => (typeof value === 'boolean' ? value : undefined);
     for (const toolDef of skill.getTools()) {
       // Skill-level swaigFields are the base and the tool's own fields win —
       // Python skill_base.py:70-73 (swaig_fields base, explicit kwargs win) and
@@ -2110,6 +2188,9 @@ export class AgentBase extends SWMLService {
         ...(toolDef.secure === undefined && typeof skillSecure === 'boolean'
           ? { secure: skillSecure }
           : {}),
+        vouched: toolDef.vouched ?? skillBool(skillVouched),
+        nullableOptional: toolDef.nullable_optional ?? skillBool(skillNullable),
+        needsConversation: toolDef.needs_conversation ?? skillBool(skillNeedsConversation),
         extraFields,
       });
     }
@@ -3157,7 +3238,7 @@ export class AgentBase extends SWMLService {
         const entry: Record<string, unknown> = {
           function: name,
           description: fn.description,
-          parameters: normalizeParameters(fn.parameters, fn.required),
+          parameters: fn._parameterSchema(this._nullableOptionalDefault()),
         };
         if (fn.fillers && Object.keys(fn.fillers).length) entry['fillers'] = fn.fillers;
         if (fn.waitFile) entry['wait_file'] = fn.waitFile;
@@ -3275,7 +3356,15 @@ export class AgentBase extends SWMLService {
     // ASR-driven multilingual mode: a top-level `multilingual` object on the AI verb.
     if (Object.keys(this.multilingual).length) aiConfig['multilingual'] = this.multilingual;
     if (this.pronounce.length) aiConfig['pronounce'] = this.pronounce;
-    if (Object.keys(this.params).length) aiConfig['params'] = this.params;
+    const params = { ...this.params };
+    // A tool that reads the conversation needs it in its requests
+    if (
+      !('swaig_post_conversation' in params) &&
+      [...this.toolRegistry.values()].some((f) => f instanceof SwaigFunction && f.needsConversation)
+    ) {
+      params['swaig_post_conversation'] = true;
+    }
+    if (Object.keys(params).length) aiConfig['params'] = params;
     if (Object.keys(this.globalData).length) aiConfig['global_data'] = this.globalData;
 
     // Debug events

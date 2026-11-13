@@ -3,7 +3,13 @@
  */
 
 import Ajv from 'ajv';
-import { FunctionResult, type SwaigResultDict } from './FunctionResult.js';
+import {
+  FunctionResult,
+  ToolRefusal,
+  settleResult,
+  toolErrorResult,
+  type SwaigResultDict,
+} from './FunctionResult.js';
 import { getLogger } from './Logger.js';
 import type { SwaigRequest } from './SwaigContracts.js';
 import type { AgentBase } from './AgentBase.js';
@@ -108,6 +114,36 @@ export function normalizeParameters(
 }
 
 /**
+ * The argument a vouched tool adds, which the model sets to say every other
+ * argument came from the user.
+ */
+export const VOUCHED_PARAMETER = 'data_supplied_by_user';
+/** The description of {@link VOUCHED_PARAMETER}, as the model reads it. */
+export const VOUCHED_DESCRIPTION =
+  'True only when every other argument is what the user said in this call, not a guess, an example or something assumed. False when any value did not come from the user.';
+/** The `web_hook_url` that has the platform run its own implementation of a function, by name. */
+export const NATIVE_WEBHOOK_URL = 'native';
+/** The tool prompt the model gets when it calls a vouched tool without vouching for its arguments. */
+export const VOUCHED_PROMPT = 'Get the answer from the user before using this tool.';
+
+/** A property's schema that also takes null; one without a `type` is left as it is. */
+function nullableSpec(spec: unknown): unknown {
+  if (typeof spec !== 'object' || spec === null || Array.isArray(spec) || !('type' in spec)) {
+    return spec;
+  }
+  const s = spec as Record<string, unknown>;
+  const types = Array.isArray(s['type']) ? (s['type'] as unknown[]) : [s['type']];
+  const widened: Record<string, unknown> = {
+    ...s,
+    type: types.includes('null') ? types : [...types, 'null'],
+  };
+  if (Array.isArray(s['enum']) && !(s['enum'] as unknown[]).includes(null)) {
+    widened['enum'] = [...(s['enum'] as unknown[]), null];
+  }
+  return widened;
+}
+
+/**
  * Handler function for a SWAIG tool invocation.
  * @param args - Parsed arguments extracted by the AI from user speech.
  * @param rawData - The full raw request payload from SignalWire.
@@ -125,7 +161,10 @@ export type SwaigHandler = (
   | FunctionResult
   | Record<string, unknown>
   | string
-  | Promise<FunctionResult | Record<string, unknown> | string>;
+  | null
+  | undefined
+  | void
+  | Promise<FunctionResult | Record<string, unknown> | string | null | undefined | void>;
 
 /**
  * Context passed to an {@link SwaigErrorHandler} when a tool handler throws.
@@ -157,8 +196,12 @@ export type SwaigErrorHandler = (
 ) => FunctionResult | void | Promise<FunctionResult | void>;
 
 /**
- * Default user-facing message returned when a tool handler throws and no
- * {@link SwaigErrorHandler} supplies its own response.
+ * The message a tool handler that threw gave the model before 3.8.0.
+ *
+ * @deprecated A handler that throws, with no {@link SwaigErrorHandler}
+ * response and no `errorMessage`, now gives the model
+ * {@link toolErrorResult}: the outcome is unknown, so it mustn't say the
+ * action worked or that it didn't. Kept for code that imports it.
  */
 export const DEFAULT_SWAIG_ERROR_MESSAGE =
   "Sorry, I couldn't complete that action. Please try again or contact support if the issue persists.";
@@ -241,16 +284,42 @@ export interface SwaigFunctionOptions {
   isTypedHandler?: boolean;
   /**
    * Per-tool error hook. Invoked when this tool's handler throws, before the
-   * default error response is produced. See `SwaigErrorHandler`.
+   * default error response is produced. See `SwaigErrorHandler`. A
+   * {@link ToolRefusal} doesn't reach it.
    */
   onError?: SwaigErrorHandler;
   /**
    * Per-tool override for the user-facing message returned when the handler
-   * throws and no {@link onError} hook supplies a response. Defaults to
-   * "Sorry, I couldn't complete that action. Please try again or contact
-   * support if the issue persists."
+   * throws and no {@link onError} hook supplies a response. Without it, the
+   * model is told the function failed before it finished, so whether it took
+   * effect is unknown, with a tool prompt not to tell the caller it worked or
+   * that it didn't.
    */
   errorMessage?: string;
+  /**
+   * `true` for a tool whose arguments must come from the user, not from the
+   * model's guesses. The tool gets a required boolean argument,
+   * `data_supplied_by_user`, in which the model says they did. Unless it's
+   * `true`, the handler doesn't run, and the model gets "<name> was not run."
+   * with the tool prompt "Get the answer from the user before using this
+   * tool." The handler never sees the argument.
+   */
+  vouched?: boolean;
+  /**
+   * `true` to let the model send null for an optional argument, as providers
+   * with strict schemas require: each argument that isn't required takes null
+   * as well as its type, and a null reaches the handler as an argument not
+   * given. Left out, it follows the agent's
+   * `setNullableOptionalParameters()`.
+   */
+  nullableOptional?: boolean;
+  /**
+   * `true` when the handler reads the conversation, as `callerTurns(rawData)`
+   * does. It turns on the agent's `swaig_post_conversation` when the SWML is
+   * rendered, so every tool request carries the call log, unless that param
+   * was set to `false`.
+   */
+  needsConversation?: boolean;
 }
 
 /**
@@ -315,6 +384,12 @@ export class SwaigFunction {
   onError?: SwaigErrorHandler;
   /** Per-tool user-facing error message override. */
   errorMessage?: string;
+  /** Whether the model must vouch that the arguments came from the user. */
+  vouched: boolean;
+  /** Whether optional arguments take null, or undefined for the agent's setting. */
+  nullableOptional?: boolean;
+  /** Whether the handler reads the conversation (turns on `swaig_post_conversation`). */
+  needsConversation: boolean;
 
   /**
    * Create a new SwaigFunction.
@@ -358,10 +433,87 @@ export class SwaigFunction {
     this.isExternal = opts.webhookUrl !== undefined;
     this.onError = opts.onError;
     this.errorMessage = opts.errorMessage;
+    this.vouched = opts.vouched ?? false;
+    this.nullableOptional = opts.nullableOptional;
+    this.needsConversation = opts.needsConversation ?? false;
   }
 
-  private ensureParameterStructure(): Record<string, unknown> {
-    return normalizeParameters(this.parameters, this.required);
+  private ensureParameterStructure(nullableDefault?: boolean): Record<string, unknown> {
+    return this._parameterSchema(nullableDefault);
+  }
+
+  /**
+   * The parameter schema the model sees: the tool's own, with optional
+   * arguments widened to take null when they do, and a vouched tool's
+   * `data_supplied_by_user` added.
+   * @param nullableDefault - The agent's default for whether optional
+   *   arguments take null, used when this tool doesn't set its own.
+   * @internal
+   */
+  _parameterSchema(nullableDefault?: boolean): Record<string, unknown> {
+    let result = normalizeParameters(this.parameters, this.required);
+    if (this._nullable(nullableDefault)) {
+      const required = new Set((result['required'] as string[] | undefined) ?? []);
+      const properties = (result['properties'] as Record<string, unknown> | undefined) ?? {};
+      result = {
+        ...result,
+        properties: Object.fromEntries(
+          Object.entries(properties).map(([key, spec]) => [
+            key,
+            required.has(key) ? spec : nullableSpec(spec),
+          ]),
+        ),
+      };
+    }
+    if (this.vouched) {
+      const required = ((result['required'] as string[] | undefined) ?? []).filter(
+        (r) => r !== VOUCHED_PARAMETER,
+      );
+      result = {
+        ...result,
+        properties: {
+          ...((result['properties'] as Record<string, unknown> | undefined) ?? {}),
+          [VOUCHED_PARAMETER]: { type: 'boolean', description: VOUCHED_DESCRIPTION },
+        },
+        required: [...required, VOUCHED_PARAMETER],
+      };
+    }
+    return result;
+  }
+
+  /** Whether optional arguments take null: this tool's own setting, else the agent's. */
+  private _nullable(nullableDefault?: boolean): boolean {
+    return this.nullableOptional ?? !!nullableDefault;
+  }
+
+  /** What the model gets for a vouched call it didn't vouch for, or null. */
+  private _vouchedRefusal(args: Record<string, unknown>): FunctionResult | null {
+    if (!this.vouched || args?.[VOUCHED_PARAMETER] === true) return null;
+    return new FunctionResult(undefined, false, `${this.name} was not run.`, VOUCHED_PROMPT);
+  }
+
+  /**
+   * The arguments the handler gets: a vouched tool's own is removed, and a
+   * null for an optional argument that takes null is an argument not given.
+   */
+  private _handlerArgs(
+    args: Record<string, unknown>,
+    nullableDefault?: boolean,
+  ): Record<string, unknown> {
+    if (!args || Object.keys(args).length === 0) return args;
+    const drop = new Set<string>();
+    if (this.vouched && VOUCHED_PARAMETER in args) drop.add(VOUCHED_PARAMETER);
+    if (this._nullable(nullableDefault)) {
+      const required = new Set(
+        (normalizeParameters(this.parameters, this.required)['required'] as string[] | undefined) ??
+          [],
+      );
+      for (const [key, value] of Object.entries(args)) {
+        if (value === null && !required.has(key)) drop.add(key);
+      }
+    }
+    if (drop.size === 0) return args;
+    return Object.fromEntries(Object.entries(args).filter(([key]) => !drop.has(key)));
   }
 
   /**
@@ -378,11 +530,13 @@ export class SwaigFunction {
    * considered valid — matching Python's early-return path.
    *
    * @param args - Arguments to validate.
+   * @param nullableDefault - The agent's default for whether optional
+   *   arguments take null, used when this tool doesn't set its own.
    * @returns A tuple of `[isValid, errors]`. When no validation is needed
    *          (empty schema), returns `[true, []]`.
    */
-  validateArgs(args: Record<string, unknown>): [boolean, string[]] {
-    const schema = this.ensureParameterStructure();
+  validateArgs(args: Record<string, unknown>, nullableDefault?: boolean): [boolean, string[]] {
+    const schema = this.ensureParameterStructure(nullableDefault);
     const properties = schema['properties'] as Record<string, unknown> | undefined;
     if (!properties || Object.keys(properties).length === 0) {
       return [true, []];
@@ -428,11 +582,12 @@ export class SwaigFunction {
     rawData?: SwaigRequest,
     agentOnError?: SwaigErrorHandler,
   ): Promise<SwaigResultDict> {
+    const nullableDefault = agent?._nullableOptionalDefault();
     // Soft validation, as the reference's tool_mixin does: arguments that
     // don't match the schema are logged, and the handler still runs.
     if (args && Object.keys(args).length > 0) {
       try {
-        const [valid, errors] = this.validateArgs(args);
+        const [valid, errors] = this.validateArgs(args, nullableDefault);
         if (!valid) {
           log.warn(`Argument validation failed for function '${this.name}': ${errors.join('; ')}`);
         }
@@ -442,37 +597,43 @@ export class SwaigFunction {
         );
       }
     }
+    // A vouched tool runs only when the model vouches for its arguments
+    const refusal = this._vouchedRefusal(args);
+    if (refusal) return refusal.toDict();
     try {
       // Runtime fallback is the empty object (unchanged); the cast is
       // compile-time only — the backend always sends the full payload, but
       // `execute` allows callers to omit it (e.g. CLI/test harnesses).
-      const result = await this.handler(args, rawData ?? ({} as SwaigRequest), agent);
+      const handlerArgs = this._handlerArgs(args, nullableDefault);
+      const result = settleResult(
+        this.name,
+        await this.handler(handlerArgs, rawData ?? ({} as SwaigRequest), agent),
+      );
       if (result instanceof FunctionResult) {
         return result.toDict();
       }
-      if (typeof result === 'object' && result !== null && !('response' in result)) {
-        // Plain object without a "response" key — matches Python's behavior:
-        // `elif isinstance(result, dict): return FunctionResult("Function completed successfully").to_dict()`
-        // Python replaces such dicts entirely; do the same here.
-        return new FunctionResult('Function completed successfully').toDict();
-      }
       if (typeof result === 'object' && result !== null) {
-        // Handler returned a plain object that already carries a `response`
-        // key — it IS the SWAIG response dict; pass it through unchanged.
+        // A SWAIG result already: settleResult made sure it has a response
+        // or an action.
         return result as SwaigResultDict;
       }
-      // Neither a FunctionResult nor a dict — warn and fall back to
+      // Neither a FunctionResult nor an object — warn and fall back to
       // wrapping the stringified value. See Python's web_mixin /
       // serverless_mixin / tool_mixin for the equivalent check.
-      log.warn(
-        `SWAIG function "${this.name}" returned a value of type "${typeof result}" ` +
-          `that is neither FunctionResult nor object; falling back to str(result). ` +
-          `The AI will see the stringified value as its tool response. Wrap your ` +
-          `return in new FunctionResult(...) or return an object with at least a ` +
-          `"response" key.`,
-      );
+      if (typeof result !== 'string') {
+        log.warn(
+          `SWAIG function "${this.name}" returned a value of type "${typeof result}" ` +
+            `that is neither FunctionResult nor object; falling back to str(result). ` +
+            `The AI will see the stringified value as its tool response. Wrap your ` +
+            `return in new FunctionResult(...) or return an object with at least a ` +
+            `"response" key.`,
+        );
+      }
       return new FunctionResult(String(result)).toDict();
     } catch (err) {
+      // A refusal is the handler's own outcome, not an error
+      if (err instanceof ToolRefusal) return err.result().toDict();
+
       // Preserve the stack for Error instances (plain `${err}` discards it).
       const detail =
         err instanceof Error ? (err.stack ?? `${err.name}: ${err.message}`) : String(err);
@@ -496,7 +657,10 @@ export class SwaigFunction {
         }
       }
 
-      return new FunctionResult(this.errorMessage ?? DEFAULT_SWAIG_ERROR_MESSAGE).toDict();
+      // The error itself isn't sent: its text can hold internals, and the
+      // model would read it as the outcome, which is unknown.
+      if (this.errorMessage !== undefined) return new FunctionResult(this.errorMessage).toDict();
+      return toolErrorResult(this.name).toDict();
     }
   }
 

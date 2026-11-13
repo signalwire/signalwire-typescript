@@ -58,6 +58,23 @@ export interface SkillToolDefinition {
   gates?: ReadonlyArray<SemanticGate | Record<string, unknown>>;
   /** Phrases the AI says while the gates are checked, shaped like `fillers`. */
   gate_fillers?: FillerPhrases;
+  /**
+   * Whether the model must vouch that the arguments came from the user (see
+   * `SwaigFunctionOptions.vouched`). Wins over the skill's `swaig_fields`.
+   */
+  vouched?: boolean;
+  /**
+   * Whether optional arguments take null (see
+   * `SwaigFunctionOptions.nullableOptional`). Wins over the skill's
+   * `swaig_fields`.
+   */
+  nullable_optional?: boolean;
+  /**
+   * Whether the handler reads the conversation (see
+   * `SwaigFunctionOptions.needsConversation`). Wins over the skill's
+   * `swaig_fields`.
+   */
+  needs_conversation?: boolean;
 }
 
 /**
@@ -129,7 +146,10 @@ export function defineSkillTool<
       | FunctionResult
       | Record<string, unknown>
       | string
-      | Promise<FunctionResult | Record<string, unknown> | string>;
+      | null
+      | undefined
+      | void
+      | Promise<FunctionResult | Record<string, unknown> | string | null | undefined | void>;
   },
 ): SkillToolDefinition {
   return {

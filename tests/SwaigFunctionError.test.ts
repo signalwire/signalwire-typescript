@@ -4,7 +4,7 @@ import {
   DEFAULT_SWAIG_ERROR_MESSAGE,
   type SwaigErrorContext,
 } from '../src/SwaigFunction.js';
-import { FunctionResult } from '../src/FunctionResult.js';
+import { FunctionResult, toolErrorResult } from '../src/FunctionResult.js';
 
 /** A handler that always throws, for exercising the error path. */
 function throwingFn(name: string, err: unknown): SwaigFunction {
@@ -19,10 +19,12 @@ function throwingFn(name: string, err: unknown): SwaigFunction {
 }
 
 describe('SwaigFunction.execute error handling (#19371)', () => {
-  it('still returns a valid FunctionResult dict (default message) when the handler throws', async () => {
+  it('still returns a valid FunctionResult dict (an unknown outcome) when the handler throws', async () => {
     const fn = throwingFn('boom', new Error('kaboom'));
     const result = await fn.execute({});
-    expect(result['response']).toBe(DEFAULT_SWAIG_ERROR_MESSAGE);
+    // Since 3.8.0: the outcome is unknown, so the model mustn't claim one
+    expect(result['response']).toEqual(toolErrorResult('boom').toDict()['response']);
+    expect(result['response']).not.toBe(DEFAULT_SWAIG_ERROR_MESSAGE);
   });
 
   it('honors a per-tool errorMessage override', async () => {
@@ -110,6 +112,6 @@ describe('SwaigFunction.execute error handling (#19371)', () => {
       },
     });
     const result = await fn.execute({});
-    expect(result['response']).toBe(DEFAULT_SWAIG_ERROR_MESSAGE);
+    expect(result['response']).toEqual(toolErrorResult('boom').toDict()['response']);
   });
 });
