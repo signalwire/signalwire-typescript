@@ -8,7 +8,9 @@
 
 import type { AgentBase } from './AgentBase.js';
 import { Hono } from 'hono';
-import { splitRoutingPath } from 'hono/utils/url';
+import { RegExpRouter } from 'hono/router/reg-exp-router';
+import { SmartRouter } from 'hono/router/smart-router';
+import { TrieRouter } from 'hono/router/trie-router';
 import type { Context, MiddlewareHandler } from 'hono';
 import type { HostAppRouter } from './web.js';
 import { cors } from 'hono/cors';
@@ -30,36 +32,30 @@ import type { Server } from 'node:http';
 
 // ── Verb handler interfaces ────────────────────────────────────────────
 
-/** Regex-escape a literal route label. */
-const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-/** Route patterns by template, for {@link routePattern}. */
-const ROUTE_PATTERNS = new Map<string, RegExp | null>();
+/** Single-route matchers by template, for {@link routeMatches}. */
+const ROUTE_MATCHERS = new Map<string, SmartRouter<true> | null>();
 
 /**
- * A pattern matching the whole path of a route template, read with routing's
- * own label grammar (Hono's `splitRoutingPath`, and its `:name{re}` form) and
- * compiled as its router compiles one: a literal label matches itself,
- * `:name` one segment, `:name{re}` its pattern, grouped, and `*` anything.
- * A trailing slash is allowed. Null when the template doesn't compile.
+ * Whether `path` matches the route `template`, as routing matches it: with
+ * Hono's own routers (RegExpRouter, else TrieRouter, as its default router
+ * chooses), so its whole template grammar applies. A matcher is cached per
+ * template; one that doesn't build matches nothing.
  */
-function routePattern(template: string): RegExp | null {
-  let pattern = ROUTE_PATTERNS.get(template);
-  if (pattern !== undefined) return pattern;
-  const parts = splitRoutingPath(template).map((label) => {
-    if (label === '*') return '.*';
-    const param = /^:([^{}]+)(?:\{(.+)\})?$/.exec(label);
-    if (!param) return escapeRegExp(label);
-    return param[2] === undefined ? '[^/]+' : `(?:${param[2]})`;
-  });
-  try {
-    pattern = new RegExp(parts.length ? `^/${parts.join('/')}/?$` : '^/?$');
-  } catch {
-    pattern = null;
+function routeMatches(template: string, path: string): boolean {
+  let matcher = ROUTE_MATCHERS.get(template);
+  if (matcher === undefined) {
+    matcher = new SmartRouter<true>({ routers: [new RegExpRouter(), new TrieRouter()] });
+    matcher.add('ALL', template, true);
+    if (ROUTE_MATCHERS.size >= 512) ROUTE_MATCHERS.clear();
+    ROUTE_MATCHERS.set(template, matcher);
   }
-  if (ROUTE_PATTERNS.size >= 512) ROUTE_PATTERNS.clear();
-  ROUTE_PATTERNS.set(template, pattern);
-  return pattern;
+  if (!matcher) return false;
+  try {
+    return matcher.match('ALL', path)[0].length > 0;
+  } catch {
+    ROUTE_MATCHERS.set(template, null);
+    return false;
+  }
 }
 /**
  * Interface for custom SWML verb handlers.
@@ -741,18 +737,18 @@ export class SWMLService {
    * also serves it at `path` itself, where releases before 3.7.2 served it,
    * and such an exact path takes precedence over another callback's
    * `base + path`. Each candidate is matched as its whole route, mount and
-   * callback path together, as routing matched it when callbacks were routes,
-   * parameters and wildcards included.
+   * callback path together, by Hono's own routers, as routing matched it when
+   * callbacks were routes.
    */
   private _matchCallback(c: Context, base: string): RoutingCallback | undefined {
     const mount = c.req.routePath.replace(/\/?\*$/, '').replace(/\/$/, '');
-    const path = c.req.path.replace(/\/{2,}/g, '/');
+    const path = c.req.path;
     const paths = [...this._routingCallbacks.keys()];
     const candidates = [...(base ? paths : []), ...paths.map((cb) => `${base}${cb}`)];
     for (let i = 0; i < candidates.length; i++) {
       const candidate = candidates[i]!;
       const template = `${mount}${candidate === '/' ? '' : candidate}`;
-      if (routePattern(template)?.test(path)) {
+      if (routeMatches(template, path)) {
         return this._routingCallbacks.get(paths[i % paths.length]!);
       }
     }

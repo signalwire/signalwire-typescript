@@ -781,3 +781,48 @@ it('lets the callback path constrain an ambiguous mount (found in review)', asyn
     expect(res.headers.get('location'), which).toBe('/correct');
   }
 });
+
+/** Codex's fourteenth review: callbacks match by routing's own rules. */
+describe('routing callbacks match as routing does (found in review)', () => {
+  const post = (app: Hono, path: string) =>
+    app.request(path, {
+      method: 'POST',
+      headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ call: {} }),
+    });
+
+  it.each([
+    ['/files/*', '/voice/files', 307],
+    ['/files*', '/voice/files123', 307],
+    ['/handoff/:id?', '/voice/handoff', 307],
+    ['/x/*/y', '/voice/x/a/b/y', 404],
+  ] as const)('a callback at %s, for %s', async (cbPath, path, status) => {
+    for (const which of ['getApp', 'asRouter'] as const) {
+      const s = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+      s.registerRoutingCallback(() => '/target', cbPath);
+      const host = new Hono();
+      host.route('/voice', which === 'getApp' ? s.getApp() : s.asRouter());
+      expect((await post(host, path)).status, which).toBe(status);
+    }
+  });
+
+  it("keeps each parameter pattern's own backreferences", async () => {
+    const s = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+    s.registerRoutingCallback(() => '/target', '/:id{(b)\\1}');
+    const host = new Hono();
+    host.route('/:org{(a)\\1}', s.asRouter());
+    expect((await post(host, '/aa/bb')).status).toBe(307);
+    expect((await post(host, '/aa/ba')).status).toBe(404);
+  });
+
+  it('matches under a mount with a doubled slash', async () => {
+    for (const mount of ['/a//b', '/t/:path{a//b}']) {
+      const s = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+      s.registerRoutingCallback(() => '/target', '/sip');
+      const host = new Hono();
+      host.route(mount, s.asRouter());
+      const path = mount === '/a//b' ? '/a//b/sip' : '/t/a//b/sip';
+      expect((await post(host, path)).status, mount).toBe(307);
+    }
+  });
+});
