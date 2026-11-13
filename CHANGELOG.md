@@ -3,6 +3,121 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+Parity with signalwire-python 3.8.0, the voice-agent toolkit: newer semantic
+gate keys, tool outcomes and options, tool middleware with retry dedupe, the
+caller's own words, speech helpers, conversation patterns and a call
+simulator. The gate keys, `semantic_gate_dialogue`,
+`unavailable_function_response`, `semantic_gate_mark` and `expected_answer`
+need a platform release that has them: one with gates but without a key
+refuses the function, as it treats an unknown gate key as an error.
+
+### Added
+
+- Semantic gates take the platform's newer keys. `new SemanticGate(question,
+threshold, onFail, { dialogue, history })` sets the dialogue one gate
+  judges, `'window'` or `'proposal'` and 1 to 100 entries, in place of the
+  agent's; every gate of a function must set the same ones, as the platform
+  requires, and rendering throws when they differ. `unclear: true` asks yes,
+  no or unclear, and `onUnclear` is what the model gets for an unclear
+  answer. `since` anchors a gate's dialogue at a mark your code sets with the
+  new `FunctionResult.setSemanticGateMark(name)` action.
+  `setSemanticGates({ dialogue })` sets the agent's `semantic_gate_dialogue`.
+- `setUnavailableFunctionResponse(text)` sets what the model is told when it
+  calls a tool it can't use now, with `${function}`, `${tools}` and
+  `${steps}`.
+- `defineTool({ vouched: true })` adds a required boolean argument,
+  `data_supplied_by_user`, in which the model says every argument came from
+  the caller. Unless it's true, the handler doesn't run, and the model is
+  told to get the answer from the caller first.
+- `ToolRefusal`: throw `new ToolRefusal(toolResult, toolPrompt)` from a
+  handler or middleware to decline a call with an outcome you know. It
+  bypasses the `onError` hooks.
+- `FunctionResult.backToBackFunctions(value)` sets whether the model may call
+  another function right after a result (`true`, `false` or `'forever'`).
+- `FunctionResult.refreshStep(name)` enters the current step again, so step
+  text that shows `${global_data.*}` values, which are expanded once on
+  entry, shows the new ones.
+- `Step.setExpectedAnswer(digits)` (or `{ minDigits, maxDigits }`), the
+  `expectedAnswer()` helper and a gather question's `expectedAnswer` tell the
+  recognizer how many digits the caller's answer has, so it ends its wait
+  once they're said.
+- `defineTool({ nullableOptional: true })` and
+  `setNullableOptionalParameters()` let the model send null for optional
+  arguments, as strict provider schemas require; a null reaches the handler
+  as an argument not given.
+- `defineNativeTool(name, description, parameters?, fields?)` defines a
+  function the platform implements itself, sent with `web_hook_url:
+"native"`, under your own description.
+- Tool middleware: `addToolMiddleware(fn)` and `defineTool({ middleware })`
+  run `fn(name, args, rawData, callNext)` around tool calls; `callNext`
+  returns a promise of the handler's result. On `SWMLService` too, so a
+  plain service's tools have them.
+- A transport retry of a tool request no longer runs the tool twice.
+  SignalWire sends a request again, with the same `tool_call_id`, after a
+  timeout, a failed connection or a 5xx; the agent answers the retry with
+  the first attempt's result, and one that arrives while the first is still
+  running waits for it. A call the model makes again has a new
+  `tool_call_id` and runs. On by default, and shared with per-request
+  copies; `setToolResendDedupe(false)` turns it off. The state lives in the
+  process, so replicas each keep their own.
+- The caller's own words in a handler: `callerTurns(rawData)` reads what the
+  caller said from the request's conversation, and `defineTool({
+needsConversation: true })` turns on `swaig_post_conversation` so requests
+  carry it. `recordSpeechFinals()` and `speechFinals(callId)` keep the
+  recognizer's finals with their word confidences, from the platform's
+  `ai.speech_detect` events, and `onAiEvent(handler)` receives every AI
+  event; the agent sets `event_webhook_url` to its new `/ai_events` endpoint
+  for them (POST, JSON, size-limited, authenticated and signature-checked as
+  the agent's other endpoints are). Register them on the agent, not in a
+  per-request callback.
+- Speech helpers: `sayDigits`, `sayLastDigits`, `sayMoney` and `numberWords`
+  give the words a voice should say for digits and amounts, which
+  `addPronunciation` can't fix, since the platform normalizes text before its
+  pronunciation rules run. `sayMoney` takes a number, a bigint or a decimal
+  string and rounds half up from its decimal digits. `readSpelled` reads what
+  a caller spelled (letters, letter names, "S as in Sam", NATO words, "double
+  l", digits), `spokenEmail` reads an address said aloud, and
+  `spellingVariants` expands letters the recognizer confuses, with groups you
+  supply.
+- `Proposal` is the platform's confirm pattern: `propose()` reads a change
+  back and records it in `semantic_state` in one action object, and
+  `confirmGates()` gives the confirm tool the three gates (answered, agreed,
+  read back) judged on the proposal's dialogue, with an `onFail` that quotes
+  the proposal. `askAgain()` and `complete()` round it out.
+- `RequestList` keeps what the caller asked for while the agent was busy, in
+  the call's `global_data`, with step text that lists it, to take up when the
+  current task is done.
+- `CallSimulator` runs an agent's tools through a simulated call, checked as
+  the platform checks them: the step's function list (with the platform's
+  reply for a tool it won't run), the semantic gates from a callback, and
+  each result's actions on the call's state. Tools run as the `/swaig` route
+  runs them. `RequestRecorder` middleware records tool requests for
+  `CallSimulator.replay()`.
+- [Conversation Patterns](docs/conversation_patterns.md), a new guide.
+- `ContextBuilder.stepsOffering(name)` lists the steps whose function lists
+  name a tool. Rendering logs `tool_offered_by_no_step` once for a
+  registered tool that no step offers, when every step lists its functions.
+
+### Changed
+
+- A tool handler that throws now tells the model the function failed before
+  it finished, so whether it took effect is unknown, with a tool prompt not
+  to tell the caller it worked or that it didn't. It used to return "Sorry, I
+  couldn't complete that action. Please try again or contact support if the
+  issue persists.", which let the model guess the outcome. The error is
+  logged; the `onError` hooks and a tool's `errorMessage` still come first.
+  `DEFAULT_SWAIG_ERROR_MESSAGE` is deprecated.
+- A handler that returns an object with neither `response` nor `action` gives
+  the model the object as JSON, and an empty object says the outcome is
+  unknown. It used to answer "Function completed successfully", dropping the
+  object. A handler that returns nothing answers "Function executed
+  successfully"; it used to answer "undefined". Handler types allow `void`.
+- A plain `SWMLService`'s `/swaig` route runs tools with the same rules as an
+  agent's: the vouched check, middleware, the retry dedupe and the outcome
+  rules.
+
 ## 3.7.2 (2026-11-12)
 
 Parity with signalwire-python 3.7.7: the chat-session token fix, a plain
