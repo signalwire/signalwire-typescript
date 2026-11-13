@@ -468,8 +468,12 @@ const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
  * by that name (typeToString() would expand it to its callable), and a data-shape
  * interface the reference passes as a plain dict is recorded as that dict.
  */
-/** A REFERENCE_TYPE_FOLDS value: the interface as `dict<string,T>`, T its fields' one type, else any. */
-const RECORD_SHAPE = '<record-shape>';
+/**
+ * A REFERENCE_TYPE_FOLDS value for a data-shape interface the reference passes as
+ * `dict[str, T]`: recorded as `dict<string,T>` when every field's type is T (or T
+ * is any), else as the dict of a field's other type, so the drift shows.
+ */
+const recordShape = (valueType: string): string => `<record-shape:${valueType}>`;
 const REFERENCE_TYPE_FOLDS: Record<string, string> = {
   // tool_middleware.py: `ToolMiddleware = Callable[...]`, `CallNext = Callable[...]`
   'ToolMiddleware:ToolMiddleware': 'class:signalwire.core.tool_middleware.ToolMiddleware',
@@ -481,8 +485,8 @@ const REFERENCE_TYPE_FOLDS: Record<string, string> = {
   // speech_finals()/SpeechLog.finals() return list[dict[str, Any]], and
   // RequestList.pending()/as_text() list[dict[str, str]]: a data-shape interface
   // is recorded as the dict of its fields' type (RECORD_SHAPE)
-  'AiEvents:SpeechFinal': RECORD_SHAPE,
-  'patterns/RequestList:NotedRequest': RECORD_SHAPE,
+  'AiEvents:SpeechFinal': recordShape('any'),
+  'patterns/RequestList:NotedRequest': recordShape('string'),
 };
 const UNFOLD_ALL = process.env.UNFOLD_ALL === '1';
 
@@ -1021,21 +1025,29 @@ function translateType(
     const foldFile = foldSym?.declarations?.[0]?.getSourceFile().fileName;
     if (foldSym && foldFile) {
       const folded = REFERENCE_TYPE_FOLDS[`${srcSubpath(foldFile)}:${foldSym.getName()}`];
-      if (folded === RECORD_SHAPE) {
+      const shape = folded?.match(/^<record-shape:(.+)>$/);
+      if (shape) {
+        const expected = shape[1]!;
+        if (expected === 'any') return 'dict<string,any>';
         // The fields' types, so a field that changes type still shows as drift
-        const fieldTypes = new Set(
-          checker
-            .getPropertiesOfType(type)
-            .map((p) =>
-              translateType(
-                checker.getTypeOfSymbolAtLocation(p, p.valueDeclaration ?? p.declarations![0]!),
-                checker,
-                aliases,
-                `${context}.${p.getName()}`,
+        const fieldTypes = [
+          ...new Set(
+            checker
+              .getPropertiesOfType(type)
+              .map((p) =>
+                translateType(
+                  checker.getTypeOfSymbolAtLocation(p, p.valueDeclaration ?? p.declarations![0]!),
+                  checker,
+                  aliases,
+                  `${context}.${p.getName()}`,
+                ),
               ),
-            ),
-        );
-        return `dict<string,${fieldTypes.size === 1 ? [...fieldTypes][0] : 'any'}>`;
+          ),
+        ].sort();
+        // A field of another type is recorded as that type (a union holding the
+        // expected one would still compare equal), so the drift shows
+        const other = fieldTypes.find((t) => t !== expected);
+        return `dict<string,${other ?? expected}>`;
       }
       if (folded !== undefined) return folded;
     }

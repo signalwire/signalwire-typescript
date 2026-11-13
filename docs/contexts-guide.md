@@ -357,7 +357,7 @@ A later step that leaves out `setFunctions()` therefore keeps the tools of the s
 
 The SDK checks every name in a `functions` list, and in each gather question's `functions`, against the agent's registered tools. `validate()` throws for a name that isn't a registered tool or one of the reserved native tools.
 
-`ContextBuilder.stepsOffering(name)` returns the `[context, step]` pairs whose function list, or a gather question's, names a tool. A step without `setFunctions()` isn't counted, since what it offers depends on the step before it. When every step lists its functions and none lists a registered tool, rendering the SWML logs a `tool_offered_by_no_step` warning for it, once: the model never gets that tool unless a function result turns it on with `toggleFunctions()`.
+`ContextBuilder.stepsOffering(name)` returns the `[context, step]` pairs whose function list, or a gather question's, names a tool. The functions a step without `setFunctions()` inherits from the step before it aren't counted, since they depend on how the caller got there; its gather questions' own function lists are. When every step lists its functions and none lists a registered tool, rendering the SWML logs a `tool_offered_by_no_step` warning for it, once: the model never gets that tool unless a function result turns it on with `toggleFunctions()`.
 
 ```typescript
 const builder = agent.defineContexts();

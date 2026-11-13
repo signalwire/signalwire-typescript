@@ -262,7 +262,8 @@ agent.defineTool({
 - What the handler returns is the outcome the model reads. Throw
   \`new ToolRefusal(toolResult, toolPrompt)\` to decline with an outcome you
   know; any other error tells the model the outcome is unknown, not that it
-  failed. Data without a \`response\` reaches the model as JSON.
+  failed. An object with neither a \`response\` nor an \`action\` reaches
+  the model as JSON.
 - \`vouched: true\` runs a tool only when the model says its arguments came
   from the caller; \`needsConversation: true\` sends the conversation with each
   request, for \`callerTurns(rawData)\`.
@@ -271,8 +272,9 @@ agent.defineTool({
 - Answer within a few seconds: the caller hears nothing while a tool runs.
   SignalWire waits up to 120 seconds for a tool's webhook, and sends the
   request again after a timeout, a failed connection or a 5xx. The agent
-  answers such a retry with the first attempt's result, so the tool runs
-  once, but the caller still waits. Start long work without awaiting it,
+  answers such a retry with the first attempt's result while it keeps it (in
+  this process, for 10 minutes, up to 1,024 results), so the tool doesn't
+  run twice, but the caller still waits. Start long work without awaiting it,
   return at once, and send the result into the call with
   \`calling.aiMessage()\` on a \`RestClient\`.
 `,
