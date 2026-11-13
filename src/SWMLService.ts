@@ -432,6 +432,8 @@ export class SWMLService {
   protected _routingCallbacks = new Map<string, RoutingCallback>();
   /** The route-relative router {@link asRouter} returns, built on first use. */
   private _router: Hono | undefined;
+  /** Whether the HTTP routes enforce basic auth (credentials weren't generated). */
+  private _enforceAuth = false;
 
   // SWAIG tool registry — lifted from AgentBase so any SWMLService (sidecar,
   // non-agent verb host) can register and dispatch SWAIG functions. Stores
@@ -446,7 +448,8 @@ export class SWMLService {
     // swaig-test finds services a file constructs without exporting them.
     if (process.env['SWAIG_CLI_MODE'] === 'true') cliLoadedServices.push(this);
     this.name = opts?.name ?? 'swml-service';
-    this.route = opts?.route ?? '/';
+    // Without a trailing slash, as the reference stores it.
+    this.route = (opts?.route ?? '/').replace(/(.)\/+$/, '$1');
     this.host = opts?.host ?? '0.0.0.0';
     this.port = opts?.port ?? parseInt(process.env['PORT'] ?? '3000', 10);
 
@@ -507,10 +510,20 @@ export class SWMLService {
     // `service: this` is the builder's public back-reference (the reference's
     // `SWMLBuilder(service)`), so a caller holding the builder can reach its service.
     this.swmlBuilder = new SwmlBuilder({ service: this, ...this._builderSchemaOptions });
-    this._app = new Hono();
+    this._enforceAuth = enforceAuth;
+    this._app = this._buildServiceApp(this._routeBase());
+  }
+
+  /**
+   * Build the app serving this service's routes under `base`: the service's
+   * route for its own app ({@link getApp}), or '' for the route-relative
+   * router {@link asRouter} returns.
+   */
+  private _buildServiceApp(base: string): Hono {
+    const app = new Hono();
 
     // Security headers
-    this._app.use('*', async (c, next) => {
+    app.use('*', async (c, next) => {
       await next();
       c.res.headers.set('X-Content-Type-Options', 'nosniff');
       c.res.headers.set('X-Frame-Options', 'DENY');
@@ -524,11 +537,11 @@ export class SWMLService {
     const corsOrigins = process.env['SWML_CORS_ORIGINS'];
     const corsOrigin = corsOriginsFromEnv(corsOrigins);
     const corsCredentials = corsOrigin !== '*';
-    this._app.use('*', cors({ origin: corsOrigin, credentials: corsCredentials }));
+    app.use('*', cors({ origin: corsOrigin, credentials: corsCredentials }));
 
     // Basic auth — only enforced when explicitly provided or from env, not auto-generated
-    if (enforceAuth && this.authCredentials) {
-      this._app.use(
+    if (this._enforceAuth && this.authCredentials) {
+      app.use(
         '*',
         basicAuth({
           verifyUser: (username, password) => this.validateBasicAuth(username, password),
@@ -536,19 +549,9 @@ export class SWMLService {
       );
     }
 
-    // Routing callbacks. Dispatched here rather than as routes, so one
-    // registered after the app has served a request still answers: Hono
-    // can't add a route once its matcher is built.
-    this._app.use('*', async (c, next) => {
-      if (c.req.method !== 'GET' && c.req.method !== 'POST') return next();
-      const callbackFn = this._routingCallbackAt(c.req.path);
-      if (!callbackFn) return next();
-      return this._serveRoutingCallback(c, callbackFn);
-    });
-
     // Health endpoints
-    this._app.get('/health', (c) => c.json({ status: 'ok' }));
-    this._app.get('/ready', (c) => c.json({ status: 'ready' }));
+    app.get('/health', (c) => c.json({ status: 'ok' }));
+    app.get('/ready', (c) => c.json({ status: 'ready' }));
 
     // Main SWML endpoint — serves on both GET and POST
     const handler = async (c: Context) => {
@@ -556,8 +559,8 @@ export class SWMLService {
       return c.json(await this._documentForRequest(c, bodyParams, headers));
     };
 
-    const routePath = this.route === '/' ? '/' : this.route;
-    const swaigPath = this.route === '/' ? '/swaig' : `${this.route}/swaig`;
+    const routePath = base || '/';
+    const swaigPath = `${base}/swaig`;
 
     // SWAIG endpoint — GET returns the rendered SWML doc (sidecar / non-agent
     // services use the document as-is; AgentBase overrides via render hook),
@@ -608,16 +611,42 @@ export class SWMLService {
       if (typeof result === 'string') return c.json(new FunctionResult(result).toDict());
       return c.json(result);
     };
-    this._app.get(swaigPath, swaigHandler);
-    this._app.post(swaigPath, swaigHandler);
+    app.get(swaigPath, swaigHandler);
+    app.post(swaigPath, swaigHandler);
 
     // Subclass extension hook (AgentBase wires /post_prompt etc here).
     this.registerAdditionalRoutes(this._app);
 
-    this._app.get(routePath, handler);
-    this._app.post(routePath, handler);
+    app.get(routePath, handler);
+    app.post(routePath, handler);
 
-    // Register routing callback endpoints dynamically in getApp/run
+    // Routing callbacks last, so the SWAIG and main routes keep precedence.
+    this._addCallbackRoutes(app, base, [...this._routingCallbacks.keys()]);
+    return app;
+  }
+
+  /**
+   * Add routes for routing callbacks to an app built under `base`. A callback
+   * registered at `path` is served at `base + path`, as the reference's router
+   * serves it. The service's own app also serves it at `path` itself, where
+   * releases before 3.7.2 served it; such an exact path takes precedence over
+   * another callback's `base + path`.
+   */
+  private _addCallbackRoutes(app: Hono, base: string, paths: string[]): void {
+    const exact = base && base === this._routeBase() ? [...this._routingCallbacks.keys()] : [];
+    const at = new Map<string, RoutingCallback>();
+    for (const path of paths) {
+      const callbackFn = this._routingCallbacks.get(path);
+      if (!callbackFn) continue;
+      if (exact.length) at.set(path, callbackFn);
+      const qualified = `${base}${path}`;
+      if (!exact.includes(qualified)) at.set(qualified, callbackFn);
+    }
+    for (const [path, callbackFn] of at) {
+      const handler = (c: Context) => this._serveRoutingCallback(c, callbackFn);
+      app.get(path, handler);
+      app.post(path, handler);
+    }
   }
 
   // ────────────────────────────────────────────────────────────────────
@@ -1099,22 +1128,21 @@ export class SWMLService {
       normalized = `/${normalized}`;
     }
     this.log.info(`Registering routing callback at ${normalized}`);
-    // The app's routing-callback middleware serves it from now on.
-    this._routingCallbacks.set(normalized, callbackFn);
-  }
-
-  /**
-   * The routing callback a request path addresses: one registered at `path`
-   * is served under the service's route, as the reference's router serves it,
-   * and at `path` itself, where releases before 3.7.2 served it.
-   */
-  private _routingCallbackAt(requestPath: string): RoutingCallback | undefined {
-    const path = requestPath.replace(/\/{2,}/g, '/').replace(/(.)\/+$/, '$1');
     const base = this._routeBase();
-    for (const [cbPath, callbackFn] of this._routingCallbacks) {
-      if (path === `${base}${cbPath}` || path === cbPath) return callbackFn;
+    // An earlier callback's base + path already claims this exact path.
+    const shadowed = [...this._routingCallbacks.keys()].some(
+      (cb) => cb !== normalized && base && `${base}${cb}` === normalized,
+    );
+    this._routingCallbacks.set(normalized, callbackFn);
+    this._router = undefined;
+    try {
+      if (shadowed) throw new Error('rebuild');
+      this._addCallbackRoutes(this._app, base, [normalized]);
+    } catch {
+      // Hono can't add a route once the app has served a request, and route
+      // order decides which callback answers: build the app again.
+      this._app = this._buildServiceApp(base);
     }
-    return undefined;
   }
 
   /**
@@ -1324,23 +1352,8 @@ export class SWMLService {
    * @returns A mountable Hono sub-app carrying this service's routes.
    */
   asRouter(): HostAppRouter {
-    const base = this._routeBase();
-    if (!base) return this.getApp();
-    if (!this._router) {
-      // The service's own app serves its routes under its route. The host may
-      // mount this router at any prefix, so each request is passed on with
-      // that prefix replaced by the route.
-      const router = new Hono();
-      router.all('*', (c) => {
-        const prefix = c.req.routePath.replace(/\/?\*$/, '');
-        const url = new URL(c.req.url);
-        const path = url.pathname.replace(/\/{2,}/g, '/');
-        const rest = path.slice(prefix.length).replace(/\/+$/, '');
-        url.pathname = `${base}${rest}`;
-        return this.getApp().fetch(new Request(url, c.req.raw));
-      });
-      this._router = router;
-    }
+    if (!this._routeBase()) return this.getApp();
+    this._router ??= this._buildServiceApp('');
     return this._router;
   }
 
@@ -1432,14 +1445,19 @@ export class SWMLService {
       };
 
       this.log.info(`${this.name} starting on https://${h}:${p}${this.route} (SSL enabled)`);
-      const listener = getRequestListener(this._app.fetch);
+      const listener = getRequestListener((req) => this.getApp().fetch(req));
       this._server = createServer(serverOpts, listener) as unknown as Server;
       this._server.listen(p, h);
     } else {
       // HTTP mode
       const { serve } = await import('@hono/node-server');
       this.log.info(`${this.name} starting on http://${h}:${p}${this.route}`);
-      this._server = serve({ fetch: this._app.fetch, port: p, hostname: h }) as unknown as Server;
+      this._server = serve({
+        // The current app: a routing callback added later may rebuild it.
+        fetch: (req, env) => this.getApp().fetch(req, env),
+        port: p,
+        hostname: h,
+      }) as unknown as Server;
     }
   }
 

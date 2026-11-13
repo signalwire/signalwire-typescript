@@ -6,6 +6,7 @@
  * because the server's middleware called a method only AgentBase has.
  */
 
+import { Hono } from 'hono';
 import { AgentBase } from '../src/AgentBase.js';
 import { AgentServer } from '../src/AgentServer.js';
 import { FunctionResult } from '../src/FunctionResult.js';
@@ -153,5 +154,141 @@ describe('a plain SWMLService on an AgentServer', () => {
       { name: 'support', route: '/support' },
       { name: 'menu', route: '/menu' },
     ]);
+  });
+});
+
+/** Codex's checkpoint review of the first asRouter(), which rewrote requests. */
+describe('mounting a service (found in review)', () => {
+  const auth = { Authorization: AUTH, 'Content-Type': 'application/json' };
+  const menuService = (opts: { route?: string } = {}) => {
+    const menu = new SWMLService({ name: 'menu', basicAuth: ['u', 'p'], ...opts });
+    menu.addVerb('answer', {});
+    return menu;
+  };
+
+  it("leaves other agents' routes alone when registered at '/'", async () => {
+    for (const order of ['service first', 'agent first']) {
+      const support = new AgentBase({ name: 'support', route: '/support', basicAuth: ['u', 'p'] });
+      support.setPromptText('hi');
+      const server = new AgentServer<SWMLService>();
+      const menu = menuService({ route: '/menu' });
+      if (order === 'service first') {
+        server.register(menu, '/');
+        server.register(support, '/support');
+      } else {
+        server.register(support, '/support');
+        server.register(menu, '/');
+      }
+      expect((await request(server, 'GET', '/support')).status, order).toBe(200);
+      expect((await request(server, 'GET', '/')).status, order).toBe(200);
+    }
+  });
+
+  it('serves a nested registration under another service', async () => {
+    const server = new AgentServer<SWMLService>();
+    server.register(menuService({ route: '/menu' }), '/menu');
+    const child = new SWMLService({ name: 'child', route: '/child', basicAuth: ['u', 'p'] });
+    child.addVerb('hangup', {});
+    server.register(child, '/menu/child');
+    expect(await verbs(await request(server, 'GET', '/menu/child'))).toEqual(['hangup']);
+    expect(await verbs(await request(server, 'GET', '/menu'))).toEqual(['answer']);
+  });
+
+  it("serves a root-route service's callbacks under the prefix it's mounted at", async () => {
+    const menu = menuService();
+    menu.registerRoutingCallback(() => '/elsewhere', '/sip');
+    const host = new Hono();
+    host.route('/voice', menu.asRouter());
+    const res = await host.request('/voice/sip', {
+      method: 'POST',
+      headers: auth,
+      body: JSON.stringify({ call: {} }),
+    });
+    expect(res.status).toBe(307);
+  });
+
+  it('works after host middleware has read the body', async () => {
+    const menu = menuService({ route: '/menu' });
+    menu.defineTool({
+      name: 'probe',
+      description: 'Probe',
+      handler: () => new FunctionResult('ok'),
+    });
+    const host = new Hono();
+    host.use('*', async (c, next) => {
+      await c.req.json().catch(() => undefined);
+      await next();
+    });
+    host.route('/voice', menu.asRouter());
+    const res = await host.request('/voice/swaig', {
+      method: 'POST',
+      headers: auth,
+      body: JSON.stringify({ function: 'probe' }),
+    });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as Json)['response']).toBe('ok');
+  });
+
+  it('works under a parameterized or encoded mount prefix', async () => {
+    const host = new Hono();
+    host.route('/tenant/:id', menuService({ route: '/menu' }).asRouter());
+    host.route('/foo bar', menuService({ route: '/menu' }).asRouter());
+    for (const path of ['/tenant/x/swaig', '/tenant/long-name/swaig', '/foo%20bar/swaig']) {
+      const res = await host.request(path, {
+        method: 'POST',
+        headers: auth,
+        body: JSON.stringify({ function: 'nope' }),
+      });
+      expect(res.status, path).not.toBe(401);
+      expect(((await res.json()) as Json)['error'], path).toBe('Unknown function: nope');
+    }
+  });
+
+  it('serves a route configured with a trailing slash, which it drops as the reference does', async () => {
+    const menu = menuService({ route: '/menu/' });
+    expect(menu.route).toBe('/menu');
+    expect((await menu.getApp().request('/menu', { headers: auth })).status).toBe(200);
+    const host = new Hono();
+    host.route('/voice', menu.asRouter());
+    expect((await host.request('/voice', { headers: auth })).status).toBe(200);
+  });
+
+  it('keeps /swaig ahead of a routing callback registered at the same path', async () => {
+    const menu = menuService({ route: '/menu' });
+    menu.defineTool({ name: 'lookup', description: 'Look up', handler: () => 'found' });
+    menu.registerRoutingCallback(() => '/elsewhere', '/swaig');
+    const res = await menu.getApp().request('/menu/swaig', {
+      method: 'POST',
+      headers: auth,
+      body: JSON.stringify({ function: 'lookup' }),
+    });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as Json)['response']).toBe('found');
+  });
+
+  it("gives an exact path to the callback registered there, not another's alias", async () => {
+    for (const late of [false, true]) {
+      const menu = menuService({ route: '/menu' });
+      menu.registerRoutingCallback(() => '/short', '/sip');
+      if (late) await menu.getApp().request('/menu', { headers: auth });
+      menu.registerRoutingCallback(() => '/legacy-exact', '/menu/sip');
+      const res = await menu.getApp().request('/menu/sip', {
+        method: 'POST',
+        headers: auth,
+        body: JSON.stringify({ call: {} }),
+      });
+      expect(res.headers.get('location'), `late=${late}`).toBe('/legacy-exact');
+    }
+  });
+
+  it('answers HEAD at a callback path', async () => {
+    const menu = menuService({ route: '/menu' });
+    menu.registerRoutingCallback(() => '/elsewhere', '/sip');
+    expect((await menu.getApp().request('/sip', { method: 'HEAD', headers: auth })).status).toBe(
+      200,
+    );
+    expect(
+      (await menu.getApp().request('/menu/sip', { method: 'HEAD', headers: auth })).status,
+    ).toBe(200);
   });
 });

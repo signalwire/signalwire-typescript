@@ -42,7 +42,9 @@ follows [Semantic Versioning](https://semver.org/).
 - `SWMLService.asRouter()` returns a router whose routes are relative to
   the service's route, as the reference's `as_router()` does, so a host can
   mount it at any prefix. It returned the service's own app, so a service at
-  `/menu` mounted at `/menu` served `/menu/menu`.
+  `/menu` mounted at `/menu` served `/menu/menu`. A `SWMLService` route
+  drops a trailing slash (`/menu/` is stored as `/menu`), as the reference
+  does, so it's served the same mounted or on its own.
 - A plain `SWMLService` serves its routing callbacks under its route
   (`/menu/sip`), as the reference does, and still at the bare path
   (`/sip`), where earlier releases served them. A callback registered after
