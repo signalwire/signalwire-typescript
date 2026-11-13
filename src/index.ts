@@ -477,3 +477,12 @@ export { Proposal, current, PROPOSAL_KEY } from './patterns/Proposal.js';
 export type { ProposalOptions, ProposeOptions } from './patterns/Proposal.js';
 export { RequestList } from './patterns/RequestList.js';
 export type { NotedRequest, RequestListOptions } from './patterns/RequestList.js';
+
+// Testing: a simulated call, and recorded tool requests to replay
+export { CallSimulator, SimulatedCall, RequestRecorder } from './testing/CallSimulator.js';
+export type {
+  CallSimulatorOptions,
+  GateCallback,
+  RequestRecorderOptions,
+  ToolStub,
+} from './testing/CallSimulator.js';

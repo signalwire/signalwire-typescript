@@ -1826,7 +1826,7 @@ export class AgentBase extends SWMLService {
           function: toolName,
           argument: { parsed: [args] },
         } as unknown as SwaigRequest;
-        const resultDict = await fn._executeAs(this, args, rawData, this._onError);
+        const resultDict = await this._executeFunction(fn, args, rawData);
         // MCP content is text: a structured { tool_result, tool_prompt }
         // response goes as its JSON.
         const response = resultDict['response'] ?? '';
@@ -3129,6 +3129,20 @@ export class AgentBase extends SWMLService {
   }
 
   /**
+   * Run a tool on this agent as the `/swaig` route does once the request is
+   * checked: its middleware, handler and outcome rules, with the agent's
+   * error hook. The MCP bridge and the call simulator run tools through it too.
+   * @internal
+   */
+  _executeFunction(
+    fn: SwaigFunction,
+    args: Record<string, unknown>,
+    rawData: Record<string, unknown>,
+  ): Promise<SwaigResultDict> {
+    return fn._executeAs(this, args, rawData, this._onError);
+  }
+
+  /**
    * Extract the tool-call arguments from a SWAIG request body.
    *
    * The real platform (mod_openai) POSTs a tool call with the args nested under
@@ -3839,7 +3853,7 @@ export class AgentBase extends SWMLService {
       }
 
       try {
-        const result = await fn._executeAs(target, args, body, target._onError);
+        const result = await target._executeFunction(fn, args, body);
         reqLog.info('function_executed_successfully');
         reqLog.debug('function_result', { result_size: JSON.stringify(result).length });
         return c.json(result);
