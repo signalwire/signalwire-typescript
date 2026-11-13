@@ -465,3 +465,15 @@ export {
 export type { DialogueTurn } from './PostPrompt.js';
 export { SpeechLog, SPEECH_DETECT } from './AiEvents.js';
 export type { SpeechFinal, SpeechWord } from './AiEvents.js';
+
+// Speech helpers: numbers as a voice says them, and what a caller spelled
+export { numberWords, sayDigits, sayLastDigits, sayMoney } from './speech/numbers.js';
+export type { SayDigitsOptions } from './speech/numbers.js';
+export { readSpelled, spokenEmail, spellingVariants } from './speech/spelling.js';
+export type { ReadSpelledOptions, SpellingVariantsOptions } from './speech/spelling.js';
+
+// Conversation patterns: a change the caller confirms, and requests to come back to
+export { Proposal, current, PROPOSAL_KEY } from './patterns/Proposal.js';
+export type { ProposalOptions, ProposeOptions } from './patterns/Proposal.js';
+export { RequestList } from './patterns/RequestList.js';
+export type { NotedRequest, RequestListOptions } from './patterns/RequestList.js';
