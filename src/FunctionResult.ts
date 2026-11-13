@@ -1499,7 +1499,12 @@ export function settleResult(functionName: string, result: unknown): unknown {
     if (Object.keys(result).length === 0) {
       return { response: TOOL_NO_RESULT.replace('{function}', functionName) };
     }
-    return { response: JSON.stringify(result) };
+    // A bigint (a database id, say) is given as its digits, not as a failure
+    return {
+      response: JSON.stringify(result, (_key, value: unknown) =>
+        typeof value === 'bigint' ? value.toString() : value,
+      ),
+    };
   }
   return result;
 }

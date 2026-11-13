@@ -1342,7 +1342,11 @@ export class Context {
 export class ContextBuilder {
   private contexts: Map<string, Context> = new Map();
   private contextOrder: string[] = [];
-  /** Tools already reported as offered by no step, so a render on every request doesn't repeat it. */
+  /**
+   * Tools already reported as offered by no step, so a render on every request
+   * doesn't repeat it. The agent shares its own set, so its per-request copies
+   * don't repeat it either.
+   */
   private unofferedWarned = new Set<string>();
   private agent: { getTool?: (name: string) => unknown; [k: string]: unknown } | null = null;
 
@@ -1354,6 +1358,16 @@ export class ContextBuilder {
    */
   attachAgent(agent: unknown): this {
     this.agent = agent as typeof this.agent;
+    return this;
+  }
+
+  /**
+   * Record the tools reported as offered by no step in `warned`, a set the
+   * agent keeps for itself and its per-request copies.
+   * @internal
+   */
+  _shareUnofferedWarnings(warned: Set<string>): this {
+    this.unofferedWarned = warned;
     return this;
   }
 

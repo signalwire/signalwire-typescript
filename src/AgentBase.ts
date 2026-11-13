@@ -410,6 +410,8 @@ export class AgentBase extends SWMLService {
 
   // Contexts
   private contextsBuilder: ContextBuilder | null = null;
+  /** Tools the contexts reported as offered by no step; shared with per-request copies. */
+  private _unofferedToolsWarned = new Set<string>();
   /** Contexts given as a plain object, rendered as they are. */
   private _rawContexts: Record<string, unknown> | null = null;
 
@@ -968,7 +970,7 @@ export class AgentBase extends SWMLService {
     }
     // Attach agent reference so ContextBuilder.validate() can check
     // user tool names against reserved native tool names.
-    this.contextsBuilder.attachAgent(this);
+    this.contextsBuilder.attachAgent(this)._shareUnofferedWarnings(this._unofferedToolsWarned);
     return this.contextsBuilder;
   }
 
@@ -2138,14 +2140,20 @@ export class AgentBase extends SWMLService {
       }
       if (toolDef.gates !== undefined) extraFields['gates'] = toolDef.gates;
       if (toolDef.gate_fillers !== undefined) extraFields['gate_fillers'] = toolDef.gate_fillers;
+      // The options as SwaigFunctionOptions spells them, for a tool given that way
+      const camel = toolDef as { nullableOptional?: boolean; needsConversation?: boolean };
       this.defineTool({
         ...toolDef,
         ...(toolDef.secure === undefined && typeof skillSecure === 'boolean'
           ? { secure: skillSecure }
           : {}),
         vouched: toolDef.vouched ?? skillBool(skillVouched),
-        nullableOptional: toolDef.nullable_optional ?? skillBool(skillNullable),
-        needsConversation: toolDef.needs_conversation ?? skillBool(skillNeedsConversation),
+        nullableOptional:
+          toolDef.nullable_optional ?? camel.nullableOptional ?? skillBool(skillNullable),
+        needsConversation:
+          toolDef.needs_conversation ??
+          camel.needsConversation ??
+          skillBool(skillNeedsConversation),
         middleware:
           toolDef.middleware ??
           (Array.isArray(skillMiddleware) ? (skillMiddleware as ToolMiddleware[]) : undefined),
@@ -3483,6 +3491,8 @@ export class AgentBase extends SWMLService {
     copy._sipUsernames = this._sipUsernames ? new Map(this._sipUsernames) : null;
     copy._routingCallbacks = new Map(this._routingCallbacks);
     copy.contextsBuilder = clone(this.contextsBuilder);
+    // The warnings already logged stay shared, so each request doesn't repeat them
+    copy.contextsBuilder?._shareUnofferedWarnings(this._unofferedToolsWarned);
     copy._rawContexts = clone(this._rawContexts);
     // Back-reference points at the COPY, not `this` (see _promptManager above).
     copy.swmlBuilder = new SwmlBuilder({ service: copy, ...this._builderSchemaOptions });

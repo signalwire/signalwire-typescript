@@ -271,3 +271,23 @@ describe('needsConversation', () => {
     expect(main.find((v) => 'ai' in v)!['ai']['params']['swaig_post_conversation']).toBe(false);
   });
 });
+
+describe('the unoffered-tool warning with per-request copies (found in review)', () => {
+  it('is logged once across requests, not once per request', async () => {
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+    try {
+      const agent = new AgentBase({ name: 'options', route: '/', basicAuth: ['u', 'p'] });
+      agent.setPromptText('x');
+      agent.defineTool({ name: 'audit_log', description: 'Audit', handler: () => 'ok' });
+      agent.defineContexts().addContext('default').addStep('only').setText('Hi').setFunctions([]);
+      agent.setDynamicConfigCallback(() => {});
+      const auth = { Authorization: 'Basic ' + btoa('u:p') };
+      for (let i = 0; i < 2; i++) {
+        expect((await agent.getApp().request('/', { headers: auth })).status).toBe(200);
+      }
+      expect(warn.mock.calls.filter((c) => c[0] === 'tool_offered_by_no_step')).toHaveLength(1);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+});

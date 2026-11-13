@@ -364,3 +364,46 @@ describe('the new options and outcome rules on every entry point (found in revie
     expect(first['properties']['size']['enum']).toEqual(['s', null]);
   });
 });
+
+describe('the second checkpoint review (found in review)', () => {
+  it("keeps a skill tool's camel-case options (getTools() may return SwaigFunctionOptions)", async () => {
+    const { SkillBase } = await import('../src/skills/SkillBase.js');
+    class Camel extends SkillBase {
+      static override SKILL_NAME = 'camel';
+      static override SKILL_DESCRIPTION = 'Camel';
+      getTools(): import('../src/skills/SkillBase.js').SkillToolDefinition[] {
+        const tool: import('../src/SwaigFunction.js').SwaigFunctionOptions = {
+          name: 'order',
+          description: 'Order',
+          parameters: { type: 'object', properties: { size: { type: 'string' } } },
+          nullableOptional: true,
+          needsConversation: true,
+          handler: (args) => `size ${String(args['size'])}`,
+        };
+        return [tool as unknown as import('../src/skills/SkillBase.js').SkillToolDefinition];
+      }
+    }
+    const a = agent();
+    await a.addSkill(new Camel());
+    const fn = a.getTool('order') as SwaigFunction;
+    expect(fn.nullableOptional).toBe(true);
+    expect(fn.needsConversation).toBe(true);
+    expect(rendered(a, 'order')['parameters']['properties']['size']['type']).toEqual([
+      'string',
+      'null',
+    ]);
+    expect((await run(a, 'order', { size: null }))['response']).toBe('size undefined');
+  });
+
+  it('gives data holding a bigint as the data, not as a failure', async () => {
+    expect(settleResult('lookup', { balance: 1n, nested: { id: 12345678901234567890n } })).toEqual({
+      response: '{"balance":"1","nested":{"id":"12345678901234567890"}}',
+    });
+    const fn = new SwaigFunction({
+      name: 'lookup',
+      description: 'Look up',
+      handler: () => ({ balance: 1n }),
+    });
+    expect(((await fn.execute({})) as Json)['response']).toBe('{"balance":"1"}');
+  });
+});
