@@ -30,26 +30,49 @@ import type { Server } from 'node:http';
 
 // ── Verb handler interfaces ────────────────────────────────────────────
 
-/** The route parameter holding a routing-callback request's path after the mount. */
-const CALLBACK_REST = 'swmlCallbackPath';
+/** Mount-prefix patterns by route template, for {@link SWMLService._mountedRest}. */
+const MOUNT_PATTERNS = new Map<string, RegExp | null>();
 
 /**
- * Decode percent escapes as Hono decodes a route parameter: the whole string
- * when it decodes, else each run of valid escapes that does, leaving the rest.
+ * A pattern matching the path a route template's mount prefix covers, built
+ * as routing builds one: a literal segment matches itself, `:name` one
+ * segment, and `:name{re}` its pattern. Null for a form it doesn't read (an
+ * optional `?` parameter), so no callback matches under it.
  */
-function decodeLikeHono(value: string): string {
-  if (!value.includes('%')) return value;
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value.replace(/(?:%[0-9A-Fa-f]{2})+/g, (run) => {
-      try {
-        return decodeURIComponent(run);
-      } catch {
-        return run;
+function mountPattern(template: string): RegExp | null {
+  const cached = MOUNT_PATTERNS.get(template);
+  if (cached !== undefined) return cached;
+  let source = '';
+  let ok = !template.includes('?');
+  for (let i = 0; ok && i < template.length;) {
+    const ch = template[i]!;
+    if (ch === ':') {
+      let j = i + 1;
+      while (j < template.length && /[\w$]/.test(template[j]!)) j++;
+      if (template[j] === '{') {
+        let depth = 0;
+        let k = j;
+        for (; k < template.length; k++) {
+          if (template[k] === '\\') k++;
+          else if (template[k] === '{') depth++;
+          else if (template[k] === '}' && --depth === 0) break;
+        }
+        if (k >= template.length) ok = false;
+        source += `(?:${template.slice(j + 1, k)})`;
+        i = k + 1;
+      } else {
+        source += '[^/]+';
+        i = j;
       }
-    });
+    } else {
+      source += ch.replace(/[.*+^${}()|[\]\\]/g, '\\$&');
+      i++;
+    }
   }
+  const pattern = ok ? new RegExp(`^${source}(?=/|$)`) : null;
+  if (MOUNT_PATTERNS.size > 256) MOUNT_PATTERNS.clear();
+  MOUNT_PATTERNS.set(template, pattern);
+  return pattern;
 }
 /**
  * Interface for custom SWML verb handlers.
@@ -683,8 +706,8 @@ export class SWMLService {
 
     // Routing callbacks last, so the SWAIG and main routes keep precedence.
     // Looked up per request: one registered or replaced later still answers.
-    // The remainder parameter is the path after wherever the app is mounted,
-    // as routing resolved the mount. The guards are part of the route's chain,
+    // A callback's path is the request's path after wherever the app is
+    // mounted, as routing matched the mount. The guards are part of the route's chain,
     // so Hono composes them (an app's onError included), but each runs only
     // for a request a callback answers, so a neighbouring route is left alone.
     const answering = new WeakMap<Context, RoutingCallback>();
@@ -710,19 +733,18 @@ export class SWMLService {
     };
     const callbackMethods = scoped ? ['GET', 'POST', 'OPTIONS'] : ['GET', 'POST'];
     const callbackGuards = scoped ? guards.map(whenAnswering) : [];
-    // The mount itself, which has no remainder (a host's parameter of the
-    // same name isn't read), and the paths under it.
+    // The mount itself, and the paths under it.
     on(
       callbackMethods,
       '/',
-      matchAt(() => '/'),
+      matchAt((c) => this._mountedRest(c)),
       ...callbackGuards,
       serve,
     );
     on(
       callbackMethods,
-      `/:${CALLBACK_REST}{.+}`,
-      matchAt((c) => this._callbackRest(c)),
+      '/*',
+      matchAt((c) => this._mountedRest(c)),
       ...callbackGuards,
       serve,
     );
@@ -730,27 +752,22 @@ export class SWMLService {
   }
 
   /**
-   * A routing-callback request's path after the app's mount, as it was sent,
-   * or null when it can't be recovered. The remainder parameter decodes
-   * percent escapes, but a callback matches the path as routing does, with
-   * them, so the raw suffix of the path that decodes (as Hono decodes a
-   * parameter) to it is used. Without repeated or trailing slashes.
-   *
-   * The raw suffix has as many segments as the decoded one less any encoded
-   * slashes, and the path has only the mount's segments more, so the search
-   * starts at the decoded count and tries at most the mount's segments.
+   * The request's path after the app's mount, as routing matched it (so with
+   * the percent escapes routing keeps), without repeated or trailing
+   * slashes; null when the mount's prefix can't be found. The matched route's
+   * template, before its final `*`, is the mount.
    */
-  private _callbackRest(c: Context): string | null {
-    const decoded = c.req.param(CALLBACK_REST) ?? '';
-    const parts = c.req.path.split('/');
-    const decodedSegments = decoded.split('/').length;
-    for (let k = Math.min(decodedSegments, parts.length - 1); k >= 1; k--) {
-      const candidate = parts.slice(parts.length - k).join('/');
-      if (decodeLikeHono(candidate) === decoded) {
-        return `/${candidate.split('/').filter(Boolean).join('/')}`;
-      }
+  private _mountedRest(c: Context): string | null {
+    const template = c.req.routePath.replace(/\/?\*$/, '');
+    let prefix = 0;
+    if (template && template !== '/') {
+      const pattern = mountPattern(template);
+      const found = pattern?.exec(c.req.path);
+      if (!found) return null;
+      prefix = found[0].length;
     }
-    return null;
+    const rest = c.req.path.slice(prefix);
+    return `/${rest.split('/').filter(Boolean).join('/')}`;
   }
 
   /**

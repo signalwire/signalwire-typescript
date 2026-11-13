@@ -680,6 +680,18 @@ describe('routing callbacks, seventh review (found in review)', () => {
     expect(performance.now() - started).toBeLessThan(250);
   });
 
+  it('handles a long path under a multi-segment mount in linear time', async () => {
+    const s = menu();
+    s.registerRoutingCallback(() => '/x', '/sip');
+    const host = new Hono();
+    host.route('/t/:path{.+}/v1', s.asRouter());
+    const n = 2048;
+    const path = `/t/${Array(n).fill('a').join('/')}/v1/${Array(n).fill('b%2Fb').join('/')}`;
+    const started = performance.now();
+    expect((await host.request(path)).status).toBe(404);
+    expect(performance.now() - started).toBeLessThan(100);
+  });
+
   it('matches a path mixing malformed and valid escapes as routing decodes it', async () => {
     const s = menu();
     s.registerRoutingCallback(() => '/exact', '/bad%ZZ%25');
