@@ -858,6 +858,13 @@ it("can't be disabled by a request that matches a callback emptily (found in rev
   expect((await post()).status).toBe(307);
   await host.request('/voice/');
   expect((await post()).status).toBe(307);
+  // The empty capture is a match too
+  const empty = await host.request('/voice/', {
+    method: 'POST',
+    headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ call: {} }),
+  });
+  expect(empty.status).toBe(307);
 });
 
 it("keeps the mount's own boundary for a callback at '/' (found in review)", async () => {

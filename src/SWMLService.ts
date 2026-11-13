@@ -34,6 +34,7 @@ import type { Server } from 'node:http';
 
 /** Single-route matchers by template, for {@link routeMatches}. */
 const ROUTE_MATCHERS = new Map<string, SmartRouter<true>>();
+const TRIE_MATCHERS = new Map<string, TrieRouter<true>>();
 
 /**
  * Whether `path` matches the route `template`, as routing matches it: with
@@ -51,8 +52,22 @@ function routeMatches(template: string, path: string): boolean {
     ROUTE_MATCHERS.set(template, matcher);
   }
   try {
-    // An empty match can come back without a handler list
-    return (matcher.match('ALL', path)[0]?.length ?? 0) > 0;
+    const handlers = matcher.match('ALL', path)[0];
+    if (handlers) return handlers.length > 0;
+  } catch {
+    /* fall through to the trie matcher */
+  }
+  // RegExpRouter answers a zero-length capture with no handler list, where
+  // the trie router matches it, as routing's fallback does.
+  let trie = TRIE_MATCHERS.get(template);
+  if (!trie) {
+    trie = new TrieRouter<true>();
+    trie.add('ALL', template, true);
+    if (TRIE_MATCHERS.size >= 512) TRIE_MATCHERS.clear();
+    TRIE_MATCHERS.set(template, trie);
+  }
+  try {
+    return (trie.match('ALL', path)[0]?.length ?? 0) > 0;
   } catch {
     return false;
   }
