@@ -430,7 +430,7 @@ const service = new SWMLService({ name: 'my-service', route: '/menu' });
 app.route('/voice', service.asRouter());
 ```
 
-Mounted this way, the service's routes are under `/voice`: its document at `/voice`, its SWAIG route at `/voice/swaig` and its routing callbacks under `/voice`, behind its own basic auth. `getApp()` returns the service's own app, whose routes are under the service's `route`.
+Mounted this way, the service's routes are under `/voice`: its document at `/voice`, its SWAIG route at `/voice/swaig` and its routing callbacks under `/voice`, behind its own basic auth. Whether `/voice/` answers as `/voice` is the host app's choice: pass `{ strict: false }` to `new Hono()` for that, as `AgentServer` does. `getApp()` returns the service's own app, whose routes are under the service's `route`.
 
 ### Hosting a Service Next to Agents
 

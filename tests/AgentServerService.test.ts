@@ -292,3 +292,101 @@ describe('mounting a service (found in review)', () => {
     ).toBe(200);
   });
 });
+
+/** Codex's review of the rebuilt-on-registration router. */
+describe('mounting a service, second review (found in review)', () => {
+  const auth = { Authorization: AUTH, 'Content-Type': 'application/json' };
+  const call = (body: Json = { call: {} }) => ({
+    method: 'POST',
+    headers: auth,
+    body: JSON.stringify(body),
+  });
+
+  it("doesn't apply its basic auth to a neighbour's routes", async () => {
+    const menu = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+    menu.addVerb('answer', {});
+    const support = new AgentBase({
+      name: 'support',
+      route: '/support',
+      basicAuth: ['agent', 'secret'],
+    });
+    support.setPromptText('hi');
+    const server = new AgentServer<SWMLService>();
+    server.register(menu, '/');
+    server.register(support, '/support');
+    const agentAuth = 'Basic ' + Buffer.from('agent:secret').toString('base64');
+    expect((await request(server, 'GET', '/support', undefined, agentAuth)).status).toBe(200);
+    expect((await request(server, 'GET', '/', undefined, agentAuth)).status).toBe(401);
+    expect((await request(server, 'GET', '/')).status).toBe(200);
+  });
+
+  it('passes the app being built to registerAdditionalRoutes', async () => {
+    class Extra extends SWMLService {
+      protected override registerAdditionalRoutes(app: Hono): void {
+        app.get('/extra', (c) => c.text('extra'));
+      }
+    }
+    const extra = new Extra({ name: 'extra', route: '/x', basicAuth: ['u', 'p'] });
+    expect(await (await extra.getApp().request('/extra', { headers: auth })).text()).toBe('extra');
+    const host = new Hono();
+    host.route('/v', extra.asRouter());
+    expect(await (await host.request('/v/extra', { headers: auth })).text()).toBe('extra');
+    expect((await host.request('/v/extra')).status).toBe(401);
+  });
+
+  it('answers a late callback through an app, router or handler taken before it', async () => {
+    const menu = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+    const held = menu.getApp();
+    const host = new Hono();
+    host.route('/voice', menu.asRouter());
+    await held.request('/menu', { headers: auth });
+    await host.request('/voice', { headers: auth });
+    menu.registerRoutingCallback(() => '/late', '/sip');
+    expect((await held.request('/menu/sip', call())).headers.get('location')).toBe('/late');
+    expect((await host.request('/voice/sip', call())).headers.get('location')).toBe('/late');
+  });
+
+  it('keeps routes added to its app when a callback is registered', async () => {
+    const menu = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+    menu.getApp().get('/custom', (c) => c.text('custom'));
+    expect((await menu.getApp().request('/custom', { headers: auth })).status).toBe(200);
+    menu.registerRoutingCallback(() => '/x', '/sip');
+    expect((await menu.getApp().request('/custom', { headers: auth })).status).toBe(200);
+  });
+
+  it('runs the callback registered last at a path', async () => {
+    const menu = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+    menu.registerRoutingCallback(() => '/old', '/sip');
+    menu.registerRoutingCallback(() => '/new', '/sip');
+    expect((await menu.getApp().request('/menu/sip', call())).headers.get('location')).toBe('/new');
+  });
+
+  it('answers its configured trailing-slash route, on its own and mounted', async () => {
+    const menu = new SWMLService({ name: 'menu', route: '/menu/', basicAuth: ['u', 'p'] });
+    menu.addVerb('answer', {});
+    for (const path of ['/menu', '/menu/', '/menu/swaig/']) {
+      const res = await menu.getApp().request(path, { headers: auth });
+      expect(res.status, path).toBe(200);
+    }
+    // Whether /voice/ is /voice is the host's choice: Hono's strict option
+    const host = new Hono({ strict: false });
+    host.route('/voice', menu.asRouter());
+    for (const path of ['/voice', '/voice/']) {
+      expect((await host.request(path, { headers: auth })).status, path).toBe(200);
+    }
+  });
+
+  it('gives handleRequest the same exact-path precedence', async () => {
+    const menu = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+    menu.registerRoutingCallback(() => '/short', '/sip');
+    menu.registerRoutingCallback(() => '/exact', '/menu/sip');
+    const [status, headers] = await menu.handleRequest(
+      'POST',
+      'https://example.com/menu/sip',
+      { authorization: AUTH },
+      { call: {} },
+    );
+    expect(status).toBe(307);
+    expect(headers['Location']).toBe('/exact');
+  });
+});
