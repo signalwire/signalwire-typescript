@@ -9,7 +9,6 @@
 import type { AgentBase } from './AgentBase.js';
 import { Hono } from 'hono';
 import { RegExpRouter } from 'hono/router/reg-exp-router';
-import { SmartRouter } from 'hono/router/smart-router';
 import { TrieRouter } from 'hono/router/trie-router';
 import type { Context, MiddlewareHandler } from 'hono';
 import type { HostAppRouter } from './web.js';
@@ -32,46 +31,53 @@ import type { Server } from 'node:http';
 
 // ── Verb handler interfaces ────────────────────────────────────────────
 
-/** Single-route matchers by template, for {@link routeMatches}. */
-const ROUTE_MATCHERS = new Map<string, SmartRouter<true>>();
+/** RegExpRouter matchers by template (null: it can't take the template), for {@link routeMatches}. */
+const REGEXP_MATCHERS = new Map<string, RegExpRouter<true> | null>();
+/** Trie matchers by template, for {@link routeMatches}. */
 const TRIE_MATCHERS = new Map<string, TrieRouter<true>>();
-/** The most path segments the trie fallback in {@link routeMatches} takes. */
-const MAX_FALLBACK_SEGMENTS = 128;
+/** The most path segments a trie match in {@link routeMatches} takes. */
+const MAX_TRIE_SEGMENTS = 128;
 
 /**
  * Whether `path` matches the route `template`, as routing matches it: with
- * Hono's own routers (RegExpRouter, else TrieRouter, as its default router
- * chooses), so its whole template grammar applies. A matcher is cached per
- * template; one that doesn't build matches nothing, and a match that fails
- * matches nothing that time.
+ * Hono's own routers, RegExpRouter, else TrieRouter, as its default router
+ * chooses, so its whole template grammar applies. RegExpRouter can't take
+ * some templates, and answers a zero-length capture with no handler list;
+ * the trie router takes those. The trie's work grows with the square of the
+ * segments and this runs before auth, so it only takes paths of a length a
+ * callback has; a longer one isn't a match. Matchers are cached per template.
  */
 function routeMatches(template: string, path: string): boolean {
-  let matcher = ROUTE_MATCHERS.get(template);
-  if (matcher === undefined) {
-    matcher = new SmartRouter<true>({ routers: [new RegExpRouter(), new TrieRouter()] });
-    matcher.add('ALL', template, true);
-    if (ROUTE_MATCHERS.size >= 512) ROUTE_MATCHERS.clear();
-    ROUTE_MATCHERS.set(template, matcher);
+  let regexp = REGEXP_MATCHERS.get(template);
+  if (regexp === undefined) {
+    // It refuses some templates when they're added, others on first match.
+    try {
+      regexp = new RegExpRouter<true>();
+      regexp.add('ALL', template, true);
+    } catch {
+      regexp = null;
+    }
+    if (REGEXP_MATCHERS.size >= 512) REGEXP_MATCHERS.clear();
+    REGEXP_MATCHERS.set(template, regexp);
   }
+  if (regexp) {
+    try {
+      const handlers = regexp.match('ALL', path)[0];
+      if (handlers) return handlers.length > 0;
+    } catch {
+      // It can't take this template: the same on every request
+      REGEXP_MATCHERS.set(template, null);
+    }
+  }
+  if (path.split('/').length > MAX_TRIE_SEGMENTS) return false;
   try {
-    const handlers = matcher.match('ALL', path)[0];
-    if (handlers) return handlers.length > 0;
-  } catch {
-    /* fall through to the trie matcher */
-  }
-  // RegExpRouter answers a zero-length capture with no handler list, where
-  // the trie router matches it, as routing's fallback does. The trie's work
-  // grows with the square of the segments, and this runs before auth, so it
-  // only takes paths of a length a callback has.
-  if (path.split('/').length > MAX_FALLBACK_SEGMENTS) return false;
-  let trie = TRIE_MATCHERS.get(template);
-  if (!trie) {
-    trie = new TrieRouter<true>();
-    trie.add('ALL', template, true);
-    if (TRIE_MATCHERS.size >= 512) TRIE_MATCHERS.clear();
-    TRIE_MATCHERS.set(template, trie);
-  }
-  try {
+    let trie = TRIE_MATCHERS.get(template);
+    if (!trie) {
+      trie = new TrieRouter<true>();
+      trie.add('ALL', template, true);
+      if (TRIE_MATCHERS.size >= 512) TRIE_MATCHERS.clear();
+      TRIE_MATCHERS.set(template, trie);
+    }
     return (trie.match('ALL', path)[0]?.length ?? 0) > 0;
   } catch {
     return false;

@@ -891,11 +891,14 @@ it('bounds the empty-capture fallback on a long unauthenticated path (found in r
   const started = performance.now();
   await host.request(`/voice/cb/${Array(4096).fill('a').join('/')}/`);
   expect(performance.now() - started).toBeLessThan(100);
-  // A path of a callback's length still matches
+  // A path of a callback's length is answered as routing answers it
   const res = await host.request('/voice/cb/a/b/c', {
     method: 'POST',
     headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
     body: JSON.stringify({ call: {} }),
   });
-  expect(res.status).toBe(307);
+  const plain = new Hono();
+  plain.post('/voice/cb/:pad{.+}/:id{[a-z]*}', (c) => c.text('routed'));
+  const routed = (await plain.request('/voice/cb/a/b/c', { method: 'POST' })).status === 200;
+  expect(res.status).toBe(routed ? 307 : 404);
 });
