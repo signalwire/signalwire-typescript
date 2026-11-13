@@ -28,6 +28,8 @@ toLocaleTimeString: Date.prototype.toLocaleTimeString() — JavaScript built-in
 toLowerCase: String.prototype.toLowerCase() — JavaScript built-in
 toUpperCase: String.prototype.toUpperCase() — JavaScript built-in
 floor: Math.floor() — JavaScript built-in
+equal: node:assert assert.equal(), in docs/conversation_patterns.md's CallSimulator test — Node.js built-in module
+deepEqual: node:assert assert.deepEqual(), in docs/conversation_patterns.md's CallSimulator test — Node.js built-in module
 add: Set.prototype.add() — JavaScript built-in
 round: Math.round() — JavaScript built-in
 random: Math.random() — JavaScript built-in
