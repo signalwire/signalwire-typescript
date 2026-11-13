@@ -8,8 +8,9 @@
 
 import type { AgentBase } from './AgentBase.js';
 import { Hono } from 'hono';
-import { basePath, matchedRoutes } from 'hono/route';
-import type { Context } from 'hono';
+import { basePath } from 'hono/route';
+import { TrieRouter } from 'hono/router/trie-router';
+import type { Context, MiddlewareHandler } from 'hono';
 import type { HostAppRouter } from './web.js';
 import { cors } from 'hono/cors';
 import { basicAuth } from 'hono/basic-auth';
@@ -433,6 +434,11 @@ export class SWMLService {
   protected _routingCallbacks = new Map<string, RoutingCallback>();
   /** The route-relative router {@link asRouter} returns, built on first use. */
   private _router: Hono | undefined;
+  /** Bumped when a routing callback is registered, to rebuild the matchers. */
+  private _callbackVersion = 0;
+  private _callbackRoutersVersion = 0;
+  /** Routing-callback matchers by path prefix, for {@link _matchCallback}. */
+  private _callbackRouters = new Map<string, TrieRouter<string>>();
   /** Whether the HTTP routes enforce basic auth (credentials weren't generated). */
   private _enforceAuth = false;
 
@@ -519,34 +525,80 @@ export class SWMLService {
    * Build the app serving this service's routes under `base`: the service's
    * route for its own app ({@link getApp}), or '' for the route-relative
    * router {@link asRouter} returns. Each is built once; routing callbacks are
-   * looked up when a request arrives, so one registered later still answers.
+   * looked up when a request arrives, so one registered or replaced later
+   * answers through any app or router taken before.
    *
-   * The router is mounted among other routes, so its middleware (security
-   * headers, CORS, basic auth) applies only to a request one of its own
-   * routes answers; the service's own app answers everything it's sent.
+   * The service's own app answers everything it's sent. The router (`scoped`)
+   * is mounted among other routes, so its security headers and CORS, and the
+   * basic auth on routes added to it, apply only to a request one of its
+   * routes or callbacks answers, judged by method and path relative to where
+   * it's mounted. Its own routes and callbacks check basic auth themselves.
    */
-  private _buildServiceApp(base: string): Hono {
+  private _buildServiceApp(base: string, scoped = false): Hono {
     const app = new Hono();
-    const routed = base === '' && this._routeBase() !== '';
-    // The handlers this app adds, so the router can tell its own requests.
-    const own = new Set<unknown>();
+    const authMw =
+      this._enforceAuth && this.authCredentials
+        ? basicAuth({
+            verifyUser: (username, password) => this.validateBasicAuth(username, password),
+          })
+        : null;
+    // Requests whose credentials one of the checks below has accepted, so
+    // the other doesn't check them again.
+    const authed = new WeakSet<Request>();
+    const checkAuth: MiddlewareHandler | null = authMw
+      ? (c, next) =>
+          authed.has(c.req.raw)
+            ? next()
+            : authMw(c, async () => {
+                authed.add(c.req.raw);
+                await next();
+              })
+      : null;
+    const guarded = (handler: (c: Context) => Promise<Response> | Response) =>
+      checkAuth
+        ? async (c: Context) => {
+            let res: Response | undefined;
+            await checkAuth(c, async () => {
+              res = await handler(c);
+            });
+            return res ?? c.res;
+          }
+        : handler;
+
+    // The router's routes by method and path, rebuilt when routes are added.
+    let table: { size: number; byMethod: TrieRouter<true>; any: TrieRouter<true> } | null = null;
     const owns = (c: Context): boolean => {
-      if (!routed) return true;
-      const handlers = matchedRoutes(c).map((r) => r.handler);
-      return handlers.some((h) => own.has(h)) || this._routingCallbackFor(c, base) !== undefined;
+      if (!scoped) return true;
+      if (!table || table.size !== app.routes.length) {
+        const byMethod = new TrieRouter<true>();
+        const any = new TrieRouter<true>();
+        // Paths with '*' are middleware and the callback dispatcher.
+        for (const r of app.routes) {
+          if (r.path.includes('*')) continue;
+          byMethod.add(r.method.toUpperCase(), r.path, true);
+          any.add('ALL', r.path, true);
+        }
+        table = { size: app.routes.length, byMethod, any };
+      }
+      const relative = this._mountedPath(c);
+      if (relative === null) return false;
+      const method = c.req.method.toUpperCase() === 'HEAD' ? 'GET' : c.req.method.toUpperCase();
+      const callback = this._matchCallback(relative, base) !== undefined;
+      if (method === 'OPTIONS') return table.any.match('ALL', relative)[0].length > 0 || callback;
+      return (
+        table.byMethod.match(method, relative)[0].length > 0 ||
+        ((method === 'GET' || method === 'POST') && callback)
+      );
     };
-    const scoped =
-      (mw: (c: Context, next: () => Promise<void>) => Promise<Response | void>) =>
-      (c: Context, next: () => Promise<void>) => (owns(c) ? mw(c, next) : next());
-    const route = (methods: string[], path: string, handler: (c: Context) => unknown) => {
-      own.add(handler);
-      app.on(methods, path, handler as never);
-    };
+    const gated =
+      (mw: MiddlewareHandler): MiddlewareHandler =>
+      (c, next) =>
+        owns(c) ? mw(c, next) : next();
 
     // Security headers
     app.use(
       '*',
-      scoped(async (c, next) => {
+      gated(async (c, next) => {
         await next();
         c.res.headers.set('X-Content-Type-Options', 'nosniff');
         c.res.headers.set('X-Frame-Options', 'DENY');
@@ -561,23 +613,22 @@ export class SWMLService {
     const corsOrigins = process.env['SWML_CORS_ORIGINS'];
     const corsOrigin = corsOriginsFromEnv(corsOrigins);
     const corsCredentials = corsOrigin !== '*';
-    app.use('*', scoped(cors({ origin: corsOrigin, credentials: corsCredentials })));
+    app.use('*', gated(cors({ origin: corsOrigin, credentials: corsCredentials })));
 
-    // Basic auth — only enforced when explicitly provided or from env, not auto-generated
-    if (this._enforceAuth && this.authCredentials) {
-      app.use(
-        '*',
-        scoped(
-          basicAuth({
-            verifyUser: (username, password) => this.validateBasicAuth(username, password),
-          }),
-        ),
-      );
-    }
+    // Basic auth — only enforced when explicitly provided or from env, not
+    // auto-generated. This covers routes added to the app (or router); the
+    // service's own routes also check it themselves.
+    if (checkAuth) app.use('*', gated(checkAuth));
 
     // Health endpoints
-    route(['GET'], '/health', (c) => c.json({ status: 'ok' }));
-    route(['GET'], '/ready', (c) => c.json({ status: 'ready' }));
+    app.get(
+      '/health',
+      guarded((c) => c.json({ status: 'ok' })),
+    );
+    app.get(
+      '/ready',
+      guarded((c) => c.json({ status: 'ready' })),
+    );
 
     // Main SWML endpoint — serves on both GET and POST
     const handler = async (c: Context) => {
@@ -638,44 +689,74 @@ export class SWMLService {
       return c.json(result);
     };
     // With or without a trailing slash, mounted or on its own.
-    for (const path of [swaigPath, `${swaigPath}/`]) route(['GET', 'POST'], path, swaigHandler);
+    for (const path of [swaigPath, `${swaigPath}/`]) {
+      app.on(['GET', 'POST'], path, guarded(swaigHandler));
+    }
 
     // Subclass extension hook (AgentBase wires /post_prompt etc here).
-    const before = new Set(app.routes.map((r) => r.handler));
     this.registerAdditionalRoutes(app);
-    for (const r of app.routes) if (!before.has(r.handler)) own.add(r.handler);
 
-    for (const path of new Set([routePath, `${base}/`])) route(['GET', 'POST'], path, handler);
+    for (const path of new Set([routePath, `${base}/`])) {
+      app.on(['GET', 'POST'], path, guarded(handler));
+    }
 
     // Routing callbacks last, so the SWAIG and main routes keep precedence.
     // Looked up per request: one registered or replaced later still answers.
     app.on(['GET', 'POST'], '*', async (c, next) => {
-      const callbackFn = this._routingCallbackFor(c, base);
+      const relative = this._mountedPath(c);
+      const callbackFn = relative === null ? undefined : this._matchCallback(relative, base);
       if (!callbackFn) return next();
-      return this._serveRoutingCallback(c, callbackFn);
+      return guarded((ctx) => this._serveRoutingCallback(ctx, callbackFn))(c);
     });
     return app;
   }
 
   /**
-   * The routing callback a request addresses, in an app built under `base`.
-   * A callback registered at `path` is served at `base + path`, as the
-   * reference's router serves it; the service's own app also serves it at
-   * `path` itself, where releases before 3.7.2 served it, and such an exact
-   * path takes precedence over another callback's `base + path`.
+   * The request's path relative to where its app is mounted (Hono's matched
+   * base path, parameters resolved), decoded as routing decodes it, without
+   * repeated or trailing slashes; null when it isn't under the mount.
    */
-  private _routingCallbackFor(c: Context, base: string): RoutingCallback | undefined {
+  private _mountedPath(c: Context): string | null {
+    const decode = (p: string) => {
+      try {
+        return decodeURI(p);
+      } catch {
+        return p;
+      }
+    };
+    const tidy = (p: string) => p.replace(/\/{2,}/g, '/').replace(/(.)\/+$/, '$1');
+    const mounted = tidy(decode(basePath(c))).replace(/\/+$/, '');
+    const path = tidy(decode(c.req.path));
+    if (mounted && path !== mounted && !path.startsWith(`${mounted}/`)) return null;
+    return path.slice(mounted.length) || '/';
+  }
+
+  /**
+   * The routing callback a path (relative to the app's mount) addresses, in an
+   * app built under `base`. A callback registered at `path` is served at
+   * `base + path`, as the reference's router serves it; the service's own app
+   * also serves it at `path` itself, where releases before 3.7.2 served it,
+   * and such an exact path takes precedence over another callback's
+   * `base + path`. Paths match as routes do, parameters and wildcards included.
+   */
+  private _matchCallback(relative: string, base: string): RoutingCallback | undefined {
     if (this._routingCallbacks.size === 0) return undefined;
-    const mounted = base === '' ? basePath(c).replace(/\/+$/, '') : '';
-    const path = c.req.path.replace(/\/{2,}/g, '/').replace(/(.)\/+$/, '$1');
-    if (mounted && path !== mounted && !path.startsWith(`${mounted}/`)) return undefined;
-    const relative = path.slice(mounted.length) || '/';
-    const exact = base !== '' ? this._routingCallbacks.get(relative) : undefined;
-    if (exact) return exact;
-    for (const [cbPath, callbackFn] of this._routingCallbacks) {
-      if (relative === `${base}${cbPath}`) return callbackFn;
+    if (this._callbackRoutersVersion !== this._callbackVersion) {
+      this._callbackRouters.clear();
+      this._callbackRoutersVersion = this._callbackVersion;
     }
-    return undefined;
+    const find = (prefix: string): RoutingCallback | undefined => {
+      let router = this._callbackRouters.get(prefix);
+      if (!router) {
+        router = new TrieRouter<string>();
+        for (const cbPath of this._routingCallbacks.keys())
+          router.add('ALL', `${prefix}${cbPath}`, cbPath);
+        this._callbackRouters.set(prefix, router);
+      }
+      const hit = router.match('ALL', relative)[0][0];
+      return hit ? this._routingCallbacks.get(hit[0]) : undefined;
+    };
+    return (base ? find('') : undefined) ?? find(base);
   }
 
   // ────────────────────────────────────────────────────────────────────
@@ -1165,6 +1246,7 @@ export class SWMLService {
     this.log.info(`Registering routing callback at ${normalized}`);
     // The apps look callbacks up per request, so it answers from now on.
     this._routingCallbacks.set(normalized, callbackFn);
+    this._callbackVersion++;
   }
 
   /**
@@ -1374,8 +1456,7 @@ export class SWMLService {
    * @returns A mountable Hono sub-app carrying this service's routes.
    */
   asRouter(): HostAppRouter {
-    if (!this._routeBase()) return this.getApp();
-    this._router ??= this._buildServiceApp('');
+    this._router ??= this._buildServiceApp('', true);
     return this._router;
   }
 

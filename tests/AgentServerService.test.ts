@@ -390,3 +390,129 @@ describe('mounting a service, second review (found in review)', () => {
     expect(headers['Location']).toBe('/exact');
   });
 });
+
+/** Codex's third review: ownership and auth of a mounted router. */
+describe('mounting a service, third review (found in review)', () => {
+  const auth = { Authorization: AUTH, 'Content-Type': 'application/json' };
+  const json = { 'Content-Type': 'application/json' };
+  const service = (route = '/menu') => {
+    const s = new SWMLService({ name: 'menu', route, basicAuth: ['u', 'p'] });
+    s.addVerb('answer', {});
+    s.defineTool({ name: 'probe', description: 'Probe', handler: () => 'ran' });
+    return s;
+  };
+
+  it('keeps its auth when the router has an error handler, or sits in one that does', async () => {
+    const direct = service();
+    direct.asRouter().onError((err, c) => c.text(String(err), 500));
+    const nested = new Hono();
+    nested.onError((err, c) => c.text(String(err), 500));
+    nested.route('/', service().asRouter());
+    for (const router of [direct.asRouter(), nested]) {
+      const host = new Hono();
+      host.route('/voice', router);
+      const res = await host.request('/voice/swaig', {
+        method: 'POST',
+        headers: json,
+        body: JSON.stringify({ function: 'probe' }),
+      });
+      // Refused (this onError turns the 401 into a 500); the tool didn't run
+      expect(res.status).not.toBe(200);
+      expect(await res.text()).not.toContain('ran');
+    }
+  });
+
+  it('puts routes added to its router behind its auth', async () => {
+    const s = service();
+    const router = s.asRouter();
+    router.get('/private', (c) => c.text('secret'));
+    router.get('/item/:id', (c) => c.text('item'));
+    const host = new Hono();
+    host.route('/voice', router);
+    expect((await host.request('/voice/private')).status).toBe(401);
+    expect((await host.request('/voice/item/7')).status).toBe(401);
+    expect(await (await host.request('/voice/private', { headers: auth })).text()).toBe('secret');
+  });
+
+  it("leaves a neighbour alone: a root-route service, a hook's middleware, a PUT at a callback path", async () => {
+    const agentAuth = 'Basic ' + Buffer.from('agent:secret').toString('base64');
+    const support = new AgentBase({
+      name: 'support',
+      route: '/support',
+      basicAuth: ['agent', 'secret'],
+    });
+    support.setPromptText('hi');
+    class Hooked extends SWMLService {
+      protected override registerAdditionalRoutes(app: Hono): void {
+        app.use('*', async (_c, next) => next());
+      }
+    }
+    for (const svc of [
+      service('/'),
+      new Hooked({ name: 'h', route: '/h', basicAuth: ['u', 'p'] }),
+    ]) {
+      const server = new AgentServer<SWMLService>();
+      server.register(svc, '/');
+      server.register(support, '/support');
+      const res = await request(server, 'GET', '/support', undefined, agentAuth);
+      expect(res.status, svc.name).toBe(200);
+    }
+    const s = service();
+    s.registerRoutingCallback(() => '/x', '/sip');
+    const host = new Hono();
+    host.route('/', s.asRouter());
+    host.put('/sip', (c) => c.text('host put'));
+    expect(await (await host.request('/sip', { method: 'PUT' })).text()).toBe('host put');
+  });
+
+  it('answers CORS preflights for its routes', async () => {
+    const host = new Hono();
+    host.route('/voice', service().asRouter());
+    for (const path of ['/voice/swaig', '/voice']) {
+      const res = await host.request(path, {
+        method: 'OPTIONS',
+        headers: {
+          Origin: 'https://app.example.com',
+          'Access-Control-Request-Method': 'POST',
+          'Access-Control-Request-Headers': 'authorization,content-type',
+        },
+      });
+      expect(res.status, path).toBe(204);
+      expect(res.headers.get('access-control-allow-origin'), path).not.toBeNull();
+    }
+  });
+
+  it('serves callbacks through getApp() mounted under a prefix', async () => {
+    const s = service();
+    s.registerRoutingCallback(() => '/routed', '/sip');
+    const host = new Hono();
+    host.route('/voice', s.getApp());
+    const post = (path: string) =>
+      host.request(path, { method: 'POST', headers: auth, body: JSON.stringify({ call: {} }) });
+    expect((await post('/voice/menu/sip')).headers.get('location')).toBe('/routed');
+    expect((await post('/voice/sip')).headers.get('location')).toBe('/routed');
+  });
+
+  it('matches parameterized and wildcard callback paths', async () => {
+    const s = service();
+    s.registerRoutingCallback(() => '/handoff', '/handoff/:id');
+    s.registerRoutingCallback(() => '/files', '/files/*');
+    const post = (path: string) =>
+      s
+        .getApp()
+        .request(path, { method: 'POST', headers: auth, body: JSON.stringify({ call: {} }) });
+    expect((await post('/menu/handoff/abc')).headers.get('location')).toBe('/handoff');
+    expect((await post('/menu/files/a/b')).headers.get('location')).toBe('/files');
+  });
+
+  it("doesn't skip auth for an encoded path", async () => {
+    const host = new Hono();
+    host.route('/foo bar', service().asRouter());
+    const res = await host.request('/foo%20bar/swaig', {
+      method: 'POST',
+      headers: json,
+      body: JSON.stringify({ function: 'probe' }),
+    });
+    expect(res.status).toBe(401);
+  });
+});
