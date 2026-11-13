@@ -198,6 +198,14 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/SslConfig.ts': 'signalwire.core.security_config',
   'src/SwaigFunction.ts': 'signalwire.core.swaig_function',
   'src/SemanticGate.ts': 'signalwire.core.semantic_gate',
+  // The voice-agent toolkit (reference 3.8.0): its modules, one file each
+  'src/AiEvents.ts': 'signalwire.core.ai_events',
+  'src/ToolMiddleware.ts': 'signalwire.core.tool_middleware',
+  'src/speech/numbers.ts': 'signalwire.speech.numbers',
+  'src/speech/spelling.ts': 'signalwire.speech.spelling',
+  'src/patterns/Proposal.ts': 'signalwire.patterns.proposal',
+  'src/patterns/RequestList.ts': 'signalwire.patterns.request_list',
+  'src/testing/CallSimulator.ts': 'signalwire.testing.call_simulator',
   'src/SwmlBuilder.ts': 'signalwire.core.swml_builder',
   'src/SWMLHandler.ts': 'signalwire.core.swml_handler',
   'src/SWMLService.ts': 'signalwire.core.swml_service',
@@ -402,6 +410,12 @@ const MIXIN_PROJECTIONS: Record<
     methods: {
       define_tool: 'define_tool',
       register_swaig_function: 'register_swaig_function',
+      // Python 3.8.0's tool options and middleware, on SWMLService in TS so a
+      // plain service has them too
+      add_tool_middleware: 'add_tool_middleware',
+      define_native_tool: 'define_native_tool',
+      set_nullable_optional_parameters: 'set_nullable_optional_parameters',
+      set_tool_resend_dedupe: 'set_tool_resend_dedupe',
     },
   },
   // Python's MCPServerMixin is a class with no public methods (the MCP helpers

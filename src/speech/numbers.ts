@@ -116,12 +116,12 @@ export interface SayDigitsOptions {
  */
 export function sayDigits(
   text: string | number | bigint,
-  group?: number | readonly number[],
+  group?: number | readonly number[] | null,
   opts: SayDigitsOptions = {},
 ): string {
   const str = String(text);
   let groups: string[];
-  if (group === undefined) {
+  if (group === undefined || group === null) {
     groups = str.match(/\d+/g) ?? [];
   } else {
     const digits = str.replace(/\D/g, '');

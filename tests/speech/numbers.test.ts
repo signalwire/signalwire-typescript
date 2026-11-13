@@ -51,6 +51,10 @@ describe('sayDigits', () => {
     );
   });
 
+  it('takes a null group as no group, as the reference takes None', () => {
+    expect(sayDigits('415-555', null)).toBe('four one five, five five five');
+  });
+
   it('can say zero as oh', () => {
     expect(sayDigits('1007', undefined, { zero: 'oh' })).toBe('one oh oh seven');
   });

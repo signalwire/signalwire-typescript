@@ -694,7 +694,7 @@ export class Step {
    * sentinel such as `'none'`), rather than keeping the one before it.
    * @internal
    */
-  hasFunctionList(): boolean {
+  _hasFunctionList(): boolean {
     return this.functions !== null;
   }
 
@@ -1645,7 +1645,7 @@ export class ContextBuilder {
    */
   private warnUnofferedTools(registered: string[]): void {
     const steps = [...this.contexts.values()].flatMap((c) => [...c.getSteps().values()]);
-    if (steps.length === 0 || steps.some((step) => !step.hasFunctionList())) return;
+    if (steps.length === 0 || steps.some((step) => !step._hasFunctionList())) return;
     for (const name of registered) {
       if (
         this.unofferedWarned.has(name) ||

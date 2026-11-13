@@ -89,6 +89,14 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/SslConfig.ts': 'signalwire.core.security_config',
   'src/SwaigFunction.ts': 'signalwire.core.swaig_function',
   'src/SemanticGate.ts': 'signalwire.core.semantic_gate',
+  // The voice-agent toolkit (reference 3.8.0): its modules, one file each
+  'src/AiEvents.ts': 'signalwire.core.ai_events',
+  'src/ToolMiddleware.ts': 'signalwire.core.tool_middleware',
+  'src/speech/numbers.ts': 'signalwire.speech.numbers',
+  'src/speech/spelling.ts': 'signalwire.speech.spelling',
+  'src/patterns/Proposal.ts': 'signalwire.patterns.proposal',
+  'src/patterns/RequestList.ts': 'signalwire.patterns.request_list',
+  'src/testing/CallSimulator.ts': 'signalwire.testing.call_simulator',
   'src/SwmlBuilder.ts': 'signalwire.core.swml_builder',
   'src/SWMLHandler.ts': 'signalwire.core.swml_handler',
   'src/SWMLService.ts': 'signalwire.core.swml_service',
@@ -266,6 +274,7 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
       'set_prompt_llm_params',
       'set_pronunciations',
       'set_semantic_gates',
+      'set_unavailable_function_response',
       'update_global_data',
     ],
   ],
@@ -316,7 +325,15 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
   ],
   ToolMixin: [
     'signalwire.core.mixins.tool_mixin',
-    ['define_tool', 'on_function_call', 'register_swaig_function'],
+    [
+      'add_tool_middleware',
+      'define_native_tool',
+      'define_tool',
+      'on_function_call',
+      'register_swaig_function',
+      'set_nullable_optional_parameters',
+      'set_tool_resend_dedupe',
+    ],
   ],
   ToolRegistry: [
     'signalwire.core.agent.tools.registry',
@@ -390,6 +407,20 @@ const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
   'signalwire.core.semantic_gate.apply_gate_fields',
   // dialogue_turns — Python's roles/drop_echo are keyword-only.
   'signalwire.core.post_prompt.dialogue_turns',
+  // The voice-agent toolkit (reference 3.8.0): keyword-only options.
+  'signalwire.core.post_prompt.caller_turns',
+  'signalwire.core.contexts.expected_answer',
+  'signalwire.core.contexts.Step.set_expected_answer',
+  'signalwire.patterns.proposal.Proposal.__init__',
+  'signalwire.patterns.proposal.Proposal.propose',
+  'signalwire.patterns.request_list.RequestList.__init__',
+  'signalwire.speech.numbers.say_digits',
+  'signalwire.speech.numbers.say_last_digits',
+  'signalwire.speech.spelling.read_spelled',
+  'signalwire.speech.spelling.spelling_variants',
+  'signalwire.testing.call_simulator.CallSimulator.__init__',
+  'signalwire.testing.call_simulator.RequestRecorder.__init__',
+  'signalwire.testing.call_simulator.SimulatedCall.__init__',
   'signalwire.ai_chat.gateway.ChatGateway.prepare',
   'signalwire.ai_chat.handoff.HandoffRouter.register',
   // relay Call per-verb convenience methods — Python keyword-only args + **kwargs.
@@ -431,7 +462,45 @@ const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
   'signalwire.relay.client.RelayClient.dial',
   'signalwire.relay.client.RelayClient.send_message',
 ]);
+/**
+ * Named TS types the reference records differently, keyed `<src subpath>:<Name>`.
+ * A function-type alias the reference also declares as a named alias is recorded
+ * by that name (typeToString() would expand it to its callable), and a data-shape
+ * interface the reference passes as a plain dict is recorded as that dict.
+ */
+const REFERENCE_TYPE_FOLDS: Record<string, string> = {
+  // tool_middleware.py: `ToolMiddleware = Callable[...]`, `CallNext = Callable[...]`
+  'ToolMiddleware:ToolMiddleware': 'class:signalwire.core.tool_middleware.ToolMiddleware',
+  'ToolMiddleware:CallNext': 'class:signalwire.core.tool_middleware.CallNext',
+  // AgentBase.on_ai_event(handler: Callable[..., Any])
+  'AgentBase:AiEventHandler': 'callable<list<any>,any>',
+  // speech_finals()/SpeechLog.finals() return list[dict[str, Any]]
+  'AiEvents:SpeechFinal': 'dict<string,any>',
+  // RequestList.pending()/as_text() take and give list[dict[str, str]]
+  'patterns/RequestList:NotedRequest': 'dict<string,string>',
+};
 const UNFOLD_ALL = process.env.UNFOLD_ALL === '1';
+
+/**
+ * The members of an options object's type: an inline type literal's, or a named
+ * interface's (`opts: ProposalOptions`), so an exported options interface unfolds
+ * the same as the literal it names. Null for any other type.
+ */
+function optionsObjectMembers(
+  node: ts.TypeNode,
+  checker: ts.TypeChecker,
+): readonly ts.TypeElement[] | null {
+  if (ts.isTypeLiteralNode(node)) return node.members;
+  if (!ts.isTypeReferenceNode(node) || node.typeArguments) return null;
+  let sym = checker.getSymbolAtLocation(node.typeName);
+  if (sym && sym.flags & ts.SymbolFlags.Alias) sym = checker.getAliasedSymbol(sym);
+  const decl = sym?.declarations?.[0];
+  if (decl && ts.isInterfaceDeclaration(decl) && !decl.heritageClauses) return decl.members;
+  if (decl && ts.isTypeAliasDeclaration(decl) && ts.isTypeLiteralNode(decl.type)) {
+    return decl.type.members;
+  }
+  return null;
+}
 
 // Hand-written methods whose Python reference is a PURE ``**kwargs``/``**params``
 // passthrough — ``def m(self, **params: Any)`` with NO exploded keyword set. The
@@ -938,6 +1007,16 @@ function translateType(
       const sub = srcSubpath(srcFile);
       const modPath = sub ? sub.replace(/\//g, '.') : 'rest.namespaces';
       return `class:signalwire.${modPath}.${aliasSym.getName()}`;
+    }
+  }
+
+  // Named TS types recorded as the reference records them (REFERENCE_TYPE_FOLDS).
+  {
+    const foldSym = type.aliasSymbol ?? type.getSymbol();
+    const foldFile = foldSym?.declarations?.[0]?.getSourceFile().fileName;
+    if (foldSym && foldFile) {
+      const folded = REFERENCE_TYPE_FOLDS[`${srcSubpath(foldFile)}:${foldSym.getName()}`];
+      if (folded !== undefined) return folded;
     }
   }
 
@@ -2091,7 +2170,21 @@ function canonForParamNode(
     // on the parameter symbol, not the type node) — so translateType does NOT wrap
     // it in `optional<…>` (e.g. `extras?: Record<…>` → `dict<string,any>`,
     // `status_events?: (…)[]` → `list<union<…>>`, un-wrapped). Match that.
-    return translateType(checker.getTypeAtLocation(param), checker, aliases, ctx);
+    const canonParam = translateType(checker.getTypeAtLocation(param), checker, aliases, ctx);
+    // The program is built non-strict, so a written `| null` is erased from the
+    // type; a param declared to take null is the reference's Optional[...]
+    if (
+      typeNode &&
+      ts.isUnionTypeNode(typeNode) &&
+      typeNode.types.some(
+        (t) => ts.isLiteralTypeNode(t) && t.literal.kind === ts.SyntaxKind.NullKeyword,
+      ) &&
+      canonParam !== 'any' &&
+      !canonParam.startsWith('optional<')
+    ) {
+      return `optional<${canonParam}>`;
+    }
+    return canonParam;
   }
   // Options-member fallback: resolve the written type node and translate it the
   // same way (NO manual optional wrap) so an unfolded member matches what the
@@ -2184,13 +2277,14 @@ function signatureFromMethod(
     }
     // General options-object unfold (allowlisted methods): a trailing inline
     // `options`/`opts`/`config` type-literal → its members as `keyword` params.
-    if (
+    const optionMembers =
       shouldGeneralUnfold &&
       (native === 'options' || native === 'opts' || native === 'config') &&
-      p.type &&
-      ts.isTypeLiteralNode(p.type)
-    ) {
-      for (const member of p.type.members) {
+      p.type
+        ? optionsObjectMembers(p.type, checker)
+        : null;
+    if (optionMembers) {
+      for (const member of optionMembers) {
         if (!ts.isPropertySignature(member) || !member.name || !ts.isIdentifier(member.name))
           continue;
         const mNative = member.name.text;

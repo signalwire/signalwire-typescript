@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ ee5d32aa5e2abb8650c242b2866c0c4cfe55c5fb",
+  "generated_from": "signalwire-typescript @ e746de8fb092dc1d1b7f0e40f46affbdd6db9d34",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -346,6 +346,7 @@
           "handle_request",
           "is_mcp_server_enabled",
           "native_functions",
+          "on_ai_event",
           "on_call_end",
           "on_call_start",
           "on_debug_event",
@@ -353,6 +354,7 @@
           "on_summary",
           "pom",
           "prompt_manager",
+          "record_speech_finals",
           "register_sip_username",
           "remove_skill_by_name",
           "render_swml",
@@ -361,7 +363,21 @@
           "set_post_prompt_url",
           "set_web_hook_url",
           "signing_key",
-          "skill_manager"
+          "skill_manager",
+          "speech_finals"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.core.ai_events": {
+      "classes": {
+        "SpeechLog": [
+          "__init__",
+          "add",
+          "finals",
+          "forget",
+          "max_calls",
+          "max_finals"
         ]
       },
       "functions": []
@@ -421,6 +437,7 @@
         "GatherQuestion": [
           "__init__",
           "confirm",
+          "expected_answer",
           "functions",
           "isolated",
           "key",
@@ -450,6 +467,7 @@
           "get_valid_steps",
           "name",
           "set_end",
+          "set_expected_answer",
           "set_functions",
           "set_gather_info",
           "set_history",
@@ -505,13 +523,15 @@
           "attach_agent",
           "get_context",
           "reset",
+          "steps_offering",
           "to_dict",
           "to_json",
           "validate"
         ]
       },
       "functions": [
-        "create_simple_context"
+        "create_simple_context",
+        "expected_answer"
       ]
     },
     "signalwire.core.data_map": {
@@ -554,6 +574,7 @@
           "add_action",
           "add_actions",
           "add_dynamic_hints",
+          "back_to_back_functions",
           "change_voice",
           "clear_dynamic_hints",
           "connect",
@@ -572,6 +593,7 @@
           "play_background_file",
           "post_process",
           "record_call",
+          "refresh_step",
           "remove_global_data",
           "remove_metadata",
           "replace_in_history",
@@ -586,6 +608,7 @@
           "set_metadata",
           "set_post_process",
           "set_response",
+          "set_semantic_gate_mark",
           "set_semantic_state",
           "set_speech_event_timeout",
           "set_tool_response",
@@ -607,9 +630,18 @@
           "update_global_data",
           "update_settings",
           "wait_for_user"
+        ],
+        "ToolRefusal": [
+          "__init__",
+          "result",
+          "tool_prompt",
+          "tool_result"
         ]
       },
-      "functions": []
+      "functions": [
+        "settle_result",
+        "tool_error_result"
+      ]
     },
     "signalwire.core.logging_config": {
       "classes": {},
@@ -648,6 +680,7 @@
           "set_prompt_llm_params",
           "set_pronunciations",
           "set_semantic_gates",
+          "set_unavailable_function_response",
           "update_global_data"
         ]
       },
@@ -729,10 +762,14 @@
     "signalwire.core.mixins.tool_mixin": {
       "classes": {
         "ToolMixin": [
+          "add_tool_middleware",
+          "define_native_tool",
           "define_tool",
           "define_tools",
           "on_function_call",
-          "register_swaig_function"
+          "register_swaig_function",
+          "set_nullable_optional_parameters",
+          "set_tool_resend_dedupe"
         ]
       },
       "functions": []
@@ -799,6 +836,7 @@
         ]
       },
       "functions": [
+        "caller_turns",
         "dialogue_turns",
         "normalize_post_prompt",
         "parse_post_prompt_data",
@@ -913,11 +951,16 @@
       "classes": {
         "SemanticGate": [
           "__init__",
+          "dialogue",
+          "history",
           "id",
           "on_fail",
+          "on_unclear",
           "question",
+          "since",
           "threshold",
           "to_dict",
+          "unclear",
           "visual_input"
         ]
       },
@@ -1005,12 +1048,16 @@
           "fillers",
           "handler",
           "is_typed_handler",
+          "middleware",
           "name",
+          "needs_conversation",
+          "nullable_optional",
           "parameters",
           "required",
           "secure",
           "to_swaig",
           "validate_args",
+          "vouched",
           "wait_file",
           "wait_file_loops",
           "webhook_url"
@@ -1079,10 +1126,12 @@
         "SWMLService": [
           "__init__",
           "add_section",
+          "add_tool_middleware",
           "add_verb",
           "add_verb_to_section",
           "as_router",
           "build_swml_for_request",
+          "define_native_tool",
           "define_tool",
           "extract_sip_username",
           "full_validation_enabled",
@@ -1116,7 +1165,9 @@
           "schema_utils",
           "security",
           "serve",
+          "set_nullable_optional_parameters",
           "set_on_request_callback",
+          "set_tool_resend_dedupe",
           "stop",
           "swaig_pre_dispatch",
           "validate_basic_auth",
@@ -1492,6 +1543,20 @@
       },
       "functions": []
     },
+    "signalwire.core.tool_middleware": {
+      "classes": {
+        "ResendDedupe": [
+          "__init__",
+          "handle",
+          "max_entries",
+          "ttl"
+        ]
+      },
+      "functions": [
+        "resolve",
+        "run_chain"
+      ]
+    },
     "signalwire.livewire": {
       "classes": {
         "Agent": [
@@ -1603,6 +1668,42 @@
       "functions": [
         "param_schema"
       ]
+    },
+    "signalwire.patterns.proposal": {
+      "classes": {
+        "Proposal": [
+          "__init__",
+          "ask_again",
+          "complete",
+          "confirm_gates",
+          "confirm_tool",
+          "decline_tool",
+          "propose",
+          "threshold",
+          "unclear"
+        ]
+      },
+      "functions": [
+        "current"
+      ]
+    },
+    "signalwire.patterns.request_list": {
+      "classes": {
+        "RequestList": [
+          "__init__",
+          "as_text",
+          "defaults",
+          "done",
+          "global_key",
+          "heading",
+          "next",
+          "note",
+          "opener",
+          "openers",
+          "pending"
+        ]
+      },
+      "functions": []
     },
     "signalwire.pom.pom": {
       "classes": {
@@ -3888,9 +3989,63 @@
         "create_skill"
       ]
     },
+    "signalwire.speech.numbers": {
+      "classes": {},
+      "functions": [
+        "number_words",
+        "say_digits",
+        "say_last_digits",
+        "say_money"
+      ]
+    },
+    "signalwire.speech.spelling": {
+      "classes": {},
+      "functions": [
+        "read_spelled",
+        "spelling_variants",
+        "spoken_email"
+      ]
+    },
     "signalwire.swaig_contracts.generated": {
       "classes": {
         "PostPromptCallLogEntry": []
+      },
+      "functions": []
+    },
+    "signalwire.testing.call_simulator": {
+      "classes": {
+        "SimulatedCall": [
+          "__init__",
+          "actions",
+          "args",
+          "blocked_by",
+          "name",
+          "ran",
+          "response",
+          "result",
+          "to_string",
+          "tool_prompt"
+        ],
+        "CallSimulator": [
+          "__init__",
+          "agent",
+          "agent_says",
+          "call",
+          "call_id",
+          "caller",
+          "calls",
+          "global_data",
+          "offered",
+          "replay",
+          "semantic_state"
+        ],
+        "RequestRecorder": [
+          "__init__",
+          "handle",
+          "limit",
+          "load",
+          "path"
+        ]
       },
       "functions": []
     },

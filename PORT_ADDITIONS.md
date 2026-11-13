@@ -472,6 +472,8 @@ signalwire.core.swml_service.SWMLService.get_app: TS SWMLService exposes richer 
 signalwire.core.swml_service.SWMLService.get_builder: TS SWMLService exposes richer handler-registration / config getters
 signalwire.core.swml_service.SWMLService.render_swml: TS SWMLService exposes richer handler-registration / config getters
 signalwire.core.swml_service.SWMLService.set_on_request_callback: TS SWMLService exposes richer handler-registration / config getters
+signalwire.core.swml_service.SWMLService.add_tool_middleware: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
+signalwire.core.swml_service.SWMLService.define_native_tool: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
 signalwire.core.swml_service.SWMLService.define_tool: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
 signalwire.core.swml_service.SWMLService.get_registered_tools: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
 signalwire.core.swml_service.SWMLService.get_tool: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
@@ -481,6 +483,8 @@ signalwire.core.swml_service.SWMLService.on_function_call: TS SWMLService direct
 signalwire.core.swml_service.SWMLService.register_additional_routes: TS SWMLService extension hook subclasses override to mount agent-specific routes (post_prompt, debug_events, etc) onto the inherited Hono app
 signalwire.core.swml_service.SWMLService.register_swaig_function: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
 signalwire.core.swml_service.SWMLService.swaig_pre_dispatch: TS SWMLService extension hook — AgentBase overrides to validate session tokens and apply dynamic-config callbacks before dispatching SWAIG calls
+signalwire.core.swml_service.SWMLService.set_nullable_optional_parameters: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
+signalwire.core.swml_service.SWMLService.set_tool_resend_dedupe: TS SWMLService directly exposes the SWAIG tool registry on the base class — Python folds these into AgentBase via the ToolMixin
 
 ## REST namespace additions
 
@@ -785,3 +789,9 @@ signalwire.livewire.plugins.SileroVAD: port-only: livewire (LiveKit-agents integ
 signalwire.livewire.plugins.SileroVAD.__init__: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
 signalwire.livewire.plugins.SileroVAD.load: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
 signalwire.livewire.run_app: port-only: livewire (LiveKit-agents integration) is shipped by python+TS only; excluded from the shared oracle as non-cross-port surface. TS records its livewire surface here; verified by the TS↔python livewire bilateral parity check (porting-sdk task #42).
+
+## Voice-agent toolkit (reference 3.8.0)
+
+signalwire.core.tool_middleware.ResendDedupe.handle: TS objects are not callable (the reference's __call__); handle() is the call, and ResendDedupe.middleware is it as a ToolMiddleware function
+signalwire.testing.call_simulator.RequestRecorder.handle: TS objects are not callable (the reference's __call__); handle() is the call, and RequestRecorder.middleware is it as a ToolMiddleware function
+signalwire.testing.call_simulator.SimulatedCall.to_string: TS stringification (the reference's __repr__), for a test's failure message
