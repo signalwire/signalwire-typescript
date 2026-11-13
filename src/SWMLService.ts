@@ -733,11 +733,12 @@ export class SWMLService {
     };
     const callbackMethods = scoped ? ['GET', 'POST', 'OPTIONS'] : ['GET', 'POST'];
     const callbackGuards = scoped ? guards.map(whenAnswering) : [];
-    // The mount itself, and the paths under it.
+    // The mount itself (routing matched it whole, so the callback's path is
+    // '/'), and the paths under it.
     on(
       callbackMethods,
       '/',
-      matchAt((c) => this._mountedRest(c)),
+      matchAt(() => '/'),
       ...callbackGuards,
       serve,
     );

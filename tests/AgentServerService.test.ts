@@ -751,3 +751,17 @@ it('lets later mount labels constrain an earlier pattern (found in review)', asy
   });
   expect(res.headers.get('location')).toBe('/target');
 });
+
+it("answers the mount itself with the callback at '/' (found in review)", async () => {
+  const s = new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+  s.registerRoutingCallback(() => '/root-target', '/');
+  s.registerRoutingCallback(() => '/wrong-target', '/b');
+  const host = new Hono();
+  host.route('/t/:path{((a|a/b))}', s.getApp());
+  const res = await host.request('/t/a/b', {
+    method: 'POST',
+    headers: { Authorization: AUTH, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ call: {} }),
+  });
+  expect(res.headers.get('location')).toBe('/root-target');
+});
