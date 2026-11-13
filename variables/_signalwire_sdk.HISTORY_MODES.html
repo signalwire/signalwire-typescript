@@ -124,7 +124,7 @@
 <li><a href="../modules/_signalwire_sdk.html">@signalwire/sdk</a></li>
 <li><a href="" aria-current="page">HISTORY_MODES</a></li></ul>
 <h1>Variable HISTORY_MODES<code class="tsd-tag">Const</code></h1></div>
-<div class="tsd-signature"><span class="tsd-kind-variable">HISTORY_MODES</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">&quot;keep&quot;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;default&quot;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;hide&quot;</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol"> = ...</span></div>
+<div class="tsd-signature"><span class="tsd-kind-variable">HISTORY_MODES</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">&quot;keep&quot;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;default&quot;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;hide&quot;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;isolate&quot;</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol"> = ...</span></div>
 <div class="tsd-comment tsd-typography"><p>Valid values for a step's or context's <code>history</code> visibility mode.</p>
 <ul>
 <li><code>keep</code>: nothing is cleared — every prior step's instructions <em>and</em>
@@ -134,10 +134,13 @@ This is the behavior when <code>history</code> is unset.</li>
 <li><code>hide</code>: prior instructions hidden <strong>and</strong> the prior dialogue pulled
 out of the model's context. The only way back in is an explicit
 <code>${step_history.*}</code> reference in the new prompt.</li>
+<li><code>isolate</code>: like <code>hide</code>, but only while the agent is in this step: the
+earlier dialogue returns when the step is left, and the earlier step
+instructions stay cleared.</li>
 </ul>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/ContextBuilder.ts#L22">src/ContextBuilder.ts:22</a></li></ul></aside></div>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/ContextBuilder.ts#L25">src/ContextBuilder.ts:25</a></li></ul></aside></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

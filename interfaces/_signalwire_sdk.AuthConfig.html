@@ -129,7 +129,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">AuthConfig</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#allowunauthenticated">allowUnauthenticated</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#apikey">apiKey</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#apikeyheader">apiKeyHeader</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#basicauth">basicAuth</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#bearertoken">bearerToken</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#customvalidator">customValidator</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><br/>        <span class="tsd-kind-parameter">request</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span><br/>            <span class="tsd-kind-property">headers</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>            <span class="tsd-kind-property">method</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>            <span class="tsd-kind-property">url</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">boolean</span><br/>    <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AuthHandler.ts#L25">src/AuthHandler.ts:25</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AuthHandler.ts#L25">src/AuthHandler.ts:25</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -153,42 +153,42 @@
 <div class="tsd-comment tsd-typography"><p>When explicitly set to false, deny requests if no auth methods are configured.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AuthHandler.ts#L41">src/AuthHandler.ts:41</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AuthHandler.ts#L41">src/AuthHandler.ts:41</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="apikey"><code class="tsd-tag">Optional</code><span>api<wbr/>Key</span><a href="#apikey" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">apiKey</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>API key matched against the X-Api-Key header.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AuthHandler.ts#L29">src/AuthHandler.ts:29</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AuthHandler.ts#L29">src/AuthHandler.ts:29</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="apikeyheader"><code class="tsd-tag">Optional</code><span>api<wbr/>Key<wbr/>Header</span><a href="#apikeyheader" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">apiKeyHeader</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Custom header name for API key lookup (default: 'X-Api-Key').</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AuthHandler.ts#L31">src/AuthHandler.ts:31</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AuthHandler.ts#L31">src/AuthHandler.ts:31</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="basicauth"><code class="tsd-tag">Optional</code><span>basic<wbr/>Auth</span><a href="#basicauth" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">basicAuth</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]</span></div>
 <div class="tsd-comment tsd-typography"><p>Basic auth credentials as a [username, password] tuple.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AuthHandler.ts#L33">src/AuthHandler.ts:33</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AuthHandler.ts#L33">src/AuthHandler.ts:33</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="bearertoken"><code class="tsd-tag">Optional</code><span>bearer<wbr/>Token</span><a href="#bearertoken" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">bearerToken</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Bearer token matched against the Authorization header.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AuthHandler.ts#L27">src/AuthHandler.ts:27</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AuthHandler.ts#L27">src/AuthHandler.ts:27</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="customvalidator"><code class="tsd-tag">Optional</code><span>custom<wbr/>Validator</span><a href="#customvalidator" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">customValidator</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">request</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span><br/>        <span class="tsd-kind-property">headers</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">method</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>        <span class="tsd-kind-property">url</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">boolean</span><br/><span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">&gt;</span></div>
 <div class="tsd-comment tsd-typography"><p>Custom validator function; return true to allow the request.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AuthHandler.ts#L35">src/AuthHandler.ts:35</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AuthHandler.ts#L35">src/AuthHandler.ts:35</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

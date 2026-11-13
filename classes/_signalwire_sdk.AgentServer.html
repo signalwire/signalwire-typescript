@@ -123,7 +123,7 @@
 <ul class="tsd-breadcrumb" aria-label="Breadcrumb">
 <li><a href="../modules/_signalwire_sdk.html">@signalwire/sdk</a></li>
 <li><a href="" aria-current="page">AgentServer</a></li></ul>
-<h1>Class AgentServer</h1></div>
+<h1>Class AgentServer&lt;T&gt;</h1></div>
 <section class="tsd-panel tsd-comment">
 <div class="tsd-comment tsd-typography"><p>Multi-agent HTTP server that hosts multiple AgentBase instances on distinct route prefixes.</p>
 <p>Use <code>AgentServer</code> when one process should serve more than one agent — each with its own
@@ -136,11 +136,23 @@ path. Static assets can also be served from a configured directory.</p>
 </code><button type="button">Copy</button></pre>
 
 </div>
+<div class="tsd-tag-example">
+<h4 class="tsd-anchor-link" id="example-host-a-plain-swmlservice-an-ivr-menu-next-to-an-agent">Example: Host a plain SWMLService (an IVR menu) next to an agent<a href="#example-host-a-plain-swmlservice-an-ivr-menu-next-to-an-agent" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><pre><code class="ts"><span class="hl-0">import</span><span class="hl-1"> { </span><span class="hl-2">AgentServer</span><span class="hl-1">, </span><span class="hl-2">AgentBase</span><span class="hl-1">, </span><span class="hl-2">SWMLService</span><span class="hl-1"> } </span><span class="hl-0">from</span><span class="hl-1"> </span><span class="hl-3">&#39;@signalwire/sdk&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-5">support</span><span class="hl-1"> = </span><span class="hl-4">new</span><span class="hl-1"> </span><span class="hl-6">AgentBase</span><span class="hl-1">({ </span><span class="hl-2">name:</span><span class="hl-1"> </span><span class="hl-3">&#39;support&#39;</span><span class="hl-1">, </span><span class="hl-2">route:</span><span class="hl-1"> </span><span class="hl-3">&#39;/support&#39;</span><span class="hl-1"> });</span><br/><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-5">menu</span><span class="hl-1"> = </span><span class="hl-4">new</span><span class="hl-1"> </span><span class="hl-6">SWMLService</span><span class="hl-1">({ </span><span class="hl-2">name:</span><span class="hl-1"> </span><span class="hl-3">&#39;menu&#39;</span><span class="hl-1">, </span><span class="hl-2">route:</span><span class="hl-1"> </span><span class="hl-3">&#39;/menu&#39;</span><span class="hl-1"> });</span><br/><span class="hl-2">menu</span><span class="hl-1">.</span><span class="hl-6">addVerb</span><span class="hl-1">(</span><span class="hl-3">&#39;answer&#39;</span><span class="hl-1">, {}).</span><span class="hl-6">addVerb</span><span class="hl-1">(</span><span class="hl-3">&#39;hangup&#39;</span><span class="hl-1">, {});</span><br/><br/><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-5">server</span><span class="hl-1"> = </span><span class="hl-4">new</span><span class="hl-1"> </span><span class="hl-6">AgentServer</span><span class="hl-1">&lt;</span><span class="hl-10">SWMLService</span><span class="hl-1">&gt;();</span><br/><span class="hl-2">server</span><span class="hl-1">.</span><span class="hl-6">register</span><span class="hl-1">(</span><span class="hl-2">support</span><span class="hl-1">);</span><br/><span class="hl-2">server</span><span class="hl-1">.</span><span class="hl-6">register</span><span class="hl-1">(</span><span class="hl-2">menu</span><span class="hl-1">);</span>
+</code><button type="button">Copy</button></pre>
+
+</div>
 <div class="tsd-tag-see">
 <h4 class="tsd-anchor-link" id="see">See<a href="#see" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><p><a href="_signalwire_sdk.AgentBase.html" class="tsd-kind-class">AgentBase</a></p>
-</div></div></section><aside class="tsd-sources">
+</div></div></section>
+<section class="tsd-panel">
+<h4>Type Parameters</h4>
+<ul class="tsd-type-parameter-list">
+<li><span id="t"><span class="tsd-kind-type-parameter">T</span> <span class="tsd-signature-keyword">extends</span> <a href="_signalwire_sdk.SWMLService.html" class="tsd-signature-type tsd-kind-class">SWMLService</a> = <a href="_signalwire_sdk.AgentBase.html" class="tsd-signature-type tsd-kind-class">AgentBase</a></span>
+<div class="tsd-comment tsd-typography"><p>What the server hosts: <code>AgentBase</code> by default, or
+<code>SWMLService</code> to host plain services next to agents.</p>
+</div></li></ul></section><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L74">src/AgentServer.ts:74</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L90">src/AgentServer.ts:90</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -178,19 +190,26 @@ path. Static assets can also be served from a configured directory.</p>
 <h3 class="tsd-anchor-link" id="constructor"><span>constructor</span><a href="#constructor" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
 <li class="">
-<div class="tsd-signature tsd-anchor-link" id="constructoragentserver"><span class="tsd-signature-keyword">new</span> <span class="tsd-kind-constructor-signature">AgentServer</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">opts</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">host</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">logLevel</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">port</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="" class="tsd-signature-type tsd-kind-class">AgentServer</a><a href="#constructoragentserver" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-signature tsd-anchor-link" id="constructoragentserver"><span class="tsd-signature-keyword">new</span> <span class="tsd-kind-constructor-signature">AgentServer</span><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#constructoragentservert">T</a> <span class="tsd-signature-keyword">extends</span> <a href="_signalwire_sdk.SWMLService.html" class="tsd-signature-type tsd-kind-class">SWMLService</a> <span class="tsd-signature-symbol">=</span> <a href="_signalwire_sdk.AgentBase.html" class="tsd-signature-type tsd-kind-class">AgentBase</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">opts</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">host</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">logLevel</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">port</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="" class="tsd-signature-type tsd-kind-class">AgentServer</a><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a><span class="tsd-signature-symbol">&gt;</span><a href="#constructoragentserver" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
 <div class="tsd-description">
 <div class="tsd-comment tsd-typography"><p>Create an AgentServer.</p>
 </div>
+<section class="tsd-panel">
+<h4>Type Parameters</h4>
+<ul class="tsd-type-parameter-list">
+<li><span id="constructoragentservert"><span class="tsd-kind-type-parameter">T</span> <span class="tsd-signature-keyword">extends</span> <a href="_signalwire_sdk.SWMLService.html" class="tsd-signature-type tsd-kind-class">SWMLService</a> = <a href="_signalwire_sdk.AgentBase.html" class="tsd-signature-type tsd-kind-class">AgentBase</a></span>
+<div class="tsd-comment tsd-typography"><p>What the server hosts: <code>AgentBase</code> by default, or
+<code>SWMLService</code> to host plain services next to agents.</p>
+</div></li></ul></section>
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">opts</span>: <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">host</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">logLevel</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">port</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">}</span></span>
 <div class="tsd-comment tsd-typography"><p>Optional host, port, and logLevel overrides; defaults to 0.0.0.0:3000, logLevel 'info'.</p>
 </div></li></ul></div>
-<h4 class="tsd-returns-title">Returns <a href="" class="tsd-signature-type tsd-kind-class">AgentServer</a></h4><aside class="tsd-sources">
+<h4 class="tsd-returns-title">Returns <a href="" class="tsd-signature-type tsd-kind-class">AgentServer</a><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L109">src/AgentServer.ts:109</a></li></ul></aside></div></li></ul></section></section></details>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L125">src/AgentServer.ts:125</a></li></ul></aside></div></li></ul></section></section></details>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="properties-1">Properties<a href="#properties-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
@@ -200,35 +219,35 @@ path. Static assets can also be served from a configured directory.</p>
 <div class="tsd-comment tsd-typography"><p>The server <code>run()</code> started, or null.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L92">src/AgentServer.ts:92</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L108">src/AgentServer.ts:108</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="host"><span>host</span><a href="#host" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">host</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Hostname the server binds to.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L76">src/AgentServer.ts:76</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L92">src/AgentServer.ts:92</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="log"><code class="tsd-tag">Readonly</code><span>log</span><a href="#log" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">log</span><span class="tsd-signature-symbol">:</span> <a href="_signalwire_sdk.Logger.html" class="tsd-signature-type tsd-kind-class">Logger</a><span class="tsd-signature-symbol"> = ...</span></div>
 <div class="tsd-comment tsd-typography"><p>Public logger for this server instance.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L82">src/AgentServer.ts:82</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L98">src/AgentServer.ts:98</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="loglevel"><code class="tsd-tag">Readonly</code><span>log<wbr/>Level</span><a href="#loglevel" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">logLevel</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Logging level (debug, info, warn, error).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L80">src/AgentServer.ts:80</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L96">src/AgentServer.ts:96</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="port"><span>port</span><a href="#port" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">port</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>Port the server listens on.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L78">src/AgentServer.ts:78</a></li></ul></aside></section></section></details>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L94">src/AgentServer.ts:94</a></li></ul></aside></section></section></details>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="methods-1">Methods<a href="#methods-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
@@ -236,7 +255,7 @@ path. Static assets can also be served from a configured directory.</p>
 <h3 class="tsd-anchor-link" id="getagent"><span>get<wbr/>Agent</span><a href="#getagent" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
 <li class="">
-<div class="tsd-signature tsd-anchor-link" id="getagent-1"><span class="tsd-kind-call-signature">getAgent</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">route</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="_signalwire_sdk.AgentBase.html" class="tsd-signature-type tsd-kind-class">AgentBase</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">undefined</span><a href="#getagent-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-signature tsd-anchor-link" id="getagent-1"><span class="tsd-kind-call-signature">getAgent</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">route</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">undefined</span><a href="#getagent-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
 <div class="tsd-description">
 <div class="tsd-comment tsd-typography"><p>Look up a registered agent by its route prefix.</p>
 </div>
@@ -246,22 +265,22 @@ path. Static assets can also be served from a configured directory.</p>
 <li><span><span class="tsd-kind-parameter">route</span>: <span class="tsd-signature-type">string</span></span>
 <div class="tsd-comment tsd-typography"><p>The route prefix to look up.</p>
 </div></li></ul></div>
-<h4 class="tsd-returns-title">Returns <a href="_signalwire_sdk.AgentBase.html" class="tsd-signature-type tsd-kind-class">AgentBase</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">undefined</span></h4><p>The agent at that route, or undefined if none is registered.</p>
+<h4 class="tsd-returns-title">Returns <a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">undefined</span></h4><p>The agent at that route, or undefined if none is registered.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L276">src/AgentServer.ts:276</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L302">src/AgentServer.ts:302</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getagents"><span>get<wbr/>Agents</span><a href="#getagents" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
 <li class="">
-<div class="tsd-signature tsd-anchor-link" id="getagents-1"><span class="tsd-kind-call-signature">getAgents</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Map</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="_signalwire_sdk.AgentBase.html" class="tsd-signature-type tsd-kind-class">AgentBase</a><span class="tsd-signature-symbol">&gt;</span><a href="#getagents-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-signature tsd-anchor-link" id="getagents-1"><span class="tsd-kind-call-signature">getAgents</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Map</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a><span class="tsd-signature-symbol">&gt;</span><a href="#getagents-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
 <div class="tsd-description">
 <div class="tsd-comment tsd-typography"><p>Get all registered agents keyed by their route prefix.</p>
 </div>
-<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Map</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="_signalwire_sdk.AgentBase.html" class="tsd-signature-type tsd-kind-class">AgentBase</a><span class="tsd-signature-symbol">&gt;</span></h4><p>A map of route prefixes to AgentBase instances.</p>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Map</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a><span class="tsd-signature-symbol">&gt;</span></h4><p>A map of route prefixes to the registered agents (and services).</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L267">src/AgentServer.ts:267</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L293">src/AgentServer.ts:293</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getapp"><span>get<wbr/>App</span><a href="#getapp" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -273,20 +292,26 @@ path. Static assets can also be served from a configured directory.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Hono</span></h4><p>The fully configured Hono app.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L484">src/AgentServer.ts:484</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L510">src/AgentServer.ts:510</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="register"><span>register</span><a href="#register" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
 <li class="">
-<div class="tsd-signature tsd-anchor-link" id="register-1"><span class="tsd-kind-call-signature">register</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">agent</span><span class="tsd-signature-symbol">:</span> <a href="_signalwire_sdk.AgentBase.html" class="tsd-signature-type tsd-kind-class">AgentBase</a><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">route</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#register-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-signature tsd-anchor-link" id="register-1"><span class="tsd-kind-call-signature">register</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">agent</span><span class="tsd-signature-symbol">:</span> <a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">route</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#register-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
 <div class="tsd-description">
 <div class="tsd-comment tsd-typography"><p>Register an agent at the given route prefix.</p>
+<p>On an <code>AgentServer&lt;SWMLService&gt;</code>, a plain <a href="_signalwire_sdk.SWMLService.html" class="tsd-kind-class">SWMLService</a> works too,
+so a call flow without AI, such as an IVR menu, can share the server with
+the agents and take calls through SIP routing. It answers at its route with
+or without a trailing slash, checks its own basic auth, and serves its
+<code>/swaig</code> endpoint and routing callbacks; the agent endpoints
+(<code>/post_prompt</code>, <code>/check_for_input</code>, <code>/debug</code>) aren't served for it.</p>
 </div>
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
-<li><span><span class="tsd-kind-parameter">agent</span>: <a href="_signalwire_sdk.AgentBase.html" class="tsd-signature-type tsd-kind-class">AgentBase</a></span>
-<div class="tsd-comment tsd-typography"><p>The AgentBase instance to mount.</p>
+<li><span><span class="tsd-kind-parameter">agent</span>: <a class="tsd-signature-type tsd-kind-type-parameter" href="#t">T</a></span>
+<div class="tsd-comment tsd-typography"><p>The agent (or, on an <code>AgentServer&lt;SWMLService&gt;</code>, service) to mount.</p>
 </div></li>
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">route</span>: <span class="tsd-signature-type">string</span></span>
 <div class="tsd-comment tsd-typography"><p>Route prefix; defaults to the agent's own route or '/'.</p>
@@ -297,7 +322,7 @@ path. Static assets can also be served from a configured directory.</p>
 <h4 class="tsd-anchor-link" id="throws">Throws<a href="#throws" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><p>If the route is already occupied by another agent.</p>
 </div></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L208">src/AgentServer.ts:208</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L234">src/AgentServer.ts:234</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="registerglobalroutingcallback"><span>register<wbr/>Global<wbr/>Routing<wbr/>Callback</span><a href="#registerglobalroutingcallback" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -319,7 +344,7 @@ a central server-level coordinator.</p>
 </div></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L439">src/AgentServer.ts:439</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L465">src/AgentServer.ts:465</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="registersipusername"><span>register<wbr/>Sip<wbr/>Username</span><a href="#registersipusername" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -341,7 +366,7 @@ agent route, independent of the automatic mapping performed by <code>setupSipRou
 </div></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L411">src/AgentServer.ts:411</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L437">src/AgentServer.ts:437</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="run"><span>run</span><a href="#run" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -369,7 +394,7 @@ value.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4><p>Resolves once the underlying Hono server has begun listening.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L504">src/AgentServer.ts:504</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L530">src/AgentServer.ts:530</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="servestaticfiles"><span>serve<wbr/>Static<wbr/>Files</span><a href="#servestaticfiles" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -391,7 +416,7 @@ and security headers (Cache-Control, X-Content-Type-Options).</p>
 </div></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L287">src/AgentServer.ts:287</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L313">src/AgentServer.ts:313</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="setupsiprouting"><span>setup<wbr/>Sip<wbr/>Routing</span><a href="#setupsiprouting" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -414,7 +439,7 @@ handle SIP requests for specific usernames.</p>
 </div></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L343">src/AgentServer.ts:343</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L369">src/AgentServer.ts:369</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="unregister"><span>unregister</span><a href="#unregister" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -432,7 +457,7 @@ handle SIP requests for specific usernames.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><p>True if the agent was found and removed, false if not found.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7a70f97788c842d3feb434d681177cad6784be0a/src/AgentServer.ts#L256">src/AgentServer.ts:256</a></li></ul></aside></div></li></ul></section></section></details></div>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/AgentServer.ts#L282">src/AgentServer.ts:282</a></li></ul></aside></div></li></ul></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
