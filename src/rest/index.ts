@@ -126,6 +126,11 @@ export type {
   QueryParams,
 } from './types.js';
 
+// Generated wire & serialization DTOs — the `*Request`/`*Response` types every
+// RestClient method takes and returns, re-exported so consumers can name a typed
+// request body or method result (issue #19530). See types.public.generated.ts.
+export type * from './types.public.generated.js';
+
 // Base classes
 export { BaseResource } from './base/BaseResource.js';
 export { CrudResource } from './base/CrudResource.js';

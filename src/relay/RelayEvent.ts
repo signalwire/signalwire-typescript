@@ -14,7 +14,7 @@ import type { Device } from './types.js';
  * applies a boundary cast to the expected field type while preserving the
  * exact `value ?? default` runtime semantics.
  */
-type EventPayload = Record<string, unknown>;
+export type EventPayload = Record<string, unknown>;
 
 /**
  * Boundary accessor for raw wire fields. Compile-time only: identical at
