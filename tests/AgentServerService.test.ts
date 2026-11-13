@@ -610,3 +610,53 @@ describe('mounting a service, fifth review (found in review)', () => {
     }
   });
 });
+
+/** Codex's sixth review. */
+describe('routing callbacks, sixth review (found in review)', () => {
+  const auth = { Authorization: AUTH, 'Content-Type': 'application/json' };
+  const post = (app: Hono, path: string, headers: Record<string, string> = auth) =>
+    app.request(path, { method: 'POST', headers, body: JSON.stringify({ call: {} }) });
+  const menu = () => new SWMLService({ name: 'menu', route: '/menu', basicAuth: ['u', 'p'] });
+
+  it('dispatches a callback registered at /', async () => {
+    const s = menu();
+    s.registerRoutingCallback(() => '/destination', '/');
+    expect((await post(s.getApp(), '/')).headers.get('location')).toBe('/destination');
+    const host = new Hono();
+    host.route('/voice', s.getApp());
+    expect((await post(host, '/voice')).headers.get('location')).toBe('/destination');
+  });
+
+  it('matches percent-encoded callback paths as sent, without decoded aliases', async () => {
+    const s = menu();
+    s.registerRoutingCallback(() => '/pct', '/literal%25');
+    s.registerRoutingCallback(() => '/slash', '/literal%2Fpath');
+    s.registerRoutingCallback(() => '/ab', '/a/b');
+    const host = new Hono();
+    host.route('/voice', s.asRouter());
+    for (const app of [s.getApp(), host]) {
+      const at = (p: string) => (app === host ? `/voice${p}` : p);
+      expect((await post(app, at('/literal%25'))).headers.get('location')).toBe('/pct');
+      expect((await post(app, at('/literal%2Fpath'))).headers.get('location')).toBe('/slash');
+      expect((await post(app, at('/a%2Fb'))).status).toBe(404);
+      expect((await post(app, at('/a/b'))).headers.get('location')).toBe('/ab');
+    }
+  });
+
+  it("lets the app's error handler answer a callback's auth refusal", async () => {
+    const s = menu();
+    s.registerRoutingCallback(() => '/destination', '/sip');
+    const router = s.asRouter();
+    let errors = 0;
+    router.onError((_err, c) => {
+      errors++;
+      return c.json({ custom: true }, 401);
+    });
+    const host = new Hono();
+    host.route('/voice', router);
+    const res = await post(host, '/voice/sip', { 'Content-Type': 'application/json' });
+    expect(await res.json()).toEqual({ custom: true });
+    expect(errors).toBe(1);
+    expect(res.headers.get('x-frame-options')).toBe('DENY');
+  });
+});

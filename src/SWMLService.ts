@@ -9,7 +9,6 @@
 import type { AgentBase } from './AgentBase.js';
 import { Hono } from 'hono';
 import { TrieRouter } from 'hono/router/trie-router';
-import { HTTPException } from 'hono/http-exception';
 import type { Context, MiddlewareHandler } from 'hono';
 import type { HostAppRouter } from './web.js';
 import { cors } from 'hono/cors';
@@ -666,41 +665,60 @@ export class SWMLService {
     // Routing callbacks last, so the SWAIG and main routes keep precedence.
     // Looked up per request: one registered or replaced later still answers.
     // The remainder parameter is the path after wherever the app is mounted,
-    // as routing resolved the mount. On the router the guards run only when a
-    // callback answers, so a neighbouring route is left alone.
-    const dispatch: MiddlewareHandler = async (c, next) => {
-      const rest = c.req.param(CALLBACK_REST) ?? '';
-      const relative = `/${rest.split('/').filter(Boolean).join('/')}`;
-      const callbackFn = this._matchCallback(relative, base);
-      if (!callbackFn) return next();
-      const chain = scoped ? guards : [];
-      // Composed as Hono composes middleware: each step's response lands on
-      // the context, so the outer steps' headers apply to it.
-      const run = async (i: number): Promise<void> => {
-        if (i === chain.length) {
-          c.res =
-            c.req.method === 'OPTIONS'
-              ? c.body(null, 204)
-              : await this._serveRoutingCallback(c, callbackFn);
-          return;
-        }
-        try {
-          const out = await chain[i]!(c, () => run(i + 1));
-          if (out instanceof Response) c.res = out;
-        } catch (err) {
-          if (!(err instanceof HTTPException)) throw err;
-          c.res = err.getResponse();
-        }
-      };
-      await run(0);
-      return c.res;
+    // as routing resolved the mount. The guards are part of the route's chain,
+    // so Hono composes them (an app's onError included), but each runs only
+    // for a request a callback answers, so a neighbouring route is left alone.
+    const answering = new WeakMap<Context, RoutingCallback>();
+    const match: MiddlewareHandler = async (c, next) => {
+      const callbackFn = this._matchCallback(this._callbackRest(c), base);
+      if (callbackFn) answering.set(c, callbackFn);
+      await next();
     };
-    app.on(
+    const whenAnswering =
+      (mw: MiddlewareHandler): MiddlewareHandler =>
+      (c, next) =>
+        answering.has(c) ? mw(c, next) : next();
+    const serve: MiddlewareHandler = async (c, next) => {
+      const callbackFn = answering.get(c);
+      if (!callbackFn) return next();
+      if (c.req.method === 'OPTIONS') return c.body(null, 204);
+      return this._serveRoutingCallback(c, callbackFn);
+    };
+    on(
       scoped ? ['GET', 'POST', 'OPTIONS'] : ['GET', 'POST'],
-      `/:${CALLBACK_REST}{.+}`,
-      dispatch,
+      ['/', `/:${CALLBACK_REST}{.+}`] as unknown as string,
+      match,
+      ...(scoped ? guards.map(whenAnswering) : []),
+      serve,
     );
     return app;
+  }
+
+  /**
+   * A routing-callback request's path after the app's mount, as it was sent:
+   * the remainder parameter decodes percent escapes, and a callback matches
+   * the path as routing does, with them, so the raw suffix that decodes to it
+   * is used. Without repeated or trailing slashes.
+   */
+  private _callbackRest(c: Context): string {
+    const decoded = c.req.param(CALLBACK_REST) ?? '';
+    const decode = (p: string) => {
+      try {
+        return decodeURIComponent(p);
+      } catch {
+        return p;
+      }
+    };
+    const parts = c.req.path.split('/');
+    let rest = decoded;
+    for (let k = 1; k < parts.length; k++) {
+      const candidate = parts.slice(parts.length - k).join('/');
+      if (decode(candidate) === decoded) {
+        rest = candidate;
+        break;
+      }
+    }
+    return `/${rest.split('/').filter(Boolean).join('/')}`;
   }
 
   /**
