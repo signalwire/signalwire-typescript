@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 8421bb689ee442b4c411738ba24cb4b8fad2f017",
+  "generated_from": "signalwire-typescript @ 01de3b5f2ad0811b4868bcdf8d9e8a184560ec40",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -531,7 +531,8 @@
       },
       "functions": [
         "create_simple_context",
-        "expected_answer"
+        "expected_answer",
+        "named_tools"
       ]
     },
     "signalwire.core.data_map": {
@@ -589,6 +590,7 @@
           "hold",
           "join_conference",
           "join_room",
+          "no_barge_next_response",
           "pay",
           "play_background_file",
           "post_process",
@@ -4014,6 +4016,7 @@
     },
     "signalwire.testing.call_simulator": {
       "classes": {
+        "ToolMentionError": [],
         "SimulatedCall": [
           "__init__",
           "__repr__",

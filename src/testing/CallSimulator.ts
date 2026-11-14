@@ -22,6 +22,7 @@
 import { appendFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import type { AgentBase } from '../AgentBase.js';
+import { namedTools } from '../ContextBuilder.js';
 import { FunctionResult } from '../FunctionResult.js';
 import { RESERVED_FUNCTION_NAMES } from '../SemanticGate.js';
 import { SwaigFunction } from '../SwaigFunction.js';
@@ -43,6 +44,11 @@ const NAVIGATION = ['next_step', 'change_context'];
 // The most gate marks the platform keeps for a call
 const MAX_MARKS = 16;
 const VARIABLE = /\$\{([A-Za-z0-9_.]+)\}/g;
+
+/** A tool result named a tool the step it left the call in doesn't offer. */
+export class ToolMentionError extends Error {
+  override name = 'ToolMentionError';
+}
 
 /** What one tool call came to in the simulation. */
 export class SimulatedCall {
@@ -119,6 +125,14 @@ export interface CallSimulatorOptions {
   stubs?: Record<string, ToolStub>;
   /** Global data to start with, over the agent's own. */
   globalData?: Json;
+  /**
+   * True to fail a call whose result, or the gate output that blocked it,
+   * names a tool the step it leaves the call in doesn't offer, after its own
+   * step or context change: the model reads the name and may call a tool it
+   * doesn't have. `call()` then rejects with a {@link ToolMentionError}. Names
+   * are found as rendering finds them in step text ({@link namedTools}).
+   */
+  checkToolMentions?: boolean;
 }
 
 /**
@@ -172,6 +186,7 @@ export class CallSimulator {
 
   private readonly gates?: GateCallback;
   private readonly stubs: Record<string, ToolStub>;
+  private readonly checkToolMentions: boolean;
   private readonly contexts: Record<string, Json>;
   private readonly toggled = new Map<string, boolean>();
   private toolCalls = 0;
@@ -186,6 +201,7 @@ export class CallSimulator {
     this.callId = opts.callId ?? 'simulated-call';
     this.gates = opts.gates;
     this.stubs = { ...(opts.stubs ?? {}) };
+    this.checkToolMentions = opts.checkToolMentions ?? false;
     const ai = aiVerb(JSON.parse(agent.renderSwml(this.callId)) as Json);
     this.params = structuredClone(asRecord(ai['params']));
     this.globalData = {
@@ -265,6 +281,8 @@ export class CallSimulator {
    * @param args - Its arguments.
    * @returns What the call came to.
    * @throws Error when the call has ended, or for a DataMap tool without a stub.
+   * @throws {ToolMentionError} With `checkToolMentions`, for a result that names a
+   *   tool the step it leaves the call in doesn't offer.
    */
   async call(name: string, args: Json = {}): Promise<SimulatedCall> {
     if (this.ended) throw new Error('the call has ended');
@@ -289,7 +307,21 @@ export class CallSimulator {
     }
     this.log({ role: 'tool', content: outcome.response });
     this.calls.push(outcome);
+    if (this.checkToolMentions && outcome.blockedBy !== 'step') this.checkMentions(outcome);
     return outcome;
+  }
+
+  private checkMentions(outcome: SimulatedCall): void {
+    const text = `${outcome.response} ${outcome.toolPrompt ?? ''}`;
+    const offered = new Set(this.offered());
+    const named = [...namedTools(text, this.tools())].filter((t) => !offered.has(t)).sort();
+    if (named.length > 0) {
+      const where = this.step ? `step '${this.step}'` : 'the call';
+      throw new ToolMentionError(
+        `${outcome.name}'s result names ${named.join(', ')}, which ${where} doesn't offer: ` +
+          JSON.stringify(text.trim()),
+      );
+    }
   }
 
   /**
