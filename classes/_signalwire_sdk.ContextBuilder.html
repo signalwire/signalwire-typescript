@@ -138,8 +138,8 @@ can navigate the flow:</p>
 <li><code>next_step(step: enum)</code>         — present when validSteps is set</li>
 <li><code>change_context(context: enum)</code> — present when validContexts is set</li>
 </ul>
-<p>Their <code>enum</code> schemas are rewritten on every turn to match whatever
-validSteps / validContexts apply to the current step. You do NOT need
+<p>Their <code>enum</code> schemas are rewritten when a step loads, to match whatever
+validSteps / validContexts apply to that step. You do NOT need
 to define these tools yourself; they appear automatically.</p>
 <p>A third native tool — <code>gather_submit</code> — is injected during gather_info
 questioning (see Step.setGatherInfo / addGatherQuestion).</p>
@@ -179,7 +179,7 @@ See Step.setFunctions() for details and examples.</p>
 </ul>
 </div></div></section><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/ContextBuilder.ts#L1219">src/ContextBuilder.ts:1219</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/ContextBuilder.ts#L1430">src/ContextBuilder.ts:1430</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -191,10 +191,12 @@ See Step.setFunctions() for details and examples.</p>
 </div></section>
 <section class="tsd-index-section">
 <h3 class="tsd-index-heading tsd-anchor-link" id="methods">Methods<a href="#methods" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
-<div class="tsd-index-list"><a href="#addcontext" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>add<wbr/>Context</span></a>
+<div class="tsd-index-list"><a href="#_shareunofferedwarnings" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>_<wbr/>share<wbr/>Unoffered<wbr/>Warnings</span></a>
+<a href="#addcontext" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>add<wbr/>Context</span></a>
 <a href="#attachagent" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>attach<wbr/>Agent</span></a>
 <a href="#getcontext" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Context</span></a>
 <a href="#reset" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>reset</span></a>
+<a href="#stepsoffering" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>steps<wbr/>Offering</span></a>
 <a href="#todict" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>to<wbr/>Dict</span></a>
 <a href="#tojson" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>to<wbr/>JSON</span></a>
 <a href="#validate" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>validate</span></a>
@@ -212,6 +214,22 @@ See Step.setFunctions() for details and examples.</p>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="methods-1">Methods<a href="#methods-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="_shareunofferedwarnings"><span>_<wbr/>share<wbr/>Unoffered<wbr/>Warnings</span><a href="#_shareunofferedwarnings" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="_shareunofferedwarnings-1"><span class="tsd-kind-call-signature">_shareUnofferedWarnings</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">warned</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Set</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">this</span><a href="#_shareunofferedwarnings-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description"><code class="tsd-tag">Internal</code>
+<div class="tsd-comment tsd-typography"><p>Record the tools reported as offered by no step in <code>warned</code>, a set the
+agent keeps for itself and its per-request copies.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">warned</span>: <span class="tsd-signature-type">Set</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/ContextBuilder.ts#L1457">src/ContextBuilder.ts:1457</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="addcontext"><span>add<wbr/>Context</span><a href="#addcontext" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -235,7 +253,7 @@ its only context <code>&quot;default&quot;</code>.</p>
 the same name already exists.</p>
 </div></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/ContextBuilder.ts#L1256">src/ContextBuilder.ts:1256</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/ContextBuilder.ts#L1483">src/ContextBuilder.ts:1483</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="attachagent"><span>attach<wbr/>Agent</span><a href="#attachagent" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -252,7 +270,7 @@ AgentBase.defineContexts().</p>
 <li><span><span class="tsd-kind-parameter">agent</span>: <span class="tsd-signature-type">unknown</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/ContextBuilder.ts#L1230">src/ContextBuilder.ts:1230</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/ContextBuilder.ts#L1447">src/ContextBuilder.ts:1447</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getcontext"><span>get<wbr/>Context</span><a href="#getcontext" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -270,7 +288,7 @@ AgentBase.defineContexts().</p>
 <h4 class="tsd-returns-title">Returns <a href="_signalwire_sdk.Context.html" class="tsd-signature-type tsd-kind-class">Context</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">undefined</span></h4><p>The matching Context, or undefined if not found.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/ContextBuilder.ts#L1272">src/ContextBuilder.ts:1272</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/ContextBuilder.ts#L1499">src/ContextBuilder.ts:1499</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="reset"><span>reset</span><a href="#reset" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -284,7 +302,30 @@ contexts from scratch for a specific request.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4><p>This builder for chaining.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/ContextBuilder.ts#L1241">src/ContextBuilder.ts:1241</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/ContextBuilder.ts#L1468">src/ContextBuilder.ts:1468</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="stepsoffering"><span>steps<wbr/>Offering</span><a href="#stepsoffering" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="stepsoffering-1"><span class="tsd-kind-call-signature">stepsOffering</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">functionName</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">[]</span><a href="#stepsoffering-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>The steps whose function list offers <code>functionName</code>, as
+<code>[context, step]</code> pairs in order, including a gather question's functions.</p>
+<p>A step without <code>setFunctions()</code> keeps whatever was active before it, so it
+isn't counted: what it offers depends on the step the call came from. The
+platform's reply to a call of a tool the current step doesn't offer names
+the same steps.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">functionName</span>: <span class="tsd-signature-type">string</span></span>
+<div class="tsd-comment tsd-typography"><p>The function's name.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">[]</span></h4><p>The <code>[context name, step name]</code> pairs, empty when no step lists it.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/ContextBuilder.ts#L1724">src/ContextBuilder.ts:1724</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="todict"><span>to<wbr/>Dict</span><a href="#todict" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -296,7 +337,7 @@ contexts from scratch for a specific request.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">ContextDict</span><span class="tsd-signature-symbol">&gt;</span></h4><p>A dictionary mapping context names to their serialized representations.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/ContextBuilder.ts#L1479">src/ContextBuilder.ts:1479</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/ContextBuilder.ts#L1855">src/ContextBuilder.ts:1855</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="tojson"><span>to<wbr/>JSON</span><a href="#tojson" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -308,7 +349,7 @@ contexts from scratch for a specific request.</p>
 </div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">ContextDict</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/ContextBuilder.ts#L1492">src/ContextBuilder.ts:1492</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/ContextBuilder.ts#L1868">src/ContextBuilder.ts:1868</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="validate"><span>validate</span><a href="#validate" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -323,7 +364,7 @@ contexts from scratch for a specific request.</p>
 <h4 class="tsd-anchor-link" id="throws-1">Throws<a href="#throws-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><p>Error if validation fails.</p>
 </div></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/2d7b775c5b351f4f570c0c8f3825eb8116f1d9bc/src/ContextBuilder.ts#L1280">src/ContextBuilder.ts:1280</a></li></ul></aside></div></li></ul></section></section></details></div>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/ContextBuilder.ts#L1507">src/ContextBuilder.ts:1507</a></li></ul></aside></div></li></ul></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -342,7 +383,7 @@ contexts from scratch for a specific request.</p>
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Constructors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Constructors</summary>
 <div><a href="#constructor"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Constructor"><use href="../assets/icons.svg#icon-512"></use></svg><span>constructor</span></a></div></details>
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Methods</summary>
-<div><a href="#addcontext"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>add<wbr/>Context</span></a><a href="#attachagent"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>attach<wbr/>Agent</span></a><a href="#getcontext"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Context</span></a><a href="#reset"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>reset</span></a><a href="#todict"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>to<wbr/>Dict</span></a><a href="#tojson"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>to<wbr/>JSON</span></a><a href="#validate"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>validate</span></a></div></details></div></details></div>
+<div><a href="#_shareunofferedwarnings"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>_<wbr/>share<wbr/>Unoffered<wbr/>Warnings</span></a><a href="#addcontext"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>add<wbr/>Context</span></a><a href="#attachagent"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>attach<wbr/>Agent</span></a><a href="#getcontext"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Context</span></a><a href="#reset"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>reset</span></a><a href="#stepsoffering"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>steps<wbr/>Offering</span></a><a href="#todict"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>to<wbr/>Dict</span></a><a href="#tojson"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>to<wbr/>JSON</span></a><a href="#validate"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>validate</span></a></div></details></div></details></div>
 <div class="site-menu">
 <nav class="tsd-navigation"><a href="../index.html">SignalWire TypeScript SDK</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">
