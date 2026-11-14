@@ -3,7 +3,46 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## 3.9.0 (2026-11-13)
+
+Parity with signalwire-python 3.9.0: tool-name and reset checks, a
+`noBargeNextResponse()` action, and doc fixes after 3.8.0. It's the first
+release with the 3.8.0 changes below.
+
+### Added
+
+- Rendering logs `tool_named_but_not_offered`, once each, when a step that
+  lists its functions names a registered tool it doesn't offer: in its text,
+  its criteria, its context's prompt, a gather question, or a gate's output on
+  one of its tools. The model reads the name and may call a tool it doesn't
+  have. `namedTools(text, tools)` finds the names; a one-word name counts only
+  in backticks or before "(".
+- `FunctionResult.noBargeNextResponse()` has the next spoken reply play whole,
+  with what the caller says during it held until after it. It needs a platform
+  release that has the action.
+- Rendering logs `step_reset_is_terminal` for a step with a reset, whose text
+  the platform never runs, and `context_reset_without_system_prompt` for a
+  context's consolidate, full reset or user prompt, which act only with a
+  system prompt. Each is logged once, across per-request copies too.
+- `new CallSimulator(agent, { checkToolMentions: true })` rejects a call with
+  `ToolMentionError` when its result names a tool the step it leaves the call
+  in doesn't offer.
+
+### Fixed
+
+- The docs said a slow tool can run more than once on a retry; since 3.8.0 the
+  agent answers a retry with the first attempt's result. They now say the
+  record is kept per process, so with several replicas a retry that reaches
+  another one runs the tool again.
+- `Context.setIsolated()` says what the platform does: it drops every entry
+  but the base prompt, rather than the whole conversation.
+- The step reset methods say what the platform does: a step with a reset is
+  terminal. The `next_step` schema is rewritten when a step loads, not every
+  turn.
+
 ## 3.8.0 (2026-11-13)
+
+Tagged but not published: its changes first ship in 3.9.0.
 
 Parity with signalwire-python 3.8.0, the voice-agent toolkit: newer semantic
 gate keys, tool outcomes and options, tool middleware with retry dedupe, the
