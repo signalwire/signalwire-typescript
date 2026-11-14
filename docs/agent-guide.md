@@ -373,7 +373,7 @@ A handler runs on Node's event loop. Synchronous or CPU-heavy work in a handler 
 
 ### Slow tools and the webhook timeout
 
-SignalWire waits up to 30 seconds to connect to a SWAIG function's webhook and up to 120 seconds for its reply. When a request fails, times out or gets an error response (5xx), it sends the same request again, up to 3 more times, a second apart. The agent answers such a retry with the first attempt's result, and one that arrives while the first is still running waits for it (`setToolResendDedupe()`), so the tool runs once. The caller still hears nothing from it in the meantime.
+SignalWire waits up to 30 seconds to connect to a SWAIG function's webhook and up to 120 seconds for its reply. When a request fails, times out or gets an error response (5xx), it sends the same request again, up to 3 more times, a second apart. The agent answers such a retry with the first attempt's result, and one that arrives while the first is still running waits for it (`setToolResendDedupe()`), so the tool doesn't run twice while the agent keeps that result: in its process, for 10 minutes, up to 1,024 results. The caller still hears nothing from it in the meantime.
 
 Answer within a few seconds. When the work takes longer, start it without awaiting it, return at once with a reply that tells the model the result is on its way, and send the result into the call when it's ready with the REST API's `calling.ai_message` (`calling.aiMessage()` on a `RestClient`):
 

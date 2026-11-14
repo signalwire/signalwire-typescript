@@ -476,7 +476,7 @@ While a question is asked, the platform deactivates the step's other functions. 
 |---|---|---|---|
 | `outputKey` | `string` | none | Key in global data that holds the answers. Without it, each answer is stored at the top level. |
 | `completionAction` | `string` | none | Where to go when every question is answered: `'next_step'` for the following step, or the name of a step in the same context. Without it, the step returns to its normal text. |
-| `prompt` | `string` | none | Text the platform adds once, when the first question starts. |
+| `prompt` | `string` | none | Preamble sent with every question, as a system message ahead of the question's own; each copy replaces the one before. Under the `keep` history mode it's sent with the first question only, and that copy stays. |
 | `isolated` | `boolean` | `false` | Default for every question. When `true`, a question is asked with the other questions and answers hidden from the model, so it must ask rather than work out the answer from an earlier one. The hidden turns stay in the call log. |
 
 `validate()` throws when `completionAction` is `'next_step'` on the last step of a context, or names a step that isn't in the context.
