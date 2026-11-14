@@ -697,6 +697,54 @@ export class Step {
   _hasFunctionList(): boolean {
     return this.functions !== null;
   }
+  /**
+   * The step's own function list: null when it inherits the list before it,
+   * empty for `'none'`.
+   * @internal
+   */
+  _offeredFunctions(): string[] | null {
+    if (Array.isArray(this.functions)) return [...this.functions];
+    return this.functions === 'none' ? [] : null;
+  }
+
+  /**
+   * Whether the step has a reset, which makes it terminal.
+   * @internal
+   */
+  _hasReset(): boolean {
+    return (
+      this.resetSystemPrompt !== null ||
+      this.resetUserPrompt !== null ||
+      this.resetConsolidate ||
+      this.resetFullReset
+    );
+  }
+
+  /**
+   * What the model reads in this step, as `[where, text, tools also offered
+   * there]`: its text, its criteria, and its gather questions.
+   * @internal
+   */
+  _modelTexts(): Array<[string, string, string[]]> {
+    let text = '';
+    try {
+      text = this.renderText();
+    } catch {
+      // A step without text fails validation on its own
+    }
+    const texts: Array<[string, string, string[]]> = [
+      ['text', text, []],
+      ['criteria', this.stepCriteria ?? '', []],
+    ];
+    for (const q of this.gatherInfo?.getQuestions() ?? []) {
+      texts.push([
+        `gather question ${q.key}`,
+        `${q.question} ${q.prompt ?? ''}`,
+        q.functions ?? [],
+      ]);
+    }
+    return texts;
+  }
 
   /**
    * Returns this step's function whitelist as an array of tool NAMES to
@@ -721,7 +769,11 @@ export class Step {
   }
 
   /**
-   * Sets the system prompt to use when resetting context at this step.
+   * Set the system prompt this step's reset loads.
+   *
+   * A step with any reset setting is terminal: when the call enters it, the
+   * platform runs the reset in place of the step's text, and step mode ends
+   * there. Use it for a step that hands the call over to a new prompt.
    * @param systemPrompt - The replacement system prompt text.
    * @returns This step for chaining.
    */
@@ -731,7 +783,11 @@ export class Step {
   }
 
   /**
-   * Sets the user prompt to use when resetting context at this step.
+   * Set the user message this step's reset adds.
+   *
+   * A step with any reset setting is terminal: when the call enters it, the
+   * platform runs the reset in place of the step's text, and step mode ends
+   * there. Use it for a step that hands the call over to a new prompt.
    * @param userPrompt - The replacement user prompt text.
    * @returns This step for chaining.
    */
@@ -741,7 +797,11 @@ export class Step {
   }
 
   /**
-   * Sets whether to consolidate conversation history when resetting at this step.
+   * Set whether this step's reset consolidates the conversation into a summary.
+   *
+   * A step with any reset setting is terminal: when the call enters it, the
+   * platform runs the reset in place of the step's text, and step mode ends
+   * there. Use it for a step that hands the call over to a new prompt.
    * @param consolidate - Whether to consolidate.
    * @returns This step for chaining.
    */
@@ -751,7 +811,12 @@ export class Step {
   }
 
   /**
-   * Sets whether to perform a full conversation reset at this step.
+   * Set whether this step's reset replaces the system prompt, seeded with the
+   * consolidated summary, rather than adding to it.
+   *
+   * A step with any reset setting is terminal: when the call enters it, the
+   * platform runs the reset in place of the step's text, and step mode ends
+   * there. Use it for a step that hands the call over to a new prompt.
    * @param fullReset - Whether to fully reset.
    * @returns This step for chaining.
    */
@@ -1032,8 +1097,9 @@ export class Context {
    * Mark this context as isolated — entering it wipes conversation history.
    *
    * When `isolated=true` and the context is entered via change_context, the
-   * runtime wipes the conversation array. The model starts fresh with only
-   * the new context's systemPrompt + step instructions, with no memory of
+   * runtime calls ai_conversation_restart(), which drops every conversation
+   * entry but the first, the base system prompt. The model starts fresh with
+   * the base prompt and the new context's step instructions, with no memory of
    * prior turns.
    *
    * EXCEPTION — `reset` overrides the wipe:
@@ -1211,6 +1277,28 @@ export class Context {
     if (!this.systemPromptSections.length) return null;
     return this.renderSections(this.systemPromptSections);
   }
+  /**
+   * The context's prompt, which goes before every step's text.
+   * @internal
+   */
+  _modelPrompt(): string | null {
+    return this.renderPrompt();
+  }
+
+  /**
+   * The reset settings that do nothing because the context has no system
+   * prompt: the platform runs a context's reset only with one.
+   * @internal
+   */
+  _inertResetSettings(): string[] {
+    if (this.renderSystemPrompt() !== null) return [];
+    const settings: Array<[string, unknown]> = [
+      ['consolidate', this._consolidate],
+      ['full_reset', this._fullReset],
+      ['user_prompt', this._userPrompt],
+    ];
+    return settings.filter(([, value]) => value).map(([name]) => name);
+  }
 
   private renderSections(sections: StepSection[]): string {
     const parts: string[] = [];
@@ -1281,8 +1369,8 @@ export class Context {
  *   - `next_step(step: enum)`         — present when validSteps is set
  *   - `change_context(context: enum)` — present when validContexts is set
  *
- * Their `enum` schemas are rewritten on every turn to match whatever
- * validSteps / validContexts apply to the current step. You do NOT need
+ * Their `enum` schemas are rewritten when a step loads, to match whatever
+ * validSteps / validContexts apply to that step. You do NOT need
  * to define these tools yourself; they appear automatically.
  *
  * A third native tool — `gather_submit` — is injected during gather_info
@@ -1609,10 +1697,17 @@ export class ContextBuilder {
         );
       }
 
-      this.warnUnofferedTools(
-        registered.map((t) => t?.name).filter((n): n is string => typeof n === 'string'),
+      const names = registered
+        .map((t) => t?.name)
+        .filter((n): n is string => typeof n === 'string');
+      this.warnUnofferedTools(names);
+      const getFunction = (this.agent as { getFunction?: (name: string) => unknown }).getFunction;
+      this.warnToolMentions(names, (name) =>
+        typeof getFunction === 'function' ? getFunction.call(this.agent, name) : undefined,
       );
     }
+
+    this.warnInertResets();
   }
 
   /**
@@ -1636,6 +1731,94 @@ export class ContextBuilder {
       }
     }
     return found;
+  }
+
+  /**
+   * Log, once each, reset settings that don't do what they read as: a step
+   * with a reset is terminal, so its text never runs; and a context's
+   * consolidate, full_reset and user_prompt act only with a system prompt,
+   * whose presence runs the context's reset.
+   */
+  private warnInertResets(): void {
+    for (const contextName of this.contextOrder) {
+      const ctx = this.contexts.get(contextName);
+      if (!ctx) continue;
+      const inert = ctx._inertResetSettings();
+      const contextKey = JSON.stringify(['context', contextName]);
+      if (inert.length > 0 && !this.unofferedWarned.has(contextKey)) {
+        this.unofferedWarned.add(contextKey);
+        log.warn('context_reset_without_system_prompt', {
+          context: contextName,
+          settings: inert,
+          hint:
+            "The platform runs a context's reset only when it has a system_prompt, " +
+            'so these do nothing; add setSystemPrompt().',
+        });
+      }
+      for (const [stepName, step] of ctx.getSteps()) {
+        const key = JSON.stringify(['step', contextName, stepName]);
+        if (this.unofferedWarned.has(key) || !step._hasReset()) continue;
+        this.unofferedWarned.add(key);
+        log.warn('step_reset_is_terminal', {
+          context: contextName,
+          step: stepName,
+          hint:
+            'A step with a reset is terminal: the platform runs the reset in place ' +
+            'of its text and step mode ends there.',
+        });
+      }
+    }
+  }
+
+  /**
+   * Log, once each, a registered tool named where the step doesn't offer it:
+   * in its text, its criteria, its context's prompt (which goes before every
+   * step's text), a gather question, or a gate's output on one of its tools.
+   * The model reads the name and may call a tool it doesn't have. A step
+   * without a function list is skipped: what it offers depends on the step
+   * before it.
+   */
+  private warnToolMentions(registered: string[], definitionOf: (name: string) => unknown): void {
+    const tools = registered.filter(
+      (name) => !RESERVED_FUNCTION_NAMES.has(name) && !RESERVED_NATIVE_TOOL_NAMES.has(name),
+    );
+    if (tools.length === 0) return;
+    for (const contextName of this.contextOrder) {
+      const ctx = this.contexts.get(contextName);
+      if (!ctx) continue;
+      const prompt = ctx._modelPrompt() ?? '';
+      for (const [stepName, step] of ctx.getSteps()) {
+        const list = step._offeredFunctions();
+        if (list === null) continue;
+        const offered = new Set(list);
+        const texts = step._modelTexts();
+        texts.splice(2, 0, ['context prompt', prompt, []]);
+        for (const tool of [...offered].sort()) {
+          for (const [gate, output] of gateTexts(definitionOf(tool))) {
+            texts.push([`${tool} gate ${gate}`, output, []]);
+          }
+        }
+        for (const [where, text, also] of texts) {
+          const named = [...namedTools(text, tools)]
+            .filter((t) => !offered.has(t) && !also.includes(t))
+            .sort();
+          for (const tool of named) {
+            const key = JSON.stringify([contextName, stepName, where, tool]);
+            if (this.unofferedWarned.has(key)) continue;
+            this.unofferedWarned.add(key);
+            log.warn('tool_named_but_not_offered', {
+              context: contextName,
+              step: stepName,
+              where,
+              function: tool,
+              hint:
+                "The model reads this name in a step that doesn't offer the tool. " +
+                "Name only the step's own tools; move the work to the step that offers it.",
+            });
+          }
+        }
+      }
+    }
   }
 
   /**
@@ -1696,6 +1879,59 @@ export class ContextBuilder {
  */
 export function createSimpleContext(name = 'default'): Context {
   return new Context(name);
+}
+
+/**
+ * The tool names `text` names.
+ *
+ * A name with an underscore, such as `place_order`, counts as a whole word
+ * anywhere. A one-word name, such as `help`, counts only in backticks or before
+ * "(", since it's also an ordinary word.
+ *
+ * @param text - The text: a step's, a prompt's or a tool result's.
+ * @param tools - The tool names to look for.
+ * @returns The names it finds.
+ */
+export function namedTools(text: string | null | undefined, tools: Iterable<string>): Set<string> {
+  const found = new Set<string>();
+  if (!text) return found;
+  for (const name of tools) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = name.includes('_')
+      ? new RegExp(`(?<![A-Za-z0-9_])${escaped}(?![A-Za-z0-9_])`)
+      : new RegExp(`\`${escaped}\`|(?<![A-Za-z0-9_])${escaped}\\(`);
+    if (pattern.test(text)) found.add(name);
+  }
+  return found;
+}
+
+/** Each gate's output text on a tool, as `[gate id, text]`. */
+function gateTexts(definition: unknown): Array<[string, string]> {
+  let gates: unknown;
+  if (definition && typeof definition === 'object') {
+    const fields = (definition as { extraFields?: Record<string, unknown> }).extraFields;
+    gates = fields ? fields['gates'] : (definition as Record<string, unknown>)['gates'];
+  }
+  if (!Array.isArray(gates)) return [];
+  const texts: Array<[string, string]> = [];
+  gates.forEach((gate: unknown, index) => {
+    if (!gate || typeof gate !== 'object' || Array.isArray(gate)) return;
+    const g = gate as Record<string, unknown>;
+    const gateId = String(g['id'] ?? `gate_${index + 1}`);
+    for (const key of ['on_fail', 'on_unclear']) {
+      const output = g[key];
+      let response =
+        output && typeof output === 'object'
+          ? (output as Record<string, unknown>)['response']
+          : undefined;
+      if (response && typeof response === 'object') {
+        const r = response as Record<string, unknown>;
+        response = ['tool_result', 'tool_prompt'].map((k) => String(r[k] ?? '')).join(' ');
+      }
+      if (typeof response === 'string' && response) texts.push([`${gateId} ${key}`, response]);
+    }
+  });
+  return texts;
 }
 
 /** Whether a step's own function list, or one of its gather questions', names `functionName`. */

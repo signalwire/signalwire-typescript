@@ -394,3 +394,36 @@ describe('the third checkpoint review (found in review)', () => {
     expect((await sim.call('__proto__')).response).toBe('ran');
   });
 });
+
+describe('checkToolMentions (Python 3.9.0)', () => {
+  it("fails a result naming a tool the step it leaves the call in doesn't offer", async () => {
+    const { ToolMentionError } = await import('../../src/index.js');
+    const agent = bare();
+    agent.defineTool({
+      name: 'find_store',
+      description: 'Find',
+      handler: () =>
+        new FunctionResult(undefined, false, 'Store 12.', 'Now call place_order.').swmlChangeStep(
+          'pick',
+        ),
+    });
+    agent.defineTool({ name: 'place_order', description: 'Order', handler: () => 'ok' });
+    agent.defineTool({
+      name: 'pick_time',
+      description: 'Pick',
+      handler: () => new FunctionResult('Picked. Next, place_order.').swmlChangeStep('order'),
+    });
+    const ctx = agent.defineContexts().addContext('default');
+    ctx.addStep('find').setText('Find.').setFunctions(['find_store']);
+    ctx.addStep('pick').setText('Pick.').setFunctions(['pick_time']);
+    ctx.addStep('order').setText('Order.').setFunctions(['place_order']);
+    const sim = new CallSimulator(agent, { checkToolMentions: true });
+    const failed = sim.call('find_store');
+    await expect(failed).rejects.toBeInstanceOf(ToolMentionError);
+    await expect(failed).rejects.toThrow("names place_order, which step 'pick'");
+    // Naming the tool of the step the result moves the call to is fine
+    expect((await sim.call('pick_time')).ran).toBe(true);
+    // Off by default
+    await new CallSimulator(agent).call('find_store');
+  });
+});

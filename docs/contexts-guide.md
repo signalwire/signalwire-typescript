@@ -359,6 +359,8 @@ The SDK checks every name in a `functions` list, and in each gather question's `
 
 `ContextBuilder.stepsOffering(name)` returns the `[context, step]` pairs whose function list, or a gather question's, names a tool. The functions a step without `setFunctions()` inherits from the step before it aren't counted, since they depend on how the caller got there; its gather questions' own function lists are. When every step lists its functions and none lists a registered tool, rendering the SWML logs a `tool_offered_by_no_step` warning for it, once: the model never gets that tool unless a function result turns it on with `toggleFunctions()`.
 
+Name only a step's own tools in what the model reads in that step. When a step lists its functions, rendering also logs a `tool_named_but_not_offered` warning, once each, for a registered tool named in the step's text, its criteria, its context's prompt (which goes before every step's text), a gather question, or a gate's output on one of its tools, when the step doesn't offer it. A name with an underscore counts anywhere; a one-word name counts only in backticks or before "(". `namedTools(text, tools)` finds the names. Tool results are built at run time, so check those in tests with `new CallSimulator(agent, { checkToolMentions: true })`.
+
 ```typescript
 const builder = agent.defineContexts();
 console.log(builder.stepsOffering('place_order')); // e.g. [['default', 'confirm']]
@@ -474,7 +476,7 @@ While a question is asked, the platform deactivates the step's other functions. 
 |---|---|---|---|
 | `outputKey` | `string` | none | Key in global data that holds the answers. Without it, each answer is stored at the top level. |
 | `completionAction` | `string` | none | Where to go when every question is answered: `'next_step'` for the following step, or the name of a step in the same context. Without it, the step returns to its normal text. |
-| `prompt` | `string` | none | Text the platform adds once, when the first question starts. |
+| `prompt` | `string` | none | Preamble sent with every question, as a system message ahead of the question's own; each copy replaces the one before. Under the `keep` history mode it's sent with the first question only, and that copy stays. |
 | `isolated` | `boolean` | `false` | Default for every question. When `true`, a question is asked with the other questions and answers hidden from the model, so it must ask rather than work out the answer from an earlier one. The hidden turns stay in the call log. |
 
 `validate()` throws when `completionAction` is `'next_step'` on the last step of a context, or names a step that isn't in the context.
@@ -594,7 +596,7 @@ These settings control what happens to the conversation history when the convers
 
 ### `setIsolated()`
 
-`setIsolated(true)` clears the conversation history when the conversation enters the context through `change_context`. The model starts with the context's system prompt and step instructions only:
+`setIsolated(true)` clears the conversation history when the conversation enters the context through `change_context`: the platform drops every entry but the first, the base system prompt. The model starts with the base prompt and the context's step instructions only:
 
 <!-- snippet: no-run illustrative fragment: references the assumed `cb` from the page prelude (declared type-only in the shared snippet-setup), not a standalone program -->
 ```typescript
@@ -622,7 +624,7 @@ ctx.setFullReset(true);
 
 ### Step-Level Reset Options
 
-A step can reset the conversation when the conversation enters it:
+A step can reset the conversation when the conversation enters it. A step with any reset setting is terminal: the platform runs the reset in place of the step's text, and step mode ends there, so use it for a step that hands the call over to a new prompt. Rendering logs `step_reset_is_terminal` for it, and `context_reset_without_system_prompt` for a context's `setConsolidate()`, `setFullReset()` or `setUserPrompt()` without a system prompt, since a context's reset runs only with one:
 
 ```typescript
 const step = ctx.addStep('fresh_start');

@@ -274,7 +274,8 @@ agent.defineTool({
   request again after a timeout, a failed connection or a 5xx. The agent
   answers such a retry with the first attempt's result while it keeps it (in
   this process, for 10 minutes, up to 1,024 results), so the tool doesn't
-  run twice, but the caller still waits. Start long work without awaiting it,
+  run twice, but the caller still waits. With several replicas, a retry can
+  reach another one, so make tools that change things safe to run twice. Start long work without awaiting it,
   return at once, and send the result into the call with
   \`calling.aiMessage()\` on a \`RestClient\`.
 `,

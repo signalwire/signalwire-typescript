@@ -172,6 +172,7 @@ export {
   createSimpleContext,
   HISTORY_MODES,
   expectedAnswer,
+  namedTools,
   MAX_EXPECTED_DIGITS,
 } from './ContextBuilder.js';
 export type { HistoryMode, ExpectedAnswer } from './ContextBuilder.js';
@@ -479,7 +480,12 @@ export { RequestList } from './patterns/RequestList.js';
 export type { NotedRequest, RequestListOptions } from './patterns/RequestList.js';
 
 // Testing: a simulated call, and recorded tool requests to replay
-export { CallSimulator, SimulatedCall, RequestRecorder } from './testing/CallSimulator.js';
+export {
+  CallSimulator,
+  SimulatedCall,
+  RequestRecorder,
+  ToolMentionError,
+} from './testing/CallSimulator.js';
 export type {
   CallSimulatorOptions,
   GateCallback,

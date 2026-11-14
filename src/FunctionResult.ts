@@ -569,6 +569,21 @@ export class FunctionResult {
   }
 
   /**
+   * Have the next spoken reply play whole, such as a read-back the caller
+   * should hear in full before answering.
+   *
+   * From the start of the next request until a reply that speaks has played,
+   * the caller's words neither cut the reply nor cancel its request: they're
+   * held and delivered after it. For semantic gates, an answer begun during
+   * the reply reads as cutting it at that point, as a barge would. Needs a
+   * platform release that has the action.
+   * @returns This instance for chaining.
+   */
+  noBargeNextResponse(): this {
+    return this.addAction('no_barge_next_response', true);
+  }
+
+  /**
    * Set whether the model may call another function right after a function
    * result, without answering in words first (`back_to_back_functions`).
    *

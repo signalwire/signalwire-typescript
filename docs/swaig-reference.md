@@ -66,6 +66,7 @@ The reference groups the methods by what they do:
 - [Function Control](#function-control)
   - [toggleFunctions](#togglefunctions)
   - [enableFunctionsOnTimeout](#enablefunctionsontimeout)
+  - [noBargeNextResponse](#nobargenextresponse)
   - [backToBackFunctions](#backtobackfunctions)
   - [updateSettings](#updatesettings)
 - [User Input and History](#user-input-and-history)
@@ -1230,6 +1231,23 @@ const r1 = new FunctionResult('The caller may go quiet while searching.')
 // Disallow them
 const r2 = new FunctionResult('Wait for the caller to answer.')
   .enableFunctionsOnTimeout(false);
+```
+
+### noBargeNextResponse
+
+Have the next spoken reply play whole, such as a read-back the caller should hear in full before answering (`no_barge_next_response`). Until a reply that speaks has played, the caller's words neither cut it nor cancel its request: they're held and delivered after it. For semantic gates, an answer begun during the reply reads as cutting it at that point, as a barge would. Needs a platform release that has the action.
+
+<!-- snippet: no-compile API signature reference, not runnable code -->
+```typescript
+noBargeNextResponse(): this
+```
+
+**Returns:** `this` for chaining.
+
+**Example:**
+
+```typescript
+const result = new FunctionResult('Read the order back to the caller.').noBargeNextResponse();
 ```
 
 ### backToBackFunctions

@@ -5062,6 +5062,21 @@
             }
           ],
           "returns": "union<dict<string,any>,dict<string,any>>"
+        },
+        "named_tools": {
+          "params": [
+            {
+              "name": "text",
+              "type": "optional<string>",
+              "required": true
+            },
+            {
+              "name": "tools",
+              "type": "list<string>",
+              "required": true
+            }
+          ],
+          "returns": "list<string>"
         }
       }
     },
@@ -5778,6 +5793,15 @@
                   "name": "name",
                   "type": "string",
                   "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "no_barge_next_response": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
                 }
               ],
               "returns": "any"
@@ -34532,6 +34556,13 @@
                   "kind": "keyword"
                 },
                 {
+                  "name": "check_tool_mentions",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
                   "name": "kwargs",
                   "kind": "var_keyword",
                   "type": "any",
@@ -38358,6 +38389,10 @@
         },
         "call_id": {
           "type": "optional<string>",
+          "required": false
+        },
+        "check_tool_mentions": {
+          "type": "optional<bool>",
           "required": false
         },
         "gates": {

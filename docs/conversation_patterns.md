@@ -138,7 +138,7 @@ The model reads a tool's result as what happened, so the result must not claim m
 - Any other error tells the model the function failed before it finished, so whether it took effect is unknown, and not to tell the caller it worked or that it didn't. The error is logged, not sent. A tool's `onError` hook or `errorMessage` still takes its place when you give one.
 - An object without a `response` or an `action` is the handler's data, and the model gets it as JSON.
 
-SignalWire sends a tool request again after a timeout, a failed connection or a 5xx, so a slow tool could run twice. The agent answers such a retry with the first attempt's result, and one that arrives while the first is still running waits for it. `agent.setToolResendDedupe(false)` turns this off. The dedupe is the first [tool middleware](api-reference.md#addtoolmiddlewaremiddleware) around every call.
+SignalWire sends a tool request again after a timeout, a failed connection or a 5xx, so a slow tool could run twice. The agent answers such a retry with the first attempt's result, and one that arrives while the first is still running waits for it. `agent.setToolResendDedupe(false)` turns this off. The record is kept in the agent's process: with several processes or replicas, a retry that reaches another one runs the tool again, so make tools that change things safe to run twice. The dedupe is the first [tool middleware](api-reference.md#addtoolmiddlewaremiddleware) around every call.
 
 ## Requests to Come Back To
 
@@ -229,7 +229,7 @@ assert.equal((await sim.call('place_order')).ran, true);
 assert.deepEqual(sim.semanticState, { done: 'The order is placed.' });
 ```
 
-The gate callback gets each gate, the simulator and the call's arguments, and returns `true`, `false`, a probability compared with the gate's threshold, or `'unclear'`, or a promise of one. A blocked call's `blockedBy` is `'step'` or the id of the gate that blocked it. Give `stubs` for DataMap tools, which run on the platform. `sim.marks` is a `Map` from each gate mark's name to its place in `sim.callLog`.
+The gate callback gets each gate, the simulator and the call's arguments, and returns `true`, `false`, a probability compared with the gate's threshold, or `'unclear'`, or a promise of one. A blocked call's `blockedBy` is `'step'` or the id of the gate that blocked it. With `checkToolMentions: true`, a call whose result names a tool that the step it leaves the call in doesn't offer rejects with a `ToolMentionError`: the model would read the name and might call a tool it doesn't have. Give `stubs` for DataMap tools, which run on the platform. `sim.marks` is a `Map` from each gate mark's name to its place in `sim.callLog`.
 
 The simulator renders and runs tools on the agent itself: it doesn't make the per-request copy a dynamic config callback configures. It doesn't run a model, gather questions, or the gates' decision model.
 
