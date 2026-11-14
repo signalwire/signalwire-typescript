@@ -373,7 +373,7 @@ A handler runs on Node's event loop. Synchronous or CPU-heavy work in a handler 
 
 ### Slow tools and the webhook timeout
 
-SignalWire waits up to 30 seconds to connect to a SWAIG function's webhook and up to 120 seconds for its reply. When a request fails, times out or gets an error response (5xx), it sends the same request again, up to 3 more times, a second apart. So a slow or failing tool can run more than once, and the caller hears nothing from it in the meantime.
+SignalWire waits up to 30 seconds to connect to a SWAIG function's webhook and up to 120 seconds for its reply. When a request fails, times out or gets an error response (5xx), it sends the same request again, up to 3 more times, a second apart. The agent answers such a retry with the first attempt's result, and one that arrives while the first is still running waits for it (`setToolResendDedupe()`), so the tool runs once. The caller still hears nothing from it in the meantime.
 
 Answer within a few seconds. When the work takes longer, start it without awaiting it, return at once with a reply that tells the model the result is on its way, and send the result into the call when it's ready with the REST API's `calling.ai_message` (`calling.aiMessage()` on a `RestClient`):
 
@@ -414,7 +414,7 @@ agent.defineTool({
 });
 ```
 
-The message goes into the AI session as the given role (`system`, `user` or `assistant`); `system` keeps the result from reading as something the caller said. Catch errors in the work you don't await: the SDK can't catch them once the handler has returned, and an unhandled rejection can stop the Node process. This pattern is for asynchronous I/O: leaving out `await` doesn't move synchronous or CPU-heavy work off Node's event loop. Because a request can arrive twice, make tools safe to run twice: for example, key work that's already running by `call_id` and arguments, and join it instead of starting it again.
+The message goes into the AI session as the given role (`system`, `user` or `assistant`); `system` keeps the result from reading as something the caller said. Catch errors in the work you don't await: the SDK can't catch them once the handler has returned, and an unhandled rejection can stop the Node process. This pattern is for asynchronous I/O: leaving out `await` doesn't move synchronous or CPU-heavy work off Node's event loop. The retry dedupe keeps its record in the agent's process. With several processes or replicas behind a load balancer, a retry can reach another one and run the tool again, so make tools that change things safe to run twice: for example, key work that's already running by `call_id` and arguments, and join it instead of starting it again.
 
 ### Tool Parameters
 

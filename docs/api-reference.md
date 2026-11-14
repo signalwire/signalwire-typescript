@@ -604,7 +604,7 @@ agent.addToolMiddleware(logCalls);
 
 #### `setToolResendDedupe(enabled?)`
 
-Turn the dedupe of transport retries on or off; it's on by default. SignalWire sends a tool request again, with the same body, after a timeout, a failed connection or a 5xx, so a slow tool could run twice. The dedupe answers a retry with the first attempt's result, and one that arrives while the first is still running waits for it. A retry is a request with the same `call_id`, `tool_call_id` and function name. A call the model makes again has a new `tool_call_id` and runs, and a request without one always runs. It runs first, before any middleware. It's shared with the agent's per-request copies, and lives in the process: replicas of an agent each keep their own.
+Turn the dedupe of transport retries on or off; it's on by default. SignalWire sends a tool request again, with the same body, after a timeout, a failed connection or a 5xx, so a slow tool could run twice. The dedupe answers a retry with the first attempt's result, and one that arrives while the first is still running waits for it. A retry is a request with the same `call_id`, `tool_call_id` and function name. A call the model makes again has a new `tool_call_id` and runs, and a request without one always runs. It runs first, before any middleware. It's shared with the agent's per-request copies, and the record is kept in the agent's process, so with several processes or replicas a retry that reaches another one runs the tool again.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
@@ -1813,6 +1813,7 @@ console.log(JSON.stringify(result.toDict()));
 |--------|-----------|-------|
 | `toggleFunctions` | `(toggles: { function: string; active: boolean }[]): this` | `{ toggle_functions: toggles }` |
 | `enableFunctionsOnTimeout` | `(enabled?: boolean): this` | `{ functions_on_speaker_timeout: enabled }` (default `true`) |
+| `noBargeNextResponse` | `(): this` | `{ no_barge_next_response: true }`. The next spoken reply plays whole: what the caller says during it is held until after it |
 | `backToBackFunctions` | `(value?: boolean \| 'forever'): this` | `{ back_to_back_functions: value }` (default `true`). Whether the model may call another function right after a function result. Throws for any other value |
 | `updateSettings` | `(settings: Record<string, unknown>): this` | `{ settings: settings }` |
 
@@ -2286,6 +2287,8 @@ The `[context, step]` pairs whose function list, or a gather question's, names a
 stepsOffering(name: string): Array<[string, string]>
 ```
 
+Rendering also logs `tool_named_but_not_offered`, once each, for a registered tool named where a step that lists its functions doesn't offer it: its text, its criteria, its context's prompt, a gather question, or a gate's output on one of its tools. The exported `namedTools(text, tools)` finds the names: one with an underscore counts as a whole word anywhere, a one-word name only in backticks or before "(".
+
 #### `toDict()`
 
 Validate, then serialize every context in the order it was added.
@@ -2419,10 +2422,12 @@ constructor(name: string)
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `setResetSystemPrompt` | `(systemPrompt: string): this` | Emits `reset.system_prompt` |
-| `setResetUserPrompt` | `(userPrompt: string): this` | Emits `reset.user_prompt` |
-| `setResetConsolidate` | `(consolidate: boolean): this` | Emits `reset.consolidate: true` |
-| `setResetFullReset` | `(fullReset: boolean): this` | Emits `reset.full_reset: true` |
+| `setResetSystemPrompt` | `(systemPrompt: string): this` | The system prompt the reset loads (`reset.system_prompt`) |
+| `setResetUserPrompt` | `(userPrompt: string): this` | The user message the reset adds (`reset.user_prompt`) |
+| `setResetConsolidate` | `(consolidate: boolean): this` | Whether the reset summarizes the conversation into one message (`reset.consolidate`) |
+| `setResetFullReset` | `(fullReset: boolean): this` | Whether the reset replaces the system prompt, seeded with the summary (`reset.full_reset`) |
+
+A step with any reset setting is terminal: when the call enters it, the platform runs the reset in place of the step's text, and step mode ends there. Rendering logs `step_reset_is_terminal` for such a step, once.
 
 #### `toDict()`
 
