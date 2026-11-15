@@ -854,7 +854,7 @@ const result = new FunctionResult('The customer record is loaded.')
 
 ### setSemanticState
 
-Set the state the call's semantic gates judge, besides the dialogue: `global_data.semantic_state` (sent as `set_global_data`). It replaces the state as a whole: to change one field, send the whole state with that field changed, and send `{}` to reset it. Keep it to what the application has established, such as an order the caller confirmed, rather than what the caller claims. It's the only global data copied into the decision model's state; a gate question can still bring in other global data with a `${global_data.x}` template. See [Semantic gates](api-reference.md#semantic-gates).
+Set the state the call's semantic gates judge, besides the dialogue: `global_data.semantic_state` (sent as `set_global_data`). It replaces the state as a whole: to change one field, send the whole state with that field changed, and send `{}` to reset it. Keep it to what the application has established, such as an order the caller confirmed, rather than what the caller claims. It's the only global data copied into the decision model's state; a gate question can still bring in other global data with a `${global_data.x}` template. A change starts a proposal, the dialogue of a gate with `dialogue: 'proposal'`, as of the start of the result's action list, so a `say` anywhere in the same result, such as the read-back, is in it. Platform releases before this start it at its own action object: set the state before `say` there, or use `Proposal` (see [Conversation Patterns](conversation_patterns.md#confirming-a-change)), which works on both. See [Semantic gates](api-reference.md#semantic-gates).
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -877,7 +877,7 @@ const result = new FunctionResult('The order is confirmed.').setSemanticState({
 
 ### setSemanticGateMark
 
-Set a mark that semantic gates with `since: name` judge the dialogue from: the agent's first turn at or after it, at most the gate's `history` entries (`semantic_gate_mark`). The mark is set as of the start of the action object that sets it, so a `say` in the same object is the first turn after it, and setting it again moves it. Marks last for the call; the platform keeps a call's 16 newest. It needs a platform release that has it. See [Semantic gates](api-reference.md#semantic-gates).
+Set a mark that semantic gates with `since: name` judge the dialogue from: the agent's first turn at or after it, at most the gate's `history` entries (`semantic_gate_mark`). The mark is set as of the start of the result's action list, so a `say` anywhere in the same result is after it, and setting it again moves it. Platform releases before this set it as of the start of its own action object: set it before `say` there. Marks last for the call; the platform keeps a call's 16 newest. It needs a platform release that has it. See [Semantic gates](api-reference.md#semantic-gates).
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1107,7 +1107,7 @@ const result = new FunctionResult('The premium plan is confirmed. Collect paymen
 
 ### refreshStep
 
-Enter the current step again, so its text shows new global data. A step's text is expanded once, when the step is entered, so its `${global_data.*}` values are the ones from then. After `updateGlobalData()` changes one, add `refreshStep()` with the current step's name, after the update, and the model gets the step's text again with the new values. It's the same action as `swmlChangeStep(stepName)`: entering a step starts it over, and its `history` mode applies again.
+Enter the current step again, so its text shows new global data. A step's text is expanded when the step is entered. Platform releases that re-expand it rewrite it in place before a request when a value it reads changes; on earlier releases its `${global_data.*}` values are the ones from entry. There, after `updateGlobalData()` changes one, add `refreshStep()` with the current step's name, after the update, and the model gets the step's text again with the new values. It's the same action as `swmlChangeStep(stepName)`: entering a step starts it over, and its `history` mode applies again.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -1276,7 +1276,7 @@ const result = new FunctionResult('Read the order back to the caller.').backToBa
 
 ### updateSettings
 
-Update AI settings during the call (`settings`). The platform validates the keys. The Python SDK's reference lists `temperature`, `top-p`, `max-tokens`, `frequency-penalty`, `presence-penalty`, `confidence` and `barge-confidence`.
+Update the model's settings for the rest of the call (`settings`). The platform validates the keys: the model's parameters, such as `temperature`, `top-p`, `max-tokens`, `frequency-penalty` and `presence-penalty`, and `confidence` or `barge-confidence`. Each key you name replaces its current value; every other setting keeps its value, including the ones set for the prompt. A key the model doesn't take is ignored. A key can't be removed: to undo one, set it to the value you want, such as the model's default. Platform releases before this reset every key you don't name to the model's default.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript

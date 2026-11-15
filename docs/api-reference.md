@@ -1815,7 +1815,7 @@ console.log(JSON.stringify(result.toDict()));
 | `enableFunctionsOnTimeout` | `(enabled?: boolean): this` | `{ functions_on_speaker_timeout: enabled }` (default `true`) |
 | `noBargeNextResponse` | `(): this` | `{ no_barge_next_response: true }`. The next spoken reply plays whole: what the caller says during it is held until after it |
 | `backToBackFunctions` | `(value?: boolean \| 'forever'): this` | `{ back_to_back_functions: value }` (default `true`). Whether the model may call another function right after a function result. Throws for any other value |
-| `updateSettings` | `(settings: Record<string, unknown>): this` | `{ settings: settings }` |
+| `updateSettings` | `(settings: Record<string, unknown>): this` | `{ settings: settings }`. Each key named replaces its value for the rest of the call; other settings keep theirs (platform releases before this reset them to the model's defaults) |
 
 ### Communication Actions
 
