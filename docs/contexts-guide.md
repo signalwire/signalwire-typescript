@@ -224,7 +224,7 @@ Help the customer with their billing inquiry.
 
 ### Variables in Step Text
 
-The platform expands a step's variables, such as `${global_data.order_total}`, when the step is entered. Releases that have re-expansion rewrite the text in place before a request when a value it reads has changed (see [Conversation History Between Steps](#conversation-history-between-steps)); on earlier releases a later `updateGlobalData()` doesn't change text the model already has. To show the new value there, return `FunctionResult.refreshStep()` with the current step's name after the update. Entering the step starts it over, and its `history` mode applies again.
+The platform expands a step's variables, such as `${global_data.order_total}`, when the step is entered. Releases that have re-expansion rewrite the text in place before a request when a value it reads has changed (see [Conversation History Between Steps](#conversation-history-between-steps)); on earlier releases, and with a realtime model, a later `updateGlobalData()` doesn't change text the model already has. To show the new value there, return `FunctionResult.refreshStep()` with the current step's name after the update. Entering the step starts it over, and its `history` mode applies again.
 
 ```typescript
 import { FunctionResult } from '@signalwire/sdk';

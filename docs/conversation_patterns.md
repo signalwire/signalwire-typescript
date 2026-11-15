@@ -168,7 +168,7 @@ const ctx = agent.defineContexts().addContext('default');
 ctx.addStep('take_order').setText('Take the order.\n\n${global_data.later_text}');
 ```
 
-`later.next(rawData)` gives the oldest request with its opener, and `later.done(rawData)` removes it once it's taken up. The kinds and their openers are yours; an opener's `{about}` is replaced by what the request is about. A step's text is expanded when the step is entered, so return `refreshStep()` with a note to show the new list at once.
+`later.next(rawData)` gives the oldest request with its opener, and `later.done(rawData)` removes it once it's taken up. The kinds and their openers are yours; an opener's `{about}` is replaced by what the request is about. Current platform releases expand the step's text again when the list changes, so it shows at the next request. Earlier releases, and a realtime model, keep the list from the step's entry: return `refreshStep()` with the note there to show it at once.
 
 ## What a Caller Spelled
 

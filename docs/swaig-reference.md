@@ -1107,7 +1107,7 @@ const result = new FunctionResult('The premium plan is confirmed. Collect paymen
 
 ### refreshStep
 
-Enter the current step again, so its text shows new global data. A step's text is expanded when the step is entered. Platform releases that re-expand it rewrite it in place before a request when a value it reads changes; on earlier releases its `${global_data.*}` values are the ones from entry. There, after `updateGlobalData()` changes one, add `refreshStep()` with the current step's name, after the update, and the model gets the step's text again with the new values. It's the same action as `swmlChangeStep(stepName)`: entering a step starts it over, and its `history` mode applies again.
+Enter the current step again, so its text shows new global data. A step's text is expanded when the step is entered. Platform releases that re-expand it rewrite it in place before a request when a value it reads changes; on earlier releases, and with a realtime model, its `${global_data.*}` values are the ones from entry. There, after `updateGlobalData()` changes one, add `refreshStep()` with the current step's name, after the update, and the model gets the step's text again with the new values. It's the same action as `swmlChangeStep(stepName)`: entering a step starts it over, and its `history` mode applies again.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript

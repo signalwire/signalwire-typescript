@@ -434,6 +434,13 @@ export class Step {
 
   /**
    * Sets raw text content for this step, mutually exclusive with POM sections.
+   *
+   * The platform expands its variables, such as `${global_data.order_total}`,
+   * when the step is entered, and current releases expand it again before a
+   * request whenever a value it reads has changed. Earlier releases, and a
+   * realtime model, keep the values from entry: there, return
+   * `FunctionResult.refreshStep(name)` after a later `updateGlobalData()` to
+   * enter the step again with the new values.
    * @param text - The raw prompt text.
    * @returns This step for chaining.
    */

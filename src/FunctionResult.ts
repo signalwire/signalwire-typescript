@@ -735,8 +735,8 @@ export class FunctionResult {
    *
    * A step's text is expanded when the step is entered. Platform releases
    * that re-expand it rewrite it in place before a request when a value it
-   * reads changes; on earlier releases its `${global_data.*}` values are the
-   * ones from entry. There, after {@link updateGlobalData} changes one, return
+   * reads changes; on earlier releases, and with a realtime model, its
+   * `${global_data.*}` values are the ones from entry. There, after {@link updateGlobalData} changes one, return
    * this with the current step's name, after the update in the same result,
    * and the model gets the step's text again with the new values. Entering a step starts it over: its
    * `history` mode applies again, so under `'hide'` the step's dialogue so far
