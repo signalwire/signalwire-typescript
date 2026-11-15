@@ -900,6 +900,15 @@ describe('the platform at 7afb159 (found in review)', () => {
     expect(sim.gateConversation()).toEqual(['user: Please also check my balance']);
   });
 
+  it("puts an end step's text before its context's prompt, as the engine does", async () => {
+    const agent = toStep({ end: true });
+    agent.defineContexts().getContext('default')!.setPrompt('You take orders.');
+    const sim = new CallSimulator(agent);
+    await sim.call('go');
+    expect(contents(sim)).toContain('This is the end text\n\nYou take orders.');
+    expect(contents(sim)).toContain('You take orders.\n\nFirst.');
+  });
+
   it("doesn't simulate past a reset step, whose text the platform never sends", async () => {
     const sim = new CallSimulator(toStep({ reset: true }));
     await sim.call('go');
