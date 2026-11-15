@@ -868,3 +868,85 @@ describe('gateConversation', () => {
     ]);
   });
 });
+
+describe('the platform at 7afb159 (found in review)', () => {
+  function toStep(target: Json): AgentBase {
+    const agent = bare();
+    agent.defineTool({
+      name: 'go',
+      description: 'Go',
+      handler: () => new FunctionResult('Done').swmlChangeStep('last'),
+    });
+    const ctx = agent.defineContexts().addContext('default');
+    ctx.addStep('first').setText('First.').setFunctions(['go']);
+    const last = ctx.addStep('last').setText('This is the end text');
+    if (target['end']) last.setEnd(true);
+    if (target['history']) last.setHistory(String(target['history']));
+    if (target['reset']) last.setResetSystemPrompt('New base prompt');
+    return agent;
+  }
+
+  it('gives an end step no history pass (step_management.c)', async () => {
+    const sim = new CallSimulator(toStep({ end: true, history: 'hide' }));
+    sim.caller('Please also check my balance');
+    await sim.call('go');
+    expect(contents(sim)).toEqual([
+      'First.',
+      'Please also check my balance',
+      '',
+      'Done',
+      'This is the end text',
+    ]);
+    expect(sim.gateConversation()).toEqual(['user: Please also check my balance']);
+  });
+
+  it("doesn't simulate past a reset step, whose text the platform never sends", async () => {
+    const sim = new CallSimulator(toStep({ reset: true }));
+    await sim.call('go');
+    expect(sim.callLog.map((e) => e['content'])).not.toContain('This is the end text');
+    expect(() => sim.modelView()).toThrow(/has a reset, which the simulator doesn't model/);
+    expect(() => sim.gateConversation()).toThrow(/has a reset/);
+  });
+
+  it('judges the window once semantic_state is removed', async () => {
+    const agent = bare();
+    agent.defineTool({
+      name: 'propose',
+      description: 'Propose',
+      handler: () => new FunctionResult('ok').say('A tea?').setSemanticState({ item: 'tea' }),
+    });
+    agent.defineTool({
+      name: 'drop',
+      description: 'Drop',
+      handler: () => new FunctionResult('ok').removeGlobalData('semantic_state'),
+    });
+    const sim = new CallSimulator(agent);
+    sim.caller('Remember my earlier question');
+    await sim.call('propose');
+    sim.caller('No');
+    await sim.call('drop');
+    expect(sim.gateConversation({ dialogue: 'proposal' })).toEqual(sim.gateConversation());
+    expect(sim.gateConversation()[0]).toBe('user: Remember my earlier question');
+  });
+
+  it('starts a new proposal when the state is reordered, as the engine compares it', async () => {
+    const agent = bare();
+    agent.defineTool({
+      name: 'first',
+      description: 'First',
+      handler: () =>
+        new FunctionResult('ok').say('First readback').setSemanticState({ item: 'tea', price: 5 }),
+    });
+    agent.defineTool({
+      name: 'again',
+      description: 'Again',
+      handler: () =>
+        new FunctionResult('ok').say('Fresh readback').setSemanticState({ price: 5, item: 'tea' }),
+    });
+    const sim = new CallSimulator(agent);
+    await sim.call('first');
+    sim.caller('Yes');
+    await sim.call('again');
+    expect(sim.gateConversation({ dialogue: 'proposal' })).toEqual(['assistant: Fresh readback']);
+  });
+});

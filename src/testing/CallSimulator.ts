@@ -223,6 +223,8 @@ export class CallSimulator {
   // Where the proposal (semantic_state's last change) starts in the call log
   private proposalAt: number | null = null;
   private actionStart = 0;
+  // A reset step the call entered: past it, the model's view isn't simulated
+  private resetStep: string | null = null;
 
   /**
    * @param agent - The agent.
@@ -564,7 +566,10 @@ export class CallSimulator {
     } else if (key === 'set_global_data' && isRecord(value)) {
       if (
         'semantic_state' in value &&
-        !sameJson(value['semantic_state'], this.globalData['semantic_state'])
+        // The engine compares the state as serialized, so a reordered state
+        // is a change (semantic_gates.c)
+        JSON.stringify(value['semantic_state']) !==
+          JSON.stringify(this.globalData['semantic_state'])
       ) {
         // Setting the same state again marks nothing; {} leaves none
         this.proposalAt = pyTruthy(value['semantic_state']) ? this.actionStart : null;
@@ -573,6 +578,8 @@ export class CallSimulator {
     } else if (key === 'unset_global_data') {
       const names = typeof value === 'string' ? [value] : Array.isArray(value) ? value : [];
       for (const name of names) delete this.globalData[String(name)];
+      // With the state gone, there's no proposal: gates judge the window
+      if (names.map(String).includes('semantic_state')) this.proposalAt = null;
     } else if (key === 'change_step') {
       this.enterStep(String(value));
     } else if (key === 'change_context') {
@@ -762,6 +769,7 @@ export class CallSimulator {
    */
   modelView(): Json[] {
     this.inject();
+    this.checkModelled();
     const view: Json[] = [];
     const held: Json[] = [];
     this.callLog.forEach((entry, index) => {
@@ -804,6 +812,7 @@ export class CallSimulator {
    */
   gateConversation(gate: Json = {}): string[] {
     this.inject();
+    this.checkModelled();
     let spoken = this.callLog
       .map((_, i) => i)
       .filter(
@@ -845,6 +854,35 @@ export class CallSimulator {
     }
     this.injectPending = false;
     this.isolatedEntries.clear();
+    const step = this.currentStep() ?? {};
+    const context = this.context !== null ? (this.contexts[this.context] ?? {}) : {};
+    // An end step, or one with a reset, ends steps mode once it's in: it takes
+    // no history pass, its text isn't expanded again, and what an isolate step
+    // hid is back (step_management.c)
+    const hasReset = isRecord(step['reset']);
+    const terminal = Boolean(step['end']) || hasReset;
+    if (!terminal) this.historyPass();
+    this.instruction = null;
+    if (hasReset) {
+      // The platform runs the reset (process_reset) in place of the step's text
+      this.resetStep = this.step;
+      return;
+    }
+    const text = [String(context['prompt'] || ''), String(step['text'] || '')]
+      .filter((part) => part)
+      .join('\n\n');
+    if (!terminal) this.instruction = { index: this.callLog.length, text };
+    this.log(
+      {
+        role: 'system',
+        content: expand(text, { global_data: this.globalData }, '') as string,
+      },
+      'instruction',
+    );
+  }
+
+  /** The current step's history mode, applied to everything before its start. */
+  private historyPass(): void {
     const mode = this.historyMode();
     const before = this.callLog.length;
     if (mode !== 'keep') {
@@ -863,23 +901,16 @@ export class CallSimulator {
         target.add(i);
       }
     }
-    const step = this.currentStep() ?? {};
-    const context = this.context !== null ? (this.contexts[this.context] ?? {}) : {};
-    const text = [String(context['prompt'] || ''), String(step['text'] || '')]
-      .filter((part) => part)
-      .join('\n\n');
-    // An end step, or one with a reset, ends steps mode once it's in: its text
-    // isn't expanded again, and what an isolate step hid is back
-    const terminal = Boolean(step['end']) || isRecord(step['reset']);
-    this.instruction = terminal ? null : { index: this.callLog.length, text };
-    if (terminal) this.isolatedEntries.clear();
-    this.log(
-      {
-        role: 'system',
-        content: expand(text, { global_data: this.globalData }, '') as string,
-      },
-      'instruction',
-    );
+  }
+
+  /** Throw for a view the simulator can't give: after a reset step. */
+  private checkModelled(): void {
+    if (this.resetStep !== null) {
+      throw new Error(
+        `step '${this.resetStep}' has a reset, which the simulator doesn't model: the ` +
+          "platform replaces the model's context in place of the step's text",
+      );
+    }
   }
 
   /**
@@ -1018,22 +1049,6 @@ function expand(value: unknown, data: Json, missing?: string): unknown {
     return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, expand(v, data, missing)]));
   }
   return value;
-}
-
-/** Whether two JSON values are equal, whatever their keys' order. */
-function sameJson(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-  if (Array.isArray(a) && Array.isArray(b)) {
-    return a.length === b.length && a.every((v, i) => sameJson(v, b[i]));
-  }
-  if (isRecord(a) && isRecord(b)) {
-    const keys = Object.keys(a);
-    return (
-      keys.length === Object.keys(b).length &&
-      keys.every((k) => Object.hasOwn(b, k) && sameJson(a[k], b[k]))
-    );
-  }
-  return false;
 }
 
 /** A value's truth as the reference reads it: an empty object or list is false. */
