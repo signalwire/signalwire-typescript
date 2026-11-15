@@ -386,6 +386,31 @@ describe('FunctionResult', () => {
     );
   });
 
+  it.each([undefined, 'Payment result: ${pay_result}', ''])(
+    'sets ai_response after pay runs (custom response: %s)',
+    (aiResponse) => {
+      const result = new FunctionResult().pay({
+        paymentConnectorUrl: 'https://pay.example.com/connector',
+        aiResponse,
+      });
+      const action = (result.toDict().action as Record<string, unknown>[])[0]!;
+      const main = (action['SWML'] as { sections: { main: Record<string, unknown>[] } }).sections
+        .main;
+
+      expect(main.map((verb) => Object.keys(verb))).toEqual([['pay'], ['set']]);
+      expect(main[1]).toEqual({
+        set: {
+          ai_response:
+            aiResponse ??
+            'The payment status is ${pay_result}, do not mention anything else about collecting payment if successful.',
+        },
+      });
+      expect(main[0]!['pay']).toMatchObject({
+        payment_connector_url: 'https://pay.example.com/connector',
+      });
+    },
+  );
+
   it('static payment helpers', () => {
     const action = FunctionResult.createPaymentAction('Say', 'Enter card');
     expect(action).toEqual({ type: 'Say', phrase: 'Enter card' });
