@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 01de3b5f2ad0811b4868bcdf8d9e8a184560ec40",
+  "generated_from": "signalwire-typescript @ 5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -4037,7 +4037,10 @@
           "call_id",
           "caller",
           "calls",
+          "gate_conversation",
           "global_data",
+          "history_mode",
+          "model_view",
           "offered",
           "replay",
           "semantic_state"
