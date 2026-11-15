@@ -938,6 +938,19 @@ describe('the platform at 7afb159 (found in review)', () => {
     expect(sim.gateConversation()[0]).toBe('user: Remember my earlier question');
   });
 
+  it('clears the proposal only for an empty state, as the reference does (3.10.1)', async () => {
+    const sim = new CallSimulator(bare());
+    sim['apply']({
+      action: [{ say: 'Is it a tea?', set_global_data: { semantic_state: { item: 'tea' } } }],
+    });
+    sim.caller('Yes');
+    // Another value that differs starts a proposal, even a falsy one
+    sim['apply']({ action: [{ say: 'Or nothing?', set_global_data: { semantic_state: false } }] });
+    expect(sim.gateConversation({ dialogue: 'proposal' })).toEqual(['assistant: Or nothing?']);
+    sim['apply']({ action: [{ set_global_data: { semantic_state: {} } }] });
+    expect(sim.gateConversation({ dialogue: 'proposal' })).toEqual(sim.gateConversation());
+  });
+
   it('starts a new proposal when the state is reordered, as the engine compares it', async () => {
     const agent = bare();
     agent.defineTool({

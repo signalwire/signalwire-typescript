@@ -564,16 +564,7 @@ export class CallSimulator {
       this.says.add(this.callLog.length);
       this.log({ role: 'assistant', content: String(value) }, 'spoken');
     } else if (key === 'set_global_data' && isRecord(value)) {
-      if (
-        'semantic_state' in value &&
-        // The engine compares the state as serialized, so a reordered state
-        // is a change (semantic_gates.c)
-        JSON.stringify(value['semantic_state']) !==
-          JSON.stringify(this.globalData['semantic_state'])
-      ) {
-        // Setting the same state again marks nothing; {} leaves none
-        this.proposalAt = pyTruthy(value['semantic_state']) ? this.actionStart : null;
-      }
+      if ('semantic_state' in value) this.noteState(value['semantic_state']);
       Object.assign(this.globalData, structuredClone(value));
     } else if (key === 'unset_global_data') {
       const names = typeof value === 'string' ? [value] : Array.isArray(value) ? value : [];
@@ -761,11 +752,14 @@ export class CallSimulator {
    * instructions, or to the end. The current step's instructions are its text
    * expanded with the global data now, as the platform expands it again when a
    * value it reads changes; `callLog` keeps the text as it went in. An end
-   * step, or one with a reset, keeps the text it went in with, and brings back
-   * what an `isolate` step hid, as steps end there. The base prompt isn't
-   * included.
+   * step keeps the text it went in with. An end step takes no pass: steps end
+   * there, so what an `isolate` step hid is back, and earlier instructions
+   * stay. The base prompt isn't included.
    *
    * @returns The entries, without their timestamps.
+   * @throws Error once the call has entered a step with a reset, which starts a
+   *   new context or consolidates the conversation in place of the step's
+   *   text: the simulation doesn't follow it.
    */
   modelView(): Json[] {
     this.inject();
@@ -809,6 +803,8 @@ export class CallSimulator {
    *
    * @param gate - The gate, as rendered; default none.
    * @returns The lines.
+   * @throws Error once the call has entered a step with a reset, as for
+   *   {@link modelView}.
    */
   gateConversation(gate: Json = {}): string[] {
     this.inject();
@@ -881,6 +877,22 @@ export class CallSimulator {
       },
       'instruction',
     );
+  }
+
+  /**
+   * A semantic_state being set: `{}` leaves no proposal, and any other state
+   * that differs from the current one, compared as serialized as the engine
+   * compares it (so a reordered state is a change), starts one.
+   */
+  private noteState(state: unknown): void {
+    if (isRecord(state) && Object.keys(state).length === 0) {
+      this.proposalAt = null;
+    } else if (
+      !Object.hasOwn(this.globalData, 'semantic_state') ||
+      JSON.stringify(state) !== JSON.stringify(this.globalData['semantic_state'])
+    ) {
+      this.proposalAt = this.actionStart;
+    }
   }
 
   /** The current step's history mode, applied to everything before its start. */
@@ -1051,13 +1063,6 @@ function expand(value: unknown, data: Json, missing?: string): unknown {
     return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, expand(v, data, missing)]));
   }
   return value;
-}
-
-/** A value's truth as the reference reads it: an empty object or list is false. */
-function pyTruthy(value: unknown): boolean {
-  if (Array.isArray(value)) return value.length > 0;
-  if (isRecord(value)) return Object.keys(value).length > 0;
-  return Boolean(value);
 }
 
 function isRecord(value: unknown): value is Json {
