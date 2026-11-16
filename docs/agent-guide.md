@@ -806,7 +806,18 @@ agent.addPerCallConfig((_query, _body, headers, copy) => {
 });
 ```
 
-`setDynamicConfigCallback()` replaces every callback registered so far, including those from `addPerCallConfig()`.
+`setDynamicConfigCallback()` replaces every callback registered so far, including those from `addPerCallConfig()`, so the order of the two calls matters:
+
+<!-- snippet: no-compile fragment; a and b stand for callbacks -->
+```typescript
+agent.addPerCallConfig(a);
+agent.setDynamicConfigCallback(b); // only b runs
+
+agent.setDynamicConfigCallback(a);
+agent.addPerCallConfig(b); // a, then b
+```
+
+A base class that registers with `addPerCallConfig()`, the composable form, is wiped by a subclass that calls `setDynamicConfigCallback()` afterwards. A class that can't know what its bases registered should use `addPerCallConfig()`.
 
 ### Rejecting a Call
 

@@ -3,6 +3,26 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## Unreleased (signalwire-python 3.12.0)
+
+Parity with signalwire-python 3.12.0.
+
+### Added
+
+- `Call.ring(extra?)` sends 180 Ringing on an inbound call without answering
+  it (`calling.ring`). Like answering, ringing takes control of the call, so
+  it can't be passed afterwards.
+
+### Fixed
+
+- The REST client's retry honors a `Retry-After` HTTP-date, in any of its
+  three forms, as well as delta-seconds (#125). A date without a zone is UTC;
+  a past date retries at once; a negative or non-finite delay, or a value
+  that's neither form, leaves the computed backoff.
+- The docs say that `setDynamicConfigCallback()` replaces callbacks
+  `addPerCallConfig()` added before it, so the order of the two calls matters
+  (#177).
+
 ## 3.11.0 (2026-11-20)
 
 Parity with signalwire-python 3.11.0: verb bodies, checked hooks, a schema
