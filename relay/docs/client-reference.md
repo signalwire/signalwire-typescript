@@ -36,7 +36,7 @@ function makeClient() {
     project: 'your-project-id',     // SIGNALWIRE_PROJECT_ID
     token: 'your-api-token',        // SIGNALWIRE_API_TOKEN
     jwtToken: 'your-jwt',           // SIGNALWIRE_JWT_TOKEN (alternative auth)
-    host: 'example.signalwire.com', // SIGNALWIRE_SPACE (default: relay.signalwire.com)
+    host: 'example.signalwire.com', // SIGNALWIRE_RELAY_HOST, then SIGNALWIRE_SPACE (default: relay.signalwire.com)
     contexts: ['default'],          // topics to subscribe to
     maxActiveCalls: 1000,           // RELAY_MAX_ACTIVE_CALLS (default: 1000)
   });
@@ -140,7 +140,7 @@ The observer runs before the client routes the event to a `Call` or `Message`, s
 
 - `devices`: a nested array of device objects. The outer array holds serial attempts, and each inner array holds devices dialed in parallel.
 - `options.tag`: a correlation tag. The client generates a UUID when you omit it.
-- `options.maxDuration`: the maximum call duration in minutes, sent as `max_duration`
+- `options.maxDuration`: the maximum call duration in seconds, sent as `max_duration`
 - `options.dialTimeout`: seconds to wait for an answer after the platform accepts the dial (default 120)
 
 This call rings one number and waits up to 30 seconds:
@@ -254,7 +254,8 @@ The client reads these variables in production:
 | `SIGNALWIRE_PROJECT_ID` | Default for `project` |
 | `SIGNALWIRE_API_TOKEN` | Default for `token` |
 | `SIGNALWIRE_JWT_TOKEN` | Default for `jwtToken` |
-| `SIGNALWIRE_SPACE` | Default for `host` |
+| `SIGNALWIRE_RELAY_HOST` | Default for `host`, such as `relay.signalwire.com`; read before `SIGNALWIRE_SPACE` |
+| `SIGNALWIRE_SPACE` | Default for `host` when `SIGNALWIRE_RELAY_HOST` isn't set, for compatibility |
 | `RELAY_MAX_ACTIVE_CALLS` | Default for `maxActiveCalls` |
 | `RELAY_MAX_CONNECTIONS` | Connected clients allowed per process (default 1, minimum 1). Read once, when the SDK module loads. |
 | `SIGNALWIRE_RELAY_CA_FILE` | Path to a CA bundle the WebSocket connection trusts in place of Node's default store. Read at each `connect()`; an unreadable file logs a warning and falls back to the default store. |
@@ -263,7 +264,6 @@ These variables exist for tests. Leave them unset in production:
 
 | Variable | Purpose |
 |----------|---------|
-| `SIGNALWIRE_RELAY_HOST` | Overrides `SIGNALWIRE_SPACE` as the default host, for a local fixture |
 | `SIGNALWIRE_RELAY_SCHEME` | Default for `scheme` (`ws` or `wss`) |
 | `SIGNALWIRE_RELAY_PING_INTERVAL_MS` | Client ping interval (default 30000) |
 | `SIGNALWIRE_RELAY_PING_MAX_FAILURES` | Ping failures before the client closes the connection (default 3) |

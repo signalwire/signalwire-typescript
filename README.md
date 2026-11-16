@@ -300,7 +300,8 @@ The [`docs/`](docs/) directory has these guides. They're installed with the pack
 |----------|---------|-------------|
 | `SIGNALWIRE_PROJECT_ID` | RELAY, REST | Project identifier |
 | `SIGNALWIRE_API_TOKEN` | RELAY, REST | API token |
-| `SIGNALWIRE_SPACE` | RELAY, REST | Space hostname (e.g. `example.signalwire.com`) |
+| `SIGNALWIRE_SPACE` | REST, AI Chat | Space hostname (e.g. `example.signalwire.com`). AI Chat also accepts the bare space name. |
+| `SIGNALWIRE_RELAY_HOST` | RELAY | RELAY endpoint (default: `relay.signalwire.com`). Without it, RELAY reads `SIGNALWIRE_SPACE`, for compatibility, so set it wherever `SIGNALWIRE_SPACE` is set. |
 | `SIGNALWIRE_REST_BASE_URL` | REST | Override the REST base URL with a full `http(s)://` URL (local mock / private space / proxy). Precedence: `host` option > `SIGNALWIRE_REST_BASE_URL` > `SIGNALWIRE_SPACE`. |
 | `SIGNALWIRE_REST_CA_FILE` | REST | Path to a PEM CA bundle to trust for HTTPS REST requests (private/self-signed certificates). |
 | `SIGNALWIRE_RELAY_HOST` | RELAY | Override the RELAY WebSocket host (advanced/testing). Precedence: `host` option > `SIGNALWIRE_RELAY_HOST` > `SIGNALWIRE_SPACE` > built-in default. |

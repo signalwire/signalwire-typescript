@@ -76,7 +76,7 @@ const agent = new AgentBase({
 | `nativeFunctions` | `string[]` | `[]` | Platform function names for the SWAIG `native_functions` list. |
 | `agentId` | `string` | 16 random hex characters | Identifier for this agent instance. |
 | `suppressLogs` | `boolean` | `false` | When `true`, calls `suppressAllLogs(true)`, which silences the SDK's logger for the whole process, not only this agent. |
-| `schemaPath` | `string` | bundled schema | Path to a SWML JSON Schema file that verbs are validated against, in place of the bundled schema. |
+| `schemaPath` | `string` | bundled schema | Path to a SWML JSON Schema file that verbs are validated against, in place of the bundled schema. One that can't be loaded throws when the service is created, naming the path and the cause. |
 | `schemaValidation` | `boolean` | `true` | `false` turns off the validation of verbs, as `SWML_SKIP_SCHEMA_VALIDATION=true` does. |
 | `enablePostPromptOverride` | `boolean` | `false` | Register `POST {route}/post_prompt_override`, which replaces the post-prompt text with the body's `post_prompt` value. |
 | `checkForInputOverride` | `boolean` | `false` | Register `GET` and `POST {route}/check_for_input`, which log the request and echo its body. |
