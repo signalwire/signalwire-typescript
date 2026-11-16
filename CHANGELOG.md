@@ -5,7 +5,7 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-Parity with signalwire-python 3.10.1: the `spoken` history mode, and a call
+Parity with signalwire-python 3.10.2: the `spoken` history mode, and a call
 simulator that shows what the model gets after each step's history mode,
 checked against the platform (end and reset steps, proposal changes).
 The platform behavior below is in mod_openai's release with it (7afb159);

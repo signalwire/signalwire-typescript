@@ -864,11 +864,11 @@ export class CallSimulator {
       this.resetStep = this.step;
       return;
     }
-    // An end step's text goes first and its context's prompt after it, as the
-    // engine builds it there (step_management.c; it writes a stray "/" before
-    // the context prompt, left out here); other steps put the prompt first
-    const parts = [String(context['prompt'] || ''), String(step['text'] || '')];
-    const text = (terminal ? parts.reverse() : parts).filter((part) => part).join('\n\n');
+    // The context's prompt first, then the step's text, end steps included
+    // (mod_openai dc20c53)
+    const text = [String(context['prompt'] || ''), String(step['text'] || '')]
+      .filter((part) => part)
+      .join('\n\n');
     if (!terminal) this.instruction = { index: this.callLog.length, text };
     this.log(
       {
