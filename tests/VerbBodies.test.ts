@@ -8,7 +8,7 @@
  */
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { AgentBase } from '../src/AgentBase.js';
 import { SWMLService } from '../src/SWMLService.js';
 import { SchemaUtils, SchemaValidationError } from '../src/SchemaUtils.js';
@@ -172,5 +172,52 @@ describe('the fallback validator (#150)', () => {
     expect(fallback('sleep', {}).valid).toBe(false);
     expect(fallback('sleep', 5000)).toEqual({ valid: true, errors: [] });
     expect(fallback('label', 'start')).toEqual({ valid: true, errors: [] });
+  });
+});
+
+describe('the review of the 3.11.0 port (found in review)', () => {
+  it.each([new Map([['x', 1]]), new Set([1]), new Date(0), new (class Thing {})()])(
+    'refuses a body that is not a JSON object or array (%s)',
+    (body) => {
+      const a = new AgentBase({ name: 'example', route: '/', basicAuth: ['u', 'p'] });
+      for (const s of [service(), service(false)]) {
+        expect(() => s.addVerb('return', body)).toThrow(TypeError);
+        expect(() => s.addVerbToSection('other', 'return', body)).toThrow(TypeError);
+      }
+      expect(() => a.addPostAiVerb('return', body as never)).toThrow(TypeError);
+    },
+  );
+
+  it('loads a custom schema once and shares it with per-request copies, whatever the cwd', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'schema-'));
+    const custom = join(dir, 'custom.json');
+    writeFileSync(custom, JSON.stringify(new SchemaUtils().loadSchema()));
+    // A relative path, which the copies made after a chdir must still find
+    const relativePath = relative(process.cwd(), custom);
+    const a = new AgentBase({
+      name: 'c',
+      route: '/',
+      basicAuth: ['u', 'p'],
+      schemaPath: relativePath,
+    });
+    a.setPromptText('x');
+    a.addPostAiVerb('request', { url: 'https://example.com/hook', method: 'POST' });
+    a.setDynamicConfigCallback(() => {});
+    const parse = vi.spyOn(JSON, 'parse');
+    const cwd = process.cwd();
+    try {
+      process.chdir(tmpdir());
+      for (let i = 0; i < 3; i++) {
+        const res = await a
+          .getApp()
+          .request('/', { headers: { Authorization: 'Basic ' + btoa('u:p') } });
+        expect(res.status).toBe(200);
+      }
+      // The schema file isn't read again for each request
+      expect(parse.mock.calls.filter(([text]) => String(text).includes('"$defs"'))).toEqual([]);
+    } finally {
+      process.chdir(cwd);
+      parse.mockRestore();
+    }
   });
 });

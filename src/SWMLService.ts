@@ -6,6 +6,7 @@
  * Uses SwmlBuilder for verb methods and Hono for HTTP serving.
  */
 
+import { resolve as resolvePath } from 'node:path';
 import type { AgentBase } from './AgentBase.js';
 import { Hono } from 'hono';
 import { RegExpRouter } from 'hono/router/reg-exp-router';
@@ -554,7 +555,9 @@ export class SWMLService {
     // The builder that renders the SWML validates verbs with the same settings.
     this._builderSchemaOptions = {
       enableValidation: !skipValidation,
-      ...(opts?.schemaPath !== undefined ? { schemaPath: opts.schemaPath } : {}),
+      // Absolute, so a builder made later (a per-request copy's) reads the same
+      // file whatever the working directory is then
+      ...(opts?.schemaPath !== undefined ? { schemaPath: resolvePath(opts.schemaPath) } : {}),
     };
 
     // Verb handler registry

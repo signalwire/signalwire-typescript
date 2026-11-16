@@ -355,11 +355,15 @@ export class SwmlBuilder {
 }
 
 /**
- * Whether a verb's body is a JSON value: an object, an array, a string, a finite
- * number or a boolean.
+ * Whether a verb's body is a JSON value: a plain object, an array, a string, a
+ * finite number or a boolean. A Map, a Set or a class instance isn't: it would
+ * serialize as `{}`.
  */
 function isJsonBody(value: unknown): boolean {
   if (typeof value === 'number') return Number.isFinite(value);
   if (typeof value === 'string' || typeof value === 'boolean') return true;
-  return typeof value === 'object' && value !== null;
+  if (Array.isArray(value)) return true;
+  if (typeof value !== 'object' || value === null) return false;
+  const proto = Object.getPrototypeOf(value) as unknown;
+  return proto === Object.prototype || proto === null;
 }

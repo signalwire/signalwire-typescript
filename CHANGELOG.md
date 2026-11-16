@@ -19,8 +19,8 @@ path that has to load, and the RELAY host.
 ### Changed
 
 - A verb body that isn't a JSON value (`undefined`, `null`, a function, a
-  bigint, a non-finite number) throws a `TypeError` wherever a verb is added,
-  with validation off too.
+  bigint, a non-finite number, a `Map`, a `Set` or another class instance)
+  throws a `TypeError` wherever a verb is added, with validation off too.
 - A `sleep` duration must be a positive number of milliseconds or `-1`, and
   not a boolean, with validation on: the platform errors on `0` and does
   nothing useful with other negatives (#149).
@@ -31,7 +31,7 @@ path that has to load, and the RELAY host.
 - An explicit `schemaPath` that's missing or isn't valid JSON throws when the
   service or agent is created, naming the path and the cause, instead of
   falling back to the bundled schema (#146). It's read relative to the
-  working directory.
+  working directory, once: per-request copies share it.
 - The RELAY client's `SIGNALWIRE_RELAY_HOST` is the documented way to set
   its host; `SIGNALWIRE_SPACE` is still read after it, for compatibility.
 
@@ -42,6 +42,11 @@ path that has to load, and the RELAY host.
   so an empty `send_sms` is refused (#150).
 - `RelayClient.dial()`'s `maxDuration` is documented in seconds, as the
   platform applies it, not minutes (#98).
+- An empty `SIGNALWIRE_RELAY_HOST` or `SIGNALWIRE_SPACE` (or `host` option) is
+  skipped, as the reference skips it: the RELAY client used an empty host.
+- The Fabric subscriber example mints its token with the subscriber's email.
+  A reference that matches no subscriber creates a new one, so minting with
+  the subscriber's id left a stray subscriber on every run (#188).
 
 ## 3.10.3 (2026-11-18)
 

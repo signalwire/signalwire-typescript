@@ -283,10 +283,11 @@ export class RelayClient {
     // Host precedence: explicit option > SIGNALWIRE_RELAY_HOST >
     // SIGNALWIRE_SPACE, read for compatibility (it's the space's hostname for
     // REST) > built-in default, as the reference's 3.11.0 has it.
+    // An empty value is skipped, as the reference's `or` chain skips it
     this.host =
-      options.host ??
-      process.env.SIGNALWIRE_RELAY_HOST ??
-      process.env.SIGNALWIRE_SPACE ??
+      options.host ||
+      process.env.SIGNALWIRE_RELAY_HOST ||
+      process.env.SIGNALWIRE_SPACE ||
       DEFAULT_RELAY_HOST;
     // Scheme precedence: explicit option > SIGNALWIRE_RELAY_SCHEME > 'wss'.
     // Only 'ws' and 'wss' are accepted; anything else falls back to 'wss'.

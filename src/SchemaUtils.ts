@@ -8,6 +8,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'module';
+import { resolve as resolvePath } from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import type { ValidateFunction } from 'ajv';
 import { getLogger } from './Logger.js';
@@ -190,15 +191,22 @@ export class SchemaUtils {
     this.ajv = undefined;
     // Try custom schema path first (mirrors Python's schema_path parameter)
     if (this._schemaPath) {
-      // Read from the path as given, relative to the working directory
-      if (!existsSync(this._schemaPath)) {
+      // Read from the path as given, relative to the working directory. A file
+      // read once is shared, so the validators compiled for it are too
+      const absolute = resolvePath(this._schemaPath);
+      const cached = LOADED_SCHEMAS.get(absolute);
+      if (cached) {
+        this.schema = cached;
+        this.loadError = null;
+        this.verbs = this.extractVerbDefinitions();
+        return this.schema;
+      }
+      if (!existsSync(absolute)) {
         this.loadError = 'no such file';
       } else {
         try {
-          this.schema = JSON.parse(readFileSync(this._schemaPath, 'utf-8')) as Record<
-            string,
-            unknown
-          >;
+          this.schema = JSON.parse(readFileSync(absolute, 'utf-8')) as Record<string, unknown>;
+          LOADED_SCHEMAS.set(absolute, this.schema);
           this.loadError = null;
           this.verbs = this.extractVerbDefinitions();
           return this.schema;
@@ -853,6 +861,9 @@ export class SchemaUtils {
     this.cache.set(key, result);
   }
 }
+
+/** The schema files read so far, by absolute path, as `require` kept them. */
+const LOADED_SCHEMAS = new Map<string, Record<string, unknown>>();
 
 /**
  * A `sleep` duration the platform runs: a positive number of milliseconds, or

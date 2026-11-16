@@ -17,12 +17,12 @@ const client = new RestClient();
 async function main() {
   // 1. Create a subscriber
   console.log('Creating subscriber...');
+  const email = 'alice@example.com';
   const subscriber = await client.fabric.subscribers.create({
     display_name: 'Alice Johnson',
-    email: 'alice@example.com',
+    email,
   });
   const subId = subscriber.id;
-  const innerSubId = subscriber.subscriber?.id ?? subId;
   console.log(`  Created subscriber: ${subId}`);
 
   // 2. Add a SIP endpoint to the subscriber
@@ -79,10 +79,11 @@ async function main() {
     } else throw err;
   }
 
-  // 8. Generate a subscriber token
+  // 8. Generate a subscriber token. The reference is the subscriber's email: a
+  // reference that matches no subscriber creates a new one
   console.log('\nGenerating subscriber token...');
   try {
-    const token = await client.fabric.tokens.createSubscriberToken(innerSubId);
+    const token = await client.fabric.tokens.createSubscriberToken(email);
     console.log(`  Token: ${String(token.token ?? '').slice(0, 40)}...`);
   } catch (err) {
     if (err instanceof RestError) {
