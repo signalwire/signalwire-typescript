@@ -501,6 +501,19 @@ export class Call {
   }
 
   /**
+   * Send 180 Ringing on an inbound call without answering it (`calling.ring`).
+   * Like answering, ringing takes control of the call, so the call can't be
+   * passed afterwards.
+   *
+   * @param extra - Optional additional params merged into the ring request.
+   * @returns The platform's ring response.
+   * @throws {RelayError} When the ring command is rejected.
+   */
+  async ring(extra?: Record<string, unknown>): Promise<Record<string, unknown>> {
+    return this._execute<Record<string, unknown>>('ring', extra);
+  }
+
+  /**
    * End / hang up the call.
    *
    * @param reason - Hangup reason delivered to the platform. Defaults to

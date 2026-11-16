@@ -166,12 +166,40 @@ export class HttpClient {
     this._requestOptions = options.requestOptions;
   }
 
-  /** Parse a `Retry-After` header (delta-seconds form) if present, else null. */
+  /**
+   * The delay a `Retry-After` header asks for, in seconds: its delta-seconds,
+   * or the time until its HTTP-date (one without a zone is UTC; a past date is
+   * 0). Null, for the computed backoff, when there's none, it's neither form,
+   * or the delay isn't a finite, non-negative number.
+   */
   private _retryAfterSeconds(resp: Response): number | null {
-    const value = resp.headers.get('Retry-After');
-    if (value === null) return null;
-    const n = Number(value);
-    return Number.isFinite(n) ? n : null; // HTTP-date form: fall back to backoff
+    const value = resp.headers.get('Retry-After')?.trim();
+    if (!value) return null;
+    const seconds = Number(value);
+    if (!Number.isNaN(seconds)) {
+      return Number.isFinite(seconds) && seconds >= 0 ? seconds : null;
+    }
+    // An HTTP-date in any of its three forms (RFC 9110): IMF-fixdate and the
+    // obsolete RFC 850 and asctime forms, each read as [day,] DD Mon YYYY time
+    let date = value;
+    const rfc850 = /^[A-Za-z]+,\s*(\d{1,2})-([A-Za-z]{3})-(\d{2,4})\s+(\S+)(\s+\S+)?$/.exec(value);
+    if (rfc850) date = `${rfc850[1]} ${rfc850[2]} ${rfc850[3]} ${rfc850[4]}${rfc850[5] ?? ''}`;
+    const asctime = /^[A-Za-z]{3}\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\S+)\s+(\d{4})$/.exec(value);
+    if (asctime) date = `${asctime[2]} ${asctime[1]} ${asctime[4]} ${asctime[3]}`;
+    if (
+      !/^(?:[A-Za-z]{3},\s*)?\d{1,2}\s+[A-Za-z]{3}\s+\d{2,4}\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s+\S+)?$/.test(
+        date,
+      )
+    ) {
+      return null;
+    }
+    // A date without a zone is UTC
+    const zoned = /(?:\s(?:GMT|UTC|UT|Z|[ECMP][SD]T)|[+-]\d{4})$/i.test(date)
+      ? date
+      : `${date} GMT`;
+    const retryAt = Date.parse(zoned);
+    if (Number.isNaN(retryAt)) return null;
+    return Math.max(0, (retryAt - Date.now()) / 1000);
   }
 
   private async _request<T = unknown>(

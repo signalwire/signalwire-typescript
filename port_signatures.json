@@ -15461,6 +15461,21 @@
               ],
               "returns": "class:signalwire.relay.protocol_types_generated.CallingReferResult"
             },
+            "ring": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "extra",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null
+                }
+              ],
+              "returns": "dict<string,any>"
+            },
             "segment_id": {
               "params": [
                 {

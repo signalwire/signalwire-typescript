@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86",
+  "generated_from": "signalwire-typescript @ 3632c61f66b07cd56efe56c19941de39d9200170",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -1951,6 +1951,7 @@
           "receive_fax",
           "record",
           "refer",
+          "ring",
           "segment_id",
           "send_digits",
           "send_fax",
