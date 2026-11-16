@@ -3,6 +3,46 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## Unreleased (signalwire-python 3.11.0)
+
+Parity with signalwire-python 3.11.0: verb bodies, checked hooks, a schema
+path that has to load, and the RELAY host.
+
+### Added
+
+- `SchemaUtils.loadError` says why the schema at `schemaPath` couldn't be
+  loaded (`'no such file'`, or the parse error), or is `null`.
+- The builder's generated verb methods are typed from the schema for verbs
+  whose body isn't an object: `cond()` takes its conditions,
+  `unset()` a name or a list of names, and `sleep()` a SWML variable too.
+
+### Changed
+
+- A verb body that isn't a JSON value (`undefined`, `null`, a function, a
+  bigint, a non-finite number) throws a `TypeError` wherever a verb is added,
+  with validation off too.
+- A `sleep` duration must be a positive number of milliseconds or `-1`, and
+  not a boolean, with validation on: the platform errors on `0` and does
+  nothing useful with other negatives (#149).
+- `addPreAnswerVerb()`, `addAnswerVerb()`, `addPostAnswerVerb()` and
+  `addPostAiVerb()` check the verb when it's added, so a bad config throws
+  there instead of when the SWML is rendered (#148). They take any body
+  `addVerb()` does.
+- An explicit `schemaPath` that's missing or isn't valid JSON throws when the
+  service or agent is created, naming the path and the cause, instead of
+  falling back to the bundled schema (#146). It's read relative to the
+  working directory.
+- The RELAY client's `SIGNALWIRE_RELAY_HOST` is the documented way to set
+  its host; `SIGNALWIRE_SPACE` is still read after it, for compatibility.
+
+### Fixed
+
+- Without a full validator, the fallback found a verb's required fields only
+  when they were declared inline. It now follows `$ref`s and union branches,
+  so an empty `send_sms` is refused (#150).
+- `RelayClient.dial()`'s `maxDuration` is documented in seconds, as the
+  platform applies it, not minutes (#98).
+
 ## 3.10.3 (2026-11-18)
 
 Parity with signalwire-python 3.10.3: the `spoken` history mode, and a call
