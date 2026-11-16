@@ -1267,7 +1267,8 @@ export class FunctionResult {
 
   /**
    * Start a payment collection flow on the call. Emits an inline SWML document
-   * that sets `ai_response` and then runs the `pay` verb.
+   * that runs the `pay` verb and then sets `ai_response`, so its
+   * `${pay_result}` is the payment's status (`set` expands it when it runs).
    *
    * `timeout`, `max_attempts`, `min_postal_code_length`, `security_code` and
    * `postal_code` are sent as strings, as the platform reads them: its SWML
@@ -1342,7 +1343,7 @@ export class FunctionResult {
     return this.executeSwml({
       version: '1.0.0',
       sections: {
-        main: [{ set: { ai_response: aiResponse } }, { pay: payParams }],
+        main: [{ pay: payParams }, { set: { ai_response: aiResponse } }],
       },
     });
   }

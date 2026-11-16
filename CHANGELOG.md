@@ -5,7 +5,7 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
-Parity with signalwire-python 3.10.2: the `spoken` history mode, and a call
+Parity with signalwire-python 3.10.3: the `spoken` history mode, and a call
 simulator that shows what the model gets after each step's history mode,
 checked against the platform (end and reset steps, proposal changes).
 The platform behavior below is in mod_openai's release with it (7afb159);
@@ -31,6 +31,12 @@ an engine without it treats `spoken` as `default`.
   reply, given with `agentSays()`; a newer such result replaces actions still
   waiting. A proposal and a gate mark date from the start of the result's
   action list.
+
+### Fixed
+
+- `FunctionResult.pay()` runs `pay` before the `set` of `ai_response`. SWML
+  `set` expands `${pay_result}` when it runs, so setting it first gave the
+  model an empty payment status (#231; signalwire-python#176, 3.10.3).
 
 ### Changed
 

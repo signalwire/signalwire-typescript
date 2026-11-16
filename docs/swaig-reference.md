@@ -1837,7 +1837,7 @@ const result = new FunctionResult('The held caller is being reconnected.')
 
 ### pay
 
-Start a payment collection flow on the call. The SDK emits an inline SWML document that sets `ai_response` with the `set` verb and then runs the `pay` verb. The payment connector at `paymentConnectorUrl` processes the payment.
+Start a payment collection flow on the call. The SDK emits an inline SWML document that runs the `pay` verb and then sets `ai_response` with the `set` verb, so its `${pay_result}` is the payment's status: `set` expands it when it runs. The payment connector at `paymentConnectorUrl` processes the payment.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
