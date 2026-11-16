@@ -544,6 +544,13 @@ export class SWMLService {
       skipValidation,
       ...(opts?.schemaPath !== undefined ? { schemaPath: opts.schemaPath } : {}),
     });
+    // A schema path given explicitly has to load: otherwise every verb would
+    // fail later, against a schema the caller didn't ask for
+    if (opts?.schemaPath !== undefined && this.schemaUtils.loadError) {
+      throw new Error(
+        `schemaPath '${opts.schemaPath}' couldn't be loaded: ${this.schemaUtils.loadError}`,
+      );
+    }
     // The builder that renders the SWML validates verbs with the same settings.
     this._builderSchemaOptions = {
       enableValidation: !skipValidation,

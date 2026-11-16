@@ -215,6 +215,32 @@ export class SwmlBuilder {
   }
 
   /**
+   * Check a verb's body as {@link addVerb} adds it: a JSON value, and, with
+   * validation on, one that fits the verb's schema. The agent's call-flow hooks
+   * check theirs with it when a verb is added.
+   * @internal
+   * @throws {TypeError} For a body that isn't a JSON value.
+   * @throws {SchemaValidationError} When validation is on and the body doesn't
+   *   fit the verb, or the verb is unknown.
+   */
+  _checkVerb(verbName: string, config: unknown, opts?: { skipValidation?: boolean }): void {
+    if (!isJsonBody(config)) {
+      throw new TypeError(
+        `the ${verbName} verb's body must be a JSON object, array, string, number or ` +
+          `boolean, got ${config === null ? 'null' : typeof config === 'number' ? String(config) : typeof config}`,
+      );
+    }
+    if (this.enableValidation && !opts?.skipValidation) {
+      // An unknown verb raises too: validateVerb reports "Unknown verb", as the
+      // reference's add_verb does
+      const result: ValidationResult = this.getSchemaUtils().validateVerb(verbName, config);
+      if (!result.valid) {
+        throw new SchemaValidationError(verbName, result.errors);
+      }
+    }
+  }
+
+  /**
    * Appends a verb to the main section.
    * Validates the verb config against the schema when validation is enabled.
    * @param verbName - The SWML verb name (e.g., "answer", "ai").
@@ -231,17 +257,7 @@ export class SwmlBuilder {
    *   direct/public `addVerb` path stays fully strict.
    */
   addVerb(verbName: string, config: unknown, opts?: { skipValidation?: boolean }): void {
-    if (this.enableValidation && !opts?.skipValidation) {
-      // Validate unconditionally — an UNKNOWN verb must raise, not be appended
-      // silently (the strict-render contract). `validateVerb` returns
-      // "Unknown verb: '<name>'" for a name the schema doesn't define, matching
-      // the python reference's `add_verb`. (Previously this was gated on
-      // `hasVerb`, which let unknown verbs slip through.)
-      const result: ValidationResult = this.getSchemaUtils().validateVerb(verbName, config);
-      if (!result.valid) {
-        throw new SchemaValidationError(verbName, result.errors);
-      }
-    }
+    this._checkVerb(verbName, config, opts);
     // The default document factory always seeds a `main` section; preserve the
     // existing assumption that it is present (assertion is type-only).
     this._document.sections['main']!.push({ [verbName]: config });
@@ -269,12 +285,7 @@ export class SwmlBuilder {
     config: unknown,
     opts?: { skipValidation?: boolean },
   ): void {
-    if (this.enableValidation && !opts?.skipValidation) {
-      const result: ValidationResult = this.getSchemaUtils().validateVerb(verbName, config);
-      if (!result.valid) {
-        throw new SchemaValidationError(verbName, result.errors);
-      }
-    }
+    this._checkVerb(verbName, config, opts);
     if (!this._document.sections[sectionName]) {
       this._document.sections[sectionName] = [];
     }
@@ -341,4 +352,14 @@ export class SwmlBuilder {
   render(): string {
     return JSON.stringify(this._document);
   }
+}
+
+/**
+ * Whether a verb's body is a JSON value: an object, an array, a string, a finite
+ * number or a boolean.
+ */
+function isJsonBody(value: unknown): boolean {
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value === 'string' || typeof value === 'boolean') return true;
+  return typeof value === 'object' && value !== null;
 }

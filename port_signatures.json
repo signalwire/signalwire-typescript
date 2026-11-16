@@ -2720,7 +2720,7 @@
                 },
                 {
                   "name": "config",
-                  "type": "dict<string,any>",
+                  "type": "union<string,float,bool,bool,dict<string,any>,list<any>>",
                   "required": true
                 }
               ],
@@ -2739,7 +2739,7 @@
                 },
                 {
                   "name": "config",
-                  "type": "union<float,dict<string,any>>",
+                  "type": "union<string,float,bool,bool,dict<string,any>,list<any>>",
                   "required": true
                 }
               ],
@@ -2758,7 +2758,7 @@
                 },
                 {
                   "name": "config",
-                  "type": "union<float,dict<string,any>>",
+                  "type": "union<string,float,bool,bool,dict<string,any>,list<any>>",
                   "required": true
                 }
               ],
