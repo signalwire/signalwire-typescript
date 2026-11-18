@@ -124,7 +124,7 @@
 <li><a href="../modules/_signalwire_sdk.html">@signalwire/sdk</a></li>
 <li><a href="" aria-current="page">HISTORY_MODES</a></li></ul>
 <h1>Variable HISTORY_MODES<code class="tsd-tag">Const</code></h1></div>
-<div class="tsd-signature"><span class="tsd-kind-variable">HISTORY_MODES</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">&quot;keep&quot;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;default&quot;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;hide&quot;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;isolate&quot;</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol"> = ...</span></div>
+<div class="tsd-signature"><span class="tsd-kind-variable">HISTORY_MODES</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">&quot;keep&quot;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;default&quot;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;hide&quot;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;isolate&quot;</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">&quot;spoken&quot;</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol"> = ...</span></div>
 <div class="tsd-comment tsd-typography"><p>Valid values for a step's or context's <code>history</code> visibility mode.</p>
 <ul>
 <li><code>keep</code>: nothing is cleared — every prior step's instructions <em>and</em>
@@ -137,10 +137,14 @@ out of the model's context. The only way back in is an explicit
 <li><code>isolate</code>: like <code>hide</code>, but only while the agent is in this step: the
 earlier dialogue returns when the step is left, and the earlier step
 instructions stay cleared.</li>
+<li><code>spoken</code>: prior instructions hidden, and every earlier tool call, tool
+result and turn-scoped system note (tool prompts and the like) pulled out
+for the rest of the call; every spoken turn, the caller's and the
+agent's, stays.</li>
 </ul>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/ContextBuilder.ts#L96">src/ContextBuilder.ts:96</a></li></ul></aside></div>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/b1258a15cd40b55a23410671649d8dd2ece08425/src/ContextBuilder.ts#L100">src/ContextBuilder.ts:100</a></li></ul></aside></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

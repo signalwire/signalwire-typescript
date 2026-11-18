@@ -132,12 +132,14 @@
 <h4 class="tsd-anchor-link" id="example">Example<a href="#example" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><pre><code class="ts"><span class="hl-0">import</span><span class="hl-1"> { </span><span class="hl-2">AgentBase</span><span class="hl-1">, </span><span class="hl-2">RequestList</span><span class="hl-1"> } </span><span class="hl-0">from</span><span class="hl-1"> </span><span class="hl-3">&#39;@signalwire/sdk&#39;</span><span class="hl-1">;</span><br/><br/><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-5">agent</span><span class="hl-1"> = </span><span class="hl-4">new</span><span class="hl-1"> </span><span class="hl-6">AgentBase</span><span class="hl-1">({ </span><span class="hl-2">name:</span><span class="hl-1"> </span><span class="hl-3">&#39;bank&#39;</span><span class="hl-1"> });</span><br/><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-5">later</span><span class="hl-1"> = </span><span class="hl-4">new</span><span class="hl-1"> </span><span class="hl-6">RequestList</span><span class="hl-1">(</span><span class="hl-3">&#39;later&#39;</span><span class="hl-1">, {</span><br/><span class="hl-1">  </span><span class="hl-2">openers:</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-2">balance:</span><span class="hl-1"> </span><span class="hl-3">&#39;You also asked about your balance.&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-2">question:</span><span class="hl-1"> </span><span class="hl-3">&#39;You had a question: {about}.&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">});</span><br/><br/><span class="hl-2">agent</span><span class="hl-1">.</span><span class="hl-6">setGlobalData</span><span class="hl-1">(</span><span class="hl-2">later</span><span class="hl-1">.</span><span class="hl-6">defaults</span><span class="hl-1">());</span><br/><span class="hl-2">agent</span><span class="hl-1">.</span><span class="hl-6">defineTool</span><span class="hl-1">({</span><br/><span class="hl-1">  </span><span class="hl-2">name:</span><span class="hl-1"> </span><span class="hl-3">&#39;note_request&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-2">description:</span><span class="hl-1"> </span><span class="hl-3">&#39;Note a request to come back to&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">  </span><span class="hl-2">parameters:</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-2">type:</span><span class="hl-1"> </span><span class="hl-3">&#39;object&#39;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-2">properties:</span><span class="hl-1"> { </span><span class="hl-2">kind:</span><span class="hl-1"> { </span><span class="hl-2">type:</span><span class="hl-1"> </span><span class="hl-3">&#39;string&#39;</span><span class="hl-1"> }, </span><span class="hl-2">about:</span><span class="hl-1"> { </span><span class="hl-2">type:</span><span class="hl-1"> </span><span class="hl-3">&#39;string&#39;</span><span class="hl-1"> } },</span><br/><span class="hl-1">    </span><span class="hl-2">required:</span><span class="hl-1"> [</span><span class="hl-3">&#39;kind&#39;</span><span class="hl-1">, </span><span class="hl-3">&#39;about&#39;</span><span class="hl-1">],</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">  </span><span class="hl-6">handler</span><span class="hl-2">:</span><span class="hl-1"> (</span><span class="hl-2">args</span><span class="hl-1">, </span><span class="hl-2">rawData</span><span class="hl-1">) </span><span class="hl-4">=&gt;</span><span class="hl-1"> </span><span class="hl-2">later</span><span class="hl-1">.</span><span class="hl-6">note</span><span class="hl-1">(</span><span class="hl-2">rawData</span><span class="hl-1">, </span><span class="hl-6">String</span><span class="hl-1">(</span><span class="hl-2">args</span><span class="hl-1">.</span><span class="hl-2">kind</span><span class="hl-1">), </span><span class="hl-6">String</span><span class="hl-1">(</span><span class="hl-2">args</span><span class="hl-1">.</span><span class="hl-2">about</span><span class="hl-1">)),</span><br/><span class="hl-1">});</span><br/><span class="hl-4">const</span><span class="hl-1"> </span><span class="hl-5">ctx</span><span class="hl-1"> = </span><span class="hl-2">agent</span><span class="hl-1">.</span><span class="hl-6">defineContexts</span><span class="hl-1">().</span><span class="hl-6">addContext</span><span class="hl-1">(</span><span class="hl-3">&#39;default&#39;</span><span class="hl-1">);</span><br/><span class="hl-2">ctx</span><span class="hl-1">.</span><span class="hl-6">addStep</span><span class="hl-1">(</span><span class="hl-3">&#39;take_order&#39;</span><span class="hl-1">).</span><span class="hl-6">setText</span><span class="hl-1">(</span><span class="hl-3">&quot;Take the caller&#39;s order.</span><span class="hl-11">\n\n</span><span class="hl-3">${global_data.later_text}&quot;</span><span class="hl-1">);</span>
 </code><button type="button">Copy</button></pre>
 
-<p>A step's text is expanded when the step is entered, so the list it shows is
-the one from then; the model hears of each new request in the tool result.
-Return <code>refreshStep()</code> with the note to show it at once.</p>
+<p>The model hears of each new request in the tool result. Current platform
+releases expand the step's text again when the list changes, so it shows at
+the next request. Earlier releases, and a realtime model, keep the list from
+the step's entry: return <code>refreshStep()</code> with the note there to show it at
+once.</p>
 </div></div></section><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/patterns/RequestList.ts#L70">src/patterns/RequestList.ts:70</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/b1258a15cd40b55a23410671649d8dd2ece08425/src/patterns/RequestList.ts#L72">src/patterns/RequestList.ts:72</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -185,7 +187,7 @@ for step text is kept under <code>&lt;globalKey&gt;_text</code>.</p>
 </div></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="" class="tsd-signature-type tsd-kind-class">RequestList</a></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/patterns/RequestList.ts#L85">src/patterns/RequestList.ts:85</a></li></ul></aside></div></li></ul></section></section></details>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/b1258a15cd40b55a23410671649d8dd2ece08425/src/patterns/RequestList.ts#L87">src/patterns/RequestList.ts:87</a></li></ul></aside></div></li></ul></section></section></details>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="properties-1">Properties<a href="#properties-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
@@ -195,28 +197,28 @@ for step text is kept under <code>&lt;globalKey&gt;_text</code>.</p>
 <div class="tsd-comment tsd-typography"><p>The <code>global_data</code> key the list is kept under.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/patterns/RequestList.ts#L72">src/patterns/RequestList.ts:72</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/b1258a15cd40b55a23410671649d8dd2ece08425/src/patterns/RequestList.ts#L74">src/patterns/RequestList.ts:74</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="heading"><span>heading</span><a href="#heading" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">heading</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>The first line of the list's text.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/patterns/RequestList.ts#L78">src/patterns/RequestList.ts:78</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/b1258a15cd40b55a23410671649d8dd2ece08425/src/patterns/RequestList.ts#L80">src/patterns/RequestList.ts:80</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="openers"><span>openers</span><a href="#openers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">openers</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></div>
 <div class="tsd-comment tsd-typography"><p>How the agent opens each kind of request.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/patterns/RequestList.ts#L76">src/patterns/RequestList.ts:76</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/b1258a15cd40b55a23410671649d8dd2ece08425/src/patterns/RequestList.ts#L78">src/patterns/RequestList.ts:78</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="textkey"><span>text<wbr/>Key</span><a href="#textkey" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">textKey</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>The <code>global_data</code> key its text for step text is kept under: <code>&lt;globalKey&gt;_text</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/patterns/RequestList.ts#L74">src/patterns/RequestList.ts:74</a></li></ul></aside></section></section></details>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/b1258a15cd40b55a23410671649d8dd2ece08425/src/patterns/RequestList.ts#L76">src/patterns/RequestList.ts:76</a></li></ul></aside></section></section></details>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="methods-1">Methods<a href="#methods-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
@@ -238,7 +240,7 @@ when there are none.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4><p>The text.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/patterns/RequestList.ts#L191">src/patterns/RequestList.ts:191</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/b1258a15cd40b55a23410671649d8dd2ece08425/src/patterns/RequestList.ts#L193">src/patterns/RequestList.ts:193</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="defaults"><span>defaults</span><a href="#defaults" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -251,7 +253,7 @@ shows it has a value before anything is noted.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></h4><p>The global data.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/patterns/RequestList.ts#L97">src/patterns/RequestList.ts:97</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/b1258a15cd40b55a23410671649d8dd2ece08425/src/patterns/RequestList.ts#L99">src/patterns/RequestList.ts:99</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="done"><span>done</span><a href="#done" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -272,7 +274,7 @@ shows it has a value before anything is noted.</p>
 <h4 class="tsd-returns-title">Returns <a href="_signalwire_sdk.FunctionResult.html" class="tsd-signature-type tsd-kind-class">FunctionResult</a></h4><p>The result.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/patterns/RequestList.ts#L166">src/patterns/RequestList.ts:166</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/b1258a15cd40b55a23410671649d8dd2ece08425/src/patterns/RequestList.ts#L168">src/patterns/RequestList.ts:168</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="next"><span>next</span><a href="#next" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -290,7 +292,7 @@ shows it has a value before anything is noted.</p>
 <h4 class="tsd-returns-title">Returns <a href="../interfaces/_signalwire_sdk.NotedRequest.html" class="tsd-signature-type tsd-kind-interface">NotedRequest</a> <span class="tsd-signature-symbol">&amp;</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">opener</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">}</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></h4><p>The request.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/patterns/RequestList.ts#L153">src/patterns/RequestList.ts:153</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/b1258a15cd40b55a23410671649d8dd2ece08425/src/patterns/RequestList.ts#L155">src/patterns/RequestList.ts:155</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="note"><span>note</span><a href="#note" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -320,7 +322,7 @@ twice is kept once.</p>
 <h4 class="tsd-returns-title">Returns <a href="_signalwire_sdk.FunctionResult.html" class="tsd-signature-type tsd-kind-class">FunctionResult</a></h4><p>The result.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/patterns/RequestList.ts#L130">src/patterns/RequestList.ts:130</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/b1258a15cd40b55a23410671649d8dd2ece08425/src/patterns/RequestList.ts#L132">src/patterns/RequestList.ts:132</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="opener"><span>opener</span><a href="#opener" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -338,7 +340,7 @@ twice is kept once.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4><p>The opener.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/patterns/RequestList.ts#L178">src/patterns/RequestList.ts:178</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/b1258a15cd40b55a23410671649d8dd2ece08425/src/patterns/RequestList.ts#L180">src/patterns/RequestList.ts:180</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="pending"><span>pending</span><a href="#pending" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -356,7 +358,7 @@ twice is kept once.</p>
 <h4 class="tsd-returns-title">Returns <a href="../interfaces/_signalwire_sdk.NotedRequest.html" class="tsd-signature-type tsd-kind-interface">NotedRequest</a><span class="tsd-signature-symbol">[]</span></h4><p>The requests.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/5a2d2f6fa92b0103e461c7cce2a7b6cc3b735b86/src/patterns/RequestList.ts#L106">src/patterns/RequestList.ts:106</a></li></ul></aside></div></li></ul></section></section></details></div>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/b1258a15cd40b55a23410671649d8dd2ece08425/src/patterns/RequestList.ts#L108">src/patterns/RequestList.ts:108</a></li></ul></aside></div></li></ul></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
