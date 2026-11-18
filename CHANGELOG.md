@@ -3,7 +3,7 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 3.10.3 (2026-11-18)
 
 Parity with signalwire-python 3.10.3: the `spoken` history mode, and a call
 simulator that shows what the model gets after each step's history mode,
