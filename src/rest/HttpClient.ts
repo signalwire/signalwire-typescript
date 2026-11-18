@@ -115,10 +115,169 @@ function restCaDispatcher(): unknown {
   }
 }
 
-/** Backoff sleep between retries (a Promise-based delay). */
-function sleep(seconds: number): Promise<void> {
-  if (seconds <= 0) return Promise.resolve();
-  return new Promise((r) => setTimeout(r, seconds * 1000));
+/** The longest delay one timer takes; Node runs a longer one at once. */
+const MAX_TIMER_MS = 2 ** 31 - 1;
+
+/** Backoff sleep between retries (a Promise-based delay), in timer-safe steps. */
+async function sleep(seconds: number): Promise<void> {
+  let remaining = seconds * 1000;
+  while (remaining > 0) {
+    const step = Math.min(remaining, MAX_TIMER_MS);
+    await new Promise((r) => setTimeout(r, step));
+    remaining -= step;
+  }
+}
+
+/**
+ * A string as Python's `float()` reads it: digits with single underscores
+ * between them, a point, an exponent, `inf`/`infinity`/`nan`, surrounding
+ * whitespace allowed. `undefined` when it isn't one, so it's tried as a date.
+ */
+function pythonFloat(text: string): number | undefined {
+  const t = text.trim();
+  const digits = '\\d(?:_?\\d)*';
+  const number = new RegExp(
+    `^[+-]?(?:(?:${digits}(?:\\.(?:${digits})?)?|\\.${digits})(?:[eE][+-]?${digits})?|inf(?:inity)?|nan)$`,
+    'i',
+  );
+  if (!number.test(t)) return undefined;
+  const lowered = t.toLowerCase().replace(/^[+-]/, '');
+  const sign = t.startsWith('-') ? -1 : 1;
+  if (lowered.startsWith('inf')) return sign * Infinity;
+  if (lowered === 'nan') return NaN;
+  return Number(t.replace(/_/g, ''));
+}
+
+/** A string as Python's `int()` reads it, or null. */
+function pythonInt(text: string): number | null {
+  return /^[+-]?\d(?:_?\d)*$/.test(text) ? parseInt(text.replace(/_/g, ''), 10) : null;
+}
+
+const MONTH_NAMES = [
+  'jan',
+  'feb',
+  'mar',
+  'apr',
+  'may',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'oct',
+  'nov',
+  'dec',
+  'january',
+  'february',
+  'march',
+  'april',
+  'may',
+  'june',
+  'july',
+  'august',
+  'september',
+  'october',
+  'november',
+  'december',
+];
+const DAY_NAMES = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const ZONES: Record<string, number> = {
+  UT: 0,
+  UTC: 0,
+  GMT: 0,
+  Z: 0,
+  AST: -400,
+  ADT: -300,
+  EST: -500,
+  EDT: -400,
+  CST: -600,
+  CDT: -500,
+  MST: -700,
+  MDT: -600,
+  PST: -800,
+  PDT: -700,
+};
+
+/**
+ * An HTTP-date (or another RFC 2822 date) as milliseconds since the epoch, or
+ * null: Python's `email.utils.parsedate_to_datetime`, ported step for step, so
+ * the REST client reads a `Retry-After` date as the reference does. A date
+ * without a zone (or with `-0000`) is UTC; a two-digit year is 1969-2068; a
+ * date or time that doesn't exist is refused.
+ */
+function parseHttpDate(text: string): number | null {
+  let data = text.split(/\s+/).filter((part) => part !== '');
+  if (data.length === 0) return null;
+  // The day of the week, with or without its comma, is skipped
+  if (data[0]!.endsWith(',') || DAY_NAMES.includes(data[0]!.toLowerCase())) {
+    data.shift();
+  } else {
+    const comma = data[0]!.lastIndexOf(',');
+    if (comma >= 0) data[0] = data[0]!.slice(comma + 1);
+  }
+  if (data.length === 3) {
+    // RFC 850: DD-Mon-YY
+    const stuff = data[0]!.split('-');
+    if (stuff.length === 3) data = [...stuff, ...data.slice(1)];
+  }
+  if (data.length === 4) {
+    const last = data[3]!;
+    let sign = last.indexOf('+');
+    if (sign === -1) sign = last.indexOf('-');
+    if (sign > 0) data.splice(3, 1, last.slice(0, sign), last.slice(sign));
+    else data.push('');
+  }
+  if (data.length < 5) return null;
+  let [dd, mm, yy, tm, tz] = data.slice(0, 5) as [string, string, string, string, string];
+  if (!(dd && mm && yy)) return null;
+  mm = mm.toLowerCase();
+  if (!MONTH_NAMES.includes(mm)) {
+    [dd, mm] = [mm, dd.toLowerCase()];
+    if (!MONTH_NAMES.includes(mm)) return null;
+  }
+  let month = MONTH_NAMES.indexOf(mm) + 1;
+  if (month > 12) month -= 12;
+  if (dd.endsWith(',')) dd = dd.slice(0, -1);
+  if (yy.indexOf(':') > 0) [yy, tm] = [tm, yy];
+  if (yy.endsWith(',')) {
+    yy = yy.slice(0, -1);
+    if (!yy) return null;
+  }
+  if (!/^\d/.test(yy)) [yy, tz] = [tz, yy];
+  if (tm.endsWith(',')) tm = tm.slice(0, -1);
+  let parts = tm.split(':');
+  if (parts.length === 1 && tm.includes('.')) parts = tm.split('.');
+  if (parts.length === 2) parts.push('0');
+  if (parts.length !== 3) return null;
+  const year0 = pythonInt(yy);
+  const day = pythonInt(dd);
+  const [hour, minute, second] = parts.map(pythonInt);
+  if (year0 === null || day === null || hour == null || minute == null || second == null) {
+    return null;
+  }
+  const year = year0 < 100 ? year0 + (year0 > 68 ? 1900 : 2000) : year0;
+  let offset: number | null;
+  const zone = tz.toUpperCase();
+  if (zone in ZONES) offset = ZONES[zone]!;
+  else {
+    offset = pythonInt(zone);
+    if (offset === 0 && zone.startsWith('-')) offset = null;
+  }
+  if (offset) {
+    const sign = offset < 0 ? -1 : 1;
+    const abs = Math.abs(offset);
+    offset = sign * (Math.floor(abs / 100) * 3600 + (abs % 100) * 60);
+  }
+  // datetime() refuses a date or time that doesn't exist, and a zone of a day or more
+  const daysInMonth = new Date(Date.UTC(2000, month, 0)).getUTCDate();
+  const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  const monthDays = month === 2 ? (leap ? 29 : 28) : daysInMonth;
+  if (year < 1 || year > 9999 || day < 1 || day > monthDays) return null;
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59) return null;
+  if (offset !== null && Math.abs(offset) >= 86400) return null;
+  const utc = new Date(0);
+  utc.setUTCFullYear(year, month - 1, day);
+  utc.setUTCHours(hour, minute, second, 0);
+  return utc.getTime() - (offset ?? 0) * 1000;
 }
 
 /**
@@ -173,32 +332,15 @@ export class HttpClient {
    * or the delay isn't a finite, non-negative number.
    */
   private _retryAfterSeconds(resp: Response): number | null {
-    const value = resp.headers.get('Retry-After')?.trim();
-    if (!value) return null;
-    const seconds = Number(value);
-    if (!Number.isNaN(seconds)) {
+    const value = resp.headers.get('Retry-After');
+    if (value === null) return null;
+    const seconds = pythonFloat(value);
+    if (seconds !== undefined) {
+      // Invalid numeric values fall back to backoff
       return Number.isFinite(seconds) && seconds >= 0 ? seconds : null;
     }
-    // An HTTP-date in any of its three forms (RFC 9110): IMF-fixdate and the
-    // obsolete RFC 850 and asctime forms, each read as [day,] DD Mon YYYY time
-    let date = value;
-    const rfc850 = /^[A-Za-z]+,\s*(\d{1,2})-([A-Za-z]{3})-(\d{2,4})\s+(\S+)(\s+\S+)?$/.exec(value);
-    if (rfc850) date = `${rfc850[1]} ${rfc850[2]} ${rfc850[3]} ${rfc850[4]}${rfc850[5] ?? ''}`;
-    const asctime = /^[A-Za-z]{3}\s+([A-Za-z]{3})\s+(\d{1,2})\s+(\S+)\s+(\d{4})$/.exec(value);
-    if (asctime) date = `${asctime[2]} ${asctime[1]} ${asctime[4]} ${asctime[3]}`;
-    if (
-      !/^(?:[A-Za-z]{3},\s*)?\d{1,2}\s+[A-Za-z]{3}\s+\d{2,4}\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s+\S+)?$/.test(
-        date,
-      )
-    ) {
-      return null;
-    }
-    // A date without a zone is UTC
-    const zoned = /(?:\s(?:GMT|UTC|UT|Z|[ECMP][SD]T)|[+-]\d{4})$/i.test(date)
-      ? date
-      : `${date} GMT`;
-    const retryAt = Date.parse(zoned);
-    if (Number.isNaN(retryAt)) return null;
+    const retryAt = parseHttpDate(value);
+    if (retryAt === null) return null;
     return Math.max(0, (retryAt - Date.now()) / 1000);
   }
 
