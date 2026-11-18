@@ -21,16 +21,17 @@ const raw = (state: Json | null): Json => ({
 const dict = (r: { toDict(): unknown }): Json => r.toDict() as Json;
 
 describe('Proposal.propose', () => {
-  it('makes the read-back and the state one action', () => {
+  it('sets the state before the read-back (Python 3.12.1)', () => {
+    // So it's recorded even when the caller talks over the read-back: a say the
+    // caller talks over ends the result's actions (mod_openai actions.c)
     const result = dict(
       new Proposal('place_order').propose(READ_BACK, { details: { item: 'tea' } }),
     );
-    expect(result['action'][0]).toEqual({
-      say: READ_BACK,
-      set_global_data: { semantic_state: { item: 'tea', proposal: READ_BACK, revision: 1 } },
-    });
-    expect(result['action'][1]).toEqual({ wait_for_user: true });
-    expect(result['action']).toHaveLength(2);
+    expect(result['action']).toEqual([
+      { set_global_data: { semantic_state: { item: 'tea', proposal: READ_BACK, revision: 1 } } },
+      { say: READ_BACK },
+      { wait_for_user: true },
+    ]);
   });
 
   it('tells the model what to wait for', () => {
@@ -52,13 +53,13 @@ describe('Proposal.propose', () => {
 
   it('reads the same change again as a new revision', () => {
     const r = raw({ proposal: READ_BACK, revision: 1, item: 'tea' });
-    const first = dict(new Proposal('place_order').askAgain(r))['action'][0];
-    expect(first['say']).toBe(READ_BACK);
-    expect(first['set_global_data']['semantic_state']).toEqual({
+    const actions = dict(new Proposal('place_order').askAgain(r))['action'];
+    expect(actions[0]['set_global_data']['semantic_state']).toEqual({
       item: 'tea',
       proposal: READ_BACK,
       revision: 2,
     });
+    expect(actions[1]).toEqual({ say: READ_BACK });
   });
 
   it('needs a proposal to ask again', () => {
