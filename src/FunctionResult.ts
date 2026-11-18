@@ -552,9 +552,10 @@ export class FunctionResult {
    *
    * A gate with `since: name` judges the dialogue from the agent's first turn
    * at or after the mark, at most its `history` entries. The mark is set as of
-   * the start of the action object that sets it, so a `say` in the same object
-   * is the first turn after it; setting it again moves it. Marks last for the
-   * call. It needs a platform release that has it.
+   * the start of the result's action list, so a `say` anywhere in the same
+   * result is after it; setting it again moves it. Marks last for the call. It
+   * needs a platform release that has it. Releases before the whole-list rule
+   * set it as of the start of its own action object: set it before `say` there.
    * @param name - 1 to 64 letters, digits or underscores.
    * @returns This instance for chaining.
    * @throws {Error} For a name the platform would refuse.
@@ -617,6 +618,13 @@ export class FunctionResult {
    * It's the only global data copied into the decision model's state; a gate
    * question can still bring in other global data with a `${global_data.x}`
    * template.
+   *
+   * A change starts a proposal, the dialogue of a gate with `dialogue:
+   * 'proposal'`, as of the start of the result's action list, so a `say`
+   * anywhere in the same result, such as the read-back, is in it. Platform
+   * releases before the whole-list rule start it at its own action object:
+   * set the state before `say` there, or use `Proposal`, which works on
+   * both.
    * @param state - The semantic state.
    * @returns This instance for chaining.
    */
@@ -725,11 +733,12 @@ export class FunctionResult {
   /**
    * Enter the current step again, so its text shows new global data.
    *
-   * A step's text is expanded once, when the step is entered, so its
-   * `${global_data.*}` values are the ones from then. After
-   * {@link updateGlobalData} changes one, return this with the current step's
-   * name, after the update in the same result, and the model gets the step's
-   * text again with the new values. Entering a step starts it over: its
+   * A step's text is expanded when the step is entered. Platform releases
+   * that re-expand it rewrite it in place before a request when a value it
+   * reads changes; on earlier releases, and with a realtime model, its
+   * `${global_data.*}` values are the ones from entry. There, after {@link updateGlobalData} changes one, return
+   * this with the current step's name, after the update in the same result,
+   * and the model gets the step's text again with the new values. Entering a step starts it over: its
    * `history` mode applies again, so under `'hide'` the step's dialogue so far
    * leaves the model's context too. The same action as {@link swmlChangeStep}.
    * @param stepName - The name of the step the call is in.
@@ -824,6 +833,12 @@ export class FunctionResult {
   /**
    * Update AI settings at runtime (`settings`). The platform validates the
    * keys, such as `temperature`, `top-p` and `barge-confidence`.
+   *
+   * Each key named replaces its current value; every other setting keeps its
+   * value, the prompt's own included. A key the model doesn't take is ignored.
+   * A key can't be removed: to undo one, set it to the value you want, such as
+   * the model's default. Platform releases before the merge reset every key
+   * not named to the model's default.
    * @param settings - Key-value pairs of settings to update.
    * @returns This instance for chaining.
    */
@@ -1252,7 +1267,8 @@ export class FunctionResult {
 
   /**
    * Start a payment collection flow on the call. Emits an inline SWML document
-   * that sets `ai_response` and then runs the `pay` verb.
+   * that runs the `pay` verb and then sets `ai_response`, so its
+   * `${pay_result}` is the payment's status (`set` expands it when it runs).
    *
    * `timeout`, `max_attempts`, `min_postal_code_length`, `security_code` and
    * `postal_code` are sent as strings, as the platform reads them: its SWML
@@ -1327,7 +1343,7 @@ export class FunctionResult {
     return this.executeSwml({
       version: '1.0.0',
       sections: {
-        main: [{ set: { ai_response: aiResponse } }, { pay: payParams }],
+        main: [{ pay: payParams }, { set: { ai_response: aiResponse } }],
       },
     });
   }

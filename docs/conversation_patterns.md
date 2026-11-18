@@ -168,7 +168,7 @@ const ctx = agent.defineContexts().addContext('default');
 ctx.addStep('take_order').setText('Take the order.\n\n${global_data.later_text}');
 ```
 
-`later.next(rawData)` gives the oldest request with its opener, and `later.done(rawData)` removes it once it's taken up. The kinds and their openers are yours; an opener's `{about}` is replaced by what the request is about. A step's text is expanded when the step is entered, so return `refreshStep()` with a note to show the new list at once.
+`later.next(rawData)` gives the oldest request with its opener, and `later.done(rawData)` removes it once it's taken up. The kinds and their openers are yours; an opener's `{about}` is replaced by what the request is about. Current platform releases expand the step's text again when the list changes, so it shows at the next request. Earlier releases, and a realtime model, keep the list from the step's entry: return `refreshStep()` with the note there to show it at once.
 
 ## What a Caller Spelled
 
@@ -229,7 +229,7 @@ assert.equal((await sim.call('place_order')).ran, true);
 assert.deepEqual(sim.semanticState, { done: 'The order is placed.' });
 ```
 
-The gate callback gets each gate, the simulator and the call's arguments, and returns `true`, `false`, a probability compared with the gate's threshold, or `'unclear'`, or a promise of one. A blocked call's `blockedBy` is `'step'` or the id of the gate that blocked it. With `checkToolMentions: true`, a call whose result names a tool that the step it leaves the call in doesn't offer rejects with a `ToolMentionError`: the model would read the name and might call a tool it doesn't have. Give `stubs` for DataMap tools, which run on the platform. `sim.marks` is a `Map` from each gate mark's name to its place in `sim.callLog`.
+The gate callback gets each gate, the simulator and the call's arguments, and returns `true`, `false`, a probability compared with the gate's threshold, or `'unclear'`, or a promise of one. A blocked call's `blockedBy` is `'step'` or the id of the gate that blocked it. `sim.gateConversation(gate)` gives the dialogue that gate would judge: the spoken turns the model sees, chosen by its window, proposal or mark. `sim.modelView()` gives what the model gets now, after each step's history mode, and a `post_process` result's actions run after `sim.agentSays()`. With `checkToolMentions: true`, a call whose result names a tool that the step it leaves the call in doesn't offer rejects with a `ToolMentionError`: the model would read the name and might call a tool it doesn't have. Give `stubs` for DataMap tools, which run on the platform. `sim.marks` is a `Map` from each gate mark's name to its place in `sim.callLog`.
 
 The simulator renders and runs tools on the agent itself: it doesn't make the per-request copy a dynamic config callback configures. It doesn't run a model, gather questions, or the gates' decision model.
 

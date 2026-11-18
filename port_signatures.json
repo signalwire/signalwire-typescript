@@ -34647,6 +34647,21 @@
               ],
               "returns": "list<class:signalwire.testing.call_simulator.SimulatedCall>"
             },
+            "gate_conversation": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "gate",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": {}
+                }
+              ],
+              "returns": "list<string>"
+            },
             "global_data": {
               "params": [
                 {
@@ -34655,6 +34670,24 @@
                 }
               ],
               "returns": "dict<string,any>"
+            },
+            "history_mode": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "model_view": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "list<dict<string,any>>"
             },
             "offered": {
               "params": [

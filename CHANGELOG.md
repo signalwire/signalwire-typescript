@@ -3,6 +3,53 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## 3.10.3 (2026-11-18)
+
+Parity with signalwire-python 3.10.3: the `spoken` history mode, and a call
+simulator that shows what the model gets after each step's history mode,
+checked against the platform (end and reset steps, proposal changes).
+The platform behavior below is in mod_openai's release with it (7afb159);
+an engine without it treats `spoken` as `default`.
+
+### Added
+
+- History mode `spoken`, for `Step.setHistory()` and `Context.setHistory()`
+  (`HISTORY_MODES`): earlier step instructions, tool calls, tool results and
+  turn-scoped system notes (tool prompts, `ai-msg` injections, a gather's
+  preamble) leave the model's context for the rest of the call, and every
+  spoken turn stays, `say` actions included. An agent turn that spoke and
+  called a tool keeps its words. Use it at a stage boundary where the caller's
+  earlier requests must stay but the finished stage's tool results shouldn't.
+- `CallSimulator.modelView()` gives the conversation the model gets now,
+  after each step's history mode: the step's instructions injected before the
+  next request, the exchange that entered a step kept, a result's `say` held
+  after the call's result and notes, and the step's text expanded again when a
+  value it reads changes. `gateConversation(gate)` gives the dialogue a gate
+  judges (its `since` mark, a proposal, or the window, then `history`
+  entries), and `historyMode()` the current step's mode.
+- The simulator runs a `post_process` result's actions after the model's
+  reply, given with `agentSays()`; a newer such result replaces actions still
+  waiting. A proposal and a gate mark date from the start of the result's
+  action list.
+
+### Fixed
+
+- `FunctionResult.pay()` runs `pay` before the `set` of `ai_response`. SWML
+  `set` expands `${pay_result}` when it runs, so setting it first gave the
+  model an empty payment status (#231; signalwire-python#176, 3.10.3).
+
+### Changed
+
+- The docs describe the platform's history behavior: `hide`, `isolate` and
+  `spoken` keep the exchange that entered the step (the call whose action
+  changed it, its result, notes and `say`), a `post_process` change keeps its
+  call and what followed, and `next_step` keeps nothing; a consolidation
+  summary stays under `hide` and `spoken`; the step's text is expanded again
+  when a value it reads changes; `updateSettings()` merges per key; and a
+  proposal or mark dates from the start of the result's action list. A new
+  Contexts and Steps Guide section, Conversation History Between Steps,
+  covers when each mode applies.
+
 ## 3.9.0 (2026-11-13)
 
 Parity with signalwire-python 3.9.0: tool-name and reset checks, a

@@ -224,7 +224,7 @@ Help the customer with their billing inquiry.
 
 ### Variables in Step Text
 
-The platform expands a step's variables, such as `${global_data.order_total}`, once, when the step is entered. A later `updateGlobalData()` doesn't change text the model already has. To show the new value, return `FunctionResult.refreshStep()` with the current step's name after the update. Entering the step starts it over, and its `history` mode applies again.
+The platform expands a step's variables, such as `${global_data.order_total}`, when the step is entered. Releases that have re-expansion rewrite the text in place before a request when a value it reads has changed (see [Conversation History Between Steps](#conversation-history-between-steps)); on earlier releases, and with a realtime model, a later `updateGlobalData()` doesn't change text the model already has. To show the new value there, return `FunctionResult.refreshStep()` with the current step's name after the update. Entering the step starts it over, and its `history` mode applies again.
 
 ```typescript
 import { FunctionResult } from '@signalwire/sdk';
@@ -419,8 +419,37 @@ The modes are these:
 - `default`: hide earlier step instructions, and keep the dialogue. This is the behavior when `history` isn't set.
 - `hide`: hide earlier instructions and the earlier dialogue. A `${step_history.*}` reference in this step's text brings back what you choose.
 - `isolate`: like `hide`, but only while the agent is in this step. When the step is left, the earlier dialogue returns and the step's own turns stay; the earlier instructions stay cleared, and what an earlier `hide` step hid stays hidden. Entering the step again isolates it again. Use it for a step that must see nothing else, such as a confirmation read-back. A platform without `isolate` treats it as `default`.
+- `spoken`: hide earlier instructions, and take every earlier tool call, tool result and turn-scoped system note (tool prompts, `ai-msg` injections, a gather's preamble) out for the rest of the call, while every spoken turn stays, the caller's and the agent's. A platform without `spoken` treats it as `default`.
 
-`Context.setHistory()` sets the default for every step in the context, and a step's own `setHistory()` overrides it. Any other value throws.
+`Context.setHistory()` sets the default for every step in the context, and a step's own `setHistory()` overrides it. Any other value throws. See [Conversation History Between Steps](#conversation-history-between-steps) for when each mode applies and what it keeps.
+
+### Conversation History Between Steps
+
+The mode applies when the step's instructions are injected, before the next request to the model. For a tool whose result changed the step, that's the follow-up request right after the result, so the mode covers everything before the exchange that triggered the change.
+
+| Mode | Earlier step instructions | Earlier tool calls and results | Earlier spoken turns |
+|---|---|---|---|
+| `keep` | Kept | Kept | Kept |
+| `default` (when unset) | Cleared | Kept | Kept |
+| `spoken` | Cleared | Gone for the rest of the call | Kept |
+| `hide` | Cleared | Gone for the rest of the call | Gone for the rest of the call |
+| `isolate` | Cleared | Gone while in the step | Gone while in the step |
+
+An end step, or one with a reset, takes no history pass: what the model saw stays as it was, and what an `isolate` step hid comes back. A reset step runs its reset in place of its text.
+
+`spoken`, `hide` and `isolate` also remove the turn-scoped system notes: tool prompts, `ai-msg` injections and a gather's preamble. All three keep the exchange that entered the step, as the step's start: the call whose action changed the step, its result, notes and `say`, and any caller words stored before the step was injected. The protection covers only the step it entered: after that the exchange is an ordinary entry, which each later step treats by its own mode. An action with `post_process` runs after the model's reply to its result, and its change keeps the call and everything stored from it on: the result and notes, the reply, and the caller's words stored meanwhile. A change by `next_step` keeps nothing. Platform releases before this keep nothing under `hide` and `isolate`, and nothing of a `post_process` change. An agent turn that spoke and called a tool keeps its words under `spoken`. `say` actions are spoken turns. Semantic gates judge the same turns the model sees, so `hide` takes the caller's earlier words from the gates as well, and `spoken` keeps them. A platform release without `isolate` or `spoken` treats the value as `default`.
+
+A consolidation's summary stays under `hide` and `spoken`, where it was added; `isolate` hides it while the step lasts. That's the summary the platform writes when the conversation nears the model's context limit, and the one `consolidate` writes on a step's or context's reset or a context switch. Consolidation and the sliding window keep the entries in force: the current step's instructions, with its context's prompt, and during a gather its current question and preamble.
+
+On platform releases that have it, the step's instructions are expanded again before a request when a value its text reads has changed, such as global data a tool set. The entry is rewritten in place, and no history mode runs, since the step hasn't changed. An end step, a gather question and a realtime model keep the text as it went in.
+
+Choose by what must survive between stages:
+
+- **`spoken`** at a stage boundary where the caller's earlier requests must stay but the finished stage's lookups shouldn't. A model that sees old tool results tends to call tools the current step doesn't offer.
+- **`isolate`** on a confirm step, so the read-back is all the model has, with the earlier conversation back once the step is left.
+- **`hide`** only where earlier talk must never come back.
+
+What the next stage needs from the last one belongs in `global_data`, shown in the step's text as `${global_data.name}`, not in a tool result the next stage was never meant to see. `${step_history.prev.summary}`, `${step_history.prev.dialog}` and `${step_history.all.dialog}` in a step's text bring back a summary or the transcript of earlier steps under any mode. In a test, `CallSimulator.modelView()` shows what the model gets after each step's mode.
 
 ---
 

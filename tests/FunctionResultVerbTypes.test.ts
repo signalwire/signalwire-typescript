@@ -193,3 +193,19 @@ describe('joinConference() maxParticipants follows the schema', () => {
     );
   });
 });
+
+describe('pay() sets the AI response after pay runs (Python 3.10.3, #176)', () => {
+  it('puts pay before the set that reads ${pay_result}', () => {
+    // SWML set expands ${pay_result} when it runs, so set before pay gave the
+    // model an empty status
+    const main = (
+      new FunctionResult().pay({ paymentConnectorUrl: URL }).toDict() as unknown as {
+        action: Array<{ SWML: { sections: { main: Array<Record<string, unknown>> } } }>;
+      }
+    ).action[0]!.SWML.sections.main;
+    expect(main.map((verb) => Object.keys(verb)[0])).toEqual(['pay', 'set']);
+    expect(String((main[1]!['set'] as Record<string, unknown>)['ai_response'])).toContain(
+      '${pay_result}',
+    );
+  });
+});

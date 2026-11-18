@@ -63,9 +63,11 @@ export interface RequestListOptions {
  * ctx.addStep('take_order').setText("Take the caller's order.\n\n${global_data.later_text}");
  * ```
  *
- * A step's text is expanded when the step is entered, so the list it shows is
- * the one from then; the model hears of each new request in the tool result.
- * Return `refreshStep()` with the note to show it at once.
+ * The model hears of each new request in the tool result. Current platform
+ * releases expand the step's text again when the list changes, so it shows at
+ * the next request. Earlier releases, and a realtime model, keep the list from
+ * the step's entry: return `refreshStep()` with the note there to show it at
+ * once.
  */
 export class RequestList {
   /** The `global_data` key the list is kept under. */

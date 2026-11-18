@@ -92,8 +92,12 @@ function checkExpectedAnswer(value: unknown): ExpectedAnswer {
  * - `isolate`: like `hide`, but only while the agent is in this step: the
  *   earlier dialogue returns when the step is left, and the earlier step
  *   instructions stay cleared.
+ * - `spoken`: prior instructions hidden, and every earlier tool call, tool
+ *   result and turn-scoped system note (tool prompts and the like) pulled out
+ *   for the rest of the call; every spoken turn, the caller's and the
+ *   agent's, stays.
  */
-export const HISTORY_MODES = ['keep', 'default', 'hide', 'isolate'] as const;
+export const HISTORY_MODES = ['keep', 'default', 'hide', 'isolate', 'spoken'] as const;
 
 /** One of the valid `history` visibility modes. */
 export type HistoryMode = (typeof HISTORY_MODES)[number];
@@ -430,6 +434,13 @@ export class Step {
 
   /**
    * Sets raw text content for this step, mutually exclusive with POM sections.
+   *
+   * The platform expands its variables, such as `${global_data.order_total}`,
+   * when the step is entered, and current releases expand it again before a
+   * request whenever a value it reads has changed. Earlier releases, and a
+   * realtime model, keep the values from entry: there, return
+   * `FunctionResult.refreshStep(name)` after a later `updateGlobalData()` to
+   * enter the step again with the new values.
    * @param text - The raw prompt text.
    * @returns This step for chaining.
    */
@@ -828,9 +839,16 @@ export class Step {
   /**
    * Control what the model still sees when this step is entered.
    *
-   * The mode applies at the moment this step is entered and governs
-   * everything that came before it. It does not affect this step's own
-   * turns, which accumulate fresh. Nothing is deleted from the call log.
+   * The mode applies when the step's instructions are injected, before the
+   * next request to the model, and governs everything before it. The exchange
+   * that entered the step stays under `"hide"`, `"isolate"` and `"spoken"`, as
+   * the step's start: the call whose action changed the step, its result,
+   * notes and say. A post_process action's change, which runs after the
+   * model's reply, keeps its call and everything stored from it on, the reply
+   * included. A change by next_step keeps nothing. Platform releases before
+   * this keep nothing under `"hide"` and `"isolate"`. An end step, or one with
+   * a reset, takes no history pass. The mode doesn't affect this step's own turns, which
+   * accumulate fresh. Nothing is deleted from the call log.
    *
    * @param history - One of:
    *   - `"keep"`: clear nothing. Every prior step's instructions and
@@ -848,6 +866,16 @@ export class Step {
    *     hid stays hidden. Entering the step again isolates it again. Use it
    *     for a step that must see nothing else, such as one that reads back a
    *     confirmation. A platform without isolate treats it as `"default"`.
+   *   - `"spoken"`: keep the conversation, drop the work. Earlier step
+   *     instructions are cleared, and every earlier tool call, tool result and
+   *     turn-scoped system note (tool prompts, ai-msg injections, a gather's
+   *     preamble) leaves the model's context for the rest of the call. Every
+   *     spoken turn stays: the caller's, the agent's replies and `say`
+   *     actions. An assistant turn that spoke and called a tool keeps its
+   *     words. Use it at a stage boundary where the caller's earlier requests
+   *     must stay but the finished stage's tool results shouldn't. A platform
+   *     without spoken treats it as `"default"`, which keeps the tool
+   *     exchanges.
    * @returns This step for chaining.
    * @throws {Error} If `history` is not one of these modes.
    */
@@ -1237,7 +1265,8 @@ export class Context {
    * A step's own `setHistory()` overrides this. See {@link Step.setHistory}
    * for what each mode does.
    *
-   * @param history - One of `"keep"`, `"default"`, `"hide"`, or `"isolate"`.
+   * @param history - One of `"keep"`, `"default"`, `"hide"`, `"isolate"`, or
+   *   `"spoken"`.
    * @returns This context for chaining.
    * @throws {Error} If `history` is not one of these modes.
    */

@@ -1815,7 +1815,7 @@ console.log(JSON.stringify(result.toDict()));
 | `enableFunctionsOnTimeout` | `(enabled?: boolean): this` | `{ functions_on_speaker_timeout: enabled }` (default `true`) |
 | `noBargeNextResponse` | `(): this` | `{ no_barge_next_response: true }`. The next spoken reply plays whole: what the caller says during it is held until after it |
 | `backToBackFunctions` | `(value?: boolean \| 'forever'): this` | `{ back_to_back_functions: value }` (default `true`). Whether the model may call another function right after a function result. Throws for any other value |
-| `updateSettings` | `(settings: Record<string, unknown>): this` | `{ settings: settings }` |
+| `updateSettings` | `(settings: Record<string, unknown>): this` | `{ settings: settings }`. Each key named replaces its value for the rest of the call; other settings keep theirs (platform releases before this reset them to the model's defaults) |
 
 ### Communication Actions
 
@@ -1893,7 +1893,7 @@ pay(opts: {
 }): this
 ```
 
-It emits a `SWML` action that sets `ai_response` and runs the `pay` verb. `timeout`, `max_attempts`, `min_postal_code_length`, `security_code` and `postal_code` are sent as strings, as the platform reads them (an input that isn't an integer or a boolean throws, and a SWML variable reference passes through), and `inputMethod` is sent as `input`. The default `aiResponse` is `'The payment status is ${pay_result}, do not mention anything else about collecting payment if successful.'`
+It emits a `SWML` action that runs the `pay` verb and then sets `ai_response`, so its `${pay_result}` is the payment's status (`set` expands it when it runs). `timeout`, `max_attempts`, `min_postal_code_length`, `security_code` and `postal_code` are sent as strings, as the platform reads them (an input that isn't an integer or a boolean throws, and a SWML variable reference passes through), and `inputMethod` is sent as `input`. The default `aiResponse` is `'The payment status is ${pay_result}, do not mention anything else about collecting payment if successful.'`
 
 ### FunctionResult Static Helpers
 
