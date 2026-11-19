@@ -593,7 +593,10 @@ export class FunctionResult {
    * with `tool_choice: "none"`. `true`, while chaining is off, allows one more
    * chain: the next request after a function result may call one, and then
    * it's off again. `true` never lowers `'forever'`. The setting lasts for the
-   * call. Text pipeline only: a realtime model doesn't read it.
+   * call, one set by a gate's `on_fail` too: after a refused gate turns it
+   * off, a later result sets `'forever'` to turn it back on, or every later
+   * tool result needs words after it. Text pipeline only: a realtime model
+   * doesn't read it.
    * @param value - `true`, `false` or `'forever'`. Default `true`.
    * @returns This instance for chaining.
    * @throws {Error} For any other value, which the platform ignores.

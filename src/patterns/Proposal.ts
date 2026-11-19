@@ -131,6 +131,8 @@ export class Proposal {
         'they say yes to this read-back.' +
         (this.declineTool ? ` If they say no or want a change, call ${this.declineTool}.` : ''),
     );
+    // Chaining back on, after a confirm gate that refused turned it off
+    result.backToBackFunctions('forever');
     // The state first, in an object of its own: a say the caller talks over
     // ends the result's actions there. The proposal dates from the start of the
     // result's action list (from the start of its own object on older platform
@@ -168,8 +170,12 @@ export class Proposal {
    * dialogue. When one fails, the model is told why, with the proposal quoted
    * from `semantic_state` (the platform expands `${global_data...}` in a gate's
    * output; one that doesn't sends it as written), and chaining is turned off
-   * for the call (`backToBackFunctions(false)`), so the model answers in words
-   * before it calls a tool again.
+   * (`backToBackFunctions(false)`), so the model answers in words before it
+   * calls a tool again. That setting lasts for the call, so {@link propose},
+   * {@link askAgain} and {@link complete} turn chaining back on (`'forever'`,
+   * the call's default). Without that, every later tool result would need
+   * words after it. An agent that sets `back_to_back_functions` itself should
+   * know they do.
    *
    * @returns The gates, for the confirm tool's `gates`.
    */
@@ -269,9 +275,10 @@ export class Proposal {
    * @returns The result.
    */
   complete(summary: string, result?: FunctionResult): FunctionResult {
-    return (result ?? new FunctionResult(undefined, false, summary)).setSemanticState({
-      done: summary,
-    });
+    const out = result ?? new FunctionResult(undefined, false, summary);
+    // Chaining back on, ahead of anything the result says
+    out.action.unshift({ back_to_back_functions: 'forever' });
+    return out.setSemanticState({ done: summary });
   }
 }
 

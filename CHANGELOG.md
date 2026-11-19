@@ -3,9 +3,9 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased (signalwire-python 3.12.1)
+## Unreleased (signalwire-python 3.12.2)
 
-Parity with signalwire-python 3.12.1.
+Parity with signalwire-python 3.12.2.
 
 ### Added
 
@@ -20,6 +20,12 @@ Parity with signalwire-python 3.12.1.
   read-back, the platform skipped the rest of that action, so the state was
   never recorded and the confirm gates judged the yes against the previous
   read-back. The read-back is still the proposal's first turn.
+- `Proposal`'s confirm gates refuse a yes with `backToBackFunctions(false)`,
+  which the platform keeps for the call, so after one refused yes every
+  later tool result, a lookup included, had to be followed by words.
+  `propose()`, `askAgain()` and `complete()` now turn chaining back on
+  (`'forever'`, the call's default); `complete()` puts it ahead of anything
+  the result already has.
 - The REST client's retry honors a `Retry-After` HTTP-date, in any of its
   three forms, as well as delta-seconds (#125). A date without a zone is UTC;
   a past date retries at once; a negative or non-finite delay, or a value

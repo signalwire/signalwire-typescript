@@ -1252,7 +1252,7 @@ const result = new FunctionResult('Read the order back to the caller.').noBargeN
 
 ### backToBackFunctions
 
-Set whether the model may call another function right after a function result, without answering in words first (`back_to_back_functions`). `'forever'`, the call's default, chains freely. `false` makes the model answer in words after a function result. `true`, while chaining is off, allows one more chain, and then it's off again; it never lowers `'forever'`. The setting lasts for the call. Realtime models don't read it.
+Set whether the model may call another function right after a function result, without answering in words first (`back_to_back_functions`). `'forever'`, the call's default, chains freely. `false` makes the model answer in words after a function result. `true`, while chaining is off, allows one more chain, and then it's off again; it never lowers `'forever'`. The setting lasts for the call, one set by a gate's `on_fail` too: after a refused gate turns it off, a later result sets `'forever'` to turn it back on, or every later tool result needs words after it. `Proposal`'s results do this. Realtime models don't read it.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
