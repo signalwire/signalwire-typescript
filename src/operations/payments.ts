@@ -183,9 +183,14 @@ export interface PaymentsOptions {
  *
  * @example
  * ```ts
+ * import { Charge, Payments, type ServiceAgent } from '@signalwire/sdk/operations';
+ *
+ * declare const agent: ServiceAgent;
+ * declare const billing: { balance(invoice: string): Promise<string> };
+ *
  * new Payments({
  *   connectorUrl: 'https://pay.example.com/connector',
- *   charge: (call, invoice) => new Charge(billing.balance(invoice), `invoice ${invoice}`),
+ *   charge: async (_call, invoice) => new Charge(await billing.balance(invoice), `invoice ${invoice}`),
  *   currency: 'USD',
  *   language: 'en-US',
  * }).addTo(agent);

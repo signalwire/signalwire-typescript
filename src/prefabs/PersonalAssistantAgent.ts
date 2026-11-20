@@ -86,13 +86,26 @@ export interface PersonalAssistantAgentOptions extends Omit<ServiceAgentOptions,
  *
  * @example
  * ```ts
+ * import { PersonalAssistantAgent } from '@signalwire/sdk';
+ * import { Appointments, type Message, Messages, type Slot } from '@signalwire/sdk/operations';
+ *
+ * declare function sendText(to: string, message: Message): Promise<void>;
+ * declare const calendar: {
+ *   busyNow(): boolean;
+ *   openNear(when: string): Promise<Slot[]>;
+ *   book(slot: Slot): Promise<void>;
+ * };
+ *
  * const assistant = new PersonalAssistantAgent({
  *   role: "You answer Ann Lee's phone. You are friendly and brief.",
  *   owner: 'Ann',
  *   reach: '+15550100001',
  *   available: () => !calendar.busyNow(),
- *   messages: new Messages({ save: (call, message) => sendText(ANN, message) }),
- *   appointments: new Appointments({ openings: calendar.openNear, book: calendar.book }),
+ *   messages: new Messages({ save: (_call, message) => sendText('+15550100001', message) }),
+ *   appointments: new Appointments({
+ *     openings: (_call, when) => calendar.openNear(when),
+ *     book: (_call, slot) => calendar.book(slot),
+ *   }),
  * });
  * ```
  */

@@ -136,12 +136,23 @@ export interface AppointmentsOptions {
  *
  * @example
  * ```ts
+ * import { type Appointment, Appointments, type ServiceAgent, type Slot } from '@signalwire/sdk/operations';
+ *
+ * declare const agent: ServiceAgent;
+ * declare const calendar: {
+ *   openNear(when: string, kind: string | null): Promise<Slot[]>;
+ *   book(slotId: string, accountId: string, kind: string | null, note: string | null): Promise<void>;
+ *   forPatient(accountId: string): Promise<Appointment[]>;
+ *   move(appointmentId: string, slotId: string): Promise<void>;
+ *   cancel(appointmentId: string): Promise<void>;
+ * };
+ *
  * new Appointments({
- *   openings: (call, when, kind) => calendar.openNear(when, kind),
+ *   openings: (_call, when, kind) => calendar.openNear(when, kind),
  *   book: (call, slot, kind, note) => calendar.book(slot.id, call.accountId, kind, note),
  *   booked: (call) => calendar.forPatient(call.accountId),
- *   move: (call, appointment, slot) => calendar.move(appointment.id, slot.id),
- *   cancel: (call, appointment) => calendar.cancel(appointment.id),
+ *   move: (_call, appointment, slot) => calendar.move(appointment.id, slot.id),
+ *   cancel: (_call, appointment) => calendar.cancel(appointment.id),
  *   kinds: ['cleaning', 'check-up'],
  * }).addTo(agent);
  * ```

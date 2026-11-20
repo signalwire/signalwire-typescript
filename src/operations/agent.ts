@@ -528,16 +528,35 @@ const OPERATIONS_ARGS = [
  *
  * @example
  * ```ts
+ * import { AgentBase } from '@signalwire/sdk';
+ * import {
+ *   type CallContext,
+ *   Change,
+ *   Field,
+ *   Operation,
+ *   Operations,
+ *   type Values,
+ * } from '@signalwire/sdk/operations';
+ *
+ * declare function findAccount(call: CallContext, keys: Record<string, unknown>): string | null;
+ *
  * const ops = new Operations({ role: 'You answer the phone for an online store.' });
  * ops.identify({ anyOf: [['email'], ['first_name', 'last_name', 'zip']], find: findAccount });
  *
  * class Cancel extends Operation {
  *   static override description = 'Cancel pending orders.';
  *   order_ids = new Field({ type: 'array', items: { type: 'string' } }, 'The orders to cancel');
- *   override prepare(call: CallContext, f: Values) { ... }
+ *
+ *   override prepare(_call: CallContext, f: Values): Change {
+ *     const ids = f['order_ids'] as string[];
+ *     return new Change({
+ *       readBack: `Cancel ${ids.join(' and ')}. Shall I go ahead?`,
+ *       touches: ids.map((id) => `order:${id}`),
+ *     });
+ *   }
  * }
  * ops.operation(Cancel, { tool: 'cancel_order' });
- * ops.install(agent);
+ * ops.install(new AgentBase({ name: 'store' }));
  * ```
  *
  * `install` gives the agent its prompt, tools, steps (identify, main, confirm,
@@ -2049,6 +2068,11 @@ export interface ServiceAgentOptions extends AgentOptions, OperationsOptions {}
  *
  * @example
  * ```ts
+ * import { type CallContext, type Operation, ServiceAgent } from '@signalwire/sdk/operations';
+ *
+ * declare function findAccount(call: CallContext, keys: Record<string, unknown>): string | null;
+ * declare const Cancel: typeof Operation; // an Operation subclass
+ *
  * const agent = new ServiceAgent({ name: 'store', role: 'You answer the phone for an online store.' });
  * agent.identify({ anyOf: [['email'], ['first_name', 'last_name', 'zip']], find: findAccount });
  * agent.operation(Cancel, { tool: 'cancel_order' });

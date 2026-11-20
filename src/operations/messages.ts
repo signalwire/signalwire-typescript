@@ -102,8 +102,13 @@ export interface MessagesOptions {
  *
  * @example
  * ```ts
+ * import { Messages, type ServiceAgent } from '@signalwire/sdk/operations';
+ *
+ * declare const agent: ServiceAgent;
+ * declare const inbox: { add(to: string, text: string, name: string, number: string): Promise<void> };
+ *
  * new Messages({
- *   save: (call, message) => inbox.add(message.to, message.text, message.name, message.number),
+ *   save: (_call, message) => inbox.add(message.to, message.text, message.name, message.number),
  *   recipients: { 'Dr. Lee': 'the dentist', 'the front desk': 'bookings and bills' },
  * }).addTo(agent);
  * ```

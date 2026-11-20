@@ -75,14 +75,29 @@ export interface FrontDeskAgentOptions extends Omit<ServiceAgentOptions, 'name'>
  *
  * @example
  * ```ts
+ * import { Department, FrontDeskAgent } from '@signalwire/sdk';
+ * import { Appointments, Messages, type Slot } from '@signalwire/sdk/operations';
+ * import { InfoBotKnowledge, type Result } from '@signalwire/sdk/operations/infobot';
+ *
+ * declare function billingHours(): boolean;
+ * declare function searchFaq(query: string): Promise<Result[]>;
+ * declare const calendar: {
+ *   openNear(when: string): Promise<Slot[]>;
+ *   book(slot: Slot): Promise<void>;
+ * };
+ * declare const inbox: { add(text: string): Promise<void> };
+ *
  * const desk = new FrontDeskAgent({
  *   role: 'You answer the phone for Bayside Dental. You are warm and brief.',
  *   departments: {
  *     billing: new Department('questions about a bill', '+15550100001', billingHours),
  *     'the hygienist': new Department('questions about a cleaning', '+15550100002'),
  *   },
- *   appointments: new Appointments({ openings: calendar.openNear, book: calendar.book }),
- *   messages: new Messages({ save: inbox.add }),
+ *   appointments: new Appointments({
+ *     openings: (_call, when) => calendar.openNear(when),
+ *     book: (_call, slot) => calendar.book(slot),
+ *   }),
+ *   messages: new Messages({ save: (_call, message) => inbox.add(message.text) }),
  *   knowledge: new InfoBotKnowledge({ search: searchFaq }),
  * });
  * ```

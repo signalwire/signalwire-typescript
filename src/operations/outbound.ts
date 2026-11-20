@@ -199,6 +199,11 @@ export interface DialerOptions {
  *
  * @example
  * ```ts
+ * import { RestClient } from '@signalwire/sdk';
+ * import { Callee, Dialer, NotPlaced, callingHours, consented } from '@signalwire/sdk/operations';
+ *
+ * declare const CONSENT: Record<string, boolean>;
+ *
  * const dialer = new Dialer(new RestClient(), {
  *   fromNumber: '+15550001111',
  *   url: 'https://agents.example.com/reminders',

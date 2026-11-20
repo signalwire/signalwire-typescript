@@ -347,6 +347,8 @@ export * from './ai-chat/index.js';
 
 // LiveWire (LiveKit-compatible agents powered by SignalWire)
 export * as livewire from './livewire/index.js';
+// The operations module, also at @signalwire/sdk/operations
+export * as operations from './operations/index.js';
 
 // CLI helpers — convenience wrappers matching Python's start_agent / run_agent API
 import type { AgentBase as _AgentBase } from './AgentBase.js';

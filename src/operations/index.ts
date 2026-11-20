@@ -95,3 +95,5 @@ export {
   type RecordData,
 } from './record.js';
 export { DEFAULT_WORDING, placeholders } from './wording.js';
+// InfoBot, also at @signalwire/sdk/operations/infobot
+export * as infobot from './infobot/index.js';

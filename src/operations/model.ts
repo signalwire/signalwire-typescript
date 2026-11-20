@@ -21,7 +21,10 @@ export const NOT_SAID = 'not said';
  *
  * @example
  * ```ts
- * if (!f.size) throw new Need('Which size would they like: small, medium or large?', ['size']);
+ * import { Need, type Values } from '@signalwire/sdk/operations';
+ *
+ * declare const f: Values; // in prepare(call, f)
+ * if (!f['size']) throw new Need('Which size would they like: small, medium or large?', ['size']);
  * ```
  */
 export class Need extends Error {
@@ -58,6 +61,9 @@ export interface RefuseOptions {
  *
  * @example
  * ```ts
+ * import { Refuse } from '@signalwire/sdk/operations';
+ *
+ * declare const order: { status: string }; // in prepare(call, f)
  * if (order.status !== 'pending') {
  *   throw new Refuse('Only pending orders can be cancelled.', "Offer a return once it's delivered.");
  * }
@@ -114,6 +120,8 @@ export class WriteFailed extends Error {
  *
  * @example
  * ```ts
+ * import { Write } from '@signalwire/sdk/operations';
+ *
  * new Write('cancel_pending_order', { order_id: '#W1234567', reason: 'no longer needed' });
  * ```
  */
@@ -219,6 +227,8 @@ export interface ChangeOptions {
  *
  * @example
  * ```ts
+ * import { Change, Write } from '@signalwire/sdk/operations';
+ *
  * new Change({
  *   readBack: 'Cancel order #W1234567, refunding $54.04 to the card it was paid with. Shall I go ahead?',
  *   touches: ['order:#W1234567'],
@@ -334,7 +344,10 @@ export interface FieldOptions {
  *
  * @example
  * ```ts
- * reason = new Field(['no longer needed', 'ordered by mistake'], 'Why, in their words', {
+ * import { Field } from '@signalwire/sdk/operations';
+ *
+ * // An Operation's field, as one of its properties
+ * const reason = new Field(['no longer needed', 'ordered by mistake'], 'Why, in their words', {
  *   ask: 'Why are they cancelling it?',
  * });
  * ```
@@ -448,12 +461,24 @@ export interface OperationClass {
  *
  * @example
  * ```ts
+ * import {
+ *   type CallContext,
+ *   Change,
+ *   Field,
+ *   Operation,
+ *   type ServiceAgent,
+ *   type Values,
+ * } from '@signalwire/sdk/operations';
+ *
+ * declare const agent: ServiceAgent;
+ *
  * class Cancel extends Operation {
  *   static override description = 'Cancel pending orders.';
  *   order_ids = new Field({ type: 'array', items: { type: 'string' } }, 'The orders to cancel');
  *
- *   override prepare(call: CallContext, f: Values) {
- *     return new Change({ readBack: '...', touches: [] });
+ *   override prepare(_call: CallContext, f: Values): Change {
+ *     const ids = f['order_ids'] as string[];
+ *     return new Change({ readBack: `Cancel ${ids.join(' and ')}. Shall I go ahead?` });
  *   }
  * }
  * agent.operation(Cancel, { tool: 'cancel_order' });
