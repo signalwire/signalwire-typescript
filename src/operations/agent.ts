@@ -640,7 +640,7 @@ export class Operations {
    * @throws {TypeError} For a class that isn't an Operation's.
    * @throws {Error} For a kind registered already, or a class with no description.
    */
-  operation(cls: typeof Operation, opts: OperationOptions = {}): typeof Operation {
+  operation<C extends typeof Operation = typeof Operation>(cls: C, opts: OperationOptions = {}): C {
     if (typeof cls !== 'function' || !(cls.prototype instanceof Operation || cls === Operation)) {
       throw new TypeError('operation() registers an Operation subclass');
     }
@@ -802,7 +802,7 @@ export class Operations {
    * @returns The agent.
    * @throws {Error} When the agent has tools of the names this service makes.
    */
-  install(agent: AgentBase): AgentBase {
+  install<A extends AgentBase = AgentBase>(agent: A): A {
     const taken = this.toolNames().filter((n) =>
       agent.getRegisteredTools().some((t) => t.name === n),
     );
@@ -900,7 +900,7 @@ export class Operations {
       if (found === null || found === undefined || String(found).trim() === '') return null;
       call.data['account_id'] = String(found);
       call.account = idn.load ? await idn.load(call, call.accountId) : call.accountId;
-      text = idn.describe ? String(await idn.describe(call)) : '';
+      text = idn.describe ? pyStr(await idn.describe(call)) : '';
     } catch (err) {
       // Unknown: the call starts unidentified, and identify asks
       log.error(`operations: prefill could not identify the caller: ${errorText(err)}`);
@@ -2103,7 +2103,7 @@ export class ServiceAgent extends AgentBase {
   }
 
   /** See {@link Operations.operation}. */
-  operation(cls: typeof Operation, opts: OperationOptions = {}): typeof Operation {
+  operation<C extends typeof Operation = typeof Operation>(cls: C, opts: OperationOptions = {}): C {
     return this.ops.operation(cls, opts);
   }
 

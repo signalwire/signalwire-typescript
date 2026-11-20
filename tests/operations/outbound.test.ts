@@ -120,10 +120,26 @@ describe('Dialer', () => {
 
   it('takes an IANA zone name as ZoneInfo does, and nothing else', () => {
     const d = new Dialer(new Client(), { fromNumber: '+1', swml: {} });
-    for (const zone of ['+02:00', 'america/chicago', 'utc']) {
+    for (const zone of [
+      '+02:00',
+      'america/chicago',
+      'utc',
+      'us/eastern',
+      'US/eAsTeRn',
+      'etc/utc',
+      'gmt',
+    ]) {
       expect(() => d.whyNot(new Callee('+1', zone), FRIDAY_1800_UTC)).toThrow(/time zone/);
     }
-    for (const zone of ['America/Chicago', 'US/Central', 'Etc/UTC', 'UTC', 'EST5EDT']) {
+    for (const zone of [
+      'America/Chicago',
+      'US/Central',
+      'US/Eastern',
+      'Etc/UTC',
+      'UTC',
+      'GMT',
+      'EST5EDT',
+    ]) {
       expect(d.whyNot(new Callee('+1', zone), FRIDAY_1800_UTC)).toBeNull();
     }
   });

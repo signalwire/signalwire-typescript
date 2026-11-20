@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ d2bea49e8fa6b0673eeae28040feeb2e4d678ad1",
+  "generated_from": "signalwire-typescript @ ae6c33500ade77ac3ab4a74efb214cb15215521a",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {

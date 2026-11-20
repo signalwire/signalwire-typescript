@@ -258,7 +258,7 @@ export class Continuity {
    * @param agent - The agent.
    * @returns The agent.
    */
-  install(agent: AgentBase): AgentBase {
+  install<A extends AgentBase = AgentBase>(agent: A): A {
     agent.addPerCallConfig((queryParams, body, headers, copy) =>
       this.seedCallback(queryParams, body, headers, copy),
     );

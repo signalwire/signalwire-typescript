@@ -4,6 +4,7 @@
  */
 
 import { _pyStr as pyStr, _pyTruthy as pyTruthy } from './pystr.js';
+import { _IANA_ZONES as IANA_ZONES } from './zones.js';
 
 /** The fields of a {@link Callee}. */
 export interface CalleeFields {
@@ -102,9 +103,9 @@ function zoneFormat(callee: Callee): Intl.DateTimeFormat {
   const notZone = new Error(
     `'${callee.zone}' isn't a time zone; give an IANA name such as 'America/Chicago'`,
   );
-  // An offset ('+02:00') isn't a zone's name, and a name is spelled as tzdata
-  // spells it ('america/chicago' isn't), as the reference's ZoneInfo takes them
-  if (/^[+-]/.test(callee.zone)) throw notZone;
+  // A name spelled exactly as tzdata spells it, as the reference's ZoneInfo
+  // takes it: not an offset ('+02:00'), nor 'america/chicago' or 'us/eastern'
+  if (!IANA_ZONES.has(callee.zone)) throw notZone;
   let format: Intl.DateTimeFormat;
   try {
     format = new Intl.DateTimeFormat('en-US', {
@@ -116,10 +117,6 @@ function zoneFormat(callee: Callee): Intl.DateTimeFormat {
       hourCycle: 'h23',
     });
   } catch {
-    throw notZone;
-  }
-  const resolved = format.resolvedOptions().timeZone;
-  if (resolved !== callee.zone && resolved.toLowerCase() === callee.zone.toLowerCase()) {
     throw notZone;
   }
   return format;

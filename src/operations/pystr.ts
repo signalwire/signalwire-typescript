@@ -5,6 +5,13 @@
  * @internal
  */
 
+/** A plain record: an object literal's, or one made with `Object.create(null)`. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null) return false;
+  const proto = Object.getPrototypeOf(value) as unknown;
+  return proto === Object.prototype || proto === null;
+}
+
 /** @internal Whether Python counts the value as true: not None, False, 0, "", or an empty list or dict. */
 export function _pyTruthy(value: unknown): boolean {
   if (value === null || value === undefined || value === false) return false;
@@ -13,9 +20,7 @@ export function _pyTruthy(value: unknown): boolean {
   if (typeof value === 'string') return value.length > 0;
   if (Array.isArray(value)) return value.length > 0;
   if (value instanceof Map || value instanceof Set) return value.size > 0;
-  if (typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
-    return Object.keys(value).length > 0;
-  }
+  if (isRecord(value)) return Object.keys(value).length > 0;
   return true;
 }
 
@@ -37,10 +42,8 @@ export function _pyRepr(value: unknown): string {
   if (typeof value === 'number') return floatRepr(value);
   if (typeof value === 'string') return stringRepr(value);
   if (Array.isArray(value)) return `[${value.map(_pyRepr).join(', ')}]`;
-  if (typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
-    const items = Object.entries(value as Record<string, unknown>).map(
-      ([k, v]) => `${stringRepr(k)}: ${_pyRepr(v)}`,
-    );
+  if (isRecord(value)) {
+    const items = Object.entries(value).map(([k, v]) => `${stringRepr(k)}: ${_pyRepr(v)}`);
     return `{${items.join(', ')}}`;
   }
   return String(value);

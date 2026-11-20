@@ -203,7 +203,7 @@ export interface ChangeOptions {
   /** The ISO 4217 code of that money, such as `"EUR"`; defaults to the service's `currency`. */
   currency?: string | null;
   /** What to tell the caller once each write went through, one per write, or one sentence for the whole change. */
-  done?: DoneLines | null;
+  done?: readonly string[] | string | null;
   /**
    * The kind of another change the caller asked for that has to go first, such
    * as `"address"` for an item change that would leave the order's address

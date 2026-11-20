@@ -371,7 +371,7 @@ export class InfoBotKnowledge {
    * @returns The agent.
    * @throws {Error} Without a search backend.
    */
-  install(agent: AgentBase): AgentBase {
+  install<A extends AgentBase = AgentBase>(agent: A): A {
     if (this.searchFn === null) {
       throw new Error(
         'InfoBotKnowledge needs a search backend: pass search or call ' +

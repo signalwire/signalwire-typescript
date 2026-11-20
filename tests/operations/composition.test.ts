@@ -109,6 +109,15 @@ describe('Operations beside the rest of an agent', () => {
     expect(sim.step).toBe('confirm');
   });
 
+  it("writes a prefilled account's description as str() does", async () => {
+    const agent = bookingAgent({
+      prefill: () => ({ phone: '555' }),
+      describe: () => ({ tier: 'gold', active: true }),
+    });
+    const known: Loose = await agent.ops.prefilled({});
+    expect(known['ops']['account']).toBe("{'tier': 'gold', 'active': True}");
+  });
+
   it("puts tools it didn't make in the generated steps", async () => {
     const agent = bookingAgent();
     agent.defineTool({

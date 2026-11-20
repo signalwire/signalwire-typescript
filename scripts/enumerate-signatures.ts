@@ -554,15 +554,126 @@ const REFERENCE_TYPE_FOLDS: Record<string, string> = {
   'operations/agent:LoadFunction': 'callable<list<any>,any>',
   'operations/agent:DescribeFunction': 'callable<list<any>,any>',
   'operations/agent:PrefillFunction': 'callable<list<any>,any>',
-  // set_result_context(fn: Callable[[Result], str | None]) and
-  // set_authority(fn: Callable[[Result], int | None]): the nullable return a
-  // callback type written inline doesn't keep
-  'operations/infobot/knowledge:ResultLabel':
-    'callable<list<class:signalwire.operations.infobot.knowledge.Result>,optional<string>>',
-  'operations/infobot/knowledge:ResultTier':
-    'callable<list<class:signalwire.operations.infobot.knowledge.Result>,optional<int>>',
 };
 const UNFOLD_ALL = process.env.UNFOLD_ALL === '1';
+
+/** Where the reference annotates a sync-or-async result as `T | Awaitable[T]`, so
+ *  the port's `T | Promise<T>` is recorded with the same Awaitable arm. */
+const AWAITABLE_UNION_CTX: readonly string[] = [
+  // InfoBotKnowledge(search: Callable[[str], list[Result] | Awaitable[list[Result]]] | None)
+  'signalwire.operations.infobot.knowledge.InfoBotKnowledge.__init__',
+];
+
+/**
+ * An options object the reference spreads into named parameters that aren't all
+ * keyword-only: a dataclass's positional-or-keyword fields, or a positional
+ * first one (`ServiceAgent(name, *, role)`). `param` is the TS parameter to
+ * unfold (any name), `members` its properties in the reference's order
+ * (inherited ones included, read through the checker), the first `positional`
+ * of them positional. `varargs` names a list parameter that is the reference's
+ * `*name` (a TS rest parameter can't be followed by options). Keyed by ctx.
+ */
+interface OptionsUnfoldSpec {
+  param?: string;
+  members?: readonly string[];
+  positional?: number;
+  varargs?: readonly string[];
+}
+const OPTIONS_UNFOLD_SPEC: Record<string, OptionsUnfoldSpec> = {
+  'signalwire.operations.agent.ServiceAgent.__init__': {
+    param: 'opts',
+    members: ['name', 'role'],
+    positional: 1,
+  },
+  'signalwire.prefabs.front_desk.FrontDeskAgent.__init__': {
+    param: 'opts',
+    members: [
+      'name',
+      'role',
+      'departments',
+      'appointments',
+      'messages',
+      'knowledge',
+      'callerId',
+      'deskWording',
+    ],
+    positional: 1,
+  },
+  'signalwire.prefabs.personal_assistant.PersonalAssistantAgent.__init__': {
+    param: 'opts',
+    members: [
+      'name',
+      'role',
+      'owner',
+      'reach',
+      'available',
+      'messages',
+      'appointments',
+      'knowledge',
+      'callerId',
+      'ringSeconds',
+      'answerSeconds',
+      'whisperVoice',
+      'whisperLanguage',
+      'acceptKey',
+      'tool',
+      'assistantWording',
+    ],
+    positional: 1,
+  },
+  'signalwire.operations.infobot.knowledge.InfoBotKnowledge.__init__': {
+    param: 'opts',
+    members: [
+      'search',
+      'tool',
+      'description',
+      'resultLimit',
+      'grounding',
+      'contact',
+      'contactTool',
+      'contactFields',
+      'contactAnyOf',
+      'wording',
+      'context',
+      'step',
+    ],
+    positional: 1,
+  },
+  // Dataclasses: every field positional-or-keyword
+  'signalwire.operations.model.Change.__init__': {
+    param: 'opts',
+    members: [
+      'readBack',
+      'touches',
+      'writes',
+      'money',
+      'currency',
+      'done',
+      'after',
+      'afterWhy',
+      'then',
+    ],
+    positional: 9,
+  },
+  'signalwire.operations.model.Field.__init__': {
+    param: 'opts',
+    members: ['required', 'ask'],
+    positional: 2,
+  },
+  'signalwire.operations.messages.Message.__init__': {
+    param: 'fields',
+    members: ['text', 'name', 'number', 'to', 'callId', 'accountId'],
+    positional: 6,
+  },
+  'signalwire.operations.payments.PaymentResult.__init__': {
+    param: 'fields',
+    members: ['result', 'amount', 'currency', 'description', 'payingFor', 'details'],
+    positional: 6,
+  },
+  // offer(*tools, before_identity=..., steps=...): the tools list is the *tools
+  'signalwire.operations.agent.Operations.offer': { varargs: ['tools'] },
+  'signalwire.operations.agent.ServiceAgent.offer': { varargs: ['tools'] },
+};
 
 /**
  * The members of an options object's type: an inline type literal's, or a named
@@ -1203,6 +1314,22 @@ function translateType(
       return hasNullish ? `optional<${inner}>` : inner;
     }
     const parts = filtered.map((t) => translateType(t, checker, aliases, context));
+    // `T | Promise<T>` (a result now or later) is the reference's
+    // `T | Awaitable[T]`: the Promise arm, unwrapped to T above, is Awaitable
+    filtered.forEach((t, i) => {
+      // Only where the reference annotates it so (AWAITABLE_UNION_CTX): elsewhere
+      // it types an async-or-not callback by its result alone
+      if (!AWAITABLE_UNION_CTX.some((c) => context.startsWith(c))) return;
+      if (t.getSymbol()?.getName() !== 'Promise' || parts[i] === 'void') return;
+      if (
+        parts.some(
+          (other, j) =>
+            j !== i && other === parts[i] && filtered[j]!.getSymbol()?.getName() !== 'Promise',
+        )
+      ) {
+        parts[i] = 'class:Awaitable';
+      }
+    });
     const u = `union<${parts.join(',')}>`;
     return hasNullish ? `optional<${u}>` : u;
   }
@@ -1270,7 +1397,26 @@ function translateType(
       const pType = checker.getTypeOfSymbolAtLocation(p, p.valueDeclaration ?? p.declarations![0]);
       return translateType(pType, checker, aliases, context);
     });
-    const ret = translateType(sig.getReturnType(), checker, aliases, context);
+    let ret = translateType(sig.getReturnType(), checker, aliases, context);
+    // The program runs without strictNullChecks, which absorbs `| null` from a
+    // resolved type: read a nullable return off the callback's written type
+    // (`(r: Result) => string | null` is the reference's Callable[..., str | None])
+    const written = sig.getDeclaration()?.type;
+    if (
+      written &&
+      ts.isUnionTypeNode(written) &&
+      written.types.some(
+        (t) =>
+          t.kind === ts.SyntaxKind.NullKeyword ||
+          t.kind === ts.SyntaxKind.UndefinedKeyword ||
+          (ts.isLiteralTypeNode(t) && t.literal.kind === ts.SyntaxKind.NullKeyword),
+      ) &&
+      ret !== 'any' &&
+      ret !== 'void' &&
+      !ret.startsWith('optional<')
+    ) {
+      ret = `optional<${ret}>`;
+    }
     return `callable<list<${params.join(',')}>,${ret}>`;
   }
 
@@ -2365,6 +2511,7 @@ function signatureFromMethod(
   const shouldGeneralUnfold =
     !genResource && (GENERAL_OPTIONS_UNFOLD.has(ctx) || (!isCtor && UNFOLD_ALL));
   let didGeneralUnfold = false;
+  const unfoldSpec = OPTIONS_UNFOLD_SPEC[ctx];
 
   for (const p of m.parameters) {
     if (!p.name || !ts.isIdentifier(p.name)) continue;
@@ -2387,6 +2534,34 @@ function signatureFromMethod(
         required: false,
         default: null,
       });
+      continue;
+    }
+    // An options object unfolded by its spec (OPTIONS_UNFOLD_SPEC): the named
+    // members, inherited ones included, the first `positional` of them positional.
+    if (unfoldSpec?.param === native && unfoldSpec.members) {
+      const objType = checker.getTypeAtLocation(p);
+      unfoldSpec.members.forEach((mNative, i) => {
+        const prop = checker.getPropertyOfType(objType, mNative);
+        if (!prop) throw new Error(`${ctx}: ${native} has no member ${mNative}`);
+        const decl = prop.declarations?.[0];
+        const optional = (prop.flags & ts.SymbolFlags.Optional) !== 0;
+        const mSnake = camelToSnake(mNative);
+        const type =
+          decl && ts.isPropertySignature(decl) && decl.type
+            ? canonForParamNode(decl.type, optional, checker, aliases, `${ctx}[${mSnake}]`)
+            : translateType(checker.getTypeOfSymbolAtLocation(prop, p), checker, aliases, ctx);
+        params.push({
+          name: mSnake,
+          type:
+            optional && type !== 'any' && !type.startsWith('optional<')
+              ? `optional<${type}>`
+              : type,
+          required: !optional,
+          default: optional ? null : undefined,
+          kind: i < (unfoldSpec.positional ?? 0) ? 'positional' : 'keyword',
+        });
+      });
+      didGeneralUnfold = true;
       continue;
     }
     // General options-object unfold (allowlisted methods): a trailing inline
@@ -2521,6 +2696,14 @@ function signatureFromMethod(
   // allowed port-side extra (the diff ignores extra trailing optional params).
   if (didGeneralUnfold) {
     params.push({ name: 'kwargs', kind: 'var_keyword', type: 'any', required: false, default: {} });
+  }
+  // A list parameter that is the reference's `*name` (OPTIONS_UNFOLD_SPEC.varargs)
+  for (const prm of params) {
+    if (unfoldSpec?.varargs?.includes(prm.name) && prm.type.startsWith('list<')) {
+      prm.kind = 'var_positional';
+      prm.type = prm.type.slice('list<'.length, -1);
+      prm.required = false;
+    }
   }
 
   let returns: string;

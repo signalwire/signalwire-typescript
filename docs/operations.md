@@ -354,12 +354,12 @@ try {
 
 ## What the SDK Generates
 
-- Steps: `identify` (with `identify`), `main`, `confirm`, a step per operation with `guidance`, each declared phase, and `transferred` (with `transferWith`). Handlers move between them; the model never navigates. Every step but the last offers every operation tool and every lookup, so a caller who asks for something else is never stranded.
+- Steps: `identify` (with `identify`), `main`, `confirm`, a step per operation with `guidance`, each declared phase, and `transferred` (with `transferWith`). Handlers move between them; the model never navigates. The steps after identify offer every operation tool and every lookup (an operation's `offeredIn` and a phase's own tool list narrow that), so a caller who asks for something else is never stranded; the identify step offers the identify tool and what's `beforeIdentity`.
 - The prompt's Role and Rules sections. The rules are `DEFAULT_RULES`, by key (`reply`, `facts`, `confirm`); `rules` as an object changes them by key (a new key adds a rule, a key of theirs replaces it, null removes it), and as a list replaces them all.
 - The call's record in `global_data` (see [The Call's Record](#the-calls-record)). The conscience is `${global_data.ops.now}`: where the call stands, on every request.
 - `confirm_change` with its one gate, `decline_change`, and `transfer_to_human` gated on the caller asking for a person. A gate that refuses has the model answer in words before it calls a tool again (`backToBackFunctions(false)`, which lasts for the call), and every generated tool's result turns chaining back on (`'forever'`), so one refusal doesn't keep the model from chaining tools for the rest of the call.
 
-`agent.preview()` prints each step's text and tools, as the model gets them. Overrides: `wording` (see [Words, Languages and the Medium](#words-languages-and-the-medium)), `confirmGates`, `toolFillers`, `gateFillers`, `wrap` (middleware around every generated handler), `customize(contexts)` (the generated `ContextBuilder`, to change it), and `namespace` and `context` (see [Two Services on One Agent](#two-services-on-one-agent)).
+`agent.preview()` returns each step's text and tools, as the model gets them, as text to print or check. Overrides: `wording` (see [Words, Languages and the Medium](#words-languages-and-the-medium)), `confirmGates`, `toolFillers`, `gateFillers`, `wrap` (middleware around every generated handler), `customize(contexts)` (the generated `ContextBuilder`, to change it), and `namespace` and `context` (see [Two Services on One Agent](#two-services-on-one-agent)).
 
 ## The Call's Record
 

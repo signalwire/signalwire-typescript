@@ -23,6 +23,13 @@ describe('pyStr', () => {
     expect(_pyStr(value)).toBe(text);
   });
 
+  it('takes a null-prototype record as a dict', () => {
+    expect(_pyTruthy(Object.create(null))).toBe(false);
+    const record = Object.assign(Object.create(null) as Record<string, unknown>, { urgent: true });
+    expect(_pyTruthy(record)).toBe(true);
+    expect(_pyStr(record)).toBe("{'urgent': True}");
+  });
+
   it('quotes a string in repr', () => {
     expect(_pyRepr('a')).toBe("'a'");
   });
