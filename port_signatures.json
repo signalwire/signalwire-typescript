@@ -12536,8 +12536,44 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "class:signalwire.operations.agent.LookupOptions",
+                  "name": "tool",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "fields",
+                  "type": "dict<string,any>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "before_identity",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "fillers",
+                  "type": "union<list<string>,dict<string,any>>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "secure",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -12556,8 +12592,23 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "class:signalwire.operations.agent.OfferOptions",
+                  "name": "before_identity",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "steps",
+                  "type": "list<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -12602,8 +12653,30 @@
                   "required": true
                 },
                 {
-                  "name": "opts",
-                  "type": "class:signalwire.operations.agent.OperationOptions",
+                  "name": "tool",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kind",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "guidance",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }
@@ -12642,8 +12715,16 @@
                   "default": null
                 },
                 {
-                  "name": "opts",
-                  "type": "optional<dict<string,any>>",
+                  "name": "initial",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": null,
+                  "kind": "keyword"
+                },
+                {
+                  "name": "kwargs",
+                  "kind": "var_keyword",
+                  "type": "any",
                   "required": false,
                   "default": {}
                 }

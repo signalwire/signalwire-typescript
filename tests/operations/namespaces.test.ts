@@ -179,4 +179,26 @@ describe('namespaces', () => {
     expect(agent.ops._names.record).toBe('shop');
     expect((agent.ops as Loose).rules).toEqual(['One rule.']);
   });
+
+  it("has ServiceAgent's registration methods as its own, chaining on the agent", () => {
+    for (const name of [
+      'operation',
+      'lookup',
+      'phase',
+      'offer',
+      'confirmGates',
+      'identify',
+      'writesWith',
+      'transferWith',
+    ]) {
+      expect(Object.hasOwn(ServiceAgent.prototype, name), name).toBe(true);
+    }
+    const agent = new ServiceAgent({ name: 's', role: 'r', suppressLogs: true });
+    expect(agent.phase('intro', 'Say hello.')).toBe(agent);
+    expect(agent.offer(['weather'])).toBe(agent);
+    const ops = agent.ops as unknown as { phases: unknown[][]; offers: unknown[][] };
+    expect(ops.phases[0]![0]).toBe('intro');
+    expect(ops.offers[0]![0]).toEqual(['weather']);
+    expect(agent.confirmGates()[0]!.id).toBe('agreed');
+  });
 });

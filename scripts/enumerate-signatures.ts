@@ -458,6 +458,12 @@ const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
   'signalwire.operations.agent.Operations.operation',
   'signalwire.operations.agent.Operations.phase',
   'signalwire.operations.agent.Operations.transfer_with',
+  // ServiceAgent's own registration methods (the reference's e648d8d), the same
+  // keyword-only options as Operations'
+  'signalwire.operations.agent.ServiceAgent.lookup',
+  'signalwire.operations.agent.ServiceAgent.offer',
+  'signalwire.operations.agent.ServiceAgent.operation',
+  'signalwire.operations.agent.ServiceAgent.phase',
   'signalwire.operations.appointments.Appointments.__init__',
   'signalwire.operations.infobot.continuity.Continuity.__init__',
   'signalwire.operations.infobot.continuity.build_seed',
