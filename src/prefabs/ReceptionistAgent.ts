@@ -7,6 +7,7 @@
  * additive features.
  */
 
+import { warnDeprecated } from './deprecated.js';
 import { AgentBase } from '../AgentBase.js';
 import { CallSessionStore } from './CallSessionStore.js';
 import { FunctionResult } from '../FunctionResult.js';
@@ -56,6 +57,9 @@ interface CheckInSession {
 // ── Agent ───────────────────────────────────────────────────────────────────
 
 /**
+ * Deprecated: use FrontDeskAgent, whose departments can say when they're taking calls and which
+ * takes a message when one isn't. It still works, and warns when made.
+ *
  * Prefab agent that greets callers, collects basic information, and transfers them to the correct department.
  *
  * Optionally supports visitor check-in — when enabled, the agent can collect a visitor's name
@@ -86,6 +90,8 @@ interface CheckInSession {
  *
  * await agent.serve({ port: 3000 });
  * ```
+ *
+ * @deprecated Use FrontDeskAgent, whose departments can say when they're taking calls and which takes a message when one isn't.
  */
 export class ReceptionistAgent extends AgentBase {
   private readonly greeting: string;
@@ -110,6 +116,10 @@ export class ReceptionistAgent extends AgentBase {
       usePom: true,
       ...config.agentOptions,
     });
+    warnDeprecated(
+      'ReceptionistAgent',
+      "use FrontDeskAgent, whose departments can say when they're taking calls and which takes a message when one isn't.",
+    );
 
     // Validate departments (Python _validate_departments parity)
     ReceptionistAgent.validateDepartments(config.departments);

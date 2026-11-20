@@ -8,6 +8,7 @@
  * matcher, escalation tool) alongside the Python prefab's public surface.
  */
 
+import { warnDeprecated } from './deprecated.js';
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
@@ -52,6 +53,9 @@ export interface FAQBotConfig {
 // ── Agent ───────────────────────────────────────────────────────────────────
 
 /**
+ * Deprecated: use InfoBotKnowledge, which answers from any search you give it, a list of
+ * questions and answers included. It still works, and warns when made.
+ *
  * Prefab agent that answers frequently asked questions using keyword matching with optional escalation to a live agent.
  *
  * Pass an array of `{ question, answer, keywords }` entries and the agent will
@@ -80,6 +84,8 @@ export interface FAQBotConfig {
  *
  * await agent.serve({ port: 3000 });
  * ```
+ *
+ * @deprecated Use InfoBotKnowledge, which answers from any search you give it, a list of questions and answers included.
  */
 export class FAQBotAgent extends AgentBase {
   /** The configured FAQ entries. */
@@ -104,6 +110,10 @@ export class FAQBotAgent extends AgentBase {
       usePom: true,
       ...config.agentOptions,
     });
+    warnDeprecated(
+      'FAQBotAgent',
+      'use InfoBotKnowledge, which answers from any search you give it, a list of questions and answers included.',
+    );
 
     this.faqs = config.faqs;
     this.suggestRelated = config.suggestRelated ?? true;
