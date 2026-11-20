@@ -139,6 +139,11 @@ export interface CallSimulatorOptions {
    * are found as rendering finds them in step text ({@link namedTools}).
    */
   checkToolMentions?: boolean;
+  /**
+   * More fields for every tool request, as the platform sends them for a
+   * call, such as `{ caller_id_num: '+15551234567' }`.
+   */
+  requestFields?: Json;
 }
 
 /**
@@ -194,6 +199,8 @@ export class CallSimulator {
   private readonly gates?: GateCallback;
   private readonly stubs: Record<string, ToolStub>;
   private readonly checkToolMentions: boolean;
+  /** More fields for every tool request (see `CallSimulatorOptions.requestFields`). */
+  private readonly requestFields: Json;
   private readonly contexts: Record<string, Json>;
   private readonly toggled = new Map<string, boolean>();
   private toolCalls = 0;
@@ -236,6 +243,7 @@ export class CallSimulator {
     this.gates = opts.gates;
     this.stubs = { ...(opts.stubs ?? {}) };
     this.checkToolMentions = opts.checkToolMentions ?? false;
+    this.requestFields = structuredClone(opts.requestFields ?? {});
     const ai = aiVerb(JSON.parse(agent.renderSwml(this.callId)) as Json);
     this.params = structuredClone(asRecord(ai['params']));
     this.globalData = {
@@ -524,6 +532,7 @@ export class CallSimulator {
   private request(name: string, args: Json): Json {
     this.toolCalls += 1;
     const request: Json = {
+      ...structuredClone(this.requestFields),
       function: name,
       argument: { parsed: [args], raw: JSON.stringify(args) },
       call_id: this.callId,

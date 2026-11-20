@@ -50,9 +50,9 @@ export class Dec {
     );
   }
 
-  /** The negation. */
+  /** The negation; a zero's is a plain zero, as `-Decimal("-0")` and `-Decimal(0)` are. */
   negated(): Dec {
-    return new Dec(-this.coefficient, this.exponent, this.coefficient === 0n && !this.negativeZero);
+    return new Dec(-this.coefficient, this.exponent);
   }
 
   /** The absolute value. */

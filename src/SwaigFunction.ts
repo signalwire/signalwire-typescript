@@ -116,13 +116,18 @@ export function normalizeParameters(
 }
 
 /**
- * The argument a vouched tool adds, which the model sets to say every other
- * argument came from the user.
+ * The argument a vouched tool adds, which the model sets to say the user gave
+ * the details the call needs.
  */
 export const VOUCHED_PARAMETER = 'data_supplied_by_user';
-/** The description of {@link VOUCHED_PARAMETER}, as the model reads it. */
+/**
+ * The description of {@link VOUCHED_PARAMETER}, as the model reads it. Not
+ * "every other argument": a tool's arguments often hold ids the model looked
+ * up (an order's, a payment method's), and a model asked to vouch for those
+ * answers false, honestly, and is refused until it stops trying.
+ */
 export const VOUCHED_DESCRIPTION =
-  'True only when every other argument is what the user said in this call, not a guess, an example or something assumed. False when any value did not come from the user.';
+  'True only if the user gave these details themselves in this call.';
 /** The `web_hook_url` that has the platform run its own implementation of a function, by name. */
 export const NATIVE_WEBHOOK_URL = 'native';
 /** The tool prompt the model gets when it calls a vouched tool without vouching for its arguments. */
