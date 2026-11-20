@@ -3,7 +3,7 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased (signalwire-python 3.11.0)
+## 3.11.0 (2026-11-20)
 
 Parity with signalwire-python 3.11.0: verb bodies, checked hooks, a schema
 path that has to load, and the RELAY host.
