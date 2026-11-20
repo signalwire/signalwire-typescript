@@ -122,3 +122,36 @@ describe('the medium', () => {
     expect(aiOf(agent.renderSwml())['global_data']['ops']['medium']).toBe('');
   });
 });
+
+describe('a per-request copy', () => {
+  it('starts with the record before its callbacks, which keep their changes', async () => {
+    const agent = withCancel(
+      new ServiceAgent({ name: 's2', role: 'r', suppressLogs: true, basicAuth: ['u', 'p'] }),
+    );
+    agent.identify({
+      anyOf: [['phone']],
+      find: (_call, keys) => (keys['phone'] === '555' ? 'u1' : null),
+      describe: () => 'Ann',
+      prefill: (requestData) => ({ phone: requestData['caller_id_num'] }),
+    });
+    const seen: Loose[] = [];
+    agent.setDynamicConfigCallback((_q, _body, _h, copy) => {
+      const record = structuredClone((copy as Loose).globalData['ops']);
+      seen.push({ account_id: record['account_id'], medium: record['medium'] });
+      record['state'] = { custom: 'kept' };
+      copy.updateGlobalData({ ops: record });
+    });
+    const auth = `Basic ${Buffer.from('u:p').toString('base64')}`;
+    const [status, , body] = await agent.handleRequest(
+      'POST',
+      'http://localhost/',
+      { authorization: auth },
+      { conversation_type: 'chat', caller_id_num: '555' },
+    );
+    expect(status).toBe(200);
+    expect(seen).toEqual([{ account_id: 'u1', medium: 'chat' }]);
+    const ops = aiOf(body)['global_data']['ops'];
+    expect(ops['state']).toEqual({ custom: 'kept' });
+    expect(ops['account_id']).toBe('u1');
+  });
+});

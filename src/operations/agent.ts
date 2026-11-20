@@ -2118,8 +2118,7 @@ export class ServiceAgent extends AgentBase {
   /**
    * Start the call with its record from this request: its medium, and
    * identified when `identify`'s `prefill` already knows the caller
-   * (`Operations.prefilled`). A per-request copy renders with these
-   * modifications too.
+   * (`Operations.prefilled`).
    */
   override async onSwmlRequest(
     rawData: Parameters<AgentBase['onSwmlRequest']>[0],
@@ -2127,11 +2126,30 @@ export class ServiceAgent extends AgentBase {
     context?: Parameters<AgentBase['onSwmlRequest']>[2],
   ): Promise<Record<string, unknown> | void> {
     const mods = await super.onSwmlRequest(rawData, callbackPath, context);
+    // Rendered on a per-request copy, which gets it before its callbacks
+    // (_seedPerCallCopy): modifications land after them, over their changes
+    if (this._hasPerCallConfig()) return mods;
     const known = await this.ops.prefilled(rawData as Record<string, unknown>, context ?? null);
     if (!known) return mods;
     const out: Record<string, unknown> = { ...(mods ?? {}) };
     out['global_data'] = { ...objectOf(out['global_data']), ...known };
     return out;
+  }
+
+  /**
+   * A per-request copy starts installed, with the call's record, before the
+   * configuration callbacks see it.
+   * @internal
+   */
+  protected override async _seedPerCallCopy(
+    copy: AgentBase,
+    requestData: Record<string, unknown>,
+    context?: Parameters<AgentBase['onSwmlRequest']>[2],
+  ): Promise<void> {
+    await super._seedPerCallCopy(copy, requestData, context);
+    if (copy instanceof ServiceAgent) copy.compile();
+    const known = await this.ops.prefilled(requestData, context ?? null);
+    if (known) copy.updateGlobalData(known);
   }
 
   /**

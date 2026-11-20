@@ -3063,7 +3063,9 @@ export class AgentBase extends SWMLService {
 
     // Per-request dynamic config: render from the configured copy, so the Hono
     // and primitive paths produce identical SWML.
-    const agentToUse = await this.perCallAgent(queryParamsOf(url), parsedBody, headers);
+    const agentToUse = await this.perCallAgent(queryParamsOf(url), parsedBody, headers, (copy) =>
+      this._seedPerCallCopy(copy, parsedBody, context),
+    );
     const swml = agentToUse.renderSwml(callId, modifications || undefined);
     return [200, {}, swml];
   }
@@ -3081,11 +3083,13 @@ export class AgentBase extends SWMLService {
     queryParams: Record<string, string>,
     body: Record<string, unknown>,
     headers: Record<string, string>,
+    seed?: (copy: AgentBase) => void | Promise<void>,
   ): Promise<AgentBase> {
     if (this.perCallConfigs.length === 0) return this;
     const copy = this.createEphemeralCopy();
     const safeHeaders = filterSensitiveHeaders(headers);
     try {
+      if (seed) await seed(copy);
       for (const cb of this.perCallConfigs) {
         await cb(queryParams, body, safeHeaders, copy);
       }
@@ -3095,6 +3099,30 @@ export class AgentBase extends SWMLService {
       );
     }
     return copy;
+  }
+
+  /**
+   * Seed the per-request copy a SWML request renders on, before its
+   * configuration callbacks run, so they see what the call starts with. A
+   * subclass that starts each call with state of its own (`ServiceAgent`'s
+   * record) overrides it. Default: nothing.
+   * @internal
+   */
+  protected _seedPerCallCopy(
+    _copy: AgentBase,
+    _requestData: Record<string, unknown>,
+    _context?: Context,
+  ): void | Promise<void> {
+    // Default no-op
+  }
+
+  /**
+   * Whether requests run on a per-request copy (a dynamic config callback or
+   * `addPerCallConfig`).
+   * @internal
+   */
+  protected _hasPerCallConfig(): boolean {
+    return this.perCallConfigs.length > 0;
   }
 
   /** Validate basic-auth from a plain headers dict (the primitive analog of

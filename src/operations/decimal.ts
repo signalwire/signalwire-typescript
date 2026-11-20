@@ -7,6 +7,26 @@
  * @internal Not part of the package surface; money is exchanged as strings.
  */
 
+/** The significant digits `Decimal`'s default context keeps in a result. */
+const PRECISION = 28;
+
+const DIGIT = /\p{Nd}/u;
+
+/**
+ * Text with every Unicode decimal digit written as an ASCII one, as
+ * `Decimal()` reads them. Decimal digits come in runs of ten, 0 to 9, so a
+ * digit's value is its distance from the start of its run.
+ */
+function asciiDigits(text: string): string {
+  return text.replace(/\p{Nd}/gu, (c) => {
+    const cp = c.codePointAt(0)!;
+    if (cp <= 0x39) return c;
+    let start = cp;
+    while (DIGIT.test(String.fromCodePoint(start - 1))) start--;
+    return String((cp - start) % 10);
+  });
+}
+
 /** An exact decimal: `coefficient * 10 ** exponent`. */
 export class Dec {
   readonly coefficient: bigint;
@@ -28,7 +48,9 @@ export class Dec {
    * digits with an optional point, an optional exponent. Null when it isn't one.
    */
   static parse(text: string): Dec | null {
-    const m = /^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(text.trim().replace(/_/g, ''));
+    const m = /^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(
+      asciiDigits(text.trim()).replace(/_/g, ''),
+    );
     if (!m) return null;
     const whole = m[2] ?? '';
     const fraction = m[3] ?? '';
@@ -39,7 +61,10 @@ export class Dec {
     return new Dec(m[1] === '-' ? -digits : digits, exponent, m[1] === '-');
   }
 
-  /** The sum, exact: the exponent is the smaller of the two, as `Decimal` adds. */
+  /**
+   * The sum, as `Decimal` adds in its default context: exact, at the smaller
+   * exponent of the two, then rounded to 28 significant digits.
+   */
   plus(other: Dec): Dec {
     const exponent = Math.min(this.exponent, other.exponent);
     // A zero sum is negative only when both are negative zeros, as Decimal adds
@@ -47,19 +72,43 @@ export class Dec {
       this.scaled(exponent) + other.scaled(exponent),
       exponent,
       this.negativeZero && other.negativeZero,
-    );
+    ).inContext();
   }
 
-  /** The negation; a zero's is a plain zero, as `-Decimal("-0")` and `-Decimal(0)` are. */
+  /**
+   * The negation, rounded to the context as `-Decimal` is; a zero's is a plain
+   * zero, as `-Decimal("-0")` and `-Decimal(0)` are.
+   */
   negated(): Dec {
-    return new Dec(-this.coefficient, this.exponent);
+    return new Dec(-this.coefficient, this.exponent).inContext();
   }
 
-  /** The absolute value. */
+  /** The absolute value, rounded to the context as `abs(Decimal)` is. */
   abs(): Dec {
-    return this.coefficient < 0n || this.negativeZero
-      ? new Dec(this.coefficient < 0n ? -this.coefficient : this.coefficient, this.exponent)
-      : this;
+    const magnitude = this.coefficient < 0n ? -this.coefficient : this.coefficient;
+    return new Dec(magnitude, this.exponent).inContext();
+  }
+
+  /**
+   * Rounded to 28 significant digits, half to even, as `Decimal`'s default
+   * context rounds a result.
+   */
+  inContext(): Dec {
+    const negative = this.coefficient < 0n;
+    let magnitude = negative ? -this.coefficient : this.coefficient;
+    const drop = magnitude.toString().length - PRECISION;
+    if (drop <= 0) return this;
+    const divisor = 10n ** BigInt(drop);
+    const rest = magnitude % divisor;
+    magnitude /= divisor;
+    if (2n * rest > divisor || (2n * rest === divisor && magnitude % 2n === 1n)) magnitude += 1n;
+    let exponent = this.exponent + drop;
+    // A carry to one digit more: 999...9 rounds to 1000...0, one digit fewer kept
+    if (magnitude.toString().length > PRECISION) {
+      magnitude /= 10n;
+      exponent += 1;
+    }
+    return new Dec(negative ? -magnitude : magnitude, exponent, this.negativeZero);
   }
 
   /** -1, 0 or 1. */
@@ -81,11 +130,12 @@ export class Dec {
     return this.coefficient % 10n ** BigInt(-this.exponent) === 0n;
   }
 
-  /** The digits after the point it needs, trailing zeros dropped. */
+  /** The digits after the point it needs, trailing zeros dropped, as `normalize()` (in the context) leaves it. */
   places(): number {
-    if (this.coefficient === 0n || this.exponent >= 0) return 0;
-    let c = this.coefficient < 0n ? -this.coefficient : this.coefficient;
-    let places = -this.exponent;
+    const value = this.inContext();
+    if (value.coefficient === 0n || value.exponent >= 0) return 0;
+    let c = value.coefficient < 0n ? -value.coefficient : value.coefficient;
+    let places = -value.exponent;
     while (places > 0 && c % 10n === 0n) {
       c /= 10n;
       places--;
@@ -105,9 +155,17 @@ export class Dec {
     return new Dec(negative ? -quotient : quotient, target);
   }
 
-  /** Fixed notation with `digits` after the point and thousands separators: `f"{x:,.2f}"`. */
+  /**
+   * Fixed notation with `digits` after the point and thousands separators, as
+   * `f"{x.quantize(...):,.2f}"` writes it.
+   * @throws {Error} When that takes more than 28 digits, as `quantize` refuses it.
+   */
   toGrouped(digits: number): string {
     const value = this.rounded(digits);
+    const magnitude = value.coefficient < 0n ? -value.coefficient : value.coefficient;
+    if (magnitude.toString().length > PRECISION) {
+      throw new Error(`${this.toString()} has more digits than an amount of money can`);
+    }
     const negative = value.coefficient < 0n;
     const text = (negative ? -value.coefficient : value.coefficient)
       .toString()

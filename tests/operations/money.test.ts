@@ -56,6 +56,23 @@ describe('amountOf', () => {
     expect(amountOf(7n)).toBe('7');
   });
 
+  it("rounds results to Decimal's 28-digit context", () => {
+    expect(formatMoney('1.00499999999999999999999999999', 'USD')).toBe('$1.01');
+    expect(Dec.ZERO.plus(Dec.parse('0.12345678901234567890123456789')!).toString()).toBe(
+      '0.1234567890123456789012345679',
+    );
+    expect(Dec.parse('9'.repeat(29))!.abs().toString()).toBe('1.000000000000000000000000000E+29');
+    expect(Dec.parse('-2.5')!.negated().toString()).toBe('2.5');
+    expect(() => formatMoney(`1${'0'.repeat(27)}`, 'USD')).toThrow(/more digits/);
+  });
+
+  it('reads Unicode decimal digits, as Decimal does', () => {
+    expect(amountOf('١٢.٣٤')).toBe('12.34');
+    expect(formatMoney('１２.３４', 'USD')).toBe('$12.34');
+    expect(amountOf('𝟏𝟐.𝟓')).toBe('12.5');
+    expect(amountOf('\u00a012\u2003')).toBe('12');
+  });
+
   it('negates a zero to a plain zero, as Decimal does', () => {
     expect(Dec.parse('-0')!.negated().toString()).toBe('0');
     expect(Dec.parse('0.00')!.negated().toString()).toBe('0.00');
