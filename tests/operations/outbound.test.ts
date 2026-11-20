@@ -103,6 +103,36 @@ describe('Dialer', () => {
     expect(client.dialed[1]).toEqual(['+1', '+3', { swml: doc }]);
   });
 
+  it("writes the callee's data as the reference's str() does", async () => {
+    const client = new Client();
+    await new Dialer(client, { fromNumber: '+1', url: 'https://a.example.com/r' }).place(
+      new Callee('+2', 'UTC', { tags: ['a', 'b'], context: { urgent: true }, small: 1e-7 }),
+      FRIDAY_1800_UTC,
+    );
+    const query = new URL(String((client.dialed[0]![2] as Record<string, unknown>)['url']))
+      .searchParams;
+    expect([query.get('tags'), query.get('context'), query.get('small')]).toEqual([
+      "['a', 'b']",
+      "{'urgent': True}",
+      '1e-07',
+    ]);
+  });
+
+  it('takes an IANA zone name as ZoneInfo does, and nothing else', () => {
+    const d = new Dialer(new Client(), { fromNumber: '+1', swml: {} });
+    for (const zone of ['+02:00', 'america/chicago', 'utc']) {
+      expect(() => d.whyNot(new Callee('+1', zone), FRIDAY_1800_UTC)).toThrow(/time zone/);
+    }
+    for (const zone of ['America/Chicago', 'US/Central', 'Etc/UTC', 'UTC', 'EST5EDT']) {
+      expect(d.whyNot(new Callee('+1', zone), FRIDAY_1800_UTC)).toBeNull();
+    }
+  });
+
+  it('counts empty consent as withdrawn, as Python counts it false', () => {
+    const check = consented(() => [] as unknown as boolean);
+    expect(check(new Callee('+1', 'UTC'), FRIDAY_1800_UTC)).toBe('consent withdrawn');
+  });
+
   it('counts the end of the calling hours to the second', () => {
     const d = new Dialer(new Client(), {
       fromNumber: '+1',

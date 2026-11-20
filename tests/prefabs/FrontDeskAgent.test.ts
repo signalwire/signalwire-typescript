@@ -62,6 +62,19 @@ describe('FrontDeskAgent', () => {
     expect(JSON.stringify(out.actions)).not.toContain('+15550100001');
   });
 
+  it('counts an empty open() as closed, as Python does', async () => {
+    const agent = new FrontDeskAgent({
+      role: 'r',
+      departments: { billing: new Department('bills', '+15550100001', () => ({})) },
+      suppressLogs: true,
+    });
+    const out = await new CallSimulator(agent).call('transfer_to_human', {
+      summary: 'x',
+      to: 'billing',
+    });
+    expect(out.response).toBe("billing isn't taking calls now.");
+  });
+
   it('asks how else to help without messages', async () => {
     const agent = new FrontDeskAgent({
       role: 'r',

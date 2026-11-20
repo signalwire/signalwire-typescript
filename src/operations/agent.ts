@@ -27,6 +27,7 @@ import {
   type OperationClass,
 } from './model.js';
 import { _Dec as Dec } from './decimal.js';
+import { _pyStr as pyStr } from './pystr.js';
 import { checkCurrency, formatMoney } from './money.js';
 import {
   RECORD,
@@ -2378,14 +2379,6 @@ function stringsOf(value: unknown): string[] {
 function toInt(value: unknown): number {
   const n = Number(value || 0);
   return Number.isFinite(n) ? Math.trunc(n) : 0;
-}
-
-/** A value as the reference's `str()` writes it, for the few values put in words. */
-function pyStr(value: unknown): string {
-  if (value === null || value === undefined) return 'None';
-  if (value === true) return 'True';
-  if (value === false) return 'False';
-  return typeof value === 'object' ? JSON.stringify(value) : String(value);
 }
 
 function typeName(value: unknown): string {

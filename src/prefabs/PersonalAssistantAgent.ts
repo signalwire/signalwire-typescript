@@ -15,6 +15,7 @@ import type { InfoBotKnowledge } from '../operations/infobot/knowledge.js';
 import type { Messages } from '../operations/messages.js';
 import { Change, Field, type Values } from '../operations/model.js';
 import { _packOperation as packOperation } from '../operations/pack.js';
+import { _pyTruthy as pyTruthy } from '../operations/pystr.js';
 import { _Wording as Wording } from '../operations/wording.js';
 
 /**
@@ -197,7 +198,7 @@ export class PersonalAssistantAgent extends ServiceAgent {
             throw new Said(w.say('chat', { owner: this.owner }), this.otherwise());
           if (this.available !== null) {
             const taking = await this.available(call);
-            if (!taking) {
+            if (!pyTruthy(taking)) {
               throw new Said(w.say('unavailable', { owner: this.owner }), this.otherwise());
             }
           }

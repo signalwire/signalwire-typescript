@@ -3,6 +3,8 @@
  * on record, the callee's own calling hours).
  */
 
+import { _pyStr as pyStr, _pyTruthy as pyTruthy } from './pystr.js';
+
 /** The fields of a {@link Callee}. */
 export interface CalleeFields {
   /** Their number, in E.164 form. */
@@ -97,8 +99,15 @@ function localOf(callee: Callee, now: Date): { weekday: number; clock: Clock } {
 }
 
 function zoneFormat(callee: Callee): Intl.DateTimeFormat {
+  const notZone = new Error(
+    `'${callee.zone}' isn't a time zone; give an IANA name such as 'America/Chicago'`,
+  );
+  // An offset ('+02:00') isn't a zone's name, and a name is spelled as tzdata
+  // spells it ('america/chicago' isn't), as the reference's ZoneInfo takes them
+  if (/^[+-]/.test(callee.zone)) throw notZone;
+  let format: Intl.DateTimeFormat;
   try {
-    return new Intl.DateTimeFormat('en-US', {
+    format = new Intl.DateTimeFormat('en-US', {
       timeZone: callee.zone,
       weekday: 'long',
       hour: '2-digit',
@@ -107,10 +116,13 @@ function zoneFormat(callee: Callee): Intl.DateTimeFormat {
       hourCycle: 'h23',
     });
   } catch {
-    throw new Error(
-      `'${callee.zone}' isn't a time zone; give an IANA name such as 'America/Chicago'`,
-    );
+    throw notZone;
   }
+  const resolved = format.resolvedOptions().timeZone;
+  if (resolved !== callee.zone && resolved.toLowerCase() === callee.zone.toLowerCase()) {
+    throw notZone;
+  }
+  return format;
 }
 
 /**
@@ -153,7 +165,7 @@ export function consented(lookup: (callee: Callee) => boolean | null | undefined
   return (callee) => {
     const given = lookup(callee);
     if (given === null || given === undefined) return 'no consent on record';
-    return given ? null : 'consent withdrawn';
+    return pyTruthy(given) ? null : 'consent withdrawn';
   };
 }
 
@@ -284,12 +296,4 @@ function quotePlus(text: string): string {
   return encodeURIComponent(text)
     .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
     .replace(/%20/g, '+');
-}
-
-/** A value as the reference's `str()` writes it, for the query string. */
-function pyStr(value: unknown): string {
-  if (value === null || value === undefined) return 'None';
-  if (value === true) return 'True';
-  if (value === false) return 'False';
-  return typeof value === 'object' ? JSON.stringify(value) : String(value);
 }

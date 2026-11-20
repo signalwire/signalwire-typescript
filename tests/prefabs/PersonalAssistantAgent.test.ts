@@ -79,6 +79,14 @@ describe('PersonalAssistantAgent', () => {
     expect((out.actions as Json[]).some((a) => 'SWML' in a)).toBe(false);
   });
 
+  it('counts an empty availability as not taking calls, as Python does', async () => {
+    for (const empty of [[], {}, '', 0]) {
+      const sim = new CallSimulator(assistant(true, { available: async () => empty }));
+      const out = await sim.call('put_through', said({ name: 'Bo', reason: 'lunch' }));
+      expect(out.response).toBe("Ann isn't taking calls now.");
+    }
+  });
+
   it('takes another accept key', async () => {
     const sim = new CallSimulator(
       assistant(true, {

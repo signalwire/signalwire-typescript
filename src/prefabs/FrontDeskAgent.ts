@@ -8,6 +8,7 @@ import type { Appointments } from '../operations/appointments.js';
 import type { InfoBotKnowledge } from '../operations/infobot/knowledge.js';
 import type { Messages } from '../operations/messages.js';
 import { Refuse } from '../operations/model.js';
+import { _pyTruthy as pyTruthy } from '../operations/pystr.js';
 import { _Wording as Wording } from '../operations/wording.js';
 
 /** Where the front desk puts a caller through to. */
@@ -143,7 +144,8 @@ export class FrontDeskAgent extends ServiceAgent {
       throw new Refuse(w.say('chat', { department: to }), this.closedThen());
     if (department.open !== null) {
       const taking = await department.open(call);
-      if (!taking) throw new Refuse(w.say('closed', { department: to }), this.closedThen());
+      if (!pyTruthy(taking))
+        throw new Refuse(w.say('closed', { department: to }), this.closedThen());
     }
     return new FunctionResult().connect(department.to, true, this.callerId ?? undefined);
   }
