@@ -270,22 +270,24 @@ export class RelayClient {
 
   /**
    * Create a new RELAY client.
-   * Credentials fall back to the `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`,
-   * `SIGNALWIRE_JWT_TOKEN`, and `SIGNALWIRE_SPACE` env vars when omitted.
+   * Credentials fall back to the `SIGNALWIRE_PROJECT_ID`, `SIGNALWIRE_API_TOKEN`
+   * and `SIGNALWIRE_JWT_TOKEN` env vars when omitted, and the host to
+   * `SIGNALWIRE_RELAY_HOST`, then `SIGNALWIRE_SPACE` (for compatibility), then
+   * `relay.signalwire.com`.
    * @param options - Optional client configuration.
    */
   constructor(options: RelayClientOptions = {}) {
     this.project = options.project ?? process.env.SIGNALWIRE_PROJECT_ID ?? '';
     this.token = options.token ?? process.env.SIGNALWIRE_API_TOKEN ?? '';
     this.jwtToken = options.jwtToken ?? process.env.SIGNALWIRE_JWT_TOKEN ?? '';
-    // Host precedence: explicit option > SIGNALWIRE_RELAY_HOST (audit
-    // fixtures bind a loopback host:port and set this) > SIGNALWIRE_SPACE
-    // (production) > built-in default. The audit-only env var is checked
-    // first because it overrides the production env var.
+    // Host precedence: explicit option > SIGNALWIRE_RELAY_HOST >
+    // SIGNALWIRE_SPACE, read for compatibility (it's the space's hostname for
+    // REST) > built-in default, as the reference's 3.11.0 has it.
+    // An empty value is skipped, as the reference's `or` chain skips it
     this.host =
-      options.host ??
-      process.env.SIGNALWIRE_RELAY_HOST ??
-      process.env.SIGNALWIRE_SPACE ??
+      options.host ||
+      process.env.SIGNALWIRE_RELAY_HOST ||
+      process.env.SIGNALWIRE_SPACE ||
       DEFAULT_RELAY_HOST;
     // Scheme precedence: explicit option > SIGNALWIRE_RELAY_SCHEME > 'wss'.
     // Only 'ws' and 'wss' are accepted; anything else falls back to 'wss'.
@@ -689,7 +691,7 @@ export class RelayClient {
    * @param options - Optional dial behaviour overrides.
    * @param options.tag - Client-provided tag for event correlation.
    *   Auto-generated (UUID) when omitted.
-   * @param options.maxDuration - Maximum call duration in minutes.
+   * @param options.maxDuration - Maximum call duration in seconds.
    * @param options.dialTimeout - Seconds to wait for the dial to complete.
    *   Defaults to `120`.
    * @returns A {@link Call} representing the answered leg.

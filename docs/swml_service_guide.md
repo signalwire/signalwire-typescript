@@ -205,7 +205,21 @@ The second call throws with this message:
 Schema validation failed for 'play': Schema validation error for 'play': /play unknown property 'invalid_param'
 ```
 
-Set `SWML_SKIP_SCHEMA_VALIDATION=true`, or pass `schemaValidation: false`, to turn validation off. `schemaPath` validates verbs against another schema file.
+Set `SWML_SKIP_SCHEMA_VALIDATION=true`, or pass `schemaValidation: false`, to turn validation off. `schemaPath` validates verbs against another schema file. One that can't be loaded, because it's missing or isn't valid JSON, throws when the service is created, naming the path and the cause.
+
+### Verb Bodies
+
+A verb's body is an object for most verbs. A few take a string, number or array, and `addVerb()` and `addVerbToSection()` keep it as given:
+
+<!-- snippet: no-compile fragment from inside an SWMLService subclass method; uses `this.addVerb` -->
+```typescript
+this.addVerb('label', 'start');
+this.addVerb('unset', ['temp_a', 'temp_b']);
+this.addVerb('sleep', 2000); // milliseconds; -1 sleeps until the call ends
+this.addVerb('return', 'done');
+```
+
+The builder's verb methods take the body positionally too, typed from the schema: `builder.label('start')`, `builder.cond([...])`, `builder.connect({ to: '+15551234567' })`, `builder.return('done')`. A body that doesn't fit the verb throws a `SchemaValidationError`, and nothing is added. A `sleep` duration must be a positive number of milliseconds or `-1`, and not a boolean. A body that isn't a JSON value, such as `undefined` or a function, throws a `TypeError`. With validation off, any JSON body is added as given.
 
 ### Custom Verb Handlers
 

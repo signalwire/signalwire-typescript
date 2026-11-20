@@ -888,3 +888,31 @@ describe('RelayClient', () => {
     });
   });
 });
+
+describe('the RELAY host with empty variables (Python 3.11.0, found in review)', () => {
+  it('skips an empty value, as the reference does', async () => {
+    const { RelayClient } = await import('../../src/relay/RelayClient.js');
+    const saved = {
+      host: process.env['SIGNALWIRE_RELAY_HOST'],
+      space: process.env['SIGNALWIRE_SPACE'],
+    };
+    try {
+      process.env['SIGNALWIRE_RELAY_HOST'] = '';
+      process.env['SIGNALWIRE_SPACE'] = 'example.signalwire.com';
+      expect(new RelayClient({ project: 'p', token: 't' }).host).toBe('example.signalwire.com');
+      process.env['SIGNALWIRE_SPACE'] = '';
+      expect(new RelayClient({ project: 'p', token: 't' }).host).toBe('relay.signalwire.com');
+      expect(new RelayClient({ project: 'p', token: 't', host: '' }).host).toBe(
+        'relay.signalwire.com',
+      );
+    } finally {
+      for (const [k, v] of [
+        ['SIGNALWIRE_RELAY_HOST', saved.host],
+        ['SIGNALWIRE_SPACE', saved.space],
+      ] as const) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
+  });
+});

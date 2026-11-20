@@ -342,7 +342,7 @@ const TYPE_AS_SAY_GENDER: Record<string, Set<string>> = {
  *
  * These interfaces match the Python SDK's named parameters for each verb:
  *   - AiVerbConfig mirrors: prompt_text, prompt_pom, post_prompt, post_prompt_url, swaig, **kwargs
- *   - PlayVerbConfig mirrors: url, urls, volume, say_voice, say_language, say_gender, auto_answer
+ *   - PlayVerbConfig mirrors: url, urls, volume, say_voice, say_language, say_gender, auto_answer, status_url
  *
  * Keyed by verbName. interfaceName is emitted as a top-level export in the generated file;
  * configType references that name; isOptional=true because all Python params are optional.
@@ -384,6 +384,8 @@ const CUSTOM_VERB_TYPES: Record<
       `  say_gender?: ${SAY_GENDER_TYPE};`,
       '  /** If true, auto-answer the call before playing audio. Default true. */',
       '  auto_answer?: boolean;',
+      '  /** http or https URL to deliver play status events. */',
+      '  status_url?: string;',
     ].join('\n'),
     isOptional: true,
   },
@@ -405,9 +407,24 @@ function generateVerbConfig(
     return { configType: 'string', isOptional: false };
   }
 
-  // anyOf (e.g. "sleep" which accepts int or object)
+  // anyOf (e.g. "unset", a string or a list of strings): its branches' types
   if (innerSchema.anyOf && innerSchema.type !== 'object') {
-    return { configType: 'Record<string, unknown> | number', isOptional: false };
+    // A union of referenced object shapes (e.g. "send_sms") is an object
+    const unionType = mapVerbType(innerSchema);
+    return {
+      configType: unionType === 'unknown' ? 'Record<string, unknown>' : unionType,
+      isOptional: false,
+    };
+  }
+
+  // An array body (e.g. "cond"'s conditions); objects for referenced items
+  if (innerSchema.type === 'array') {
+    const items = innerSchema.items as VerbSchemaProperty | undefined;
+    const itemType = !items || items.$ref ? 'Record<string, unknown>' : mapVerbType(items);
+    return {
+      configType: `${itemType.includes('|') ? `(${itemType})` : itemType}[]`,
+      isOptional: false,
+    };
   }
 
   // oneOf with $ref (e.g. "play")
@@ -491,7 +508,10 @@ async function generateVerbMethods(schemaPath: string, outPath: string): Promise
     // Special handling for sleep
     if (verbName === 'sleep') {
       methods.push(`    /** ${cleanDesc} */`);
-      methods.push(`    sleep(durationOrConfig: number | { duration: number }): this;`);
+      // A duration in milliseconds (-1 for the rest of the call), or a SWML variable
+      methods.push(
+        `    sleep(durationOrConfig: number | string | { duration: number | string }): this;`,
+      );
       continue;
     }
 

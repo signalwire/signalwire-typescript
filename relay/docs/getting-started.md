@@ -154,7 +154,7 @@ const call = await client.dial([
 ]);
 ```
 
-`dial()` takes an options object as its second argument: `tag`, `maxDuration` (minutes) and `dialTimeout` (seconds, default 120). This call gives up after 30 seconds:
+`dial()` takes an options object as its second argument: `tag`, `maxDuration` (seconds) and `dialTimeout` (seconds, default 120). This call gives up after 30 seconds:
 
 <!-- snippet: no-run client.dial() opens a live WebSocket to SIGNALWIRE_SPACE; it can't reach the loopback mock standalone -->
 ```typescript

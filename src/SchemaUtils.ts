@@ -6,7 +6,9 @@
  * Set SWML_SKIP_SCHEMA_VALIDATION=true to disable.
  */
 
+import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'module';
+import { resolve as resolvePath } from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import type { ValidateFunction } from 'ajv';
 import { getLogger } from './Logger.js';
@@ -134,6 +136,8 @@ export class SchemaUtils {
   private verbs: Map<string, VerbDefinition> = new Map();
   /** Path to the schema file, or null to use the bundled schema. */
   private _schemaPath: string | null;
+  /** Why the schema at `schemaPath` couldn't be loaded, or null when it was (or none was given). */
+  loadError: string | null = null;
   /** Per-verb lazily-compiled JSON-Schema (Draft 2020-12) validators, keyed by
    *  verb name. Each validates a single verb's config against JUST that verb's
    *  `$defs` definition (with the schema's `$defs` available for `$ref`s), the
@@ -187,14 +191,30 @@ export class SchemaUtils {
     this.ajv = undefined;
     // Try custom schema path first (mirrors Python's schema_path parameter)
     if (this._schemaPath) {
-      try {
-        const require = createRequire(import.meta.url);
-        this.schema = require(this._schemaPath) as Record<string, unknown>;
+      // Read from the path as given, relative to the working directory. A file
+      // read once is shared, so the validators compiled for it are too
+      const absolute = resolvePath(this._schemaPath);
+      const cached = LOADED_SCHEMAS.get(absolute);
+      if (cached) {
+        this.schema = cached;
+        this.loadError = null;
         this.verbs = this.extractVerbDefinitions();
         return this.schema;
-      } catch {
-        // Fall through to bundled schema on load failure
       }
+      if (!existsSync(absolute)) {
+        this.loadError = 'no such file';
+      } else {
+        try {
+          this.schema = JSON.parse(readFileSync(absolute, 'utf-8')) as Record<string, unknown>;
+          LOADED_SCHEMAS.set(absolute, this.schema);
+          this.loadError = null;
+          this.verbs = this.extractVerbDefinitions();
+          return this.schema;
+        } catch (err) {
+          this.loadError = err instanceof Error ? err.message : String(err);
+        }
+      }
+      // Falls through to the bundled schema; a service given this path throws
     }
     // Fall back to bundled schema.json
     try {
@@ -342,6 +362,11 @@ export class SchemaUtils {
     // Check verb exists (fast, schema-independent).
     if (!this.verbs.has(verbName)) {
       return { valid: false, errors: [`Unknown verb: '${verbName}'`] };
+    }
+
+    if (verbName === 'sleep') {
+      const errors = sleepDurationErrors(config);
+      if (errors.length > 0) return { valid: false, errors };
     }
 
     // The `ai` verb is a HANDLER verb: its strict-render check is TOP-LEVEL keys
@@ -553,37 +578,50 @@ export class SchemaUtils {
    * `_validate_verb_lightweight`.
    */
   private validateVerbLightweight(verbName: string, config: unknown): ValidationResult {
-    const errors: string[] = [];
-    const innerSchema = this.getVerbProperties(verbName);
-
-    // If the inner schema is not an object type (e.g. "label" takes a string,
-    // "sleep" takes anyOf int/object), skip property checks
-    const innerType = innerSchema['type'];
-    if (innerType !== 'object') {
-      return { valid: true, errors: [] };
-    }
-
-    // Config must be an object for object-typed verbs
-    if (typeof config !== 'object' || config === null || Array.isArray(config)) {
-      // Allow empty config for verbs with no required props
-      const required = this.getVerbRequiredProperties(verbName);
-      if (required.length > 0) {
-        errors.push(`Verb '${verbName}' expects an object config`);
-        return { valid: false, errors };
-      }
-      return { valid: true, errors: [] };
-    }
-
-    // Check required properties
-    const required = this.getVerbRequiredProperties(verbName);
-    const configObj = config as Record<string, unknown>;
-    for (const prop of required) {
-      if (!(prop in configObj)) {
-        errors.push(`Missing required property '${prop}' for verb '${verbName}'`);
-      }
-    }
-
+    // Required fields are found through $refs and in a union's branches: a body
+    // passes when some branch it could match has all of its required fields
+    const missing = this.missingRequired(this.getVerbProperties(verbName), config, 0);
+    const errors = (missing ?? []).map(
+      (prop) => `Missing required property '${prop}' for verb '${verbName}'`,
+    );
     return { valid: errors.length === 0, errors };
+  }
+
+  /** `node`, following `$ref`s into the schema's `$defs`. */
+  private resolveRef(node: unknown): unknown {
+    const defs = (this.schema?.['$defs'] ?? {}) as Record<string, unknown>;
+    const seen = new Set<string>();
+    while (isPlainObject(node) && typeof node['$ref'] === 'string' && !seen.has(node['$ref'])) {
+      seen.add(node['$ref']);
+      node = defs[node['$ref'].split('/').pop()!] ?? {};
+    }
+    return node;
+  }
+
+  /**
+   * The required fields `value` lacks for `node`: [] when it has them all, or
+   * null when `node` describes no object `value` could be. For a union, the
+   * branch with the fewest missing.
+   */
+  private missingRequired(node: unknown, value: unknown, depth: number): string[] | null {
+    node = this.resolveRef(node);
+    if (!isPlainObject(node) || depth > 8) return isPlainObject(value) ? null : [];
+    const branches = (node['anyOf'] ?? node['oneOf']) as unknown[] | undefined;
+    if (Array.isArray(branches) && branches.length > 0) {
+      const results = branches
+        .map((branch) => this.missingRequired(branch, value, depth + 1))
+        .filter((missing): missing is string[] => missing !== null);
+      return results.length > 0
+        ? results.reduce((fewest, r) => (r.length < fewest.length ? r : fewest))
+        : null;
+    }
+    if (node['type'] === 'object' || 'properties' in node || 'required' in node) {
+      if (!isPlainObject(value)) return null;
+      const required = Array.isArray(node['required']) ? (node['required'] as string[]) : [];
+      return required.filter((prop) => !(prop in value));
+    }
+    // A scalar or array form, or a schema without a type
+    return isPlainObject(value) && 'type' in node ? null : [];
   }
 
   /**
@@ -822,4 +860,35 @@ export class SchemaUtils {
     }
     this.cache.set(key, result);
   }
+}
+
+/** The schema files read so far, by absolute path, as `require` kept them. */
+const LOADED_SCHEMAS = new Map<string, Record<string, unknown>>();
+
+/**
+ * A `sleep` duration the platform runs: a positive number of milliseconds, or
+ * -1 to sleep until the call ends. Not a boolean, which JSON doesn't count as a
+ * number. A SWML variable is checked by the schema.
+ */
+function sleepDurationErrors(body: unknown): string[] {
+  const duration = isPlainObject(body) ? body['duration'] : body;
+  if (typeof duration === 'boolean') {
+    return ["sleep's duration must be a number of milliseconds, not a boolean"];
+  }
+  if (
+    typeof duration === 'number' &&
+    Number.isInteger(duration) &&
+    duration !== -1 &&
+    duration <= 0
+  ) {
+    return [
+      `sleep's duration must be a positive number of milliseconds, or -1 to sleep until the ` +
+        `call ends, got ${duration}`,
+    ];
+  }
+  return [];
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

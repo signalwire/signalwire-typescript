@@ -369,10 +369,10 @@ export class AgentBase extends SWMLService {
   private internalFillers: Record<string, Record<string, string[]>> = {};
 
   // Call flow verbs
-  private preAnswerVerbs: [string, Record<string, unknown>][] = [];
+  private preAnswerVerbs: [string, unknown][] = [];
   private answerConfig: Record<string, unknown> = {};
-  private postAnswerVerbs: [string, Record<string, unknown>][] = [];
-  private postAiVerbs: [string, Record<string, unknown>][] = [];
+  private postAnswerVerbs: [string, unknown][] = [];
+  private postAiVerbs: [string, unknown][] = [];
 
   // Dynamic config
   /** Per-request configuration callbacks, run in order on each request's copy. */
@@ -2011,11 +2011,19 @@ export class AgentBase extends SWMLService {
   /**
    * Add a SWML verb to execute before the answer phase (phase 1).
    * @param verbName - Name of the SWML verb (e.g. "play", "record").
-   * @param config - Verb configuration object.
+   * @param config - The verb's body: an object, or the string, number or array
+   *   some verbs take, such as sleep's duration.
    * @returns This agent instance for chaining.
+   * @throws {SchemaValidationError} If the body doesn't fit the verb's schema,
+   *   checked when the verb is added rather than when the SWML is rendered.
+   * @throws {TypeError} For a body that isn't a JSON value.
    */
-  addPreAnswerVerb(verbName: string, config: Record<string, unknown> | number): this {
-    this.preAnswerVerbs.push([verbName, config as Record<string, unknown>]);
+  addPreAnswerVerb(
+    verbName: string,
+    config: Record<string, unknown> | unknown[] | string | number | boolean,
+  ): this {
+    this.swmlBuilder._checkVerb(verbName, config);
+    this.preAnswerVerbs.push([verbName, config]);
     return this;
   }
 
@@ -2023,8 +2031,10 @@ export class AgentBase extends SWMLService {
    * Configure the answer verb (phase 2) with optional settings.
    * @param config - Optional answer verb configuration.
    * @returns This agent instance for chaining.
+   * @throws {SchemaValidationError} If the config doesn't fit the answer verb.
    */
   addAnswerVerb(config?: Record<string, unknown>): this {
+    this.swmlBuilder._checkVerb('answer', config ?? {});
     this.answerConfig = config ?? {};
     return this;
   }
@@ -2032,21 +2042,37 @@ export class AgentBase extends SWMLService {
   /**
    * Add a SWML verb to execute after the answer phase but before the AI verb (phase 3).
    * @param verbName - Name of the SWML verb.
-   * @param config - Verb configuration object.
+   * @param config - The verb's body: an object, or the string, number or array
+   *   some verbs take, such as sleep's duration.
    * @returns This agent instance for chaining.
+   * @throws {SchemaValidationError} If the body doesn't fit the verb's schema,
+   *   checked when the verb is added rather than when the SWML is rendered.
+   * @throws {TypeError} For a body that isn't a JSON value.
    */
-  addPostAnswerVerb(verbName: string, config: Record<string, unknown> | number): this {
-    this.postAnswerVerbs.push([verbName, config as Record<string, unknown>]);
+  addPostAnswerVerb(
+    verbName: string,
+    config: Record<string, unknown> | unknown[] | string | number | boolean,
+  ): this {
+    this.swmlBuilder._checkVerb(verbName, config);
+    this.postAnswerVerbs.push([verbName, config]);
     return this;
   }
 
   /**
    * Add a SWML verb to execute after the AI verb (phase 5).
    * @param verbName - Name of the SWML verb.
-   * @param config - Verb configuration object.
+   * @param config - The verb's body: an object, or the string, number or array
+   *   some verbs take, such as sleep's duration.
    * @returns This agent instance for chaining.
+   * @throws {SchemaValidationError} If the body doesn't fit the verb's schema,
+   *   checked when the verb is added rather than when the SWML is rendered.
+   * @throws {TypeError} For a body that isn't a JSON value.
    */
-  addPostAiVerb(verbName: string, config: Record<string, unknown>): this {
+  addPostAiVerb(
+    verbName: string,
+    config: Record<string, unknown> | unknown[] | string | number | boolean,
+  ): this {
+    this.swmlBuilder._checkVerb(verbName, config);
     this.postAiVerbs.push([verbName, config]);
     return this;
   }

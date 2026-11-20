@@ -941,15 +941,15 @@ enableDebugEvents(level?: number): this
 4. The `ai` verb
 5. Post-AI verbs
 
-When the SWML is rendered, verbs added through these methods are checked against the bundled SWML schema, unless `SWML_SKIP_SCHEMA_VALIDATION=true`. `renderSwml()` throws a `SchemaValidationError` for an unknown verb or an invalid config.
+A verb added through these methods is checked when it's added, against the SWML schema, unless `SWML_SKIP_SCHEMA_VALIDATION=true` or `schemaValidation: false`: an unknown verb or a body that doesn't fit throws a `SchemaValidationError` there, rather than when the SWML is rendered. A body that isn't a JSON value throws a `TypeError`. A body is an object for most verbs, or the string, number or array some take, such as `sleep`'s duration.
 
 #### `addPreAnswerVerb(verbName, config)`
 
-Add a verb to phase 1. A number is for verbs that take one, such as `sleep`.
+Add a verb to phase 1.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
-addPreAnswerVerb(verbName: string, config: Record<string, unknown> | number): this
+addPreAnswerVerb(verbName: string, config: Record<string, unknown> | unknown[] | string | number | boolean): this
 ```
 
 #### `addAnswerVerb(config?)`
@@ -967,7 +967,7 @@ Add a verb to phase 3.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
-addPostAnswerVerb(verbName: string, config: Record<string, unknown> | number): this
+addPostAnswerVerb(verbName: string, config: Record<string, unknown> | unknown[] | string | number | boolean): this
 ```
 
 #### `addPostAiVerb(verbName, config)`
@@ -976,7 +976,7 @@ Add a verb to phase 5.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
-addPostAiVerb(verbName: string, config: Record<string, unknown>): this
+addPostAiVerb(verbName: string, config: Record<string, unknown> | unknown[] | string | number | boolean): this
 ```
 
 #### `clearPreAnswerVerbs()`, `clearPostAnswerVerbs()`, `clearPostAiVerbs()`
@@ -3478,7 +3478,7 @@ constructor(opts?: { skipValidation?: boolean; maxCacheSize?: number; schemaPath
 |-----------|------|---------|-------------|
 | `skipValidation` | `boolean` | `true` when `SWML_SKIP_SCHEMA_VALIDATION=true` | Make `validate()` and `validateVerb()` accept everything |
 | `maxCacheSize` | `number` | `100` | Cached `validate()` results |
-| `schemaPath` | `string` | The bundled schema | Schema file to read |
+| `schemaPath` | `string` | The bundled schema | Schema file to read, relative to the working directory. One that can't be read or parsed leaves the bundled schema, with the reason in `loadError` |
 
 #### Methods
 
@@ -3496,6 +3496,7 @@ constructor(opts?: { skipValidation?: boolean; maxCacheSize?: number; schemaPath
 | `clearCache` | `()` | `void` | Clear the `validate()` cache |
 | `getCacheSize` | `()` | `number` | Cached entries |
 | `schemaPath` | (getter) | `string \| null` | The schema path, or `null` for the bundled schema |
+| `loadError` | (property) | `string \| null` | Why the schema at `schemaPath` couldn't be loaded (`'no such file'`, or the parse error), or `null` |
 | `fullValidationAvailable` | (getter) | `boolean` | Whether a schema is loaded |
 
 `SchemaValidationError` extends `Error` with readonly `verbName` and `errors` properties. `SwmlBuilder.addVerb()` throws it.
@@ -3580,7 +3581,7 @@ interface AgentOptions
 | `nativeFunctions` | `string[]` | `[]` | Native function names |
 | `agentId` | `string` | 16 random hex characters | Agent instance ID |
 | `suppressLogs` | `boolean` | `false` | Call `suppressAllLogs(true)`, which silences every SDK logger in the process, not only this agent's, from the start of the constructor. |
-| `schemaPath` | `string` | The bundled schema | Path to a SWML JSON Schema file that verbs are validated against, in place of the bundled schema. |
+| `schemaPath` | `string` | The bundled schema | Path to a SWML JSON Schema file that verbs are validated against, in place of the bundled schema. One that can't be loaded throws when the agent is created, naming the path and the cause. |
 | `schemaValidation` | `boolean` | `true` | `false` turns off the validation of verbs, as `SWML_SKIP_SCHEMA_VALIDATION=true` does. |
 | `enablePostPromptOverride` | `boolean` | `false` | Serve `POST {route}/post_prompt_override`, which replaces the post-prompt text |
 | `checkForInputOverride` | `boolean` | `false` | Serve `{route}/check_for_input`, which echoes the request body |

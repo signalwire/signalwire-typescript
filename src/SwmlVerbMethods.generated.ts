@@ -34,6 +34,8 @@ export interface PlayVerbConfig {
   say_gender?: 'male' | 'female';
   /** If true, auto-answer the call before playing audio. Default true. */
   auto_answer?: boolean;
+  /** http or https URL to deliver play status events. */
+  status_url?: string;
 }
 
 declare module './SwmlBuilder.js' {
@@ -51,7 +53,7 @@ declare module './SwmlBuilder.js' {
     /** Creates a new Bedrock AI Agent */
     amazon_bedrock(config?: unknown): this;
     /** Execute a sequence of instructions depending on the value of a JavaScript condition. */
-    cond(config?: Record<string, unknown>): this;
+    cond(config: Record<string, unknown>[]): this;
     /** Dial a SIP URI or phone number. */
     connect(config: Record<string, unknown>): this;
     /** Start noise reduction. You can stop it at any time using `stop_denoise`. */
@@ -224,11 +226,11 @@ declare module './SwmlBuilder.js' {
       status_url?: string;
     }): this;
     /** Send an outbound SMS or MMS message to a PSTN phone number. */
-    send_sms(config: Record<string, unknown> | number): this;
+    send_sms(config: Record<string, unknown>): this;
     /** Set script variables to the specified values. Accepts an object mapping variable names to values. Variables set using set can be removed using unset. */
     set(config?: Record<string, unknown>): this;
     /** Pause execution for a specified duration. */
-    sleep(durationOrConfig: number | { duration: number }): this;
+    sleep(durationOrConfig: number | string | { duration: number | string }): this;
     /** Send SIP REFER to a SIP call. */
     sip_refer(config: {
       /** The SIP URI to send the REFER to. */
@@ -282,7 +284,7 @@ declare module './SwmlBuilder.js' {
       meta?: Record<string, unknown>;
     }): this;
     /** Unset specified variables. The variables may have been set using the set method or as a byproduct of other statements or methods. Accepts a single variable name as a string or an array of variable names. */
-    unset(config: Record<string, unknown> | number): this;
+    unset(config: string | string[]): this;
     /** Enables secure payment processing during voice calls. When implemented, it manages the entire payment flow including data collection, validation, and processing through your configured payment gateway. */
     pay(config: {
       /** The URL to make POST requests with all the gathered payment details. This URL is used to process the final payment transaction and return the results through the response.  Visit https://developer.signalwire.com/swml/methods/pay/payment_connector_url for more important information. */
