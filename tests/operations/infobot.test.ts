@@ -288,6 +288,17 @@ describe('InfoBotKnowledge', () => {
     );
   });
 
+  it('takes the default contact fields for an empty set of them', async () => {
+    const took: Record<string, string>[] = [];
+    const kb = new InfoBotKnowledge({
+      search: () => [],
+      contact: (f) => took.push(f),
+      contactFields: {},
+    });
+    expect(await contact(kb, {})).toBe('Ask them for an email address to reach them at.');
+    expect(took).toEqual([]);
+  });
+
   it("asks for one contact set with each field's own words", async () => {
     const kb = new InfoBotKnowledge({ search: () => [], contact: () => null });
     expect(await contact(kb, {})).toBe('Ask them for an email address to reach them at.');

@@ -144,7 +144,7 @@ export function buildSeed(
   for (const t of dialog) {
     const role = t['role'];
     if (!includeTools && (role === 'tool' || truthy(t['tool_calls']))) continue;
-    const content = t['content'] || '';
+    const content = truthy(t['content']) ? t['content'] : '';
     if (
       (role === 'user' || role === 'assistant' || role === 'system') &&
       !String(content).trim() &&
@@ -155,14 +155,14 @@ export function buildSeed(
     const key = JSON.stringify([
       role ?? null,
       content,
-      JSON.stringify(t['tool_calls'] || ''),
-      t['tool_call_id'] || '',
+      JSON.stringify(truthy(t['tool_calls']) ? t['tool_calls'] : ''),
+      truthy(t['tool_call_id']) ? t['tool_call_id'] : '',
     ]);
     if (seen.has(key)) continue;
     seen.add(key);
     const m: Turn = { role, content };
     if (truthy(t['tool_calls'])) m['tool_calls'] = t['tool_calls'];
-    if (t['tool_call_id']) m['tool_call_id'] = t['tool_call_id'];
+    if (truthy(t['tool_call_id'])) m['tool_call_id'] = t['tool_call_id'];
     convo.push(m);
   }
 

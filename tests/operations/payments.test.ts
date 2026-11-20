@@ -152,6 +152,25 @@ describe('Payments', () => {
     ).toEqual(['pay_result', 'pay_payment_results']);
   });
 
+  it('takes a charge with its fields, and only those', async () => {
+    for (const [found, message] of [
+      [{ amount: '10' }, /description/],
+      [{ amount: '10', description: 'invoice', curency: 'EUR' }, /curency/],
+    ] as const) {
+      const service = new Operations({ role: 'r', currency: 'USD' });
+      new Payments({
+        connectorUrl: 'https://pay.example.com/c',
+        charge: () => found,
+        language: 'en-US',
+      }).addTo(service);
+      await expect(
+        service._prepare(new CallContext(service, {}), service._operations.get('take_payment')!, {
+          paying_for: '1',
+        }),
+      ).rejects.toThrow(message);
+    }
+  });
+
   it("isn't taken in a chat", async () => {
     const sim = new CallSimulator(billing([]), {
       globalData: { ops: { medium: 'chat' } },

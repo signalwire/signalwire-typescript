@@ -66,6 +66,33 @@ describe('amountOf', () => {
     expect(() => formatMoney(`1${'0'.repeat(27)}`, 'USD')).toThrow(/more digits/);
   });
 
+  it("keeps to Decimal's exponent limits", () => {
+    expect(Dec.ZERO.plus(Dec.parse('1e-1000027')!).toString()).toBe('0E-1000026');
+    expect(Dec.parse('-1e-1000030')!.plus(Dec.ZERO).toString()).toBe('-0E-1000026');
+    expect(Dec.parse('0e-2000000')!.plus(Dec.ZERO).toString()).toBe('0E-1000026');
+    expect(Dec.parse('1.5e-1000026')!.abs().toString()).toBe('2E-1000026');
+    expect(Dec.parse('2.5e-1000026')!.abs().toString()).toBe('2E-1000026');
+    expect(Dec.parse('9.999999999999999999999999999e999999')!.abs().toString()).toBe(
+      '9.999999999999999999999999999E+999999',
+    );
+    expect(() => Dec.parse('1e1000000')!.abs()).toThrow(/overflow/i);
+    expect(() => Dec.parse('9.9999999999999999999999999999e999999')!.abs()).toThrow(/overflow/i);
+  });
+
+  it('adds and formats amounts far apart without building their digits', () => {
+    const started = Date.now();
+    expect(Dec.parse('1e-999999')!.plus(Dec.parse('1e999999')!).toString()).toBe(
+      '1.000000000000000000000000000E+999999',
+    );
+    expect(Dec.ZERO.plus(Dec.parse('1e999999')!).toString()).toBe(
+      '1.000000000000000000000000000E+999999',
+    );
+    expect(() => formatMoney('1e999999', 'USD')).toThrow(/more digits/);
+    expect(formatMoney('1e-999999', 'USD')).toBe('$0.00');
+    expect(Dec.parse('1e-999999')!.compare(Dec.ZERO)).toBe(1);
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+
   it('reads Unicode decimal digits, as Decimal does', () => {
     expect(amountOf('١٢.٣٤')).toBe('12.34');
     expect(formatMoney('１２.３４', 'USD')).toBe('$12.34');

@@ -50,7 +50,8 @@ export class LegStore {
    * @returns This store.
    */
   setStore(persistence: LegPersistence): this {
-    this.persistence = { load: persistence.load, append: persistence.append };
+    // Kept whole, so a persistence object's methods are called on it
+    this.persistence = persistence;
     return this;
   }
 

@@ -401,12 +401,23 @@ export class Payments {
   }
 }
 
+const CHARGE_FIELDS = ['amount', 'description', 'currency'];
+
 function chargeOf(found: unknown): Charge {
   if (found instanceof Charge) return found;
   if (isRecord(found)) {
+    // Its fields, and only those, as the reference's Charge(**found) takes them
+    const extra = Object.keys(found).filter((k) => !CHARGE_FIELDS.includes(k));
+    if (extra.length > 0) {
+      throw new TypeError(`a Charge has no field ${extra.map((k) => `'${k}'`).join(', ')}`);
+    }
+    const missing = ['amount', 'description'].filter((k) => !Object.hasOwn(found, k));
+    if (missing.length > 0) {
+      throw new TypeError(`a Charge needs ${missing.map((k) => `'${k}'`).join(' and ')}`);
+    }
     return new Charge(
       found['amount'] as Amount,
-      String(found['description'] ?? ''),
+      found['description'] as string,
       (found['currency'] as string | null | undefined) ?? null,
     );
   }

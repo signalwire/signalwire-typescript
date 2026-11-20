@@ -163,7 +163,11 @@ export class InfoBotKnowledge {
     this.grounding = opts.grounding ?? GROUNDING;
     this.contact = opts.contact ?? null;
     this.contactTool = opts.contactTool ?? 'collect_contact';
-    this.contactFields = { ...(opts.contactFields ?? CONTACT_FIELDS) };
+    const given = opts.contactFields;
+    // Empty is the defaults, as the reference's `contact_fields or CONTACT_FIELDS` is
+    this.contactFields = {
+      ...(given && Object.keys(given).length > 0 ? given : CONTACT_FIELDS),
+    };
     this.contactAnyOf = (
       opts.contactAnyOf ?? [
         Object.entries(this.contactFields)

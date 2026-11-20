@@ -93,6 +93,17 @@ describe('continuity helpers', () => {
     ]);
   });
 
+  it('dedupes a turn with empty tool calls as the reference does', () => {
+    const turns = [
+      { role: 'assistant', content: 'Already answered.' },
+      { role: 'assistant', content: 'Already answered.', tool_calls: [] },
+    ];
+    for (const includeTools of [true, false]) {
+      const convo = buildSeed([{ turns }], 'voice', { includeTools });
+      expect(convo.filter((m) => m['content'] === 'Already answered.')).toHaveLength(1);
+    }
+  });
+
   it('can drop tool turns', () => {
     const convo = buildSeed(
       [
@@ -232,6 +243,22 @@ describe('LegStore', () => {
     expect(await store.record('c1', { turns: ['b'] })).toBe(true);
     expect((await store.legs('c1')).map((leg) => leg['turns'])).toEqual([['a'], ['b']]);
     expect(await store.legs('c2')).toEqual([]);
+  });
+
+  it("keeps a persistence object's own methods bound to it", async () => {
+    class Memory {
+      data = new Map<string, Leg[]>();
+      load(cid: string): Leg[] {
+        return this.data.get(cid) ?? [];
+      }
+      append(cid: string, leg: Leg): boolean {
+        this.data.set(cid, [...this.load(cid), leg]);
+        return true;
+      }
+    }
+    const store = new LegStore().setStore(new Memory());
+    expect(await store.record('r', { x: 1 })).toBe(true);
+    expect(await store.legs('r')).toEqual([{ x: 1 }]);
   });
 
   it('takes persistence of its own', async () => {
