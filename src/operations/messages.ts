@@ -4,8 +4,8 @@
 
 import type { CallContext } from './agent.js';
 import { Change, Field, Need, type Values, Write } from './model.js';
-import { operationsOf, packOperation } from './pack.js';
-import { Wording } from './wording.js';
+import { _operationsOf as operationsOf, _packOperation as packOperation } from './pack.js';
+import { _Wording as Wording } from './wording.js';
 
 /** The fields of a {@link Message}. */
 export interface MessageFields {

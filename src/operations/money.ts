@@ -6,7 +6,7 @@
  * `Operations({ moneyFormat })` replaces it.
  */
 
-import { Dec } from './decimal.js';
+import { _Dec as Dec } from './decimal.js';
 
 /**
  * The currencies {@link formatMoney} writes with a symbol or code before the
@@ -57,7 +57,7 @@ export const CURRENCIES: Readonly<Record<string, readonly [string, number]>> = O
 export type Amount = number | bigint | string;
 
 /** @internal An amount as an exact decimal. */
-export function decimalOf(value: unknown): Dec {
+export function _decimalOf(value: unknown): Dec {
   if (typeof value === 'boolean') throw new TypeError("an amount of money can't be a bool");
   let text: string;
   if (value instanceof Dec) return value;
@@ -86,7 +86,7 @@ export function decimalOf(value: unknown): Dec {
  * @throws {Error} For a value that isn't an amount, or isn't finite.
  */
 export function amountOf(value: unknown): string {
-  return decimalOf(value).toString();
+  return _decimalOf(value).toString();
 }
 
 /**
@@ -115,7 +115,7 @@ export function checkCurrency(code: string | null | undefined): string | null {
  * @returns The amount in words.
  */
 export function formatMoney(amount: unknown, currency?: string | null): string {
-  let value = decimalOf(amount);
+  let value = _decimalOf(amount);
   const sign = value.sign() < 0 ? '-' : '';
   value = value.abs();
   const code = checkCurrency(currency);

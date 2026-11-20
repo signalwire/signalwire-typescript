@@ -5,12 +5,12 @@
 
 import type { AgentBase } from '../AgentBase.js';
 import { FunctionResult, type PaymentParameter } from '../FunctionResult.js';
-import { type CallContext, Said } from './agent.js';
-import { Dec } from './decimal.js';
+import { type CallContext, _Said as Said } from './agent.js';
+import { _Dec as Dec } from './decimal.js';
 import { Change, Field, Refuse, type Values, Write } from './model.js';
-import { type Amount, checkCurrency, decimalOf } from './money.js';
-import { operationsOf, packOperation } from './pack.js';
-import { Wording } from './wording.js';
+import { type Amount, checkCurrency, _decimalOf as decimalOf } from './money.js';
+import { _operationsOf as operationsOf, _packOperation as packOperation } from './pack.js';
+import { _Wording as Wording } from './wording.js';
 
 /**
  * The SWML variables the pay verb sets that the result tool reads; the pack

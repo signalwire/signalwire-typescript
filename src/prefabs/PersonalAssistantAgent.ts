@@ -6,7 +6,7 @@
 import { FunctionResult } from '../FunctionResult.js';
 import {
   type CallContext,
-  Said,
+  _Said as Said,
   ServiceAgent,
   type ServiceAgentOptions,
 } from '../operations/agent.js';
@@ -14,8 +14,8 @@ import type { Appointments } from '../operations/appointments.js';
 import type { InfoBotKnowledge } from '../operations/infobot/knowledge.js';
 import type { Messages } from '../operations/messages.js';
 import { Change, Field, type Values } from '../operations/model.js';
-import { packOperation } from '../operations/pack.js';
-import { Wording } from '../operations/wording.js';
+import { _packOperation as packOperation } from '../operations/pack.js';
+import { _Wording as Wording } from '../operations/wording.js';
 
 /**
  * Every key `PersonalAssistantAgent`'s own words come from, with its default

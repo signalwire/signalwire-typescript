@@ -4,8 +4,8 @@
  * `prepare` says no ({@link Need}, {@link Refuse}).
  */
 
-import { Dec } from './decimal.js';
-import { decimalOf, type Amount } from './money.js';
+import { _Dec as Dec } from './decimal.js';
+import { _decimalOf as decimalOf, type Amount } from './money.js';
 
 /**
  * The value a field takes when the caller hasn't said it: the model's honest
@@ -159,7 +159,7 @@ export class Write {
    * @returns True when they're the same.
    */
   equals(other: unknown): boolean {
-    return other instanceof Write && other.name === this.name && sameValue(other.args, this.args);
+    return other instanceof Write && other.name === this.name && _sameValue(other.args, this.args);
   }
 
   /** The write, for a test's failure message. */
@@ -167,6 +167,9 @@ export class Write {
     return `Write(${JSON.stringify(this.name)}, ${JSON.stringify(this.args)})`;
   }
 }
+
+/** What to tell the caller once a change's writes went through: one line per write, or one for the whole change. */
+export type DoneLines = readonly string[] | string;
 
 /** The options of a {@link Change}. */
 export interface ChangeOptions {
@@ -192,7 +195,7 @@ export interface ChangeOptions {
   /** The ISO 4217 code of that money, such as `"EUR"`; defaults to the service's `currency`. */
   currency?: string | null;
   /** What to tell the caller once each write went through, one per write, or one sentence for the whole change. */
-  done?: readonly string[] | string | null;
+  done?: DoneLines | null;
   /**
    * The kind of another change the caller asked for that has to go first, such
    * as `"address"` for an item change that would leave the order's address
@@ -237,8 +240,8 @@ export class Change {
   money: Amount[] | null;
   /** The ISO 4217 code of that money. */
   currency: string | null;
-  /** What to tell the caller once each write went through. */
-  done: string[] | string | null;
+  /** What to tell the caller once each write went through, or null for the default line. */
+  done?: DoneLines | null;
   /** The kind of another change that has to go first. */
   after: string | null;
   /** Why the other change goes first. */
@@ -277,7 +280,7 @@ export class Change {
     }
     return [
       ...Array<string>(n - 1).fill(''),
-      fallback.replaceAll('{statement}', () => statement(this.readBack)),
+      fallback.replaceAll('{statement}', () => _statement(this.readBack)),
     ];
   }
 
@@ -287,11 +290,11 @@ export class Change {
    * @returns The amounts.
    */
   moneyMoved(): string[] {
-    return this.moneyMovedDec().map((m) => m.toString());
+    return this._moneyMovedDec().map((m) => m.toString());
   }
 
   /** @internal The amounts as exact decimals. */
-  moneyMovedDec(): Dec[] {
+  _moneyMovedDec(): Dec[] {
     const moved = (this.money ?? []).map(decimalOf);
     if (this.writes.length === 0) return moved;
     return [...moved, ...Array<Dec>(this.writes.length).fill(Dec.ZERO)].slice(
@@ -369,7 +372,7 @@ export class Field {
    * @throws {TypeError} For a kind it can't make a schema of.
    */
   schema(): Record<string, unknown> {
-    return { ...schemaOf(this.kind), description: this.description };
+    return { ..._schemaOf(this.kind), description: this.description };
   }
 }
 
@@ -397,7 +400,7 @@ export class Values {
         enumerable: true,
         get: () => {
           const value = this.args[name];
-          return isMissing(value) ? null : value;
+          return _isMissing(value) ? null : value;
         },
       });
     }
@@ -411,7 +414,7 @@ export class Values {
    */
   get(name: string, fallback: unknown = null): unknown {
     const value = this.args[name];
-    return isMissing(value) ? fallback : value;
+    return _isMissing(value) ? fallback : value;
   }
 }
 
@@ -558,7 +561,7 @@ export class Operation {
    */
   merge(held: Record<string, unknown>, added: Record<string, unknown>): Record<string, unknown> {
     const out: Record<string, unknown> = { ...held };
-    for (const [k, v] of Object.entries(added)) if (!isMissing(v)) out[k] = v;
+    for (const [k, v] of Object.entries(added)) if (!_isMissing(v)) out[k] = v;
     for (const name of Object.keys(this.fields())) {
       const old = held[name];
       const now = added[name];
@@ -577,7 +580,7 @@ export class Operation {
    * @returns True when they're the same.
    */
   sameItem(_field: string, a: unknown, b: unknown): boolean {
-    return sameValue(a, b);
+    return _sameValue(a, b);
   }
 
   /**
@@ -596,7 +599,7 @@ export class Operation {
 }
 
 /** @internal Whether a value counts as not given: null, empty, or "not said". */
-export function isMissing(value: unknown): boolean {
+export function _isMissing(value: unknown): boolean {
   return (
     value === null ||
     value === undefined ||
@@ -606,17 +609,17 @@ export function isMissing(value: unknown): boolean {
 }
 
 /** @internal A read-back without its closing question: "Cancel X. Shall I?" is "Cancel X.". */
-export function statement(readBack: string): string {
+export function _statement(readBack: string): string {
   const sentences = readBack.trim().split(/(?<=[.!?])\s+/);
   const kept = sentences.filter((s) => !s.endsWith('?'));
   return kept.length > 0 ? kept.join(' ') : readBack.trim();
 }
 
 /** @internal Deep equality of JSON values, as Python's `==` compares them. */
-export function sameValue(a: unknown, b: unknown): boolean {
+export function _sameValue(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (Array.isArray(a) && Array.isArray(b)) {
-    return a.length === b.length && a.every((v, i) => sameValue(v, b[i]));
+    return a.length === b.length && a.every((v, i) => _sameValue(v, b[i]));
   }
   if (
     a &&
@@ -633,7 +636,7 @@ export function sameValue(a: unknown, b: unknown): boolean {
       ka.every(
         (k) =>
           Object.hasOwn(b, k) &&
-          sameValue((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]),
+          _sameValue((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]),
       )
     );
   }
@@ -648,7 +651,7 @@ const SIMPLE: Record<string, Record<string, unknown>> = {
 };
 
 /** @internal The JSON schema of a Field's kind. */
-export function schemaOf(kind: FieldKind): Record<string, unknown> {
+export function _schemaOf(kind: FieldKind): Record<string, unknown> {
   if (kind === String) return { ...SIMPLE['string'] };
   if (kind === Number) return { ...SIMPLE['number'] };
   if (kind === Boolean) return { ...SIMPLE['boolean'] };

@@ -8,7 +8,7 @@ import type { Appointments } from '../operations/appointments.js';
 import type { InfoBotKnowledge } from '../operations/infobot/knowledge.js';
 import type { Messages } from '../operations/messages.js';
 import { Refuse } from '../operations/model.js';
-import { Wording } from '../operations/wording.js';
+import { _Wording as Wording } from '../operations/wording.js';
 
 /** Where the front desk puts a caller through to. */
 export class Department {

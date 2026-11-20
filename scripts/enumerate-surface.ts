@@ -257,6 +257,28 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/prefabs/FAQBotAgent.ts': 'signalwire.prefabs.faq_bot',
   'src/prefabs/InfoGathererAgent.ts': 'signalwire.prefabs.info_gatherer',
   'src/prefabs/ReceptionistAgent.ts': 'signalwire.prefabs.receptionist',
+  // The operations module (signalwire.operations), one TS file per reference
+  // module; its class names (Message, Messages, Change, Field) are shared with
+  // RELAY and REST, so each file is pinned rather than found by class name.
+  'src/operations/agent.ts': 'signalwire.operations.agent',
+  'src/operations/appointments.ts': 'signalwire.operations.appointments',
+  'src/operations/decimal.ts': 'signalwire.operations.money',
+  'src/operations/index.ts': 'signalwire.operations',
+  'src/operations/messages.ts': 'signalwire.operations.messages',
+  'src/operations/model.ts': 'signalwire.operations.model',
+  'src/operations/money.ts': 'signalwire.operations.money',
+  'src/operations/outbound.ts': 'signalwire.operations.outbound',
+  'src/operations/pack.ts': 'signalwire.operations.agent',
+  'src/operations/payments.ts': 'signalwire.operations.payments',
+  'src/operations/record.ts': 'signalwire.operations.record',
+  'src/operations/wording.ts': 'signalwire.operations.wording',
+  'src/operations/infobot/continuity.ts': 'signalwire.operations.infobot.continuity',
+  'src/operations/infobot/index.ts': 'signalwire.operations.infobot',
+  'src/operations/infobot/knowledge.ts': 'signalwire.operations.infobot.knowledge',
+  'src/operations/infobot/legs.ts': 'signalwire.operations.infobot.legs',
+  'src/operations/infobot/livecall.ts': 'signalwire.operations.infobot.livecall',
+  'src/prefabs/FrontDeskAgent.ts': 'signalwire.prefabs.front_desk',
+  'src/prefabs/PersonalAssistantAgent.ts': 'signalwire.prefabs.personal_assistant',
   'src/prefabs/SurveyAgent.ts': 'signalwire.prefabs.survey',
   // LiveWire (flat in Python; namespaces in TS handled by ns flattening below)
   'src/livewire/index.ts': 'signalwire.livewire',
@@ -300,6 +322,9 @@ const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
   'signalwire.core.tool_middleware.ResendDedupe': { handle: '__call__' },
   'signalwire.testing.call_simulator.RequestRecorder': { handle: '__call__' },
   'signalwire.testing.call_simulator.SimulatedCall': { to_string: '__repr__' },
+  // Write: TS objects compare with equals() and print with toString(); the
+  // reference's __eq__ and __repr__.
+  'signalwire.operations.model.Write': { equals: '__eq__', to_string: '__repr__' },
   // `userData` getter is snake_cased to `user_data` by camelToSnake, but
   // Python spells it as a flat `userdata` (no underscore).
   'signalwire.livewire.AgentSession': { user_data: 'userdata' },
@@ -1179,7 +1204,11 @@ function main(): void {
     ) {
       continue;
     }
-    const candidateMods = classToModules.get(emitName);
+    // The reference module this class resolved to, when the class name is in
+    // several (RELAY's Message and the operations module's): only that one's
+    // methods count, or one class absorbs another's.
+    const allMods = classToModules.get(emitName);
+    const candidateMods = allMods?.includes(moduleGuess) ? [moduleGuess] : allMods;
     const pythonSet = new Set<string>();
     if (candidateMods) {
       for (const m of candidateMods) {
@@ -1188,7 +1217,10 @@ function main(): void {
         }
       }
     }
-    const inherited = resolveInherited(cleanName);
+    // This class's own methods and its own parent's, not every same-named
+    // class's (resolveInherited is name-keyed)
+    const inherited = new Set<string>(c.methods);
+    if (c.extendsName) for (const m of resolveInherited(c.extendsName)) inherited.add(m);
     // Apply skill aliases to the inherited set so the method names line up
     // against Python (e.g. `get_tools` → `register_tools`).
     const skillCtx =

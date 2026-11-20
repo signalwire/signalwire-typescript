@@ -21,30 +21,30 @@ import {
   Values,
   Write,
   WriteFailed,
-  isMissing,
-  sameValue,
+  _isMissing as isMissing,
+  _sameValue as sameValue,
   Field,
   type OperationClass,
 } from './model.js';
-import { Dec } from './decimal.js';
+import { _Dec as Dec } from './decimal.js';
 import { checkCurrency, formatMoney } from './money.js';
 import {
   RECORD,
-  inAll,
-  nextUp,
-  nowLine,
-  opening,
-  openingData,
-  queuedEntry,
-  recordOf,
-  settle,
-  update as recordUpdate,
-  waitingEntry,
-  whole,
+  _inAll as inAll,
+  _nextUp as nextUp,
+  _nowLine as nowLine,
+  _opening as opening,
+  _openingData as openingData,
+  _queuedEntry as queuedEntry,
+  _recordOf as recordOf,
+  _settle as settle,
+  _update as recordUpdate,
+  _waitingEntry as waitingEntry,
+  _whole as whole,
   type MoneyFormat,
   type RecordData,
 } from './record.js';
-import { DEFAULT_WORDING, Wording } from './wording.js';
+import { DEFAULT_WORDING, _Wording as Wording } from './wording.js';
 
 const log = getLogger('operations');
 
@@ -128,7 +128,7 @@ export const MEDIUMS: readonly string[] = Object.freeze(['voice', 'chat']);
  * "Nothing is changed: " doesn't go before it.
  * @internal Also thrown by the task packs.
  */
-export class Said extends Refuse {
+export class _Said extends Refuse {
   constructor(why: string, then: string | null = null, opts: { keep?: boolean } = {}) {
     super(why, then, opts);
     this.name = 'Said';
@@ -234,6 +234,9 @@ export class CallContext {
   }
 }
 
+/** A writer: `writer(call, write)` carries out one write, or throws `WriteFailed`. May be async. */
+export type WriteFunction = (call: CallContext, write: Write) => unknown;
+
 /** A lookup's function: it reads and answers, and changes nothing. */
 export type LookupFunction = (
   call: CallContext,
@@ -264,6 +267,15 @@ interface Lookup {
   secure: boolean;
 }
 
+/** `find(call, keys)`: the account's id for the keys, or null; may throw `Refuse` or `Need`. May be async. */
+export type FindFunction = (call: CallContext, keys: Record<string, unknown>) => unknown;
+/** `load(call, accountId)`: the account as operations use it (`call.account`). May be async. */
+export type LoadFunction = (call: CallContext, accountId: string) => unknown;
+/** `describe(call)`: the account in a few words for the steps. May be async. */
+export type DescribeFunction = (call: CallContext) => unknown;
+/** `prefill(requestData, request)`: keys already known when the call starts, or null. May be async. */
+export type PrefillFunction = (requestData: Record<string, unknown>, request: unknown) => unknown;
+
 /** Options for {@link Operations.identify}. */
 export interface IdentifyOptions {
   /**
@@ -275,11 +287,11 @@ export interface IdentifyOptions {
    * `find(call, keys)` returns the account's id (null when no account has it),
    * or throws `Refuse` or `Need`. May be async.
    */
-  find: (call: CallContext, keys: Record<string, unknown>) => unknown;
+  find: FindFunction;
   /** `load(call, accountId)` returns the account as operations use it (`call.account`); defaults to the id itself. */
-  load?: ((call: CallContext, accountId: string) => unknown) | null;
+  load?: LoadFunction | null;
   /** `describe(call)` returns the account in a few words for the steps, read again after every change. */
-  describe?: ((call: CallContext) => unknown) | null;
+  describe?: DescribeFunction | null;
   /** Descriptions of the keys (each defaults to a string), and any other arguments `find` takes. */
   fields?: Readonly<Record<string, Field>>;
   /** The identify tool's name; defaults to `find_account` (namespaced). */
@@ -301,7 +313,7 @@ export interface IdentifyOptions {
    * runs before the call does, silently, and the call starts identified.
    * Implies `required: false`.
    */
-  prefill?: ((requestData: Record<string, unknown>, request: unknown) => unknown) | null;
+  prefill?: PrefillFunction | null;
 }
 
 class Identity {
@@ -557,7 +569,7 @@ export class Operations {
   private readonly rules: string[] | Record<string, string | null> | null;
   private readonly lookups: Lookup[] = [];
   private identity: Identity | null = null;
-  private writer: ((call: CallContext, write: Write) => unknown) | null = null;
+  private writer: WriteFunction | null = null;
   private transfer: Transfer | null = null;
   private readonly offers: [string[], boolean, string[] | null][] = [];
   private readonly phases: [string, string, string[] | null, boolean][] = [];
@@ -608,7 +620,7 @@ export class Operations {
    * @throws {TypeError} For a class that isn't an Operation's.
    * @throws {Error} For a kind registered already, or a class with no description.
    */
-  operation<C extends OperationClass>(cls: C, opts: OperationOptions = {}): C {
+  operation(cls: typeof Operation, opts: OperationOptions = {}): typeof Operation {
     if (typeof cls !== 'function' || !(cls.prototype instanceof Operation || cls === Operation)) {
       throw new TypeError('operation() registers an Operation subclass');
     }
@@ -677,7 +689,7 @@ export class Operations {
    * @param writer - The function. May be async.
    * @returns This service.
    */
-  writesWith(writer: (call: CallContext, write: Write) => unknown): this {
+  writesWith(writer: WriteFunction): this {
     this.writer = writer;
     return this;
   }
@@ -770,7 +782,7 @@ export class Operations {
    * @returns The agent.
    * @throws {Error} When the agent has tools of the names this service makes.
    */
-  install<A extends AgentBase>(agent: A): A {
+  install(agent: AgentBase): AgentBase {
     const taken = this.toolNames().filter((n) =>
       agent.getRegisteredTools().some((t) => t.name === n),
     );
@@ -845,7 +857,7 @@ export class Operations {
   ): Promise<RecordData | null> {
     if (!this.keepsRecord()) return null;
     const changes: RecordData = {};
-    const medium = this._medium ? null : mediumOfRequest(requestData);
+    const medium = this._medium ? null : _mediumOfRequest(requestData);
     if (medium) changes['medium'] = medium;
     Object.assign(changes, (await this.prefilledAccount(requestData, request)) ?? {});
     if (Object.keys(changes).length === 0) return null;
@@ -1352,7 +1364,7 @@ export class Operations {
 
   /** A refusal as the tool's result: why, after `prefix` unless the service said it whole, and what next. */
   private refused(e: Refuse, prefix = ''): FunctionResult {
-    const why = e instanceof Said ? e.why : prefix + e.why;
+    const why = e instanceof _Said ? e.why : prefix + e.why;
     const result = new FunctionResult(
       undefined,
       false,
@@ -1435,7 +1447,7 @@ export class Operations {
       const within = change.touches.every((t) => heldTouches.has(t));
       if (same && op.cls.combine !== null) {
         if ((asWell === undefined || asWell === null) && overlap.size > 0 && !within) {
-          throw new Said(
+          throw new _Said(
             w.say('stage.waits', { kind: op.kind, read_back: waiting['read_back'] }),
             w.say('stage.as_well.ask', { tool: op.tool }),
           );
@@ -1451,7 +1463,7 @@ export class Operations {
       if (waiting['read_back'] === change.readBack && replaced) {
         // as_well with nothing new: the model meant to add something and left
         // it out, so say what to pass, not "the same"
-        throw new Said(
+        throw new _Said(
           w.say('stage.nothing_added', { kind: op.kind, read_back: change.readBack }),
           w.say('stage.nothing_added.then', { tool: op.tool }),
         );
@@ -1466,7 +1478,7 @@ export class Operations {
         // merged into the change waiting
       } else if (overlap.size > 0 && (same || conflict)) {
         if (conflict && asWell === true) {
-          throw new Said(
+          throw new _Said(
             w.say('stage.both', { conflict, read_back: waiting['read_back'] }),
             w.say('stage.both.then'),
           );
@@ -1478,7 +1490,7 @@ export class Operations {
             kept = await this._prepare(call, wop, rest);
           } catch (e) {
             if (e instanceof Need || e instanceof Refuse) {
-              throw new Said(
+              throw new _Said(
                 w.say('stage.rest_fails', { kind: wkind, why: whyOf(e) }),
                 w.say('then.going_on'),
               );
@@ -1585,13 +1597,13 @@ export class Operations {
       const within = change.touches.every((t) => qTouches.has(t));
       if (op.cls.combine !== null && asWell !== false && !within) {
         if (asWell === undefined || asWell === null) {
-          throw new Said(
+          throw new _Said(
             w.say('held.set_aside', { kind: op.kind, read_back: q['read_back'] }),
             w.say('stage.as_well.ask', { tool: op.tool }),
           );
         }
         if (!op.cls.combine.every((k) => sameAnswer(held[k], args[k]))) {
-          throw new Said(
+          throw new _Said(
             w.say('held.differ', { kind: op.kind, fields: w.joined([...op.cls.combine]) }),
             w.say('held.differ.then'),
           );
@@ -1734,7 +1746,7 @@ export class Operations {
     const revision = toInt(data['proposals']) + 1;
     const [made, reply] = await this.runWrites(call, op, change.writes, revision);
     const lines = change.doneLines(this._w.template('done.default'));
-    const moved = change.moneyMovedDec();
+    const moved = change._moneyMovedDec();
     const done = madeText(lines, change.writes, made);
     const outcome = made === change.writes.length ? 'made' : 'not made';
     history.push({
@@ -2066,7 +2078,7 @@ export class ServiceAgent extends AgentBase {
   }
 
   /** See {@link Operations.operation}. */
-  operation<C extends OperationClass>(cls: C, opts: OperationOptions = {}): C {
+  operation(cls: typeof Operation, opts: OperationOptions = {}): typeof Operation {
     return this.ops.operation(cls, opts);
   }
 
@@ -2104,7 +2116,7 @@ export class ServiceAgent extends AgentBase {
   }
 
   /** See {@link Operations.writesWith}. */
-  writesWith(writer: (call: CallContext, write: Write) => unknown): this {
+  writesWith(writer: WriteFunction): this {
     this.ops.writesWith(writer);
     return this;
   }
@@ -2212,7 +2224,7 @@ function contribute(
  * medium the service doesn't know.
  * @internal
  */
-export function mediumOfRequest(data: unknown): string | null {
+export function _mediumOfRequest(data: unknown): string | null {
   const d = isRecord(data) ? data : {};
   const kind = String(d['conversation_type'] || '')
     .trim()

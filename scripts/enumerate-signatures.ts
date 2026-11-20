@@ -135,6 +135,28 @@ const TS_MODULE_ALIASES: Record<string, string> = {
   'src/prefabs/FAQBotAgent.ts': 'signalwire.prefabs.faq_bot',
   'src/prefabs/InfoGathererAgent.ts': 'signalwire.prefabs.info_gatherer',
   'src/prefabs/ReceptionistAgent.ts': 'signalwire.prefabs.receptionist',
+  // The operations module (signalwire.operations), one TS file per reference
+  // module; its class names (Message, Messages, Change, Field) are shared with
+  // RELAY and REST, so each file is pinned rather than found by class name.
+  'src/operations/agent.ts': 'signalwire.operations.agent',
+  'src/operations/appointments.ts': 'signalwire.operations.appointments',
+  'src/operations/decimal.ts': 'signalwire.operations.money',
+  'src/operations/index.ts': 'signalwire.operations',
+  'src/operations/messages.ts': 'signalwire.operations.messages',
+  'src/operations/model.ts': 'signalwire.operations.model',
+  'src/operations/money.ts': 'signalwire.operations.money',
+  'src/operations/outbound.ts': 'signalwire.operations.outbound',
+  'src/operations/pack.ts': 'signalwire.operations.agent',
+  'src/operations/payments.ts': 'signalwire.operations.payments',
+  'src/operations/record.ts': 'signalwire.operations.record',
+  'src/operations/wording.ts': 'signalwire.operations.wording',
+  'src/operations/infobot/continuity.ts': 'signalwire.operations.infobot.continuity',
+  'src/operations/infobot/index.ts': 'signalwire.operations.infobot',
+  'src/operations/infobot/knowledge.ts': 'signalwire.operations.infobot.knowledge',
+  'src/operations/infobot/legs.ts': 'signalwire.operations.infobot.legs',
+  'src/operations/infobot/livecall.ts': 'signalwire.operations.infobot.livecall',
+  'src/prefabs/FrontDeskAgent.ts': 'signalwire.prefabs.front_desk',
+  'src/prefabs/PersonalAssistantAgent.ts': 'signalwire.prefabs.personal_assistant',
   'src/prefabs/SurveyAgent.ts': 'signalwire.prefabs.survey',
   'src/livewire/index.ts': 'signalwire.livewire',
   // Top-level barrel: ``src/index.ts`` exposes Python's package-level
@@ -193,6 +215,9 @@ const CLASS_MODULE_OVERRIDES: Record<string, string> = {
  *  in signatures, else the drift gate sees a spurious missing-port/missing-reference). */
 const METHOD_NAME_ALIASES: Record<string, Record<string, string>> = {
   'signalwire.relay.call.Call': { pass: 'pass_' },
+  // Write: TS objects compare with equals() and print with toString(); the
+  // reference's __eq__ and __repr__ (lock-step with enumerate-surface.ts).
+  'signalwire.operations.model.Write': { equals: '__eq__', to_string: '__repr__' },
   // (AgentServer `log` → `logger` rename REMOVED 2026-07-25 — lock-step with
   // enumerate-surface.ts. The reference no longer records the per-instance `logger`
   // accessor; logging is a MODULE-LEVEL capability (ALLOWLIST_DISCIPLINE §8 owner
@@ -424,6 +449,28 @@ const GENERAL_OPTIONS_UNFOLD: Set<string> = new Set([
   'signalwire.ai_chat.gateway.ChatGateway.prepare',
   'signalwire.ai_chat.handoff.HandoffRouter.register',
   // relay Call per-verb convenience methods — Python keyword-only args + **kwargs.
+  // The operations module: keyword-only options, each options interface's
+  // members in the reference's order.
+  'signalwire.operations.agent.Operations.__init__',
+  'signalwire.operations.agent.Operations.identify',
+  'signalwire.operations.agent.Operations.lookup',
+  'signalwire.operations.agent.Operations.offer',
+  'signalwire.operations.agent.Operations.operation',
+  'signalwire.operations.agent.Operations.phase',
+  'signalwire.operations.agent.Operations.transfer_with',
+  'signalwire.operations.appointments.Appointments.__init__',
+  'signalwire.operations.infobot.continuity.Continuity.__init__',
+  'signalwire.operations.infobot.continuity.build_seed',
+  'signalwire.operations.infobot.knowledge.InfoBotKnowledge.add_rule',
+  'signalwire.operations.infobot.knowledge.InfoBotKnowledge.use_search_service',
+  'signalwire.operations.infobot.legs.LegStore.__init__',
+  'signalwire.operations.infobot.legs.LegStore.set_store',
+  'signalwire.operations.infobot.livecall.say_into_call',
+  'signalwire.operations.messages.Messages.__init__',
+  'signalwire.operations.model.Refuse.__init__',
+  'signalwire.operations.outbound.Dialer.__init__',
+  'signalwire.operations.outbound.calling_hours',
+  'signalwire.operations.payments.Payments.__init__',
   'signalwire.relay.call.Call.ai',
   'signalwire.relay.call.Call.ai_hold',
   'signalwire.relay.call.Call.ai_message',
@@ -487,6 +534,27 @@ const REFERENCE_TYPE_FOLDS: Record<string, string> = {
   // is recorded as the dict of its fields' type (RECORD_SHAPE)
   'AiEvents:SpeechFinal': recordShape('any'),
   'patterns/RequestList:NotedRequest': recordShape('string'),
+  // The operations module's type aliases, which the oracle records nominally
+  // (`Turn = dict[str, Any]` is `class:...Turn`), and its `Callable[..., Any]`
+  // callbacks, which the port types precisely.
+  'operations/infobot/continuity:Turn': 'class:signalwire.operations.infobot.continuity.Turn',
+  'operations/infobot/legs:Leg': 'class:signalwire.operations.infobot.legs.Leg',
+  'operations/infobot/knowledge:Result': 'class:signalwire.operations.infobot.knowledge.Result',
+  'operations/outbound:Check': 'class:signalwire.operations.outbound.Check',
+  'operations/agent:TransferFunction': 'callable<list<any>,any>',
+  'operations/agent:WriteFunction': 'callable<list<any>,any>',
+  'operations/agent:OperationsHandler': 'callable<list<any>,any>',
+  'operations/agent:FindFunction': 'callable<list<any>,any>',
+  'operations/agent:LoadFunction': 'callable<list<any>,any>',
+  'operations/agent:DescribeFunction': 'callable<list<any>,any>',
+  'operations/agent:PrefillFunction': 'callable<list<any>,any>',
+  // set_result_context(fn: Callable[[Result], str | None]) and
+  // set_authority(fn: Callable[[Result], int | None]): the nullable return a
+  // callback type written inline doesn't keep
+  'operations/infobot/knowledge:ResultLabel':
+    'callable<list<class:signalwire.operations.infobot.knowledge.Result>,optional<string>>',
+  'operations/infobot/knowledge:ResultTier':
+    'callable<list<class:signalwire.operations.infobot.knowledge.Result>,optional<int>>',
 };
 const UNFOLD_ALL = process.env.UNFOLD_ALL === '1';
 
@@ -541,6 +609,9 @@ const KWARGS_TAIL_ONLY: Set<string> = new Set([
   // hoistRequestOptionsBeforeVarKeyword so it aligns with the reference.)
   'signalwire.rest._base.ReadResource.list',
   'signalwire.rest._base.ReadResource.paginate',
+  // ServiceAgent.identify(self, **kwargs) passes them on to Operations.identify:
+  // the port's options object is that tail.
+  'signalwire.operations.agent.ServiceAgent.identify',
   'signalwire.rest._base.CrudWithAddresses.list_addresses',
 ]);
 
@@ -1434,6 +1505,9 @@ function collectClass(
 
     const snakeRaw = camelToSnake(native);
     const snake = methodAliases?.[snakeRaw] ?? snakeRaw;
+    // A dunder the surface aliases to (Write.equals is __eq__): the signature
+    // oracle records no dunder but __init__
+    if (snake !== snakeRaw && snake.startsWith('__')) continue;
     if (methods[snake] !== undefined) continue; // already emitted (overload or get/set pair)
 
     try {
@@ -2422,7 +2496,11 @@ function signatureFromMethod(
     // #58). Emit it as an OPTIONAL `var_keyword` so it tail-matches the reference's
     // stripped `[self]` (the diff excuses a trailing optional var_keyword) instead
     // of reading as an extra required param.
-    if (KWARGS_TAIL_ONLY.has(ctx) && param.type.startsWith('dict<string,')) {
+    // (An options interface listed here is the same bag, typed: ServiceAgent.identify.)
+    if (
+      KWARGS_TAIL_ONLY.has(ctx) &&
+      (param.type.startsWith('dict<string,') || param.type.startsWith('class:'))
+    ) {
       param.kind = 'var_keyword';
       param.required = false;
       param.default = {};

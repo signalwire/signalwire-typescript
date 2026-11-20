@@ -3,7 +3,7 @@
  */
 
 import type { AgentBase } from '../../AgentBase.js';
-import { type Leg, LegStore } from './legs.js';
+import { LegStore } from './legs.js';
 
 /** One turn of a conversation, as the platform's `convo` and call log hold it. */
 export type Turn = Record<string, unknown>;
@@ -120,7 +120,7 @@ function truthy(value: unknown): boolean {
  * @returns The convo, or `[]` when there is nothing to carry.
  */
 export function buildSeed(
-  legs: readonly Leg[] | null | undefined,
+  legs: readonly Record<string, unknown>[],
   nowMedium: string,
   opts: BuildSeedOptions = {},
 ): Turn[] {
@@ -258,7 +258,7 @@ export class Continuity {
    * @param agent - The agent.
    * @returns The agent.
    */
-  install<A extends AgentBase>(agent: A): A {
+  install(agent: AgentBase): AgentBase {
     agent.addPerCallConfig((queryParams, body, headers, copy) =>
       this.seedCallback(queryParams, body, headers, copy),
     );

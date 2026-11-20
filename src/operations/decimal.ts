@@ -34,7 +34,7 @@ function asciiDigits(text: string): string {
 }
 
 /** An exact decimal: `coefficient * 10 ** exponent`. */
-export class Dec {
+export class _Dec {
   readonly coefficient: bigint;
   readonly exponent: number;
   /** A zero written with a minus sign, which `Decimal` keeps (`"-0"`). */
@@ -47,13 +47,13 @@ export class Dec {
   }
 
   /** Zero, as `Decimal(0)` is. */
-  static readonly ZERO = new Dec(0n, 0);
+  static readonly ZERO = new _Dec(0n, 0);
 
   /**
    * A decimal from its text, as `Decimal(str)` reads it: an optional sign,
    * digits with an optional point, an optional exponent. Null when it isn't one.
    */
-  static parse(text: string): Dec | null {
+  static parse(text: string): _Dec | null {
     const m = /^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(
       asciiDigits(text.trim()).replace(/_/g, ''),
     );
@@ -64,25 +64,25 @@ export class Dec {
     const digits = BigInt((whole + fraction).replace(/^0+(?=\d)/, '') || '0');
     const exponent = Number(m[4] ?? 0) - fraction.length;
     if (!Number.isSafeInteger(exponent)) return null;
-    return new Dec(m[1] === '-' ? -digits : digits, exponent, m[1] === '-');
+    return new _Dec(m[1] === '-' ? -digits : digits, exponent, m[1] === '-');
   }
 
   /**
    * The sum, as `Decimal` adds in its default context: exact, at the smaller
    * exponent of the two, then rounded to 28 significant digits.
    */
-  plus(other: Dec): Dec {
+  plus(other: _Dec): _Dec {
     const exponent = Math.min(this.exponent, other.exponent);
     if (this.coefficient === 0n && other.coefficient === 0n) {
       // A zero sum is negative only when both are negative zeros, as Decimal adds
-      return new Dec(0n, exponent, this.negativeZero && other.negativeZero).inContext();
+      return new _Dec(0n, exponent, this.negativeZero && other.negativeZero).inContext();
     }
     // A zero added keeps the other's digits, and no more than the context's
     // past them, as Decimal's _add does: never a padding of a million zeros
     if (this.coefficient === 0n || other.coefficient === 0n) {
       const kept = this.coefficient === 0n ? other : this;
       const at = Math.max(exponent, kept.exponent - PRECISION - 1);
-      return new Dec(kept.scaled(at), at).inContext();
+      return new _Dec(kept.scaled(at), at).inContext();
     }
     // As Decimal's _normalize: an addend far below the other's last digit the
     // context keeps counts only as a sticky 1 just below it
@@ -90,10 +90,10 @@ export class Dec {
     let small = big === this ? other : this;
     const sticky = big.exponent + Math.min(-1, big.digits() - PRECISION - 2);
     if (small.digits() + small.exponent - 1 < sticky) {
-      small = new Dec(small.coefficient < 0n ? -1n : 1n, sticky);
+      small = new _Dec(small.coefficient < 0n ? -1n : 1n, sticky);
     }
     const at = Math.min(big.exponent, small.exponent);
-    return new Dec(big.scaled(at) + small.scaled(at), at).inContext();
+    return new _Dec(big.scaled(at) + small.scaled(at), at).inContext();
   }
 
   /** How many digits its coefficient has. */
@@ -118,14 +118,14 @@ export class Dec {
    * The negation, rounded to the context as `-Decimal` is; a zero's is a plain
    * zero, as `-Decimal("-0")` and `-Decimal(0)` are.
    */
-  negated(): Dec {
-    return new Dec(-this.coefficient, this.exponent).inContext();
+  negated(): _Dec {
+    return new _Dec(-this.coefficient, this.exponent).inContext();
   }
 
   /** The absolute value, rounded to the context as `abs(Decimal)` is. */
-  abs(): Dec {
+  abs(): _Dec {
     const magnitude = this.coefficient < 0n ? -this.coefficient : this.coefficient;
-    return new Dec(magnitude, this.exponent).inContext();
+    return new _Dec(magnitude, this.exponent).inContext();
   }
 
   /**
@@ -135,19 +135,19 @@ export class Dec {
    * smallest exponent there is (so it may become zero), and one larger fails.
    * @throws {Error} For a result over the largest the context holds (Overflow).
    */
-  inContext(): Dec {
+  inContext(): _Dec {
     const negative = this.coefficient < 0n || this.negativeZero;
     let magnitude = this.coefficient < 0n ? -this.coefficient : this.coefficient;
     if (magnitude === 0n) {
       const exponent = Math.min(Math.max(this.exponent, ETINY), EMAX);
-      return exponent === this.exponent ? this : new Dec(0n, exponent, this.negativeZero);
+      return exponent === this.exponent ? this : new _Dec(0n, exponent, this.negativeZero);
     }
     let least = magnitude.toString().length + this.exponent - PRECISION;
     if (least > ETOP)
       throw new Error(`decimal overflow: ${this.toString()} is over the largest amount`);
     if (least < ETINY) least = ETINY;
     if (this.exponent >= least) return this;
-    const [quotient, half] = Dec.shifted(magnitude, least - this.exponent);
+    const [quotient, half] = _Dec.shifted(magnitude, least - this.exponent);
     magnitude = quotient;
     if (half > 0 || (half === 0 && magnitude % 2n === 1n)) magnitude += 1n;
     let exponent = least;
@@ -158,7 +158,7 @@ export class Dec {
     }
     if (exponent > ETOP)
       throw new Error(`decimal overflow: ${this.toString()} is over the largest amount`);
-    return new Dec(negative ? -magnitude : magnitude, exponent, negative);
+    return new _Dec(negative ? -magnitude : magnitude, exponent, negative);
   }
 
   /** -1, 0 or 1. */
@@ -167,7 +167,7 @@ export class Dec {
   }
 
   /** Compared by value: -1, 0 or 1. */
-  compare(other: Dec): number {
+  compare(other: _Dec): number {
     const a = this.sign();
     const b = other.sign();
     if (a !== b || a === 0) return a === b ? 0 : a < b ? -1 : 1;
@@ -201,16 +201,16 @@ export class Dec {
   }
 
   /** Rounded half up to `digits` after the point, as `quantize(..., ROUND_HALF_UP)` does. */
-  rounded(digits: number): Dec {
+  rounded(digits: number): _Dec {
     const target = -digits;
-    if (this.coefficient === 0n) return new Dec(0n, target);
+    if (this.coefficient === 0n) return new _Dec(0n, target);
     const negative = this.coefficient < 0n;
-    const [quotient, half] = Dec.shifted(
+    const [quotient, half] = _Dec.shifted(
       negative ? -this.coefficient : this.coefficient,
       target - this.exponent,
     );
     const magnitude = half >= 0 ? quotient + 1n : quotient;
-    return new Dec(negative ? -magnitude : magnitude, target);
+    return new _Dec(negative ? -magnitude : magnitude, target);
   }
 
   /**

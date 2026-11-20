@@ -8,7 +8,7 @@ import { Operations } from './agent.js';
 import { type Change, type Field, Operation, type OperationClass, type Write } from './model.js';
 
 /** @internal The `Operations` a pack is added to: the one given, or a `ServiceAgent`'s. */
-export function operationsOf(target: unknown): Operations {
+export function _operationsOf(target: unknown): Operations {
   const ops =
     !(target instanceof Operations) &&
     typeof target === 'object' &&
@@ -41,7 +41,7 @@ export interface PackOperation {
 }
 
 /** @internal An `Operation` class made for a pack: its fields, description, `prepare` and `apply`. */
-export function packOperation(spec: PackOperation): OperationClass {
+export function _packOperation(spec: PackOperation): OperationClass {
   const fields = { ...(spec.fields ?? {}) };
   const prepare = spec.prepare as (call: unknown, values: unknown) => unknown;
   const apply = spec.apply as ((call: unknown, write: Write) => unknown) | undefined;

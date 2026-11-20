@@ -6,7 +6,7 @@
  * Ported from the Python SDK `signalwire.prefabs.concierge.ConciergeAgent`.
  */
 
-import { warnDeprecated } from './deprecated.js';
+import { _warnDeprecated as warnDeprecated } from './deprecated.js';
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';

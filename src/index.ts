@@ -295,6 +295,9 @@ export {
   FAQBotAgent,
   ConciergeAgent,
   ReceptionistAgent,
+  Department,
+  FrontDeskAgent,
+  PersonalAssistantAgent,
 } from './prefabs/index.js';
 export type {
   InfoGathererConfig,
@@ -307,6 +310,8 @@ export type {
   ConciergeConfig,
   ReceptionistConfig,
   ReceptionistDepartment,
+  FrontDeskAgentOptions,
+  PersonalAssistantAgentOptions,
 } from './prefabs/index.js';
 
 // Types

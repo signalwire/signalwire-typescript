@@ -46,12 +46,12 @@ export class LegStore {
 
   /**
    * Replace persistence: `load(id)` gives the legs; `append(id, leg)` stores one.
-   * @param persistence - `load` and `append`.
+   * @param opts - `load` and `append`: a persistence object, kept whole so its
+   *   methods are called on it.
    * @returns This store.
    */
-  setStore(persistence: LegPersistence): this {
-    // Kept whole, so a persistence object's methods are called on it
-    this.persistence = persistence;
+  setStore(opts: LegPersistence): this {
+    this.persistence = opts;
     return this;
   }
 

@@ -35,6 +35,16 @@
       "import": "./dist/livewire/index.js",
       "default": "./dist/livewire/index.js"
     },
+    "./operations": {
+      "types": "./dist/operations/index.d.ts",
+      "import": "./dist/operations/index.js",
+      "default": "./dist/operations/index.js"
+    },
+    "./operations/infobot": {
+      "types": "./dist/operations/infobot/index.d.ts",
+      "import": "./dist/operations/infobot/index.js",
+      "default": "./dist/operations/infobot/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

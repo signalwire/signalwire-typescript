@@ -317,7 +317,7 @@ describe('InfoBotKnowledge', () => {
       search: () => [],
       wording: { 'search.not_covered': 'No lo cubren.' },
     });
-    expect(kb.format('q', []).endsWith('No lo cubren.')).toBe(true);
+    expect(kb._format('q', []).endsWith('No lo cubren.')).toBe(true);
     expect(() => new InfoBotKnowledge({ search: () => [], wording: { nope: 'x' } })).toThrow(
       /KNOWLEDGE_WORDING/,
     );

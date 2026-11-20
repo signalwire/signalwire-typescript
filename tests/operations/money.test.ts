@@ -6,7 +6,7 @@
 import { AgentBase } from '../../src/AgentBase.js';
 import { CallContext, Operations } from '../../src/operations/agent.js';
 import { Change, Field, Operation, type Values, Write } from '../../src/operations/model.js';
-import { Dec } from '../../src/operations/decimal.js';
+import { _Dec as Dec } from '../../src/operations/decimal.js';
 import { amountOf, checkCurrency, formatMoney } from '../../src/operations/money.js';
 import type { MoneyFormat } from '../../src/operations/record.js';
 import { CallSimulator } from '../../src/testing/CallSimulator.js';

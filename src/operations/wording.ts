@@ -190,7 +190,7 @@ export function placeholders(template: string): string[] {
  * against them.
  * @internal
  */
-export class Wording {
+export class _Wording {
   private readonly text: Record<string, string>;
 
   /**

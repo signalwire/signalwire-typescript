@@ -6,34 +6,41 @@
 import { FunctionResult } from '../FunctionResult.js';
 import type { CallContext } from './agent.js';
 import { Change, Field, Need, Refuse, type Values, Write } from './model.js';
-import { operationsOf, packOperation } from './pack.js';
-import { Wording } from './wording.js';
+import { _operationsOf as operationsOf, _packOperation as packOperation } from './pack.js';
+import { _Wording as Wording } from './wording.js';
 
 /** A time open for an appointment. */
 export class Slot {
+  /** The calendar's id for it. */
+  readonly id: string;
+  /** How it's said, in the calendar's own time zone and words: "Tuesday the 3rd at 2 pm". */
+  readonly label: string;
+
   /**
    * @param id - The calendar's id for it.
-   * @param label - How it's said, in the calendar's own time zone and words:
-   *   "Tuesday the 3rd at 2 pm".
+   * @param label - How it's said, in the calendar's own time zone and words: "Tuesday the 3rd at 2 pm".
    */
-  constructor(
-    readonly id: string,
-    readonly label: string,
-  ) {
+  constructor(id: string, label: string) {
+    this.id = id;
+    this.label = label;
     Object.freeze(this);
   }
 }
 
 /** One of the caller's appointments. */
 export class Appointment {
+  /** The calendar's id for it. */
+  readonly id: string;
+  /** How it's said: "your cleaning on Tuesday the 3rd at 2 pm". */
+  readonly label: string;
+
   /**
    * @param id - The calendar's id for it.
    * @param label - How it's said: "your cleaning on Tuesday the 3rd at 2 pm".
    */
-  constructor(
-    readonly id: string,
-    readonly label: string,
-  ) {
+  constructor(id: string, label: string) {
+    this.id = id;
+    this.label = label;
     Object.freeze(this);
   }
 }

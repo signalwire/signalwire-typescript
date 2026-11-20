@@ -13,7 +13,11 @@ import {
   type Values,
   Write,
 } from '../../src/operations/model.js';
-import { DEFAULT_WORDING, Wording, placeholders } from '../../src/operations/wording.js';
+import {
+  DEFAULT_WORDING,
+  _Wording as Wording,
+  placeholders,
+} from '../../src/operations/wording.js';
 import { CallSimulator } from '../../src/testing/CallSimulator.js';
 import type { Loose } from './helpers.js';
 

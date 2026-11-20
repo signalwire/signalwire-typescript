@@ -5,10 +5,10 @@
  * the steps, and is worked out again on every update, so it is never behind.
  */
 
-import { Dec } from './decimal.js';
+import { _Dec as Dec } from './decimal.js';
 import type { Change } from './model.js';
-import { decimalOf } from './money.js';
-import type { Wording } from './wording.js';
+import { _decimalOf as decimalOf } from './money.js';
+import type { _Wording as Wording } from './wording.js';
 
 /** A record, or one of its entries, as JSON. */
 export type RecordData = Record<string, unknown>;
@@ -56,8 +56,8 @@ function objectOf(value: unknown): RecordData {
 }
 
 /** @internal The record as a call opens. */
-export function opening(w: Wording): RecordData {
-  return whole(
+export function _opening(w: Wording): RecordData {
+  return _whole(
     w,
     {},
     {
@@ -76,41 +76,41 @@ export function opening(w: Wording): RecordData {
 }
 
 /** @internal The `global_data` a call opens with: the record under its key. */
-export function openingData(key: string, w: Wording): RecordData {
-  return { [key]: opening(w) };
+export function _openingData(key: string, w: Wording): RecordData {
+  return { [key]: _opening(w) };
 }
 
 /** @internal The call's record, as the platform sent it with a request. */
-export function recordOf(rawData: unknown, key: string = RECORD): RecordData {
+export function _recordOf(rawData: unknown, key: string = RECORD): RecordData {
   const data = isPlainObject(rawData) ? rawData['global_data'] : undefined;
   const record = isPlainObject(data) ? data[key] : undefined;
   return isPlainObject(record) ? (structuredClone(record) as RecordData) : {};
 }
 
 /** @internal The whole record after these changes, with `now` worked out after them. */
-export function whole(w: Wording, data: RecordData, changes: RecordData = {}): RecordData {
+export function _whole(w: Wording, data: RecordData, changes: RecordData = {}): RecordData {
   const record = { ...data, ...changes };
-  return { ...record, now: nowLine(record, w) };
+  return { ...record, now: _nowLine(record, w) };
 }
 
 /**
  * @internal The `global_data` update for these changes: the whole record under
  * its key, since the platform replaces a top-level key whole.
  */
-export function update(
+export function _update(
   key: string,
   w: Wording,
   data: RecordData,
   changes: RecordData = {},
 ): RecordData {
-  return { [key]: whole(w, data, changes) };
+  return { [key]: _whole(w, data, changes) };
 }
 
 /**
  * @internal Where the call stands, in words: what they asked for, what's done,
  * what waits for their answer, and what's set aside for after it.
  */
-export function nowLine(data: RecordData, w: Wording): string {
+export function _nowLine(data: RecordData, w: Wording): string {
   const done = listOf(data['history'])
     .filter((h) => h['done'])
     .map((h) => String(h['done']))
@@ -138,7 +138,7 @@ export function nowLine(data: RecordData, w: Wording): string {
  * @internal A change as it waits for the caller's yes: everything needed to
  * carry it out, frozen. Money is kept as exact decimal strings, with its currency.
  */
-export function waitingEntry(
+export function _waitingEntry(
   kind: string,
   args: RecordData,
   change: Change,
@@ -161,7 +161,7 @@ export function waitingEntry(
 }
 
 /** @internal A change set aside for after the one waiting, kept with the arguments to build it again. */
-export function queuedEntry(kind: string, args: RecordData, change: Change): RecordData {
+export function _queuedEntry(kind: string, args: RecordData, change: Change): RecordData {
   return {
     kind,
     read_back: change.readBack,
@@ -180,7 +180,7 @@ function total(amounts: readonly Dec[]): Dec {
  * and the money moved by the writes that went through (all of them once made,
  * else the first `made`).
  */
-export function settle(
+export function _settle(
   data: RecordData,
   outcome: string,
   done = '',
@@ -206,7 +206,7 @@ export function settle(
  * @internal What the changes made in the call come to, once more than one
  * moved money: for each currency, what went back to them and what was charged.
  */
-export function inAll(history: readonly RecordData[], w: Wording, money: MoneyFormat): string {
+export function _inAll(history: readonly RecordData[], w: Wording, money: MoneyFormat): string {
   // Only writes that went through count
   const moved: [Dec, string | null][] = history
     .filter((h) => h['money'] && decimalOf(h['money']).sign() !== 0)
@@ -226,7 +226,7 @@ export function inAll(history: readonly RecordData[], w: Wording, money: MoneyFo
 }
 
 /** @internal What to do once the change waiting is settled: take up the first one set aside. */
-export function nextUp(
+export function _nextUp(
   data: RecordData,
   toolOf: Readonly<Record<string, string>>,
   w: Wording,

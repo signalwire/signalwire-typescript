@@ -8,7 +8,7 @@
  * matcher, escalation tool) alongside the Python prefab's public surface.
  */
 
-import { warnDeprecated } from './deprecated.js';
+import { _warnDeprecated as warnDeprecated } from './deprecated.js';
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';

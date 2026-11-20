@@ -6,10 +6,16 @@
 import type { AgentBase } from '../../AgentBase.js';
 import { FunctionResult } from '../../FunctionResult.js';
 import { Field } from '../model.js';
-import { Wording } from '../wording.js';
+import { _Wording as Wording } from '../wording.js';
 
 /** One search result: at least a `content` string and a `score`. */
 export type Result = Record<string, unknown>;
+
+/** A result's label line above its passage, or null for none. */
+export type ResultLabel = (result: Result) => string | null | undefined;
+
+/** A result's ranking tier: higher ranks first among the results not demoted; null is 0. */
+export type ResultTier = (result: Result) => number | null | undefined;
 
 /** A search backend: `search(query)` returns the raw results; it may be async. */
 export type SearchFunction = (query: string) => Result[] | Promise<Result[]>;
@@ -138,12 +144,12 @@ export class InfoBotKnowledge {
   private readonly stepName: string;
   private exclude: ((result: Result, query: string) => boolean) | null = null;
   private demote: ((result: Result) => boolean) | null = null;
-  private resultContext: ((result: Result) => string | null | undefined) | null = null;
+  private resultContext: ResultLabel | null = null;
   private readonly rules: [string, RuleWhen][] = [];
   private readonly resultRules: [(query: string, results: Result[]) => boolean, string][] = [];
   private readonly queryTypes: Record<string, string> = {};
   private queryTypeHelp = '';
-  private authority: ((result: Result) => number | null | undefined) | null = null;
+  private authority: ResultTier | null = null;
   private queryTransform: ((query: string) => string) | null = null;
   private fallback: ((query: string) => string | null | undefined) | null = null;
   private expander: ((results: Result[]) => Result[]) | null = null;
@@ -218,7 +224,7 @@ export class InfoBotKnowledge {
    * @param fn - The label of a result.
    * @returns This layer.
    */
-  setResultContext(fn: (result: Result) => string | null | undefined): this {
+  setResultContext(fn: ResultLabel): this {
     this.resultContext = fn;
     return this;
   }
@@ -228,7 +234,7 @@ export class InfoBotKnowledge {
    * @param fn - The tier of a result.
    * @returns This layer.
    */
-  setAuthority(fn: (result: Result) => number | null | undefined): this {
+  setAuthority(fn: ResultTier): this {
     this.authority = fn;
     return this;
   }
@@ -365,7 +371,7 @@ export class InfoBotKnowledge {
    * @returns The agent.
    * @throws {Error} Without a search backend.
    */
-  install<A extends AgentBase>(agent: A): A {
+  install(agent: AgentBase): AgentBase {
     if (this.searchFn === null) {
       throw new Error(
         'InfoBotKnowledge needs a search backend: pass search or call ' +
@@ -415,7 +421,7 @@ export class InfoBotKnowledge {
     const search = this.searchFn;
     if (search === null) return new FunctionResult(this.w.say('search.unconfigured'));
     const found = await search(effective);
-    const blob = this.format(query, [...(found ?? [])]);
+    const blob = this._format(query, [...(found ?? [])]);
     return new FunctionResult(blob).backToBackFunctions('forever');
   }
 
@@ -426,7 +432,7 @@ export class InfoBotKnowledge {
   }
 
   /** @internal The grounded block for a query's results. */
-  format(query: string, results: Result[]): string {
+  _format(query: string, results: Result[]): string {
     let kept = results.filter((r) => !(this.exclude && this.exclude(r, query)));
     // Demoted last; then higher authority; then higher score.
     const keys = new Map(kept.map((r) => [r, this.rankKey(r)]));

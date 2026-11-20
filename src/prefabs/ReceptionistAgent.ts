@@ -7,7 +7,7 @@
  * additive features.
  */
 
-import { warnDeprecated } from './deprecated.js';
+import { _warnDeprecated as warnDeprecated } from './deprecated.js';
 import { AgentBase } from '../AgentBase.js';
 import { CallSessionStore } from './CallSessionStore.js';
 import { FunctionResult } from '../FunctionResult.js';

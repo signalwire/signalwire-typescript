@@ -12,7 +12,7 @@ const warned = new Set<string>();
  * @param message - What to use instead, and why.
  * @internal
  */
-export function warnDeprecated(name: string, message: string): void {
+export function _warnDeprecated(name: string, message: string): void {
   if (warned.has(name)) return;
   warned.add(name);
   process.emitWarning(`${name} is deprecated: ${message}`, {
