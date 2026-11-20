@@ -815,14 +815,14 @@ export class Operations {
     return Object.values(rules).filter((r): r is string => !!r);
   }
 
-  private ops(): Registered[] {
+  private registered(): Registered[] {
     return [...this._operations.values()];
   }
 
   private toolNames(): string[] {
-    const names = [...this.lookups.map((lk) => lk.tool), ...this.ops().map((op) => op.tool)];
+    const names = [...this.lookups.map((lk) => lk.tool), ...this.registered().map((op) => op.tool)];
     if (this.identity !== null) names.push(this.identity.tool);
-    if (this.ops().some((op) => op.cls.confirm))
+    if (this.registered().some((op) => op.cls.confirm))
       names.push(this._names.confirm, this._names.decline);
     if (this.transfer !== null) names.push(this.transfer.tool);
     return names;
@@ -898,7 +898,7 @@ export class Operations {
       if (idn !== null) tools.push(idn.tool);
       tools.push(...this.lookups.filter((lk) => lk.beforeIdentity).map((lk) => lk.tool));
       tools.push(
-        ...this.ops()
+        ...this.registered()
           .filter((op) => op.cls.beforeIdentity && offered(op, step))
           .map((op) => op.tool),
       );
@@ -906,7 +906,7 @@ export class Operations {
       if (idn !== null && !this.gated()) tools.push(idn.tool);
       tools.push(...this.lookups.map((lk) => lk.tool));
       tools.push(
-        ...this.ops()
+        ...this.registered()
           .filter((op) => offered(op, step) || op.kind === step)
           .map((op) => op.tool),
       );
@@ -932,7 +932,7 @@ export class Operations {
     const where = this.identity ? w.say('step.account', { account }) : '';
     const idn = this.identity;
     const lookups = this.lookups.map((lk) => lk.tool).join(w.say('list.or'));
-    const ops = this.ops()
+    const ops = this.registered()
       .map((op) => `${op.tool} (${op.cls.describe().replace(/\.+$/, '')})`)
       .join('; ');
     const unfound =
@@ -961,7 +961,7 @@ export class Operations {
       w.say('step.main', { account: where, help: helpWith }),
       this.toolsFor(MAIN_STEP),
     );
-    if (this.ops().some((op) => op.cls.confirm)) {
+    if (this.registered().some((op) => op.cls.confirm)) {
       this.contribute(
         ctx,
         names.step(CONFIRM_STEP),
@@ -974,7 +974,7 @@ export class Operations {
         [names.confirm, names.decline, ...this.toolsFor(CONFIRM_STEP)],
       );
     }
-    for (const op of this.ops()) {
+    for (const op of this.registered()) {
       if (op.guidance) {
         this.contribute(
           ctx,
@@ -995,11 +995,11 @@ export class Operations {
       names.confirm,
       names.decline,
       ...this.offers.flatMap(([n]) => n),
-      ...this.ops().map((op) => op.tool),
+      ...this.registered().map((op) => op.tool),
     ]);
     let first: string | null = null;
     const guided = new Set(
-      this.ops()
+      this.registered()
         .filter((op) => op.guidance)
         .map((op) => names.step(op.kind)),
     );
@@ -1067,7 +1067,7 @@ export class Operations {
         secure: lk.secure,
       });
     }
-    for (const op of this.ops()) {
+    for (const op of this.registered()) {
       const fields = op.impl.fields();
       const params: Record<string, unknown> = {};
       for (const [k, f] of Object.entries(fields)) params[k] = withNotSaid(f);
@@ -1094,7 +1094,7 @@ export class Operations {
         secure: op.cls.secure,
       });
     }
-    const kinds = this.ops()
+    const kinds = this.registered()
       .filter((op) => op.cls.confirm)
       .map((op) => op.kind);
     if (kinds.length > 0) {
@@ -1368,7 +1368,7 @@ export class Operations {
       IDENTIFY_STEP,
       MAIN_STEP,
       CONFIRM_STEP,
-      ...this.ops()
+      ...this.registered()
         .filter((op) => op.guidance)
         .map((op) => op.kind),
     ]);
@@ -1793,7 +1793,7 @@ export class Operations {
   }
 
   private toolOf(): Record<string, string> {
-    return Object.fromEntries(this.ops().map((op) => [op.kind, op.tool]));
+    return Object.fromEntries(this.registered().map((op) => [op.kind, op.tool]));
   }
 
   private async confirmHandler(
