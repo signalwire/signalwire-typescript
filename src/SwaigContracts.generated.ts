@@ -71,6 +71,8 @@ export interface SwaigRequest {
   raw_call_log?: unknown[];
   /** only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set (`actions.c:2040`/`2044`). */
   space_id?: string;
+  /** only if the model gave the call an id (`actions.c:3155-3156`). The `id` of the model's tool call: an OpenAI-style `call_...`, Anthropic's `tool_use` id, the Responses API's `call_id`, Bedrock's `toolUseId`, and for Gemini, which gives none, the one its adapter makes (`call_` + 8 hex digits). A retry of the request after a curl error or a 5xx sends the same body, so the same id; each call the model makes has its own, so a webhook can tell a resend from the model calling again with the same arguments. Absent for a request the module makes on its own (`startup_hook`, `hangup_hook`, `check_for_input`), for a function an in-band `~FN:` directive runs, and when the provider gave no id. On the data_map path it is always the call's own id, never a `global_data` key of that name (`actions.c:3412-3434`). */
+  tool_call_id?: string;
   /** Always present. */
   version?: '2.0';
   [key: string]: unknown;

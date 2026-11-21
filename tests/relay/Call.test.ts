@@ -305,6 +305,16 @@ describe('Call', () => {
       expect(client.execCalls[0]!.method).toBe('calling.answer');
     });
 
+    it('ring sends calling.ring with any extra params (Python 3.12.0)', async () => {
+      const client = mockClient();
+      const call = makeCall(client);
+      await call.ring();
+      await call.ring({ custom: 'x' });
+      expect(client.execCalls.map((c) => c.method)).toEqual(['calling.ring', 'calling.ring']);
+      expect(client.execCalls[0]!.params.call_id).toBe('call-id-1');
+      expect(client.execCalls[1]!.params.custom).toBe('x');
+    });
+
     it('hangup sends calling.end with reason', async () => {
       const client = mockClient();
       const call = makeCall(client);

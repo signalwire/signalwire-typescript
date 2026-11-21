@@ -221,3 +221,22 @@ describe('the review of the 3.11.0 port (found in review)', () => {
     }
   });
 });
+
+describe('per-call configuration order (Python 3.12.0, #177)', () => {
+  it('setDynamicConfigCallback replaces callbacks addPerCallConfig added before it', async () => {
+    const run = async (register: (a: AgentBase, mark: (n: string) => () => void) => void) => {
+      const ran: string[] = [];
+      const a = new AgentBase({ name: 'order', route: '/', basicAuth: ['u', 'p'] });
+      a.setPromptText('x');
+      register(a, (n) => () => void ran.push(n));
+      await a.getApp().request('/', { headers: { Authorization: 'Basic ' + btoa('u:p') } });
+      return ran;
+    };
+    expect(
+      await run((a, m) => a.addPerCallConfig(m('a')).setDynamicConfigCallback(m('b'))),
+    ).toEqual(['b']);
+    expect(
+      await run((a, m) => a.setDynamicConfigCallback(m('a')).addPerCallConfig(m('b'))),
+    ).toEqual(['a', 'b']);
+  });
+});

@@ -593,7 +593,10 @@ export class FunctionResult {
    * with `tool_choice: "none"`. `true`, while chaining is off, allows one more
    * chain: the next request after a function result may call one, and then
    * it's off again. `true` never lowers `'forever'`. The setting lasts for the
-   * call. Text pipeline only: a realtime model doesn't read it.
+   * call, one set by a gate's `on_fail` too: after a refused gate turns it
+   * off, a later result sets `'forever'` to turn it back on, or every later
+   * tool result needs words after it. Text pipeline only: a realtime model
+   * doesn't read it.
    * @param value - `true`, `false` or `'forever'`. Default `true`.
    * @returns This instance for chaining.
    * @throws {Error} For any other value, which the platform ignores.
@@ -621,10 +624,12 @@ export class FunctionResult {
    *
    * A change starts a proposal, the dialogue of a gate with `dialogue:
    * 'proposal'`, as of the start of the result's action list, so a `say`
-   * anywhere in the same result, such as the read-back, is in it. Platform
-   * releases before the whole-list rule start it at its own action object:
-   * set the state before `say` there, or use `Proposal`, which works on
-   * both.
+   * anywhere in the same result, such as the read-back, is in it. Set the
+   * state before the `say` all the same: when the caller talks over a `say`,
+   * the platform skips the rest of the result's actions, so a state set after
+   * it could be lost. Platform releases before the whole-list rule also date a
+   * proposal from its own action object, which the same order covers.
+   * `Proposal` does this.
    * @param state - The semantic state.
    * @returns This instance for chaining.
    */

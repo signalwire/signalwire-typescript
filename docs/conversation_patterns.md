@@ -21,7 +21,7 @@ Several of these patterns use semantic gate keys, params and actions (`dialogue`
 
 A change the caller must agree to, such as placing an order or cancelling an account, needs a yes to that change, not a yes somewhere in the call. The platform's confirm pattern does this with semantic gates:
 
-1. A function proposes the change. It reads the change back and records it in `semantic_state`, in one action object, so the proposal's dialogue starts with the read-back.
+1. A function proposes the change. It records the change in `semantic_state`, then reads it back, so the proposal's dialogue starts with the read-back. The state goes first, in an action object of its own: when the caller talks over a `say`, the platform skips the rest of the result's actions, so a state recorded after the read-back would be lost.
 2. The tool that carries out the change has three gates, each judged on the proposal's dialogue: the caller's latest turn is an answer, the answer is a yes, and what they answered was a read-back of this change.
 
 `Proposal` builds both halves. The gates' questions are the platform's own, which were replayed against logged confirmation checks.
@@ -55,7 +55,7 @@ agent.defineTool({
 });
 ```
 
-`propose()` says the read-back word for word, records `{ proposal: readBack, revision: n }` with your details, and has the model wait for the caller's answer. `current(rawData)` reads the proposal back from a request's `global_data.semantic_state`. When a gate blocks the confirm tool, the model is told why, with the proposal quoted from `semantic_state`, and chaining is turned off for the call (`backToBackFunctions(false)`), so it answers in words before it calls a tool again. To read the same change back again, use `askAgain(rawData)`: the platform marks a new proposal only when `semantic_state` changes, so it records the next revision.
+`propose()` says the read-back word for word, records `{ proposal: readBack, revision: n }` with your details, and has the model wait for the caller's answer. `current(rawData)` reads the proposal back from a request's `global_data.semantic_state`. When a gate blocks the confirm tool, the model is told why, with the proposal quoted from `semantic_state`, and chaining is turned off (`backToBackFunctions(false)`), so it answers in words before it calls a tool again. That setting lasts for the call, so `propose()`, `askAgain()` and `complete()` turn chaining back on (`'forever'`, the call's default); an agent that sets `backToBackFunctions` itself should know they do. To read the same change back again, use `askAgain(rawData)`: the platform marks a new proposal only when `semantic_state` changes, so it records the next revision.
 
 `new Proposal(confirmTool, { unclear: true, threshold: 0.6 })` lets the gates answer unclear as well, where the gate provider can, which asks the caller again. Give the confirm step only the confirm tool, the decline tool and a tool that notes other requests, so a "yes, and also..." becomes two calls.
 

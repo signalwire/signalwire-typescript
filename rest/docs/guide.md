@@ -339,7 +339,7 @@ The request options have these fields, all optional:
 | `timeout` | `30` | Maximum seconds for each attempt. When it's exceeded, the request throws `RestTransportError`. |
 | `retries` | `0` | Number of retries after a retryable failure (total attempts = `retries + 1`). By default the client doesn't retry. |
 | `retryOnStatus` | `{429, 500, 502, 503, 504}` | HTTP statuses that trigger a retry for an idempotent method. |
-| `retryBackoff` | `0.5` | Base seconds for exponential backoff (`retryBackoff * 2 ** (attempt - 1)`). A numeric `Retry-After` header takes precedence. |
+| `retryBackoff` | `0.5` | Base seconds for exponential backoff (`retryBackoff * 2 ** (attempt - 1)`). A `Retry-After` header takes precedence, in seconds or as an HTTP-date (one without a zone is UTC; a past date retries at once); one that's neither, or a negative or non-finite delay, leaves the backoff. |
 | `abortSignal` | None | An `AbortSignal` that cancels the request in flight. It's also checked before each attempt. |
 
 A field you leave unset falls back to the client default, then to the built-in default. Retries depend on the method. `GET`, `PUT` and `DELETE` retry on any status in `retryOnStatus`, and on transport errors. `POST` and `PATCH` retry only on transport errors and on a `429` or `503` in `retryOnStatus`. That way a request that changed data isn't sent twice after a `500`. A cancellation through `abortSignal` is never retried.

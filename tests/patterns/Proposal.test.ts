@@ -9,6 +9,7 @@
  * marks nothing, so asking again needs a new revision.
  */
 import { AgentBase } from '../../src/AgentBase.js';
+import { FunctionResult } from '../../src/FunctionResult.js';
 import { Proposal, current, gateDefinitions } from '../../src/index.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tests read loose SWML JSON
@@ -21,16 +22,18 @@ const raw = (state: Json | null): Json => ({
 const dict = (r: { toDict(): unknown }): Json => r.toDict() as Json;
 
 describe('Proposal.propose', () => {
-  it('makes the read-back and the state one action', () => {
+  it('sets the state before the read-back (Python 3.12.1)', () => {
+    // So it's recorded even when the caller talks over the read-back: a say the
+    // caller talks over ends the result's actions (mod_openai actions.c)
     const result = dict(
       new Proposal('place_order').propose(READ_BACK, { details: { item: 'tea' } }),
     );
-    expect(result['action'][0]).toEqual({
-      say: READ_BACK,
-      set_global_data: { semantic_state: { item: 'tea', proposal: READ_BACK, revision: 1 } },
-    });
-    expect(result['action'][1]).toEqual({ wait_for_user: true });
-    expect(result['action']).toHaveLength(2);
+    expect(result['action']).toEqual([
+      { back_to_back_functions: 'forever' },
+      { set_global_data: { semantic_state: { item: 'tea', proposal: READ_BACK, revision: 1 } } },
+      { say: READ_BACK },
+      { wait_for_user: true },
+    ]);
   });
 
   it('tells the model what to wait for', () => {
@@ -44,7 +47,7 @@ describe('Proposal.propose', () => {
 
   it('gives a new proposal the next revision', () => {
     const r = raw({ proposal: 'older', revision: 3 });
-    const state = dict(new Proposal('place_order').propose(READ_BACK, { rawData: r }))['action'][0][
+    const state = dict(new Proposal('place_order').propose(READ_BACK, { rawData: r }))['action'][1][
       'set_global_data'
     ]['semantic_state'];
     expect(state['revision']).toBe(4);
@@ -52,13 +55,13 @@ describe('Proposal.propose', () => {
 
   it('reads the same change again as a new revision', () => {
     const r = raw({ proposal: READ_BACK, revision: 1, item: 'tea' });
-    const first = dict(new Proposal('place_order').askAgain(r))['action'][0];
-    expect(first['say']).toBe(READ_BACK);
-    expect(first['set_global_data']['semantic_state']).toEqual({
+    const actions = dict(new Proposal('place_order').askAgain(r))['action'];
+    expect(actions[1]['set_global_data']['semantic_state']).toEqual({
       item: 'tea',
       proposal: READ_BACK,
       revision: 2,
     });
+    expect(actions[2]).toEqual({ say: READ_BACK });
   });
 
   it('needs a proposal to ask again', () => {
@@ -67,8 +70,26 @@ describe('Proposal.propose', () => {
 
   it('records what was done', () => {
     expect(dict(new Proposal('place_order').complete('Order 4471 is placed.'))['action']).toEqual([
+      { back_to_back_functions: 'forever' },
       { set_global_data: { semantic_state: { done: 'Order 4471 is placed.' } } },
     ]);
+  });
+
+  it('turns chaining back on after a refused yes turned it off (Python 3.12.2)', () => {
+    // A gate's backToBackFunctions(false) lasts for the call (mod_openai
+    // ai_back2back_value): the proposal's own results restore the call's
+    // default, or every later tool result would need words
+    const proposal = new Proposal('place_order');
+    const onFail = (proposal.confirmGates()[1]!.toDict() as Json)['on_fail'];
+    expect(onFail['action']).toContainEqual({ back_to_back_functions: false });
+    for (const result of [proposal.propose(READ_BACK), proposal.complete('Placed.')]) {
+      expect(dict(result)['action'][0]).toEqual({ back_to_back_functions: 'forever' });
+    }
+    // complete() puts it ahead of what a given result already has
+    const given = new FunctionResult('Placed.').say('Done.');
+    expect(dict(proposal.complete('Placed.', given))['action'][0]).toEqual({
+      back_to_back_functions: 'forever',
+    });
   });
 });
 

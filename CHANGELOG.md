@@ -3,6 +3,40 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## 3.12.2 (2026-11-20)
+
+Parity with signalwire-python 3.12.2.
+
+### Added
+
+- `Call.ring(extra?)` sends 180 Ringing on an inbound call without answering
+  it (`calling.ring`). Like answering, ringing takes control of the call, so
+  it can't be passed afterwards.
+- `SwaigRequest` types `tool_call_id`, the id of the model's tool call, so
+  a webhook can tell a resend from the model calling again (porting-sdk's
+  SWAIG specs).
+
+### Fixed
+
+- `Proposal.propose()` and `askAgain()` set `semantic_state` in an action of
+  its own before the read-back's `say`. When the caller talked over the
+  read-back, the platform skipped the rest of that action, so the state was
+  never recorded and the confirm gates judged the yes against the previous
+  read-back. The read-back is still the proposal's first turn.
+- `Proposal`'s confirm gates refuse a yes with `backToBackFunctions(false)`,
+  which the platform keeps for the call, so after one refused yes every
+  later tool result, a lookup included, had to be followed by words.
+  `propose()`, `askAgain()` and `complete()` now turn chaining back on
+  (`'forever'`, the call's default); `complete()` puts it ahead of anything
+  the result already has.
+- The REST client's retry honors a `Retry-After` HTTP-date, in any of its
+  three forms, as well as delta-seconds (#125). A date without a zone is UTC;
+  a past date retries at once; a negative or non-finite delay, or a value
+  that's neither form, leaves the computed backoff.
+- The docs say that `setDynamicConfigCallback()` replaces callbacks
+  `addPerCallConfig()` added before it, so the order of the two calls matters
+  (#177).
+
 ## 3.11.0 (2026-11-20)
 
 Parity with signalwire-python 3.11.0: verb bodies, checked hooks, a schema

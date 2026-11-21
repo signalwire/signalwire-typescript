@@ -2308,6 +2308,14 @@ export class AgentBase extends SWMLService {
   /**
    * Set a callback that configures a per-request copy of this agent.
    *
+   * It replaces every callback registered so far, including those from
+   * {@link addPerCallConfig}, so the order of the two calls matters:
+   * `addPerCallConfig(a)` then `setDynamicConfigCallback(b)` runs only `b`,
+   * while `setDynamicConfigCallback(a)` then `addPerCallConfig(b)` runs both. A
+   * base class that registers with `addPerCallConfig`, the composable form, is
+   * wiped by a subclass that calls this afterwards; a class that can't know
+   * what its bases registered should use `addPerCallConfig`.
+   *
    * On each request that renders SWML, runs a SWAIG function or delivers a
    * summary, the SDK makes a copy of this agent, calls the callback with the
    * request's query parameters, body and headers (credential-bearing headers

@@ -2,10 +2,11 @@
  * A change the caller says yes to before a tool carries it out.
  *
  * This is the platform's confirm pattern. A function proposes the change: it
- * reads it back and records it in `semantic_state`, in one action object, so
- * the proposal's dialogue starts with the read-back on any platform release,
- * including those that date a proposal from its own action object rather than
- * the result's action list. The confirm tool's
+ * records it in `semantic_state`, then reads it back, so the proposal's
+ * dialogue starts with the read-back. The state goes first, in an action object
+ * of its own: when the caller talks over a `say`, the platform skips the rest
+ * of the result's actions, and a state recorded after the read-back would be
+ * lost. The confirm tool's
  * semantic gates, judged on that dialogue (`dialogue: 'proposal'`), check three
  * things: that the caller's latest turn is an answer, that the answer is a yes,
  * and that what they answered was a read-back of this change. The gates'
@@ -104,10 +105,12 @@ export class Proposal {
   /**
    * The result of the function that proposes the change.
    *
-   * The agent says `readBack` word for word, and the proposal is recorded as
-   * `semantic_state` `{ proposal: readBack, revision: n, ...details }`, in the
-   * same action object, so the gates' proposal dialogue starts with the
-   * read-back. The model then waits for the caller's answer (`wait_for_user`).
+   * The proposal is recorded as `semantic_state` `{ proposal: readBack,
+   * revision: n, ...details }`, and the agent says `readBack` word for word, so
+   * the gates' proposal dialogue starts with the read-back. The model then
+   * waits for the caller's answer (`wait_for_user`). The state is set before
+   * the read-back, so it's recorded even when the caller talks over the
+   * read-back.
    *
    * @param readBack - The words to read back, ending with the question, such as
    *   "That's a large tea for pickup at five. Is that right?". Name everything
@@ -128,10 +131,14 @@ export class Proposal {
         'they say yes to this read-back.' +
         (this.declineTool ? ` If they say no or want a change, call ${this.declineTool}.` : ''),
     );
-    // One object: its say runs before its set_global_data, so the read-back
-    // is the first turn of the proposal it records
+    // Chaining back on, after a confirm gate that refused turned it off
+    result.backToBackFunctions('forever');
+    // The state first, in an object of its own: a say the caller talks over
+    // ends the result's actions there. The proposal dates from the start of the
+    // result's action list (from the start of its own object on older platform
+    // releases), so the read-back after it is still the proposal's first turn
+    result.addAction('set_global_data', { semantic_state: state });
     result.addAction('say', readBack);
-    result.action[result.action.length - 1]!['set_global_data'] = { semantic_state: state };
     result.waitForUser({ enabled: true });
     return result;
   }
@@ -163,8 +170,12 @@ export class Proposal {
    * dialogue. When one fails, the model is told why, with the proposal quoted
    * from `semantic_state` (the platform expands `${global_data...}` in a gate's
    * output; one that doesn't sends it as written), and chaining is turned off
-   * for the call (`backToBackFunctions(false)`), so the model answers in words
-   * before it calls a tool again.
+   * (`backToBackFunctions(false)`), so the model answers in words before it
+   * calls a tool again. That setting lasts for the call, so {@link propose},
+   * {@link askAgain} and {@link complete} turn chaining back on (`'forever'`,
+   * the call's default). Without that, every later tool result would need
+   * words after it. An agent that sets `back_to_back_functions` itself should
+   * know they do.
    *
    * @returns The gates, for the confirm tool's `gates`.
    */
@@ -264,9 +275,10 @@ export class Proposal {
    * @returns The result.
    */
   complete(summary: string, result?: FunctionResult): FunctionResult {
-    return (result ?? new FunctionResult(undefined, false, summary)).setSemanticState({
-      done: summary,
-    });
+    const out = result ?? new FunctionResult(undefined, false, summary);
+    // Chaining back on, ahead of anything the result says
+    out.action.unshift({ back_to_back_functions: 'forever' });
+    return out.setSemanticState({ done: summary });
   }
 }
 

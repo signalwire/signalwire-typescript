@@ -139,6 +139,14 @@ Answer an inbound call. The optional `extra` object is merged into the request's
 await call.answer();
 ```
 
+### `ring(extra?)`
+
+Send 180 Ringing on an inbound call without answering it (`calling.ring`): the caller hears ringing, and no media flows. Like answering, ringing takes control of the call, so it can't be passed afterwards. The optional `extra` object is merged into the request's params.
+
+```typescript
+await call.ring();
+```
+
 ### `hangup(reason = 'hangup')`
 
 End the call. The SDK sends `reason` to the platform in a `calling.end` request.
