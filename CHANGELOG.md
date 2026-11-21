@@ -3,7 +3,7 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased (signalwire-python 3.15.0)
+## 3.15.0 (2026-11-21)
 
 ### Added
 
