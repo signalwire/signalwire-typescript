@@ -124,11 +124,14 @@
 <li><a href="../modules/_signalwire_sdk.html">@signalwire/sdk</a></li>
 <li><a href="" aria-current="page">VOUCHED_DESCRIPTION</a></li></ul>
 <h1>Variable VOUCHED_DESCRIPTION<code class="tsd-tag">Const</code></h1></div>
-<div class="tsd-signature"><span class="tsd-kind-variable">VOUCHED_DESCRIPTION</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;True only when every other argument is what the user said in this call, not a guess, an example or something assumed. False when any value did not come from the user.&quot;</span><span class="tsd-signature-symbol"> = &#39;True only when every other argument is what the user said in this call, not a guess, an example or something assumed. False when any value did not come from the user.&#39;</span></div>
-<div class="tsd-comment tsd-typography"><p>The description of <a href="_signalwire_sdk.VOUCHED_PARAMETER.html" class="tsd-kind-variable">VOUCHED_PARAMETER</a>, as the model reads it.</p>
+<div class="tsd-signature"><span class="tsd-kind-variable">VOUCHED_DESCRIPTION</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;True only if the user gave these details themselves in this call.&quot;</span><span class="tsd-signature-symbol"> = &#39;True only if the user gave these details themselves in this call.&#39;</span></div>
+<div class="tsd-comment tsd-typography"><p>The description of <a href="_signalwire_sdk.VOUCHED_PARAMETER.html" class="tsd-kind-variable">VOUCHED_PARAMETER</a>, as the model reads it. Not
+&quot;every other argument&quot;: a tool's arguments often hold ids the model looked
+up (an order's, a payment method's), and a model asked to vouch for those
+answers false, honestly, and is refused until it stops trying.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/SwaigFunction.ts#L124">src/SwaigFunction.ts:124</a></li></ul></aside></div>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L129">src/SwaigFunction.ts:129</a></li></ul></aside></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
