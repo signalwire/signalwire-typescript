@@ -129,7 +129,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">SwaigFunctionOptions</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#description">description</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#errormessage">errorMessage</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#extrafields">extraFields</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#fillers">fillers</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#gatefillers">gateFillers</a><span class="tsd-signature-symbol">?:</span> <a href="../types/_signalwire_sdk.FillerPhrases.html" class="tsd-signature-type tsd-kind-type-alias">FillerPhrases</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#gates">gates</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> (<span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <a href="../classes/_signalwire_sdk.SemanticGate.html" class="tsd-signature-type tsd-kind-class">SemanticGate</a>)<span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#handler">handler</a><span class="tsd-signature-symbol">:</span> <a href="../types/_signalwire_sdk.SwaigHandler.html" class="tsd-signature-type tsd-kind-type-alias">SwaigHandler</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#istypedhandler">isTypedHandler</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#middleware">middleware</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <a href="../types/_signalwire_sdk.ToolMiddleware.html" class="tsd-signature-type tsd-kind-type-alias">ToolMiddleware</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#name">name</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#needsconversation">needsConversation</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#nullableoptional">nullableOptional</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#onerror">onError</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">SwaigErrorHandler</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#parameters">parameters</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#required">required</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#secure">secure</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#vouched">vouched</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#waitfile">waitFile</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#waitfileloops">waitFileLoops</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#webhookurl">webhookUrl</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L217">src/SwaigFunction.ts:217</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L217">src/SwaigFunction.ts:217</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -167,7 +167,7 @@
 <div class="tsd-comment tsd-typography"><p>Human-readable description of what the tool does, shown to the AI.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L223">src/SwaigFunction.ts:223</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L223">src/SwaigFunction.ts:223</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="errormessage"><code class="tsd-tag">Optional</code><span>error<wbr/>Message</span><a href="#errormessage" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">errorMessage</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
@@ -178,7 +178,7 @@ effect is unknown, with a tool prompt not to tell the caller it worked or
 that it didn't.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L305">src/SwaigFunction.ts:305</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L305">src/SwaigFunction.ts:305</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="extrafields"><code class="tsd-tag">Optional</code><span>extra<wbr/>Fields</span><a href="#extrafields" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">extraFields</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></div>
@@ -196,7 +196,7 @@ and merged identically in <code>toSwaig()</code> — the wire format is identica
 
 </div></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L289">src/SwaigFunction.ts:289</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L289">src/SwaigFunction.ts:289</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="fillers"><code class="tsd-tag">Optional</code><span>fillers</span><a href="#fillers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">fillers</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></div>
@@ -207,7 +207,7 @@ one at a time while the call waits; the type predates wait scripts, so one needs
 accepts it). <a href="#gatefillers" class="tsd-kind-property">gateFillers</a> is typed for both.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L247">src/SwaigFunction.ts:247</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L247">src/SwaigFunction.ts:247</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="gatefillers"><code class="tsd-tag">Optional</code><span>gate<wbr/>Fillers</span><a href="#gatefillers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">gateFillers</span><span class="tsd-signature-symbol">?:</span> <a href="../types/_signalwire_sdk.FillerPhrases.html" class="tsd-signature-type tsd-kind-type-alias">FillerPhrases</a></div>
@@ -215,7 +215,7 @@ accepts it). <a href="#gatefillers" class="tsd-kind-property">gateFillers</a> is
 <a href="#fillers" class="tsd-kind-property">fillers</a>. Only with <a href="#gates" class="tsd-kind-property">gates</a>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L266">src/SwaigFunction.ts:266</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L266">src/SwaigFunction.ts:266</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="gates"><code class="tsd-tag">Optional</code><span>gates</span><a href="#gates" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">gates</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> (<span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <a href="../classes/_signalwire_sdk.SemanticGate.html" class="tsd-signature-type tsd-kind-class">SemanticGate</a>)<span class="tsd-signature-symbol">[]</span></div>
@@ -228,21 +228,21 @@ defined. A platform release without semantic gates runs the function
 ungated.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L261">src/SwaigFunction.ts:261</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L261">src/SwaigFunction.ts:261</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="handler"><span>handler</span><a href="#handler" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">handler</span><span class="tsd-signature-symbol">:</span> <a href="../types/_signalwire_sdk.SwaigHandler.html" class="tsd-signature-type tsd-kind-type-alias">SwaigHandler</a></div>
 <div class="tsd-comment tsd-typography"><p>The handler function called when the tool is invoked.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L221">src/SwaigFunction.ts:221</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L221">src/SwaigFunction.ts:221</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="istypedhandler"><code class="tsd-tag">Optional</code><span>is<wbr/>Typed<wbr/>Handler</span><a href="#istypedhandler" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">isTypedHandler</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
 <div class="tsd-comment tsd-typography"><p>Whether this tool uses a typed handler with named parameters.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L291">src/SwaigFunction.ts:291</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L291">src/SwaigFunction.ts:291</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="middleware"><code class="tsd-tag">Optional</code><span>middleware</span><a href="#middleware" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">middleware</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <a href="../types/_signalwire_sdk.ToolMiddleware.html" class="tsd-signature-type tsd-kind-type-alias">ToolMiddleware</a><span class="tsd-signature-symbol">[]</span></div>
@@ -250,14 +250,14 @@ ungated.</p>
 service's (<a href="../classes/_signalwire_sdk.SWMLService.html#addtoolmiddleware" class="tsd-kind-method">SWMLService.addToolMiddleware</a>).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L334">src/SwaigFunction.ts:334</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L334">src/SwaigFunction.ts:334</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="name"><span>name</span><a href="#name" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">name</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Unique name used to register and invoke this tool.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L219">src/SwaigFunction.ts:219</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L219">src/SwaigFunction.ts:219</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="needsconversation"><code class="tsd-tag">Optional</code><span>needs<wbr/>Conversation</span><a href="#needsconversation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">needsConversation</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
@@ -267,7 +267,7 @@ rendered, so every tool request carries the call log, unless that param
 was set to <code>false</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L329">src/SwaigFunction.ts:329</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L329">src/SwaigFunction.ts:329</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="nullableoptional"><code class="tsd-tag">Optional</code><span>nullable<wbr/>Optional</span><a href="#nullableoptional" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">nullableOptional</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
@@ -278,7 +278,7 @@ given. Left out, it follows the agent's
 <code>setNullableOptionalParameters()</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L322">src/SwaigFunction.ts:322</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L322">src/SwaigFunction.ts:322</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="onerror"><code class="tsd-tag">Optional</code><span>on<wbr/>Error</span><a href="#onerror" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">onError</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">SwaigErrorHandler</span></div>
@@ -287,21 +287,21 @@ default error response is produced. See <code>SwaigErrorHandler</code>. A
 <a href="../classes/_signalwire_sdk.ToolRefusal.html" class="tsd-kind-class">ToolRefusal</a> doesn't reach it.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L297">src/SwaigFunction.ts:297</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L297">src/SwaigFunction.ts:297</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="parameters"><code class="tsd-tag">Optional</code><span>parameters</span><a href="#parameters" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">parameters</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></div>
 <div class="tsd-comment tsd-typography"><p>JSON Schema properties describing the tool's parameters.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L225">src/SwaigFunction.ts:225</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L225">src/SwaigFunction.ts:225</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="required"><code class="tsd-tag">Optional</code><span>required</span><a href="#required" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">required</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>List of required parameter names.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L270">src/SwaigFunction.ts:270</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L270">src/SwaigFunction.ts:270</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="secure"><code class="tsd-tag">Optional</code><span>secure</span><a href="#secure" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">secure</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
@@ -316,7 +316,7 @@ user-facing entry point in the reference (<code>ToolMixin.define_tool</code>,
 <code>secure=True</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L239">src/SwaigFunction.ts:239</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L239">src/SwaigFunction.ts:239</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="vouched"><code class="tsd-tag">Optional</code><span>vouched</span><a href="#vouched" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">vouched</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
@@ -328,28 +328,28 @@ with the tool prompt &quot;Get the answer from the user before using this
 tool.&quot; The handler never sees the argument.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L314">src/SwaigFunction.ts:314</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L314">src/SwaigFunction.ts:314</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="waitfile"><code class="tsd-tag">Optional</code><span>wait<wbr/>File</span><a href="#waitfile" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">waitFile</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Audio file URL to play while waiting for the tool to complete.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L249">src/SwaigFunction.ts:249</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L249">src/SwaigFunction.ts:249</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="waitfileloops"><code class="tsd-tag">Optional</code><span>wait<wbr/>File<wbr/>Loops</span><a href="#waitfileloops" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">waitFileLoops</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>Number of times to loop the wait file.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L251">src/SwaigFunction.ts:251</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L251">src/SwaigFunction.ts:251</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="webhookurl"><code class="tsd-tag">Optional</code><span>webhook<wbr/>Url</span><a href="#webhookurl" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">webhookUrl</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>External webhook URL; makes this an externally-hosted tool.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7b4274b6f130d58d126d9ade01acd3c840be72ad/src/SwaigFunction.ts#L268">src/SwaigFunction.ts:268</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/SwaigFunction.ts#L268">src/SwaigFunction.ts:268</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
