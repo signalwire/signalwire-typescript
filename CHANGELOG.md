@@ -12,6 +12,9 @@ Parity with signalwire-python 3.12.2.
 - `Call.ring(extra?)` sends 180 Ringing on an inbound call without answering
   it (`calling.ring`). Like answering, ringing takes control of the call, so
   it can't be passed afterwards.
+- `SwaigRequest` types `tool_call_id`, the id of the model's tool call, so
+  a webhook can tell a resend from the model calling again (porting-sdk's
+  SWAIG specs).
 
 ### Fixed
 
