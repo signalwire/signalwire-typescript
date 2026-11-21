@@ -110,8 +110,13 @@ export interface LanguageConfig {
   name: string;
   /** BCP-47 language code (e.g. "en-US"). */
   code: string;
-  /** Voice identifier to use for this language. */
-  voice?: string;
+  /**
+   * The language's voice: a name, `engine.voice:model` (split into voice,
+   * engine and model), or a list of up to 8 in that form, the first speaking and
+   * the rest its fallbacks, tried in order when it fails. A list is sent as it
+   * is, so it takes no `engine` or `model`.
+   */
+  voice?: string | readonly string[];
   /** TTS engine identifier. */
   engine?: string;
   /** Explicit TTS model identifier (e.g. "mistv2", "eleven_turbo_v2_5"). */

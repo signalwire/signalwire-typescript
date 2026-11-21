@@ -3,10 +3,10 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased (signalwire-python operations)
+## Unreleased (signalwire-python 3.13.0)
 
-Parity with signalwire-python's `signalwire.operations` (feat/operations,
-not yet released there), TypeScript first.
+Parity with signalwire-python 3.13.0: `signalwire.operations`, its task
+packs and two prefabs built on them, and fallback voices.
 
 ### Added
 
@@ -48,6 +48,17 @@ not yet released there), TypeScript first.
   request.
 - `new CallSimulator(agent, { requestFields })` adds fields such as
   `caller_id_num` to every tool request, as the platform sends them.
+- Fallback voices: a voice can be a list of up to 8 in the
+  `engine.voice:model` form, the first speaking and the rest tried in order
+  when it fails, in `addLanguage()`, `FunctionResult.changeVoice()` and
+  `setMultilingual()`'s languages. `setDefaultVoice()` sets the SWML
+  variable `default_voice` before the AI verb, for every voice the agent
+  leaves out, by language. `CallingErrorEvent` types a voice failure's
+  fields: the voice that failed and why, the one that took over
+  (`fallbackIndex`, `fallbackSource`), and `fatal`.
+- Durations: `setEndOfSpeechTimeout()`, `setSpeechEventTimeout()` and
+  `hold()`'s timeout take strings such as `'1.5s'`, `'500ms'` or `'2m'`, as
+  the AI params counted in milliseconds and `hard_stop_time` do.
 
 TypeScript has no keyword arguments or decorators: options are objects,
 an operation registers with `agent.operation(Class, opts)`, and a lookup is
@@ -64,6 +75,8 @@ an operation registers with `agent.operation(Class, opts)`, and a lookup is
 
 ### Changed
 
+- `addLanguage()` splits a voice in the `engine.voice:model` form into
+  `voice`, `engine` and `model`, as the reference does; it was sent whole.
 - A vouched tool's `data_supplied_by_user` argument now asks the model
   whether the user gave the details the call needs themselves. It asked
   whether every other argument was what the user said, and a model

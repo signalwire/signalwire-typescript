@@ -518,13 +518,13 @@ Put the call on hold. During a hold, speech detection is paused and the agent do
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
-hold(prompt?: string | number, timeout?: number, step?: string, timeoutStep?: string): this
+hold(prompt?: string | number, timeout?: number | string, step?: string, timeoutStep?: string): this
 ```
 
 | Parameter     | Type               | Default | Description                                                 |
 |---------------|--------------------|---------|-------------------------------------------------------------|
 | `prompt`      | `string \| number` | none    | Instruction for the model to act on before the hold. A number here is read as `timeout`. |
-| `timeout`     | `number`           | `300`   | Hold duration in seconds, clamped to 0 through 900.         |
+| `timeout`     | `number \| string` | `300`   | Hold duration in seconds, clamped to 0 through 900, or a duration such as `'2m'` or `'1:30'`, which the platform reads and limits itself. A blank string throws. |
 | `step`        | `string`           | none    | Step to move to when the call is taken off hold.            |
 | `timeoutStep` | `string`           | none    | Step to move to when the hold times out.                    |
 
@@ -711,20 +711,20 @@ const result = new FunctionResult('The music is stopped.')
 
 ### changeVoice
 
-Change the AI's voice for the rest of the call (`change_voice`). The voice takes the `engine.voice:model` form a language's voice takes, and may be on another engine. It replaces the current language's voice from the next batch of speech on, never mid-utterance, and stays for that language for the rest of the call. A voice that won't open falls back to the fallback voice.
+Change the AI's voice for the rest of the call (`change_voice`). The voice takes the `engine.voice:model` form a language's voice takes, and may be on another engine; or it's a list of up to 8, the first speaking and the rest its fallbacks. It replaces the current language's voice from the next batch of speech on, never mid-utterance, and stays for that language for the rest of the call. A voice that won't open falls back to the fallback voice.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
-changeVoice(voice: string): this
+changeVoice(voice: string | string[]): this
 ```
 
 | Parameter | Type     | Description                                            |
 |-----------|----------|--------------------------------------------------------|
-| `voice`   | `string` | The voice as `engine.voice:model`, such as `elevenlabs.rachel`. |
+| `voice`   | `string \| string[]` | The voice as `engine.voice:model`, such as `elevenlabs.rachel`, or a list of up to 8, the first speaking. |
 
 **Returns:** `this` for chaining.
 
-**Throws:** `Error` when `voice` is empty or only whitespace. The platform would ignore it.
+**Throws:** `Error` when `voice` is empty or only whitespace, or names more than 8. The platform would ignore it.
 
 **Example:**
 
@@ -790,12 +790,12 @@ Set how many milliseconds of silence after detected speech finalize speech recog
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
-setEndOfSpeechTimeout(milliseconds: number): this
+setEndOfSpeechTimeout(milliseconds: number | string): this
 ```
 
 | Parameter      | Type     | Description                       |
 |----------------|----------|-----------------------------------|
-| `milliseconds` | `number` | Timeout in milliseconds.          |
+| `milliseconds` | `number \| string` | Timeout in milliseconds, or a duration such as `'1.5s'`. |
 
 **Returns:** `this` for chaining.
 
@@ -812,12 +812,12 @@ Set how many milliseconds after the last speech detection event recognition is f
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
-setSpeechEventTimeout(milliseconds: number): this
+setSpeechEventTimeout(milliseconds: number | string): this
 ```
 
 | Parameter      | Type     | Description                       |
 |----------------|----------|-----------------------------------|
-| `milliseconds` | `number` | Timeout in milliseconds.          |
+| `milliseconds` | `number \| string` | Timeout in milliseconds, or a duration such as `'1.5s'`. |
 
 **Returns:** `this` for chaining.
 
@@ -827,6 +827,8 @@ setSpeechEventTimeout(milliseconds: number): this
 const result = new FunctionResult('The event timeout is set.')
   .setSpeechEventTimeout(3000);
 ```
+
+Both take a duration as well as a number of milliseconds, such as `'1.5s'`, `'500ms'` or `'2m'`. So does every AI param counted in milliseconds (`attention_timeout`, `inactivity_timeout`, `end_of_speech_timeout` and the rest), while `hard_stop_time` and `hold()`'s timeout, counted in seconds, take `'20m'`, `'1h30m'`, `'1.5m'` or `'1:30'`. A bare number keeps its old meaning.
 
 ## Data Management
 

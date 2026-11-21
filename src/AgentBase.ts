@@ -76,6 +76,7 @@ import type {
   DynamicConfigCallback,
 } from './types.js';
 import type { SwmlRequestData } from './PlatformContracts.js';
+import { _voiceChain, _voicesByLanguage, type VoicesByLanguage } from './Voices.js';
 import type { SwaigRequest, PostPrompt, PostPromptData } from './SwaigContracts.js';
 
 /**
@@ -360,6 +361,8 @@ export class AgentBase extends SWMLService {
   private hints: string[] = [];
   private languages: LanguageConfig[] = [];
   private multilingual: Record<string, unknown> = {};
+  /** The SWML variable default_voice, set before the ai verb; null when unset. */
+  private defaultVoice: string | string[] | Record<string, string | string[]> | null = null;
   private pronounce: PronunciationRule[] = [];
   private params: Record<string, unknown> = {};
   private globalData: Record<string, unknown> = {};
@@ -1063,9 +1066,34 @@ export class AgentBase extends SWMLService {
       name: config.name,
       code: config.code,
     };
-    if (config.voice) lang['voice'] = config.voice;
-    if (config.engine) lang['engine'] = config.engine;
-    if (config.model) lang['model'] = config.model;
+    // A list of voices, explicit engine/model, or a combined "engine.voice:model"
+    const voice = config.voice === undefined ? undefined : _voiceChain(config.voice);
+    if (Array.isArray(voice)) {
+      if (config.engine || config.model) {
+        throw new Error(
+          'a list of voices names each as engine.voice:model; engine and model are for one voice',
+        );
+      }
+      lang['voice'] = voice;
+    } else if (config.engine || config.model) {
+      if (voice) lang['voice'] = voice;
+      if (config.engine) lang['engine'] = config.engine;
+      if (config.model) lang['model'] = config.model;
+    } else if (typeof voice === 'string' && voice.includes('.') && voice.includes(':')) {
+      const colon = voice.indexOf(':');
+      const engineVoice = voice.slice(0, colon);
+      const dot = engineVoice.indexOf('.');
+      if (dot >= 0) {
+        lang['voice'] = engineVoice.slice(dot + 1);
+        lang['engine'] = engineVoice.slice(0, dot);
+        lang['model'] = voice.slice(colon + 1);
+      } else {
+        // As the reference: a string it can't split is sent as it is
+        lang['voice'] = voice;
+      }
+    } else if (voice) {
+      lang['voice'] = voice;
+    }
     // Fillers as the reference emits them: speech_fillers and function_fillers
     // when both are given, and one given alone as the older `fillers` list.
     // The object forms this SDK once took are flattened into lists.
@@ -1107,6 +1135,27 @@ export class AgentBase extends SWMLService {
   setLanguages(languages: LanguageConfig[]): this {
     this.languages = [];
     for (const l of languages) this.addLanguage(l);
+    return this;
+  }
+
+  /**
+   * Set the voice for every voice the agent leaves out: its own, a language's
+   * with no voice, a multilingual language's with no voice. The SWML variable
+   * `default_voice` is set just before the ai verb; a voice the agent sets
+   * itself wins.
+   *
+   * @param voice - One voice (`"engine.voice:model"`), a list of up to 8 (the
+   *   first speaks, the rest are its fallbacks), or an object of language codes
+   *   to either, with a `default` entry for the rest:
+   *   `{ es: 'elevenlabs.lucia', default: 'rime.spore' }`. A language matches by
+   *   its exact code, then its base language (`es` for `es-MX`), then `default`.
+   *   With no multilingual languages of its own, the object's languages become
+   *   them. Null clears it.
+   * @returns This agent instance for chaining.
+   * @throws {Error} For an empty voice, more than 8, or a language that isn't a code.
+   */
+  setDefaultVoice(voice: VoicesByLanguage | null): this {
+    this.defaultVoice = voice === null ? null : _voicesByLanguage(voice);
     return this;
   }
 
@@ -3522,6 +3571,14 @@ export class AgentBase extends SWMLService {
     // engine/model/fillers, debug_webhook_url). It is built from typed builder
     // inputs, not raw user config, so skip the closed-schema check here; the
     // strict-render contract governs direct addVerb input, not trusted assembly.
+    // The default voice, a SWML variable the ai verb reads, set just before it
+    if (this.defaultVoice !== null) {
+      this.swmlBuilder.addVerb(
+        'set',
+        { default_voice: this.defaultVoice },
+        { skipValidation: true },
+      );
+    }
     this.swmlBuilder.addVerb('ai', aiConfig, { skipValidation: true });
 
     // ── PHASE 5: Post-AI verbs ──
@@ -3554,6 +3611,7 @@ export class AgentBase extends SWMLService {
     copy.hints = clone(this.hints);
     copy.languages = clone(this.languages);
     copy.multilingual = clone(this.multilingual);
+    copy.defaultVoice = clone(this.defaultVoice);
     copy.pronounce = clone(this.pronounce);
     copy.params = clone(this.params);
     copy.globalData = clone(this.globalData);

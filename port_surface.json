@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ ae6c33500ade77ac3ab4a74efb214cb15215521a",
+  "generated_from": "signalwire-typescript @ 414be64fec2a6aa0d1a52222e05751f1f69f79e9",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -669,6 +669,7 @@
           "enable_debug_events",
           "enable_mcp_server",
           "get_language_params",
+          "set_default_voice",
           "set_function_includes",
           "set_global_data",
           "set_internal_fillers",
@@ -2446,8 +2447,25 @@
         ],
         "CallingErrorEvent": [
           "code",
+          "engine",
+          "error",
+          "error_reason",
+          "expected_ms",
+          "fallback_engine",
+          "fallback_index",
+          "fallback_language_code",
+          "fallback_model",
+          "fallback_source",
+          "fallback_voice",
+          "fatal",
           "from_payload",
-          "message"
+          "language_code",
+          "message",
+          "model",
+          "recovery",
+          "stall_ms",
+          "transport",
+          "voice"
         ],
         "MessageReceiveEvent": [
           "body",

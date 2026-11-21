@@ -120,8 +120,8 @@ export class PersonalAssistantAgent extends ServiceAgent {
   private readonly callerId: string | null;
   private readonly ring: number;
   private readonly answer: number;
-  private readonly voice: string | null;
-  private readonly language: string | null;
+  private readonly whisperVoice: string | null;
+  private readonly whisperLanguage: string | null;
   private readonly key: string;
   private readonly messageTool: string | null;
   private readonly appointmentTool: string | null;
@@ -163,8 +163,8 @@ export class PersonalAssistantAgent extends ServiceAgent {
     this.callerId = callerId ?? null;
     this.ring = ringSeconds ?? 20;
     this.answer = answerSeconds ?? 15;
-    this.voice = whisperVoice ?? null;
-    this.language = whisperLanguage ?? null;
+    this.whisperVoice = whisperVoice ?? null;
+    this.whisperLanguage = whisperLanguage ?? null;
     const key = acceptKey ?? '1';
     if (!(key.length === 1 && '0123456789*#'.includes(key))) {
       throw new Error(`acceptKey must be one key of the keypad, not '${key}'`);
@@ -243,8 +243,8 @@ export class PersonalAssistantAgent extends ServiceAgent {
       max_digits: 1,
       initial_timeout: this.answer,
     };
-    if (this.voice) prompt['say_voice'] = this.voice;
-    if (this.language) prompt['say_language'] = this.language;
+    if (this.whisperVoice) prompt['say_voice'] = this.whisperVoice;
+    if (this.whisperLanguage) prompt['say_language'] = this.whisperLanguage;
     const connect: Record<string, unknown> = {
       to: this.reach,
       timeout: this.ring,

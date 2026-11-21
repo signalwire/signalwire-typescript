@@ -5559,7 +5559,7 @@
                 },
                 {
                   "name": "voice",
-                  "type": "string",
+                  "type": "union<string,list<string>>",
                   "required": true
                 }
               ],
@@ -5744,7 +5744,7 @@
                 },
                 {
                   "name": "timeout",
-                  "type": "float",
+                  "type": "optional<union<float,string>>",
                   "required": false,
                   "default": 300
                 },
@@ -6061,7 +6061,7 @@
                 },
                 {
                   "name": "milliseconds",
-                  "type": "float",
+                  "type": "union<float,string>",
                   "required": true
                 }
               ],
@@ -6145,7 +6145,7 @@
                 },
                 {
                   "name": "milliseconds",
-                  "type": "float",
+                  "type": "union<float,string>",
                   "required": true
                 }
               ],
@@ -6802,6 +6802,20 @@
                 {
                   "name": "config",
                   "type": "dict<string,any>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_default_voice": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "voice",
+                  "type": "optional<union<string,list<string>,dict<string,any>>>",
                   "required": true
                 }
               ],
@@ -20760,6 +20774,108 @@
                   "type": "optional<string>",
                   "required": false,
                   "default": ""
+                },
+                {
+                  "name": "error",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "error_reason",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "fatal",
+                  "type": "optional<bool>",
+                  "required": false,
+                  "default": false
+                },
+                {
+                  "name": "engine",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "language_code",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "voice",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "model",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "fallback_engine",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "fallback_language_code",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "fallback_voice",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "fallback_model",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "fallback_index",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "fallback_source",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "stall_ms",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "expected_ms",
+                  "type": "optional<float>",
+                  "required": false,
+                  "default": null
+                },
+                {
+                  "name": "transport",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
+                },
+                {
+                  "name": "recovery",
+                  "type": "optional<string>",
+                  "required": false,
+                  "default": ""
                 }
               ],
               "returns": "void"
@@ -20772,6 +20888,105 @@
                 }
               ],
               "returns": "string"
+            },
+            "engine": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "error": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "error_reason": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "expected_ms": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
+            },
+            "fallback_engine": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "fallback_index": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
+            },
+            "fallback_language_code": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "fallback_model": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "fallback_source": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "fallback_voice": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "fatal": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "bool"
             },
             "from_payload": {
               "params": [
@@ -20787,7 +21002,61 @@
               ],
               "returns": "class:signalwire.relay.event.CallingErrorEvent"
             },
+            "language_code": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
             "message": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "model": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "recovery": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "stall_ms": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "float"
+            },
+            "transport": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "string"
+            },
+            "voice": {
               "params": [
                 {
                   "name": "self",
@@ -41827,11 +42096,63 @@
           "type": "optional<string>",
           "required": false
         },
+        "engine": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "error": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "error_reason": {
+          "type": "optional<string>",
+          "required": false
+        },
         "event_type": {
           "type": "string",
           "required": true
         },
+        "expected_ms": {
+          "type": "optional<float>",
+          "required": false
+        },
+        "fallback_engine": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "fallback_index": {
+          "type": "optional<float>",
+          "required": false
+        },
+        "fallback_language_code": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "fallback_model": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "fallback_source": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "fallback_voice": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "fatal": {
+          "type": "optional<bool>",
+          "required": false
+        },
+        "language_code": {
+          "type": "optional<string>",
+          "required": false
+        },
         "message": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "model": {
           "type": "optional<string>",
           "required": false
         },
@@ -41839,8 +42160,24 @@
           "type": "dict<string,any>",
           "required": true
         },
+        "recovery": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "stall_ms": {
+          "type": "optional<float>",
+          "required": false
+        },
         "timestamp": {
           "type": "optional<float>",
+          "required": false
+        },
+        "transport": {
+          "type": "optional<string>",
+          "required": false
+        },
+        "voice": {
+          "type": "optional<string>",
           "required": false
         }
       }

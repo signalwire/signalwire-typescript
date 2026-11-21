@@ -822,10 +822,39 @@ export class ConferenceEvent extends RelayEvent {
   }
 }
 
-/** `calling.error` — platform-emitted error against the calling namespace. */
+/**
+ * Event for calling.error.
+ *
+ * For an AI agent's voice, it says which voice failed (`engine`,
+ * `languageCode`, `voice`, `model`), why (`errorReason`:
+ * `voice_config_error`, `voice_runtime_error` or `tts_stream_stall`), and the
+ * voice that took over (the `fallback*` fields): `fallbackIndex` is its place
+ * in the chain, 0 the voice that was speaking and the chain's length the
+ * platform's last resort, and `fallbackSource` where it came from (`voice`,
+ * `fallback_voice` or `platform`). When no voice is left, `fatal` is true. A
+ * stall adds `stallMs`, `expectedMs`, `transport` and `recovery`. Every field is
+ * also in `params`, as sent.
+ */
 export class CallingErrorEvent extends RelayEvent {
   readonly code: string;
   readonly message: string;
+  readonly error: string;
+  readonly errorReason: string;
+  readonly fatal: boolean;
+  readonly engine: string;
+  readonly languageCode: string;
+  readonly voice: string;
+  readonly model: string;
+  readonly fallbackEngine: string;
+  readonly fallbackLanguageCode: string;
+  readonly fallbackVoice: string;
+  readonly fallbackModel: string;
+  readonly fallbackIndex: number | null;
+  readonly fallbackSource: string;
+  readonly stallMs: number | null;
+  readonly expectedMs: number | null;
+  readonly transport: string;
+  readonly recovery: string;
 
   constructor(
     eventType: string,
@@ -834,23 +863,92 @@ export class CallingErrorEvent extends RelayEvent {
     timestamp: number = 0,
     code: string = '',
     message: string = '',
+    error: string = '',
+    errorReason: string = '',
+    fatal: boolean = false,
+    engine: string = '',
+    languageCode: string = '',
+    voice: string = '',
+    model: string = '',
+    fallbackEngine: string = '',
+    fallbackLanguageCode: string = '',
+    fallbackVoice: string = '',
+    fallbackModel: string = '',
+    fallbackIndex: number | null = null,
+    fallbackSource: string = '',
+    stallMs: number | null = null,
+    expectedMs: number | null = null,
+    transport: string = '',
+    recovery: string = '',
   ) {
     super(eventType, params, callId, timestamp);
     this.code = code;
     this.message = message;
+    this.error = error;
+    this.errorReason = errorReason;
+    this.fatal = fatal;
+    this.engine = engine;
+    this.languageCode = languageCode;
+    this.voice = voice;
+    this.model = model;
+    this.fallbackEngine = fallbackEngine;
+    this.fallbackLanguageCode = fallbackLanguageCode;
+    this.fallbackVoice = fallbackVoice;
+    this.fallbackModel = fallbackModel;
+    this.fallbackIndex = fallbackIndex;
+    this.fallbackSource = fallbackSource;
+    this.stallMs = stallMs;
+    this.expectedMs = expectedMs;
+    this.transport = transport;
+    this.recovery = recovery;
   }
 
   static override fromPayload(payload: EventPayload): CallingErrorEvent {
     const b = baseFields(payload);
+    const p = b.params;
+    const text = (key: string): string => {
+      const value = p[key];
+      return value === null || value === undefined ? '' : String(value);
+    };
     return new CallingErrorEvent(
       b.eventType,
       b.params,
       b.callId,
       b.timestamp,
-      pick(b.params.code, ''),
-      pick(b.params.message, ''),
+      pick(p.code, ''),
+      pick(p.message, ''),
+      text('error'),
+      text('error_reason'),
+      p['fatal'] === true,
+      text('engine'),
+      text('language_code'),
+      text('voice'),
+      text('model'),
+      text('fallback_engine'),
+      text('fallback_language_code'),
+      text('fallback_voice'),
+      text('fallback_model'),
+      wholeNumber(p['fallback_index']),
+      text('fallback_source'),
+      wholeNumber(p['stall_ms']),
+      wholeNumber(p['expected_ms']),
+      text('transport'),
+      text('recovery'),
     );
   }
+}
+
+/**
+ * A whole number as the reference's `int()` reads one: an integer, a number cut
+ * to its whole part, or an integer string; anything else (a boolean, null,
+ * other text) is null.
+ */
+function wholeNumber(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? Math.trunc(value) : null;
+  if (typeof value === 'string' && /^\s*[+-]?\d+(_\d+)*\s*$/.test(value)) {
+    return Number(value.replace(/_/g, '').trim());
+  }
+  return null;
 }
 
 // ─── Messaging Events ────────────────────────────────────────────────

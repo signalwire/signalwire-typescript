@@ -292,6 +292,7 @@ const MIXIN_PROJECTIONS: Record<string, [string, string[]]> = {
       'set_language_params',
       'set_languages',
       'set_multilingual',
+      'set_default_voice',
       'set_native_functions',
       'set_param',
       'set_params',
