@@ -624,6 +624,15 @@ agent.addLanguage({
 });
 ```
 
+`setAgentVoice()` sets the agent's own voice, for a language with none of its own, and `setFallbackVoice()` the voices tried once a language's or the agent's have all failed, before the platform's own last resort. Each takes one voice or a list of up to 8, and `null` clears it.
+
+```typescript
+agent.setAgentVoice(['elevenlabs.rachel:eleven_turbo_v2_5', 'rime.spore']);
+agent.setFallbackVoice('gcloud.en-US-Neural2-C');
+```
+
+The platform takes `fallback_voice`, and a list as the agent's voice, from its release after 2026-11-21. A platform without it refuses the AI verb, and the call doesn't run, so check your platform has it before using either. One voice as a string in `setAgentVoice()` works everywhere.
+
 `setDefaultVoice()` gives a voice to every language that has none: one voice, a list, or an object of language codes to either, with a `default` entry for the rest. A language matches by its exact code, then its base language (`es` for `es-MX`), then `default`. With no multilingual languages of its own, the object's languages become them. A voice the agent gives a language itself wins.
 
 ```typescript

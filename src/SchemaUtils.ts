@@ -33,6 +33,16 @@ export interface ValidationResult {
  * `addVerb` threw a bare `Error` whose only content was a joined string, which meant
  * neither piece was recoverable without parsing the message text.
  */
+/**
+ * Top-level verb keys the platform reads that the published schema doesn't
+ * list yet, accepted by the shallow key check.
+ */
+export const PLATFORM_KEYS_AHEAD_OF_SCHEMA: Readonly<Record<string, readonly string[]>> = {
+  // The ai verb's own voice and its fallbacks, which the platform reads from
+  // the verb itself; the published schema doesn't list them yet
+  ai: ['voice', 'fallback_voice'],
+};
+
 export class SchemaValidationError extends Error {
   /** The verb whose config failed validation. */
   readonly verbName: string;
@@ -668,7 +678,8 @@ export class SchemaUtils {
 
     // Shallow strict check: reject unknown/misspelled TOP-LEVEL keys against the
     // ai verb's known property set (a no-op if the set isn't enumerable/closed).
-    const known = this.verbTopLevelPropertyNames('ai');
+    const closed = this.verbTopLevelPropertyNames('ai');
+    const known = closed && new Set([...closed, ...(PLATFORM_KEYS_AHEAD_OF_SCHEMA['ai'] ?? [])]);
     if (known) {
       const unknown = Object.keys(cfg).filter((k) => !known.has(k));
       if (unknown.length) {
