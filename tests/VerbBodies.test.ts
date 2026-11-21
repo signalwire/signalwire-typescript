@@ -100,6 +100,20 @@ describe("the builder's verb methods (#142)", () => {
     ]);
   });
 
+  it("type send_sms as one of the spec's SMS bodies (Python 3.14.0)", () => {
+    const s = service();
+    const sms = { to_number: '+15551234567', from_number: '+15557654321' };
+    s.getBuilder()
+      .send_sms({ ...sms, body: 'Hi' })
+      .send_sms({ ...sms, media: ['https://example.com/a.png'] });
+    // @ts-expect-error -- a body or media is required
+    expect(() => s.getBuilder().send_sms({ ...sms })).toThrow();
+    expect(sections(s)['main']).toEqual([
+      { send_sms: { ...sms, body: 'Hi' } },
+      { send_sms: { ...sms, media: ['https://example.com/a.png'] } },
+    ]);
+  });
+
   it('take SIP credentials for answer and a status URL for play (#144, #145)', () => {
     const s = service();
     s.getBuilder()

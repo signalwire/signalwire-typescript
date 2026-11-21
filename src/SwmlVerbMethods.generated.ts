@@ -226,7 +226,26 @@ declare module './SwmlBuilder.js' {
       status_url?: string;
     }): this;
     /** Send an outbound SMS or MMS message to a PSTN phone number. */
-    send_sms(config: Record<string, unknown>): this;
+    send_sms(
+      config:
+        | {
+            /** Phone number to send SMS message to in E.164 format. */
+            to_number: string; /** Phone number the SMS message will be sent from in E.164 format. */
+            from_number: string; /** Region of the world to originate the message from. Chosen based on account preferences or device location if not specified. */
+            region?: string; /** Array of tags to associate with the message to facilitate log searches. */
+            tags?: string[]; /** Required if `media` is not present. The body of the SMS message. */
+            body: string;
+          }
+        | {
+            /** Phone number to send SMS message to in E.164 format. */
+            to_number: string; /** Phone number the SMS message will be sent from in E.164 format. */
+            from_number: string; /** Region of the world to originate the message from. Chosen based on account preferences or device location if not specified. */
+            region?: string; /** Array of tags to associate with the message to facilitate log searches. */
+            tags?: string[]; /** Required if `body` is not present. Array of media URLs to include in the message. */
+            media: string[]; /** Optional if `media` is present. The body of the SMS message. */
+            body?: string;
+          },
+    ): this;
     /** Set script variables to the specified values. Accepts an object mapping variable names to values. Variables set using set can be removed using unset. */
     set(config?: Record<string, unknown>): this;
     /** Pause execution for a specified duration. */

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 414be64fec2a6aa0d1a52222e05751f1f69f79e9",
+  "generated_from": "signalwire-typescript @ 7b4274b6f130d58d126d9ade01acd3c840be72ad",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -443,6 +443,7 @@
           "key",
           "prompt",
           "question",
+          "say",
           "to_dict",
           "to_json",
           "type"

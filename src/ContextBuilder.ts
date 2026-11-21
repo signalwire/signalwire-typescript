@@ -151,6 +151,8 @@ export interface GatherInfoDict {
   completion_action?: string;
   /** Present (true) when every question in this gather defaults to isolated. */
   isolated?: boolean;
+  /** Present (true) when the platform says each question itself. */
+  say_questions?: boolean;
 }
 
 /** Serialized form of a {@link Step} (`Step.toDict()`). */
@@ -251,10 +253,17 @@ export class GatherQuestion {
    * question is asked, it replaces the step's expected answer.
    */
   expectedAnswer?: ExpectedAnswer;
+  /**
+   * Overrides the gather's `sayQuestions` for this one question. Tri-state:
+   * `true` has the platform say it, `false` has the model ask it, `undefined`
+   * (the default) follows the gather. `false` is emitted, so it can override
+   * a gather that says its questions.
+   */
+  say?: boolean;
 
   /**
    * Creates a new GatherQuestion.
-   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions/isolated/expectedAnswer.
+   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions/isolated/expectedAnswer/say.
    * @throws {Error} For an `expectedAnswer` the platform would ignore.
    */
   constructor(opts: {
@@ -266,6 +275,7 @@ export class GatherQuestion {
     functions?: string[];
     isolated?: boolean;
     expectedAnswer?: ExpectedAnswer;
+    say?: boolean;
   }) {
     this.key = opts.key;
     this.question = opts.question;
@@ -279,6 +289,8 @@ export class GatherQuestion {
     if (opts.expectedAnswer !== undefined) {
       this.expectedAnswer = checkExpectedAnswer(opts.expectedAnswer);
     }
+    // Tri-state: undefined means "as the gather's sayQuestions says"
+    this.say = opts.say;
   }
 
   /**
@@ -294,6 +306,8 @@ export class GatherQuestion {
     // Emitted even when false, so it can override an isolated gather.
     if (this.isolated !== undefined && this.isolated !== null) d['isolated'] = this.isolated;
     if (this.expectedAnswer !== undefined) d['expected_answer'] = { ...this.expectedAnswer };
+    // Emitted even when false, so it can override a gather that says its questions
+    if (this.say !== undefined && this.say !== null) d['say'] = this.say;
     return d;
   }
 
@@ -315,26 +329,29 @@ export class GatherInfo {
   private completionAction?: string;
   private prompt?: string;
   private isolated: boolean;
+  private sayQuestions: boolean;
 
   /**
    * Creates a new GatherInfo.
-   * @param opts - Optional output key, completion action, prompt, and isolated-default configuration.
+   * @param opts - Optional output key, completion action, prompt, isolated-default and sayQuestions configuration.
    */
   constructor(opts?: {
     outputKey?: string;
     completionAction?: string;
     prompt?: string;
     isolated?: boolean;
+    sayQuestions?: boolean;
   }) {
     this.outputKey = opts?.outputKey;
     this.completionAction = opts?.completionAction;
     this.prompt = opts?.prompt;
     this.isolated = opts?.isolated ?? false;
+    this.sayQuestions = opts?.sayQuestions ?? false;
   }
 
   /**
    * Adds a question to this gather operation.
-   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions/isolated.
+   * @param opts - Question configuration including key, question text, and optional type/confirm/prompt/functions/isolated/expectedAnswer/say.
    * @returns This GatherInfo for chaining.
    */
   addQuestion(opts: {
@@ -346,6 +363,7 @@ export class GatherInfo {
     functions?: string[];
     isolated?: boolean;
     expectedAnswer?: ExpectedAnswer;
+    say?: boolean;
   }): this {
     this.questions.push(new GatherQuestion(opts));
     return this;
@@ -378,6 +396,7 @@ export class GatherInfo {
     if (this.outputKey) d.output_key = this.outputKey;
     if (this.completionAction) d.completion_action = this.completionAction;
     if (this.isolated) d.isolated = true;
+    if (this.sayQuestions) d.say_questions = true;
     return d;
   }
 
@@ -597,7 +616,15 @@ export class Step {
    * rather than derive the answer from an earlier one. A question's own
    * `isolated` overrides this. The hidden turns remain in the call log.
    *
-   * @param opts - Optional output key, completion action, prompt, and isolated-default configuration.
+   * `sayQuestions` true has the platform say each question's text itself,
+   * word for word (its `${...}` filled in), when the gather reaches it; the
+   * model doesn't ask it, and is told the caller was just asked it. The
+   * answer still goes through `gather_submit`, the model checking it and
+   * doing any confirm read-back, and it asks again in its own words if the
+   * answer is unclear or the caller stays silent. A question's own `say`
+   * overrides this. A realtime model asks every question itself.
+   *
+   * @param opts - Optional output key, completion action, prompt, isolated-default and sayQuestions configuration.
    * @returns This step for chaining.
    */
   setGatherInfo(opts?: {
@@ -605,6 +632,7 @@ export class Step {
     completionAction?: string;
     prompt?: string;
     isolated?: boolean;
+    sayQuestions?: boolean;
   }): this {
     this.gatherInfo = new GatherInfo(opts);
     return this;
@@ -634,6 +662,8 @@ export class Step {
    *   type/confirm/prompt/functions/isolated. `isolated` overrides the gather's default
    *   for this one question: true hides the sibling Q&A while it is asked, false keeps
    *   it visible even in an isolated gather, omitted inherits the gather's setting.
+   *   `say` true has the platform say this question itself, false has the model ask
+   *   it, overriding the gather's `sayQuestions`; omitted follows the gather.
    * @returns This step for chaining.
    */
   addGatherQuestion(opts: {
@@ -651,6 +681,11 @@ export class Step {
      * replaces the step's.
      */
     expectedAnswer?: ExpectedAnswer;
+    /**
+     * True for the platform to say this question itself, false for the model
+     * to ask it, overriding the gather's `sayQuestions`; omitted follows the gather.
+     */
+    say?: boolean;
   }): this {
     if (!this.gatherInfo) throw new Error('Must call setGatherInfo() before addGatherQuestion()');
     this.gatherInfo.addQuestion(opts);
