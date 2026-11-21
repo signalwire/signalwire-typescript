@@ -7,6 +7,8 @@
  * @internal Not part of the package surface; money is exchanged as strings.
  */
 
+import { _asciiDigits as asciiDigits, _pyStrip as pyStrip } from '../PyCompat.js';
+
 /** The significant digits `Decimal`'s default context keeps in a result. */
 const PRECISION = 28;
 /** The largest adjusted exponent of a result in the default context. */
@@ -15,23 +17,6 @@ const EMAX = 999999;
 const ETINY = -999999 - PRECISION + 1;
 /** The largest exponent a full-precision result can have: Emax - precision + 1. */
 const ETOP = EMAX - PRECISION + 1;
-
-const DIGIT = /\p{Nd}/u;
-
-/**
- * Text with every Unicode decimal digit written as an ASCII one, as
- * `Decimal()` reads them. Decimal digits come in runs of ten, 0 to 9, so a
- * digit's value is its distance from the start of its run.
- */
-function asciiDigits(text: string): string {
-  return text.replace(/\p{Nd}/gu, (c) => {
-    const cp = c.codePointAt(0)!;
-    if (cp <= 0x39) return c;
-    let start = cp;
-    while (DIGIT.test(String.fromCodePoint(start - 1))) start--;
-    return String((cp - start) % 10);
-  });
-}
 
 /** An exact decimal: `coefficient * 10 ** exponent`. */
 export class _Dec {
@@ -55,7 +40,7 @@ export class _Dec {
    */
   static parse(text: string): _Dec | null {
     const m = /^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(
-      asciiDigits(text.trim()).replace(/_/g, ''),
+      asciiDigits(pyStrip(text)).replace(/_/g, ''),
     );
     if (!m) return null;
     const whole = m[2] ?? '';

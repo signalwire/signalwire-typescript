@@ -5,6 +5,8 @@
  * @internal
  */
 
+import { _pyRepr as pyRepr, _pyStrip as pyStrip } from './PyCompat.js';
+
 /** @internal The most voices a voice field takes: the one that speaks and its fallbacks. */
 export const _MAX_VOICES = 8;
 
@@ -21,7 +23,7 @@ export type VoicesByLanguage = VoiceChain | Readonly<Record<string, VoiceChain>>
  */
 export function _voiceChain(value: unknown, what = 'voice'): string | string[] {
   if (typeof value === 'string') {
-    if (!value.trim()) throw new Error(`${what} must be a non-empty string, or a list of them`);
+    if (!pyStrip(value)) throw new Error(`${what} must be a non-empty string, or a list of them`);
     return value;
   }
   if (Array.isArray(value)) {
@@ -34,10 +36,8 @@ export function _voiceChain(value: unknown, what = 'voice'): string | string[] {
       );
     }
     for (const v of voices) {
-      if (typeof v !== 'string' || !v.trim()) {
-        throw new Error(
-          `each of ${what}'s voices must be a non-empty string, got ${JSON.stringify(v)}`,
-        );
+      if (typeof v !== 'string' || !pyStrip(v)) {
+        throw new Error(`each of ${what}'s voices must be a non-empty string, got ${pyRepr(v)}`);
       }
     }
     return voices as string[];
@@ -59,12 +59,18 @@ export function _voicesByLanguage(
     if (entries.length === 0) throw new Error(`${what} by language needs at least one language`);
     const out: Record<string, string | string[]> = {};
     for (const [code, voices] of entries) {
-      if (!code.trim()) {
+      if (!pyStrip(code)) {
         throw new Error(
-          `${what}'s languages must be codes such as 'es-MX' or 'default', got ${JSON.stringify(code)}`,
+          `${what}'s languages must be codes such as 'es-MX' or 'default', got ${pyRepr(code)}`,
         );
       }
-      out[code] = _voiceChain(voices, `${what}[${JSON.stringify(code)}]`);
+      // Defined, not assigned: a `__proto__` code is a key like any other
+      Object.defineProperty(out, code, {
+        value: _voiceChain(voices, `${what}[${pyRepr(code)}]`),
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
     }
     return out;
   }

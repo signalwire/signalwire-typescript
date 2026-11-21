@@ -175,3 +175,55 @@ describe('CallingErrorEvent', () => {
     ).toBe(false);
   });
 });
+
+describe("Python's rules, where a value is checked or written", () => {
+  it("reads whole numbers with Unicode digits and Python's whitespace", () => {
+    const e = (v: unknown) =>
+      CallingErrorEvent.fromPayload({ event_type: 'calling.error', params: { stall_ms: v } })
+        .stallMs;
+    expect([
+      e('٤٢'),
+      e('４２'),
+      e('۴_۲'),
+      e('42\u0085'),
+      e('\uFEFF42'),
+      e('_1'),
+      e('1__0'),
+    ]).toEqual([42, 42, 42, 42, null, null, null]);
+  });
+
+  it("writes a structured field as Python's str() does", () => {
+    const event = CallingErrorEvent.fromPayload({
+      event_type: 'calling.error',
+      params: { error: { reason: 'stall', retry: true }, recovery: [] },
+    });
+    expect(event.error).toBe("{'reason': 'stall', 'retry': True}");
+    expect(event.recovery).toBe('[]');
+  });
+
+  it('keeps a __proto__ language code as a key', () => {
+    const a = agent().setDefaultVoice(JSON.parse('{"__proto__":["rime.spore"]}'));
+    const main = mainOf(a.renderSwml());
+    const set = main.find((v) => 'set' in v).set;
+    expect(JSON.stringify(set)).toBe('{"default_voice":{"__proto__":["rime.spore"]}}');
+  });
+
+  it("counts blank as Python's strip() does", () => {
+    for (const blank of ['\u0085', '\u001c']) {
+      expect(() => new FunctionResult('ok').changeVoice(blank)).toThrow(/non-empty/);
+      expect(() => new FunctionResult('ok').hold(undefined, blank)).toThrow(/duration/);
+    }
+    expect(new FunctionResult('ok').changeVoice('\uFEFF').toDict().action).toEqual([
+      { change_voice: '\uFEFF' },
+    ]);
+  });
+
+  it("names a bad value as Python's repr() does", () => {
+    expect(() => new FunctionResult('ok').changeVoice([null as unknown as string])).toThrow(
+      'got None',
+    );
+    expect(() => agent().setDefaultVoice({ es: [] })).toThrow(
+      "default_voice['es'] must name at least one voice",
+    );
+  });
+});

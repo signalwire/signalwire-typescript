@@ -5,6 +5,7 @@
  * also accept the raw dict, so these are optional.
  */
 
+import { _pyInt as pyInt, _pyStr as pyStr } from '../PyCompat.js';
 import type { CallState, DialState, MessageState } from './closedSets.js';
 import type { Device } from './types.js';
 
@@ -908,7 +909,7 @@ export class CallingErrorEvent extends RelayEvent {
     const p = b.params;
     const text = (key: string): string => {
       const value = p[key];
-      return value === null || value === undefined ? '' : String(value);
+      return value === null || value === undefined ? '' : pyStr(value);
     };
     return new CallingErrorEvent(
       b.eventType,
@@ -928,27 +929,14 @@ export class CallingErrorEvent extends RelayEvent {
       text('fallback_language_code'),
       text('fallback_voice'),
       text('fallback_model'),
-      wholeNumber(p['fallback_index']),
+      pyInt(p['fallback_index']),
       text('fallback_source'),
-      wholeNumber(p['stall_ms']),
-      wholeNumber(p['expected_ms']),
+      pyInt(p['stall_ms']),
+      pyInt(p['expected_ms']),
       text('transport'),
       text('recovery'),
     );
   }
-}
-
-/**
- * A whole number as the reference's `int()` reads one: an integer, a number cut
- * to its whole part, or an integer string; anything else (a boolean, null,
- * other text) is null.
- */
-function wholeNumber(value: unknown): number | null {
-  if (typeof value === 'number') return Number.isFinite(value) ? Math.trunc(value) : null;
-  if (typeof value === 'string' && /^\s*[+-]?\d+(_\d+)*\s*$/.test(value)) {
-    return Number(value.replace(/_/g, '').trim());
-  }
-  return null;
 }
 
 // ─── Messaging Events ────────────────────────────────────────────────

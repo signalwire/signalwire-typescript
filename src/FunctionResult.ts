@@ -5,6 +5,7 @@
  * hangup, SMS and others). Every mutating method returns `this` for fluent chaining.
  */
 
+import { _pyStrip } from './PyCompat.js';
 import { _voiceChain, type VoiceChain } from './Voices.js';
 
 /**
@@ -409,7 +410,7 @@ export class FunctionResult {
       this.postProcess = true;
     }
     // Clamp a number of seconds to the valid range; a duration string is the platform's to read
-    if (typeof timeout === 'string' && !timeout.trim()) {
+    if (typeof timeout === 'string' && !_pyStrip(timeout)) {
       throw new Error("timeout must be a number of seconds or a duration such as '2m'");
     }
     const clamped = typeof timeout === 'string' ? timeout : Math.max(0, Math.min(timeout, 900));
