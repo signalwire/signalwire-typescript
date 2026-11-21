@@ -3,7 +3,7 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased (signalwire-python 3.14.0)
+## 3.14.0 (2026-11-20)
 
 Parity with signalwire-python 3.14.0: gather questions the platform says
 itself, and `send_sms` typed as the spec's SMS bodies.
