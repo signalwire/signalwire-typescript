@@ -130,7 +130,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">MessagesOptions</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#askfor">askFor</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#beforeidentity">beforeIdentity</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#callerid">callerId</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#recipients">recipients</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#save">save</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><br/>        <span class="tsd-kind-parameter">call</span><span class="tsd-signature-symbol">:</span> <a href="../classes/_signalwire_sdk._signalwire_sdk_operations.CallContext.html" class="tsd-signature-type tsd-kind-class">CallContext</a><span class="tsd-signature-symbol">,</span><br/>        <span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">:</span> <a href="../modules/_signalwire_sdk._signalwire_sdk_operations.html" class="tsd-signature-type tsd-kind-namespace">@signalwire/sdk/operations</a><span class="tsd-signature-symbol">.</span><a href="../classes/_signalwire_sdk._signalwire_sdk_operations.Message.html" class="tsd-signature-type tsd-kind-class">Message</a><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#tool">tool</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#wording">wording</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/operations/messages.ts#L73">src/operations/messages.ts:73</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/messages.ts#L73">src/operations/messages.ts:73</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -157,21 +157,21 @@ the message itself always is, and who it's for whenever there are
 <code>recipients</code>. Default both.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/operations/messages.ts#L89">src/operations/messages.ts:89</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/messages.ts#L89">src/operations/messages.ts:89</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="beforeidentity"><code class="tsd-tag">Optional</code><span>before<wbr/>Identity</span><a href="#beforeidentity" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">beforeIdentity</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
 <div class="tsd-comment tsd-typography"><p>False to take messages only from callers who are identified. Default true.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/operations/messages.ts#L97">src/operations/messages.ts:97</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/messages.ts#L97">src/operations/messages.ts:97</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="callerid"><code class="tsd-tag">Optional</code><span>caller<wbr/>Id</span><a href="#callerid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">callerId</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
 <div class="tsd-comment tsd-typography"><p>True to offer the number they're calling from, read back for them to agree to, when they haven't given one. Default true.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/operations/messages.ts#L91">src/operations/messages.ts:91</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/messages.ts#L91">src/operations/messages.ts:91</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="recipients"><code class="tsd-tag">Optional</code><span>recipients</span><a href="#recipients" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">recipients</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></div>
@@ -179,7 +179,7 @@ the message itself always is, and who it's for whenever there are
 null when there's only one place it goes.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/operations/messages.ts#L83">src/operations/messages.ts:83</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/messages.ts#L83">src/operations/messages.ts:83</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="save"><span>save</span><a href="#save" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">save</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">call</span><span class="tsd-signature-symbol">:</span> <a href="../classes/_signalwire_sdk._signalwire_sdk_operations.CallContext.html" class="tsd-signature-type tsd-kind-class">CallContext</a><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">:</span> <a href="../modules/_signalwire_sdk._signalwire_sdk_operations.html" class="tsd-signature-type tsd-kind-namespace">@signalwire/sdk/operations</a><span class="tsd-signature-symbol">.</span><a href="../classes/_signalwire_sdk._signalwire_sdk_operations.Message.html" class="tsd-signature-type tsd-kind-class">Message</a><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">unknown</span></div>
@@ -187,21 +187,21 @@ null when there's only one place it goes.</p>
 yes; throw <code>WriteFailed</code> when it can't. May be async.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/operations/messages.ts#L78">src/operations/messages.ts:78</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/messages.ts#L78">src/operations/messages.ts:78</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="tool"><code class="tsd-tag">Optional</code><span>tool</span><a href="#tool" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">tool</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>The tool's name. Default <code>take_message</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/operations/messages.ts#L93">src/operations/messages.ts:93</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/messages.ts#L93">src/operations/messages.ts:93</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="wording"><code class="tsd-tag">Optional</code><span>wording</span><a href="#wording" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">wording</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></div>
 <div class="tsd-comment tsd-typography"><p>Words in place of the defaults, by key; the keys are those of <a href="../variables/_signalwire_sdk._signalwire_sdk_operations.MESSAGES_WORDING.html" class="tsd-kind-variable">MESSAGES_WORDING</a>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/27b5dd24fdf1229f84d0d90dcc55ffef4701d05d/src/operations/messages.ts#L95">src/operations/messages.ts:95</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/messages.ts#L95">src/operations/messages.ts:95</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
