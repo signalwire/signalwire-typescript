@@ -129,7 +129,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">SkillToolDefinition</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#description">description</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#fillers">fillers</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#gate_fillers">gate_fillers</a><span class="tsd-signature-symbol">?:</span> <a href="../types/_signalwire_sdk.FillerPhrases.html" class="tsd-signature-type tsd-kind-type-alias">FillerPhrases</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#gates">gates</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> (<span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <a href="../classes/_signalwire_sdk.SemanticGate.html" class="tsd-signature-type tsd-kind-class">SemanticGate</a>)<span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#handler">handler</a><span class="tsd-signature-symbol">:</span> <a href="../types/_signalwire_sdk.SwaigHandler.html" class="tsd-signature-type tsd-kind-type-alias">SwaigHandler</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#ishanguphook">isHangupHook</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#middleware">middleware</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <a href="../types/_signalwire_sdk.ToolMiddleware.html" class="tsd-signature-type tsd-kind-type-alias">ToolMiddleware</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#name">name</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#needs_conversation">needs_conversation</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#nullable_optional">nullable_optional</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#parameters">parameters</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#required">required</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#secure">secure</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#skip_fillers">skip_fillers</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#vouched">vouched</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#wait_for_fillers">wait_for_fillers</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L24">src/skills/SkillBase.ts:24</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L24">src/skills/SkillBase.ts:24</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -163,7 +163,7 @@
 <div class="tsd-comment tsd-typography"><p>Human-readable description of what the tool does, shown to the AI.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L28">src/skills/SkillBase.ts:28</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L28">src/skills/SkillBase.ts:28</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="fillers"><code class="tsd-tag">Optional</code><span>fillers</span><a href="#fillers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">fillers</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></div>
@@ -172,14 +172,14 @@ or <code>&quot;default&quot;</code>; an entry may also be a list of phrases, a w
 (the type predates wait scripts, so one needs a cast).</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L40">src/skills/SkillBase.ts:40</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L40">src/skills/SkillBase.ts:40</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="gate_fillers"><code class="tsd-tag">Optional</code><span>gate_<wbr/>fillers</span><a href="#gate_fillers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">gate_fillers</span><span class="tsd-signature-symbol">?:</span> <a href="../types/_signalwire_sdk.FillerPhrases.html" class="tsd-signature-type tsd-kind-type-alias">FillerPhrases</a></div>
 <div class="tsd-comment tsd-typography"><p>Phrases the AI says while the gates are checked, shaped like <code>fillers</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L61">src/skills/SkillBase.ts:61</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L61">src/skills/SkillBase.ts:61</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="gates"><code class="tsd-tag">Optional</code><span>gates</span><a href="#gates" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">gates</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> (<span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <a href="../classes/_signalwire_sdk.SemanticGate.html" class="tsd-signature-type tsd-kind-class">SemanticGate</a>)<span class="tsd-signature-symbol">[]</span></div>
@@ -188,14 +188,14 @@ right before the platform runs it (see <a href="../classes/_signalwire_sdk.Seman
 over gates in the skill's <code>swaig_fields</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L59">src/skills/SkillBase.ts:59</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L59">src/skills/SkillBase.ts:59</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="handler"><span>handler</span><a href="#handler" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">handler</span><span class="tsd-signature-symbol">:</span> <a href="../types/_signalwire_sdk.SwaigHandler.html" class="tsd-signature-type tsd-kind-type-alias">SwaigHandler</a></div>
 <div class="tsd-comment tsd-typography"><p>Handler function invoked when the tool is called.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L32">src/skills/SkillBase.ts:32</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L32">src/skills/SkillBase.ts:32</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="ishanguphook"><code class="tsd-tag">Optional</code><span>is<wbr/>Hangup<wbr/>Hook</span><a href="#ishanguphook" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">isHangupHook</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
@@ -205,7 +205,7 @@ Equivalent to Python's <code>is_hangup_hook=True</code> in <code>define_tool()</
 The flag is serialised as <code>&quot;is_hangup_hook&quot;: true</code> in the SWAIG JSON.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L53">src/skills/SkillBase.ts:53</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L53">src/skills/SkillBase.ts:53</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="middleware"><code class="tsd-tag">Optional</code><span>middleware</span><a href="#middleware" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">middleware</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <a href="../types/_signalwire_sdk.ToolMiddleware.html" class="tsd-signature-type tsd-kind-type-alias">ToolMiddleware</a><span class="tsd-signature-symbol">[]</span></div>
@@ -213,14 +213,14 @@ The flag is serialised as <code>&quot;is_hangup_hook&quot;: true</code> in the S
 Wins over the skill's <code>swaig_fields</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L83">src/skills/SkillBase.ts:83</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L83">src/skills/SkillBase.ts:83</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="name"><span>name</span><a href="#name" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">name</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Unique tool name used in SWAIG function registration.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L26">src/skills/SkillBase.ts:26</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L26">src/skills/SkillBase.ts:26</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="needs_conversation"><code class="tsd-tag">Optional</code><span>needs_<wbr/>conversation</span><a href="#needs_conversation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">needs_conversation</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
@@ -229,7 +229,7 @@ Wins over the skill's <code>swaig_fields</code>.</p>
 <code>swaig_fields</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L78">src/skills/SkillBase.ts:78</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L78">src/skills/SkillBase.ts:78</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="nullable_optional"><code class="tsd-tag">Optional</code><span>nullable_<wbr/>optional</span><a href="#nullable_optional" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">nullable_optional</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
@@ -238,35 +238,35 @@ Wins over the skill's <code>swaig_fields</code>.</p>
 <code>swaig_fields</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L72">src/skills/SkillBase.ts:72</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L72">src/skills/SkillBase.ts:72</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="parameters"><code class="tsd-tag">Optional</code><span>parameters</span><a href="#parameters" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">parameters</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">&gt;</span></div>
 <div class="tsd-comment tsd-typography"><p>Parameter schema for the tool, keyed by parameter name.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L30">src/skills/SkillBase.ts:30</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L30">src/skills/SkillBase.ts:30</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="required"><code class="tsd-tag">Optional</code><span>required</span><a href="#required" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">required</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></div>
 <div class="tsd-comment tsd-typography"><p>List of parameter names that are required.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L42">src/skills/SkillBase.ts:42</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L42">src/skills/SkillBase.ts:42</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="secure"><code class="tsd-tag">Optional</code><span>secure</span><a href="#secure" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">secure</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
 <div class="tsd-comment tsd-typography"><p>Whether the tool requires secure (authenticated) invocation.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L34">src/skills/SkillBase.ts:34</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L34">src/skills/SkillBase.ts:34</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="skip_fillers"><code class="tsd-tag">Optional</code><span>skip_<wbr/>fillers</span><a href="#skip_fillers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">skip_fillers</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
 <div class="tsd-comment tsd-typography"><p>If true, suppress filler phrases while the tool executes.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L46">src/skills/SkillBase.ts:46</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L46">src/skills/SkillBase.ts:46</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="vouched"><code class="tsd-tag">Optional</code><span>vouched</span><a href="#vouched" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">vouched</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
@@ -274,14 +274,14 @@ Wins over the skill's <code>swaig_fields</code>.</p>
 <code>SwaigFunctionOptions.vouched</code>). Wins over the skill's <code>swaig_fields</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L66">src/skills/SkillBase.ts:66</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L66">src/skills/SkillBase.ts:66</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="wait_for_fillers"><code class="tsd-tag">Optional</code><span>wait_<wbr/>for_<wbr/>fillers</span><a href="#wait_for_fillers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">wait_for_fillers</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
 <div class="tsd-comment tsd-typography"><p>If true, wait for any in-flight fillers to complete before executing the tool.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/9a4b620961c45e302a33da66e165796c56c67a25/src/skills/SkillBase.ts#L44">src/skills/SkillBase.ts:44</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/7efb19c9a3d9e9ea1dac7be975e9748818640d44/src/skills/SkillBase.ts#L44">src/skills/SkillBase.ts:44</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
