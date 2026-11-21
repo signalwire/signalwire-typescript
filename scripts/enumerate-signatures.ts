@@ -579,15 +579,21 @@ interface OptionsUnfoldSpec {
   members?: readonly string[];
   positional?: number;
   varargs?: readonly string[];
+  /** True when the bag's other members are the reference's `**kwargs` (passed on); else any member not listed fails. */
+  open?: boolean;
 }
 const OPTIONS_UNFOLD_SPEC: Record<string, OptionsUnfoldSpec> = {
   'signalwire.operations.agent.ServiceAgent.__init__': {
     param: 'opts',
+    // The agent's and Operations' options, passed on as the reference's **kwargs
+    open: true,
     members: ['name', 'role'],
     positional: 1,
   },
   'signalwire.prefabs.front_desk.FrontDeskAgent.__init__': {
     param: 'opts',
+    // The agent's and Operations' options, passed on as the reference's **kwargs
+    open: true,
     members: [
       'name',
       'role',
@@ -602,6 +608,8 @@ const OPTIONS_UNFOLD_SPEC: Record<string, OptionsUnfoldSpec> = {
   },
   'signalwire.prefabs.personal_assistant.PersonalAssistantAgent.__init__': {
     param: 'opts',
+    // The agent's and Operations' options, passed on as the reference's **kwargs
+    open: true,
     members: [
       'name',
       'role',
@@ -2541,6 +2549,19 @@ function signatureFromMethod(
     // members, inherited ones included, the first `positional` of them positional.
     if (unfoldSpec?.param === native && unfoldSpec.members) {
       const objType = checker.getTypeAtLocation(p);
+      // A closed bag's every member is the reference's: one not listed fails here
+      // rather than escape the comparison
+      if (!unfoldSpec.open) {
+        const unlisted = checker
+          .getPropertiesOfType(objType)
+          .map((prop) => prop.getName())
+          .filter((n) => !unfoldSpec.members!.includes(n));
+        if (unlisted.length > 0) {
+          throw new Error(
+            `${ctx}: ${native} has ${unlisted.join(', ')}, not in its OPTIONS_UNFOLD_SPEC members`,
+          );
+        }
+      }
       unfoldSpec.members.forEach((mNative, i) => {
         const prop = checker.getPropertyOfType(objType, mNative);
         if (!prop) throw new Error(`${ctx}: ${native} has no member ${mNative}`);
