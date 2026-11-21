@@ -3569,8 +3569,6 @@ export class AgentBase extends SWMLService {
     if (this.languages.length) aiConfig['languages'] = this.languages;
     // ASR-driven multilingual mode: a top-level `multilingual` object on the AI verb.
     if (Object.keys(this.multilingual).length) aiConfig['multilingual'] = this.multilingual;
-    if (this.agentVoice !== null) aiConfig['voice'] = this.agentVoice;
-    if (this.fallbackVoice !== null) aiConfig['fallback_voice'] = this.fallbackVoice;
     if (this.pronounce.length) aiConfig['pronounce'] = this.pronounce;
     const params = { ...this.params };
     // A tool that reads the conversation needs it in its requests
@@ -3590,6 +3588,9 @@ export class AgentBase extends SWMLService {
     }
     if (Object.keys(params).length) aiConfig['params'] = params;
     if (Object.keys(this.globalData).length) aiConfig['global_data'] = this.globalData;
+    // The ai verb's own voice and fallback voice, after the rest, where Python puts them
+    if (this.agentVoice !== null) aiConfig['voice'] = this.agentVoice;
+    if (this.fallbackVoice !== null) aiConfig['fallback_voice'] = this.fallbackVoice;
 
     // Debug events
     if (this.debugEventsEnabled) {

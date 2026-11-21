@@ -285,6 +285,21 @@ describe("the agent's voice and fallback voice", () => {
     expect('voice' in aiOf(a) || 'fallback_voice' in aiOf(a)).toBe(false);
   });
 
+  it('come after params and global_data, as Python emits them (found in review)', () => {
+    const a = agent()
+      .setParam('temperature', 0.5)
+      .setGlobalData({ account: 'abc' })
+      .setAgentVoice('rime.spore')
+      .setFallbackVoice(CHAIN);
+    const keys = Object.keys(aiOf(a));
+    expect(keys.slice(keys.indexOf('params'))).toEqual([
+      'params',
+      'global_data',
+      'voice',
+      'fallback_voice',
+    ]);
+  });
+
   it('are checked like every voice field', () => {
     expect(() => agent().setAgentVoice('  ')).toThrow(
       'voice must be a non-empty string, or a list of them',
