@@ -192,6 +192,17 @@ describe("Python's rules, where a value is checked or written", () => {
     ]).toEqual([42, 42, 42, 42, null, null, null]);
   });
 
+  it('refuses the separators int() refuses around a number', () => {
+    for (const sep of ['\u001c', '\u001d', '\u001e', '\u001f']) {
+      for (const v of [`${sep}42`, `42${sep}`]) {
+        expect(
+          CallingErrorEvent.fromPayload({ event_type: 'calling.error', params: { stall_ms: v } })
+            .stallMs,
+        ).toBeNull();
+      }
+    }
+  });
+
   it("writes a structured field as Python's str() does", () => {
     const event = CallingErrorEvent.fromPayload({
       event_type: 'calling.error',

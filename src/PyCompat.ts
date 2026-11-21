@@ -10,6 +10,10 @@
 const PY_SPACE =
   '\t\n\v\f\r\x1c\x1d\x1e\x1f \x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000';
 const PY_STRIP = new RegExp(`^[${PY_SPACE}]+|[${PY_SPACE}]+$`, 'g');
+/** The whitespace Python's `int()` allows around a number: strip()'s, but not U+001C to U+001F. */
+const INT_SPACE =
+  '\\t\\n\\v\\f\\r \\x85\\xa0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000';
+const INT_STRIP = new RegExp(`^[${INT_SPACE}]+|[${INT_SPACE}]+$`, 'g');
 
 /** @internal Text with Python's `strip()` applied. */
 export function _pyStrip(text: string): string {
@@ -42,7 +46,7 @@ export function _asciiDigits(text: string): string {
 export function _pyInt(value: unknown): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? Math.trunc(value) : null;
   if (typeof value === 'string') {
-    const text = _asciiDigits(_pyStrip(value));
+    const text = _asciiDigits(value.replace(INT_STRIP, ''));
     return /^[+-]?\d+(_\d+)*$/.test(text) ? Number(text.replace(/_/g, '')) : null;
   }
   return null;
