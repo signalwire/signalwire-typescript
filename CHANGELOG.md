@@ -3,7 +3,7 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
-## Unreleased (signalwire-python 3.13.0)
+## 3.13.0 (2026-11-20)
 
 Parity with signalwire-python 3.13.0: `signalwire.operations`, its task
 packs and two prefabs built on them, and fallback voices.
