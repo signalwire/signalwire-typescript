@@ -395,6 +395,7 @@ const CUSTOM_VERB_TYPES: Record<
 function generateVerbConfig(
   verbName: string,
   innerSchema: VerbSchemaProperty,
+  defs: Record<string, VerbSchemaProperty> = {},
 ): { configType: string; isOptional: boolean } {
   // Some verbs have non-object inner types (e.g. "label" is a string, "sleep" is anyOf)
   if (!innerSchema.type && !innerSchema.anyOf && !innerSchema.oneOf && !innerSchema.properties) {
@@ -409,7 +410,16 @@ function generateVerbConfig(
 
   // anyOf (e.g. "unset", a string or a list of strings): its branches' types
   if (innerSchema.anyOf && innerSchema.type !== 'object') {
-    // A union of referenced object shapes (e.g. "send_sms") is an object
+    // A union of referenced object shapes (e.g. "send_sms"): each branch as the
+    // object it names, the union required when every branch has required keys
+    const branches = innerSchema.anyOf.map((b) => (b.$ref ? defs[b.$ref.split('/').pop()!] : b));
+    if (branches.every((b) => b?.type === 'object' && b.properties)) {
+      const shapes = branches.map((b) => generateVerbConfig(verbName, b!, defs));
+      return {
+        configType: shapes.map((c) => c.configType).join(' | '),
+        isOptional: shapes.some((c) => c.isOptional),
+      };
+    }
     const unionType = mapVerbType(innerSchema);
     return {
       configType: unionType === 'unknown' ? 'Record<string, unknown>' : unionType,
@@ -532,7 +542,7 @@ async function generateVerbMethods(schemaPath: string, outPath: string): Promise
       continue;
     }
 
-    const { configType, isOptional } = generateVerbConfig(verbName, innerSchema);
+    const { configType, isOptional } = generateVerbConfig(verbName, innerSchema, defs);
     const paramSig = isOptional ? `config?: ${configType}` : `config: ${configType}`;
 
     methods.push(`    /** ${cleanDesc} */`);

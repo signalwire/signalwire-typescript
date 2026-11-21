@@ -2422,10 +2422,10 @@ constructor(name: string)
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `setGatherInfo` | `(opts?: { outputKey?: string; completionAction?: string; prompt?: string; isolated?: boolean }): this` | Start a `gather_info` for the step |
-| `addGatherQuestion` | `(opts: { key: string; question: string; type?: string; confirm?: boolean; prompt?: string; functions?: string[]; isolated?: boolean; expectedAnswer?: ExpectedAnswer }): this` | Add a question. Throws when `setGatherInfo()` hasn't been called. |
+| `setGatherInfo` | `(opts?: { outputKey?: string; completionAction?: string; prompt?: string; isolated?: boolean; sayQuestions?: boolean }): this` | Start a `gather_info` for the step |
+| `addGatherQuestion` | `(opts: { key: string; question: string; type?: string; confirm?: boolean; prompt?: string; functions?: string[]; isolated?: boolean; expectedAnswer?: ExpectedAnswer; say?: boolean }): this` | Add a question. Throws when `setGatherInfo()` hasn't been called. |
 
-`completionAction` is `'next_step'` or the name of a step in the same context. `isolated` on the gather is the default for its questions, and a question's own `isolated` overrides it. A question's `false` is emitted, so it can override an isolated gather.
+`completionAction` is `'next_step'` or the name of a step in the same context. `isolated` on the gather is the default for its questions, and a question's own `isolated` overrides it. A question's `false` is emitted, so it can override an isolated gather. `sayQuestions` has the platform say each question itself, word for word, and a question's `say` overrides it (`false` is emitted, so the model asks that one).
 
 #### Reset Methods
 
@@ -2457,14 +2457,14 @@ The constructor has this signature:
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
-constructor(opts?: { outputKey?: string; completionAction?: string; prompt?: string; isolated?: boolean })
+constructor(opts?: { outputKey?: string; completionAction?: string; prompt?: string; isolated?: boolean; sayQuestions?: boolean })
 ```
 
 #### Methods
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `addQuestion` | `(opts: { key; question; type?; confirm?; prompt?; functions?; isolated?; expectedAnswer? }): this` | Add a question |
+| `addQuestion` | `(opts: { key; question; type?; confirm?; prompt?; functions?; isolated?; expectedAnswer?; say? }): this` | Add a question |
 | `getQuestions` | `(): GatherQuestion[]` | Get the questions |
 | `toDict` | `(): GatherInfoDict` | Serialize. Throws when there are no questions. |
 
@@ -2487,6 +2487,7 @@ constructor(opts: {
   functions?: string[];
   isolated?: boolean;
   expectedAnswer?: ExpectedAnswer; // replaces the step's while this question is asked
+  say?: boolean;       // overrides the gather's sayQuestions
 })
 ```
 
@@ -2502,6 +2503,7 @@ constructor(opts: {
 | `functions` | `string[] \| undefined` | Tools available while this question is asked |
 | `isolated` | `boolean \| undefined` | Overrides the gather's `isolated` for this question |
 | `expectedAnswer` | `ExpectedAnswer \| undefined` | The digits the recognizer expects while this question is asked |
+| `say` | `boolean \| undefined` | Overrides the gather's `sayQuestions` for this question; `undefined` follows the gather |
 
 #### `toDict()`
 

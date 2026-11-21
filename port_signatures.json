@@ -4614,6 +4614,15 @@
               ],
               "returns": "string"
             },
+            "say": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                }
+              ],
+              "returns": "optional<bool>"
+            },
             "to_dict": {
               "params": [
                 {
@@ -39843,6 +39852,10 @@
         "prompt": {
           "type": "optional<string>",
           "required": false
+        },
+        "say_questions": {
+          "type": "optional<bool>",
+          "required": false
         }
       }
     },
@@ -39875,6 +39888,10 @@
         "question": {
           "type": "string",
           "required": true
+        },
+        "say": {
+          "type": "optional<bool>",
+          "required": false
         },
         "type": {
           "type": "optional<string>",

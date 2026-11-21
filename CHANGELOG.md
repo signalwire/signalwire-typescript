@@ -3,6 +3,29 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## Unreleased (signalwire-python 3.14.0)
+
+Parity with signalwire-python 3.14.0: gather questions the platform says
+itself, and `send_sms` typed as the spec's SMS bodies.
+
+### Added
+
+- Gather questions the platform says itself: `setGatherInfo({ sayQuestions:
+  true })` has the platform say each question word for word when the gather
+  reaches it, the model being told the caller was just asked it; the answer
+  still goes through `gather_submit`. A question's `say` overrides it, and
+  `false` is emitted so the model asks that one. `GatherInfo` takes
+  `sayQuestions` and `GatherQuestion` takes and exposes `say`. A realtime
+  model asks every question itself, and a platform build without it ignores
+  the setting and the model asks.
+
+### Changed
+
+- The builder's `send_sms()` is typed as one of the SMS bodies the spec
+  allows: `to_number`, `from_number` and a `body` or `media`. It was an open
+  object. `cond`, `sleep`, `unset` and `return` already took the bodies
+  Python 3.14.0 now types (#151-#154).
+
 ## 3.13.0 (2026-11-20)
 
 Parity with signalwire-python 3.13.0: `signalwire.operations`, its task

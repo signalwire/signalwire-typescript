@@ -507,6 +507,7 @@ While a question is asked, the platform deactivates the step's other functions. 
 | `completionAction` | `string` | none | Where to go when every question is answered: `'next_step'` for the following step, or the name of a step in the same context. Without it, the step returns to its normal text. |
 | `prompt` | `string` | none | Preamble sent with every question, as a system message ahead of the question's own; each copy replaces the one before. Under the `keep` history mode it's sent with the first question only, and that copy stays. |
 | `isolated` | `boolean` | `false` | Default for every question. When `true`, a question is asked with the other questions and answers hidden from the model, so it must ask rather than work out the answer from an earlier one. The hidden turns stay in the call log. |
+| `sayQuestions` | `boolean` | `false` | When `true`, the platform says each question's text itself, word for word (its `${...}` filled in), when the gather reaches it. The model doesn't ask it, and is told the caller was just asked it in those words. The answer still goes through `gather_submit`, the model checking it and doing any `confirm` read-back. If the answer is unclear, or the caller stays silent, the model asks again in its own words. A greeting at the start of the call still plays first. A question's own `say` overrides this. A realtime model asks every question itself. |
 
 `validate()` throws when `completionAction` is `'next_step'` on the last step of a context, or names a step that isn't in the context.
 
@@ -524,6 +525,7 @@ While a question is asked, the platform deactivates the step's other functions. 
 | `functions` | `string[]` | none | Functions available during this question only. |
 | `isolated` | `boolean` | inherits the gather's setting | `true` hides the other questions and answers while this one is asked. `false` keeps them visible, even in an isolated gather. |
 | `expectedAnswer` | `ExpectedAnswer` | none | The digits the recognizer expects while this question is asked, `{ digits }` or `{ min_digits, max_digits }`. See [Expected Digits](#expected-digits). |
+| `say` | `boolean` | follows the gather's `sayQuestions` | `true` has the platform say this question itself. `false` has the model ask it, even in a gather that says its questions. |
 
 #### Expected Digits
 
@@ -552,7 +554,7 @@ step.addGatherQuestion({ key: 'zip', question: 'What is your ZIP code?', expecte
 }
 ```
 
-The SDK leaves `type` out when it's `'string'`, and `confirm` when it's `false`. A question's `isolated` appears whenever you set it, `false` included, so it can override the gather. `toDict()` throws for a gather with no questions.
+The SDK leaves `type` out when it's `'string'`, and `confirm` when it's `false`. A question's `isolated` and `say` appear whenever you set them, `false` included, so they can override the gather. The gather's `say_questions` appears only when it's `true`. `toDict()` throws for a gather with no questions.
 
 ---
 

@@ -1,9 +1,11 @@
 /**
  * Fallback voices, the default voice, duration strings, and calling.error's
- * voice fields (signalwire-python 3.13.0).
+ * voice fields (signalwire-python 3.13.0), and gather questions the platform
+ * says itself (3.14.0).
  */
 
 import { AgentBase } from '../src/AgentBase.js';
+import { GatherInfo, GatherQuestion } from '../src/ContextBuilder.js';
 import { FunctionResult } from '../src/FunctionResult.js';
 import { CallingErrorEvent } from '../src/relay/RelayEvent.js';
 
@@ -236,5 +238,38 @@ describe("Python's rules, where a value is checked or written", () => {
     expect(() => agent().setDefaultVoice({ es: [] })).toThrow(
       "default_voice['es'] must name at least one voice",
     );
+  });
+});
+
+describe('gather questions the platform says itself', () => {
+  it('a gather can have the platform say its questions', () => {
+    const a = agent();
+    const step = a
+      .defineContexts()
+      .addContext('default')
+      .addStep('intake')
+      .setText('Gather their details.');
+    step.setGatherInfo({ sayQuestions: true });
+    step.addGatherQuestion({ key: 'name', question: "What's your name?" });
+    step.addGatherQuestion({ key: 'reason', question: 'What can we help with?', say: false });
+    const gather = aiOf(a).prompt.contexts.default.steps[0].gather_info;
+    expect(gather.say_questions).toBe(true);
+    expect('say' in gather.questions[0]).toBe(false);
+    expect(gather.questions[1].say).toBe(false);
+  });
+
+  it("leaves say_questions out unless it's on, and keeps a question's say", () => {
+    const off = new GatherInfo().addQuestion({ key: 'k', question: 'Q?' }).toDict();
+    expect('say_questions' in off).toBe(false);
+    const on = new GatherInfo({ sayQuestions: true })
+      .addQuestion({ key: 'k', question: 'Q?', say: true })
+      .toDict();
+    expect(on.say_questions).toBe(true);
+    expect(on.questions[0]).toEqual({ key: 'k', question: 'Q?', say: true });
+  });
+
+  it('exposes say on a question, undefined meaning the gather decides', () => {
+    expect(new GatherQuestion({ key: 'k', question: 'Q?' }).say).toBeUndefined();
+    expect(new GatherQuestion({ key: 'k', question: 'Q?', say: false }).say).toBe(false);
   });
 });
