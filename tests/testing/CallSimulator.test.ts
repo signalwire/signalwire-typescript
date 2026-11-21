@@ -972,3 +972,26 @@ describe('the platform at 7afb159 (found in review)', () => {
     expect(sim.gateConversation({ dialogue: 'proposal' })).toEqual(['assistant: Fresh readback']);
   });
 });
+
+describe('requestFields', () => {
+  it('goes in every tool request, under the fields the simulator sets', async () => {
+    const agent = new AgentBase({ name: 'fields', suppressLogs: true });
+    const seen: Json[] = [];
+    agent.defineTool({
+      name: 'who',
+      description: 'Who is calling',
+      parameters: {},
+      handler: (_args, rawData) => {
+        seen.push(rawData as Json);
+        return new FunctionResult('ok');
+      },
+    });
+    const sim = new CallSimulator(agent, {
+      requestFields: { caller_id_num: '+15551234567', call_id: 'not-this-one' },
+    });
+    await sim.call('who');
+    await sim.call('who');
+    expect(seen.map((r) => r['caller_id_num'])).toEqual(['+15551234567', '+15551234567']);
+    expect(seen[0]!['call_id']).toBe('simulated-call');
+  });
+});

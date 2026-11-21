@@ -612,6 +612,26 @@ agent.setLanguages([
 ]);
 ```
 
+### Fallback Voices
+
+A voice can be a list of up to 8 voices in the combined `engine.voice:model` form. The first speaks; the rest are its fallbacks, tried in order when it fails, then the platform's own last resort. A list is sent as it is, so it takes no `engine` or `model`. A single voice in that form is split into `voice`, `engine` and `model`. `FunctionResult.changeVoice()` takes a list too, and so does each voice of `setMultilingual()`'s languages.
+
+```typescript
+agent.addLanguage({
+  name: 'English',
+  code: 'en-US',
+  voice: ['elevenlabs.rachel:eleven_turbo_v2_5', 'rime.spore', 'gcloud.en-US-Neural2-F'],
+});
+```
+
+`setDefaultVoice()` gives a voice to every language that has none: one voice, a list, or an object of language codes to either, with a `default` entry for the rest. A language matches by its exact code, then its base language (`es` for `es-MX`), then `default`. With no multilingual languages of its own, the object's languages become them. A voice the agent gives a language itself wins.
+
+```typescript
+agent.setDefaultVoice({ es: 'elevenlabs.lucia', default: ['rime.spore', 'gcloud.en-US-Neural2-F'] });
+```
+
+When a voice fails on a call, RELAY's `calling.error` event (`CallingErrorEvent`) says which voice failed and why (`errorReason`), and which took over: `fallbackIndex` is its place in the list, 0 being the voice that was speaking, and `fallbackSource` is where it came from (`voice`, `fallback_voice` or `platform`). `fatal` is true when no voice is left.
+
 ### Pronunciation
 
 `addPronunciation()` changes how the TTS engine says a word:

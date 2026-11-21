@@ -474,7 +474,13 @@ const PREFABS: Topic = {
   body: `Prefabs are \`AgentBase\` subclasses for common jobs. Configure one with its
 constructor options, or subclass it to change its prompt and tools.
 `,
-  docs: [['docs/prefabs-guide.md', 'Each prefab and its options']],
+  docs: [
+    ['docs/prefabs-guide.md', 'Each prefab and its options'],
+    [
+      'docs/operations.md',
+      "The front desk, the personal assistant and the task packs they're built from",
+    ],
+  ],
   examples: [
     'examples/prefab-info-gatherer.ts',
     'examples/dynamic-info-gatherer.ts',
@@ -926,6 +932,55 @@ implementation (\`examples/pgi/\`), and testing and review checklists.
   related: ['tools', 'contexts', 'security', 'testing'],
 };
 
+const OPERATIONS: Topic = {
+  name: 'operations',
+  title: 'Operations: an agent written as what it can do',
+  summary:
+    'Write the changes and lookups an agent offers; the SDK runs the read-back, yes, writes and record',
+  body: `\`@signalwire/sdk/operations\` (also the \`operations\` export of the package root)
+builds an agent from the operations it can do for a caller (cancel an order,
+move a booking), its lookups, and how it identifies the caller. Each operation
+is a class that extends \`Operation\`, with \`Field\` properties, a
+\`static description\` the model reads, and \`prepare(call, values)\`, which
+returns a \`Change\` or throws \`Need\` or \`Refuse\`. The SDK generates the
+tools, steps, gates and the call's record in \`global_data\`, and runs every
+change the same way: read back, one yes, the writes, the record.
+
+- \`ServiceAgent\` is the prefab; \`new Operations(opts).install(agent)\` puts the
+  same on any \`AgentBase\`.
+- \`identify({ anyOf, find })\` finds the caller's account before account data
+  is shared or changed.
+- \`offer(tools)\` adds tools the service didn't make, such as skills, to its
+  steps; \`phase()\` declares steps of your own.
+- \`CallSimulator\` tests one offline, record and steps included.
+- Nothing is assumed about the call: \`currency\` and \`Change.currency\` for
+  money (\`formatMoney\`), \`medium\` or the request's own for voice or chat, and
+  \`wording\` for every string it generates (\`DEFAULT_WORDING\`).
+- \`namespace\` names everything it generates, for two services on one agent.
+- Task packs add common operations against your backend: \`Appointments\`,
+  \`Messages\` and \`Payments\` (a card payment the model never hears).
+- \`Dialer\` places an outbound call only once consent, the callee's own
+  calling hours and your checks pass.
+- \`@signalwire/sdk/operations/infobot\` answers from a corpus
+  (\`InfoBotKnowledge\`) and carries a conversation between voice and chat
+  (\`Continuity\`).
+`,
+  docs: [
+    [
+      'docs/operations.md',
+      'Operations, the change lifecycle, identity, lookups, money, wording, namespaces, InfoBot and testing',
+    ],
+  ],
+  api: [
+    'operations',
+    'ServiceAgent',
+    'operations.Operations',
+    'operations.Operation',
+    'operations.Change',
+  ],
+  related: ['contexts', 'pgi', 'testing'],
+};
+
 /** Every topic, in the order the index lists them. */
 export const TOPICS: readonly Topic[] = [
   QUICKSTART,
@@ -936,6 +991,7 @@ export const TOPICS: readonly Topic[] = [
   CONTEXTS,
   SKILLS,
   PREFABS,
+  OPERATIONS,
   PGI,
   SWML,
   RELAY,
@@ -968,6 +1024,7 @@ export const TOPIC_GROUPS: readonly (readonly [string, readonly string[]])[] = [
       'contexts',
       'skills',
       'prefabs',
+      'operations',
       'pgi',
       'tutorials',
     ],

@@ -151,6 +151,8 @@ signalwire.prefabs.faq_bot.FAQBotAgent.__init__: TS constructor signature follow
 signalwire.prefabs.info_gatherer.InfoGathererAgent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.prefabs.receptionist.ReceptionistAgent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.prefabs.survey.SurveyAgent.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
+signalwire.operations.agent.ServiceAgent.on_function_call: TS dispatch runs ensureToolsDefined() (which ServiceAgent overrides to install its Operations, once) before every SWAIG function call, so the reference's on_function_call override that calls compile() first has no TS member: AgentBase.onFunctionCall is a pre-dispatch hook, not the dispatcher
+signalwire.operations.agent.ServiceAgent.on_swml_request: TS onSwmlRequest(rawData, callbackPath, context) types request_data as SwmlRequestData where Python has Optional[dict], and the FastAPI Request is the Hono context (as WebMixin.on_swml_request and InfoGathererAgent.on_swml_request). Same dynamic-SWML hook, returning the same modifications
 signalwire.relay.call.AIAction.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.relay.call.Action.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs
 signalwire.relay.call.Call.__init__: TS constructor signature follows TS conventions; param shape may differ from Python kwargs

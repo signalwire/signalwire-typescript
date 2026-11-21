@@ -61,6 +61,8 @@ A prefab agent is an `AgentBase` subclass that configures itself from one option
 
 A tool's response is context for the model, not speech: the model reads it and decides what to say. Several tools return instructions for the model, such as the next question to ask.
 
+`FrontDeskAgent` (a business's front desk: departments with opening hours, appointments, messages and answers from documents) and `PersonalAssistantAgent` (screens callers for one person and puts them through with a whisper) are built on `@signalwire/sdk/operations`, against your own backend; see [Operations](operations.md#a-front-desk-and-a-personal-assistant).
+
 The prefabs keep per-call state in one of two places. `InfoGathererAgent` keeps its question list and position in the call's `global_data`, and updates it with `set_global_data` actions in its tool responses. `SurveyAgent` and `ReceptionistAgent` keep theirs in memory in the agent process, keyed by the request's `call_id`. That state isn't shared between replicas and is lost on a restart. The agent removes a call's state when the call's summary arrives at `/post_prompt`, or once the call has been idle for an hour, and holds at most 10,000 calls, dropping the least recently used. If you override `onSummary()` on one of these agents, call `super.onSummary(summary, rawData)` so the state is removed when the call ends.
 
 Every prefab takes `name`, `route` and `agentOptions`. `agentOptions` is passed to the `AgentBase` constructor after `name` and `route`, so a `route` or `name` in `agentOptions` wins over the top-level option. All five classes and their config types are exported from the package:
@@ -385,6 +387,8 @@ await agent.run();
 
 ## FAQBotAgent
 
+Deprecated: use `InfoBotKnowledge`, which answers from any search you give it, a list of questions and answers included. `FAQBotAgent` still works, and warns when it's made.
+
 An agent that answers questions from a list of frequently asked questions. The prompt contains every question and answer, and a search tool tells the model which entries match the caller's question. It can transfer the caller to a live agent.
 
 **Source:** `src/prefabs/FAQBotAgent.ts`
@@ -508,6 +512,8 @@ await agent.run();
 
 ## ConciergeAgent
 
+Deprecated: its availability check answers yes for any listed service, with no calendar behind it. Use `FrontDeskAgent`, with `Appointments` for bookings and `InfoBotKnowledge` for amenities and hours. `ConciergeAgent` still works, and warns when it's made.
+
 A concierge for a venue or business. Its prompt describes the venue's services, amenities and hours, and its tools answer availability and directions questions.
 
 **Source:** `src/prefabs/ConciergeAgent.ts`
@@ -584,6 +590,8 @@ await agent.run();
 ---
 
 ## ReceptionistAgent
+
+Deprecated: use `FrontDeskAgent`, whose departments can say when they're taking calls and which takes a message when one isn't. `ReceptionistAgent` still works, and warns when it's made.
 
 A front-desk agent that greets callers, collects their name and reason for calling, and transfers them to a department. It can also check in visitors, a tool the Python SDK's prefab doesn't have.
 

@@ -376,7 +376,7 @@ When `parameters` is a flat map of property definitions written inline, TypeScri
 | `isTypedHandler` | `boolean` | `false` | Marks a handler that takes named parameters; `defineTypedTool()` sets it |
 | `gates` | `(SemanticGate \| Record<string, unknown>)[]` | none | Semantic gates, 1 to 8. See [Semantic gates](#semantic-gates) |
 | `gateFillers` | `FillerPhrases` | none | What the AI says while the gates are checked, shaped like `fillers`. Only with `gates` |
-| `vouched` | `boolean` | `false` | `true` for a tool whose arguments must come from the caller, not from the model's guesses. The tool gets a required boolean argument, `data_supplied_by_user` (`VOUCHED_PARAMETER`), in which the model says every other argument is what the caller said. Unless it's `true`, the handler doesn't run, and the model gets "&lt;name&gt; was not run." with the tool prompt "Get the answer from the user before using this tool." The handler never sees the argument |
+| `vouched` | `boolean` | `false` | `true` for a tool whose arguments must come from the caller, not from the model's guesses. The tool gets a required boolean argument, `data_supplied_by_user` (`VOUCHED_PARAMETER`), in which the model says the caller gave the details the call needs (ids it looked up for them don't count against it). Unless it's `true`, the handler doesn't run, and the model gets "&lt;name&gt; was not run." with the tool prompt "Get the answer from the user before using this tool." The handler never sees the argument |
 | `nullableOptional` | `boolean` | the agent's | `true` to let the model send `null` for an optional argument, as providers with strict schemas require. Each argument that isn't required takes `null` as well as its type, and a `null` reaches the handler as an argument not given. Left out, it follows [`setNullableOptionalParameters()`](#setnullableoptionalparametersenabled) |
 | `middleware` | `ToolMiddleware[]` | none | Middleware that runs around this tool's calls only, inside the agent's. See [`addToolMiddleware()`](#addtoolmiddlewaremiddleware) |
 | `needsConversation` | `boolean` | `false` | `true` when the handler reads the conversation, as [`callerTurns(rawData)`](#post-prompt-helpers) does. It turns on the agent's `swaig_post_conversation` when the SWML is rendered, so every tool request carries the call log, unless that param was set to `false` |
@@ -720,11 +720,20 @@ addPatternHint(opts: { hint: string; pattern: string; replace: string; ignoreCas
 
 #### `addLanguage(config)`
 
-Add a language to the AI verb's `languages`. `speechFillers` and `functionFillers` are emitted as `speech_fillers` and `function_fillers` when both are given, and one alone as `fillers`. `speechModel` is emitted as `speech_model`, and `params` only when it isn't empty. See [LanguageConfig](#languageconfig).
+Add a language to the AI verb's `languages`. A `voice` in the `engine.voice:model` form is split into `voice`, `engine` and `model`; a list of up to 8 in that form is sent as it is, the first speaking and the rest its fallbacks, and takes no `engine` or `model`. `speechFillers` and `functionFillers` are emitted as `speech_fillers` and `function_fillers` when both are given, and one alone as `fillers`. `speechModel` is emitted as `speech_model`, and `params` only when it isn't empty. See [LanguageConfig](#languageconfig).
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
 addLanguage(config: LanguageConfig): this
+```
+
+#### `setDefaultVoice(voice)`
+
+Set the voice for every voice the agent leaves out: its own, a language's with no voice, a multilingual language's with no voice. The SWML variable `default_voice` is set just before the AI verb (on a per-request copy too), and a voice the agent sets itself wins. `voice` is one voice, a list of up to 8 (the first speaks, the rest are its fallbacks), or an object of language codes to either, with a `default` entry for the rest. A language matches by its exact code, then its base language (`es` for `es-MX`), then `default`. With no multilingual languages of its own, the object's languages become them. `null` clears it. Throws on an empty voice, more than 8, or a language that isn't a code.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+setDefaultVoice(voice: string | string[] | Record<string, string | string[]> | null): this
 ```
 
 #### `setLanguages(languages)`
@@ -1731,7 +1740,7 @@ console.log(JSON.stringify(result.toDict()));
 | `connect` | `(destination: string, final?: boolean, fromAddr?: string): this` | A `SWML` action with a `connect` verb (`to`, and `from` when `fromAddr` is set), and `transfer: 'true'` or `'false'` from `final` (default `true`) |
 | `swmlTransfer` | `(dest: string, aiResponse: string, final?: boolean): this` | A `SWML` action that sets `ai_response` and then runs `transfer` to `dest`, with `transfer` from `final` (default `true`) |
 | `hangup` | `(): this` | `{ hangup: true }` |
-| `hold` | `(prompt?: string \| number, timeout?: number, step?: string, timeoutStep?: string): this` | `{ hold: timeout }`, or `{ hold: { timeout, step, timeout_step } }` when a step is given. See [`hold()`](#hold). |
+| `hold` | `(prompt?: string \| number, timeout?: number \| string, step?: string, timeoutStep?: string): this` | `{ hold: timeout }`, or `{ hold: { timeout, step, timeout_step } }` when a step is given. See [`hold()`](#hold). |
 | `waitForUser` | `(opts?: { enabled?: boolean; timeout?: number; answerFirst?: boolean }): this` | `{ wait_for_user: value }`, where value is `'answer_first'`, the timeout, `enabled` or `true`, in that order of precedence |
 | `stop` | `(): this` | `{ stop: true }` |
 
@@ -1774,7 +1783,7 @@ console.log(JSON.stringify(result.toDict()));
 | `say` | `(text: string): this` | `{ say: text }` |
 | `playBackgroundFile` | `(filename: string, wait?: boolean): this` | `{ playback_bg: filename }`, or `{ playback_bg: { file, wait: true } }` when `wait` is `true` |
 | `stopBackgroundFile` | `(): this` | `{ stop_playback_bg: true }` |
-| `changeVoice` | `(voice: string): this` | `{ change_voice: voice }`. Changes the AI's voice for the rest of the call, from the next batch of speech on; `voice` is in the `engine.voice:model` form a language's voice takes. Throws on an empty voice |
+| `changeVoice` | `(voice: string \| string[]): this` | `{ change_voice: voice }`. Changes the AI's voice for the rest of the call, from the next batch of speech on; `voice` is in the `engine.voice:model` form a language's voice takes, or a list of up to 8, the first speaking and the rest its fallbacks. Throws on an empty voice or more than 8 |
 
 ### Speech Actions
 
@@ -1782,8 +1791,8 @@ console.log(JSON.stringify(result.toDict()));
 |--------|-----------|-------|
 | `addDynamicHints` | `(hints: (string \| { pattern: string; replace: string; ignore_case?: boolean })[]): this` | `{ add_dynamic_hints: hints }` |
 | `clearDynamicHints` | `(): this` | `{ clear_dynamic_hints: {} }` |
-| `setEndOfSpeechTimeout` | `(milliseconds: number): this` | `{ end_of_speech_timeout: milliseconds }` |
-| `setSpeechEventTimeout` | `(milliseconds: number): this` | `{ speech_event_timeout: milliseconds }` |
+| `setEndOfSpeechTimeout` | `(milliseconds: number \| string): this` | `{ end_of_speech_timeout: milliseconds }`; a duration such as `'1.5s'` passes through |
+| `setSpeechEventTimeout` | `(milliseconds: number \| string): this` | `{ speech_event_timeout: milliseconds }`; a duration such as `'1.5s'` passes through |
 
 ### Data Actions
 
@@ -3602,7 +3611,7 @@ interface LanguageConfig
 |----------|------|-------------|
 | `name` | `string` | Language name, such as `"English"` |
 | `code` | `string` | Language code, such as `"en-US"` |
-| `voice` | `string` | Voice identifier (optional) |
+| `voice` | `string \| string[]` | Voice identifier, `engine.voice:model`, or a list of up to 8 in that form, the first speaking and the rest its fallbacks (optional) |
 | `engine` | `string` | TTS engine (optional) |
 | `model` | `string` | TTS model (optional) |
 | `speechFillers` | `string[]` | Phrases that fill a pause in speech, emitted as `speech_fillers` (optional) |

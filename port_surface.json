@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 3632c61f66b07cd56efe56c19941de39d9200170",
+  "generated_from": "signalwire-typescript @ 414be64fec2a6aa0d1a52222e05751f1f69f79e9",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -669,6 +669,7 @@
           "enable_debug_events",
           "enable_mcp_server",
           "get_language_params",
+          "set_default_voice",
           "set_function_includes",
           "set_global_data",
           "set_internal_fillers",
@@ -1649,6 +1650,274 @@
       },
       "functions": []
     },
+    "signalwire.operations.agent": {
+      "classes": {
+        "CallContext": [
+          "__init__",
+          "account_id",
+          "act",
+          "call_id",
+          "go",
+          "medium",
+          "raw_data",
+          "service",
+          "show"
+        ],
+        "Operations": [
+          "__init__",
+          "apply_write",
+          "confirm_gates",
+          "identify",
+          "install",
+          "lookup",
+          "offer",
+          "operation",
+          "phase",
+          "prefilled",
+          "preview",
+          "proposal",
+          "record_text",
+          "transfer_with",
+          "writes_with"
+        ],
+        "ServiceAgent": [
+          "__init__",
+          "compile",
+          "confirm_gates",
+          "ensure_tools_defined",
+          "identify",
+          "lookup",
+          "offer",
+          "on_function_call",
+          "on_swml_request",
+          "operation",
+          "ops",
+          "phase",
+          "preview",
+          "transfer_with",
+          "writes_with"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.operations.appointments": {
+      "classes": {
+        "Slot": [
+          "id",
+          "label"
+        ],
+        "Appointment": [
+          "id",
+          "label"
+        ],
+        "Appointments": [
+          "__init__",
+          "add_to",
+          "tools"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.operations.infobot.continuity": {
+      "classes": {
+        "Continuity": [
+          "__init__",
+          "install",
+          "resolve_conversation_id",
+          "store"
+        ]
+      },
+      "functions": [
+        "build_seed",
+        "default_conversation_id",
+        "default_switch_note",
+        "default_switch_turn",
+        "medium_of",
+        "pair_tools"
+      ]
+    },
+    "signalwire.operations.infobot.knowledge": {
+      "classes": {
+        "InfoBotKnowledge": [
+          "__init__",
+          "add_query_type",
+          "add_result_rule",
+          "add_rule",
+          "install",
+          "set_authority",
+          "set_demote",
+          "set_exclude",
+          "set_expander",
+          "set_fallback",
+          "set_query_transform",
+          "set_query_type_help",
+          "set_result_context",
+          "tools",
+          "use_search_service"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.operations.infobot.legs": {
+      "classes": {
+        "LegStore": [
+          "__init__",
+          "legs",
+          "next_leg_id",
+          "record",
+          "root_id",
+          "set_store"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.operations.infobot.livecall": {
+      "classes": {},
+      "functions": [
+        "say_into_call"
+      ]
+    },
+    "signalwire.operations.messages": {
+      "classes": {
+        "Message": [
+          "account_id",
+          "call_id",
+          "name",
+          "number",
+          "text",
+          "to"
+        ],
+        "Messages": [
+          "__init__",
+          "add_to",
+          "tool"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.operations.model": {
+      "classes": {
+        "Need": [
+          "__init__",
+          "ask",
+          "fields"
+        ],
+        "Refuse": [
+          "__init__",
+          "keep",
+          "then",
+          "why"
+        ],
+        "WriteFailed": [
+          "__init__",
+          "reason"
+        ],
+        "Write": [
+          "__eq__",
+          "__init__",
+          "__repr__",
+          "from_dict",
+          "name",
+          "to_dict"
+        ],
+        "Change": [
+          "after",
+          "after_why",
+          "currency",
+          "done",
+          "done_lines",
+          "money",
+          "money_moved",
+          "read_back",
+          "then",
+          "touches",
+          "writes"
+        ],
+        "Field": [
+          "ask",
+          "description",
+          "kind",
+          "required",
+          "schema"
+        ],
+        "Values": [
+          "__init__",
+          "args",
+          "get"
+        ],
+        "Operation": [
+          "apply",
+          "conflicts_with",
+          "describe",
+          "fields",
+          "merge",
+          "prepare",
+          "same_item",
+          "without"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.operations.money": {
+      "classes": {},
+      "functions": [
+        "amount_of",
+        "check_currency",
+        "format_money"
+      ]
+    },
+    "signalwire.operations.outbound": {
+      "classes": {
+        "Callee": [
+          "data",
+          "number",
+          "zone"
+        ],
+        "NotPlaced": [
+          "__init__",
+          "callee",
+          "reason"
+        ],
+        "Dialer": [
+          "__init__",
+          "place",
+          "why_not"
+        ]
+      },
+      "functions": [
+        "calling_hours",
+        "consented"
+      ]
+    },
+    "signalwire.operations.payments": {
+      "classes": {
+        "Charge": [
+          "amount",
+          "currency",
+          "description"
+        ],
+        "PaymentResult": [
+          "amount",
+          "currency",
+          "description",
+          "details",
+          "paying_for",
+          "result",
+          "succeeded"
+        ],
+        "Payments": [
+          "__init__",
+          "add_to"
+        ]
+      },
+      "functions": []
+    },
+    "signalwire.operations.wording": {
+      "classes": {},
+      "functions": [
+        "placeholders"
+      ]
+    },
     "signalwire.parameter_schema": {
       "classes": {
         "ParameterSchema": [
@@ -1789,6 +2058,19 @@
         "create_faq_bot_agent"
       ]
     },
+    "signalwire.prefabs.front_desk": {
+      "classes": {
+        "Department": [
+          "description",
+          "open",
+          "to"
+        ],
+        "FrontDeskAgent": [
+          "__init__"
+        ]
+      },
+      "functions": []
+    },
     "signalwire.prefabs.info_gatherer": {
       "classes": {
         "InfoGathererAgent": [
@@ -1803,6 +2085,14 @@
       "functions": [
         "create_info_gatherer_agent"
       ]
+    },
+    "signalwire.prefabs.personal_assistant": {
+      "classes": {
+        "PersonalAssistantAgent": [
+          "__init__"
+        ]
+      },
+      "functions": []
     },
     "signalwire.prefabs.receptionist": {
       "classes": {
@@ -2157,8 +2447,25 @@
         ],
         "CallingErrorEvent": [
           "code",
+          "engine",
+          "error",
+          "error_reason",
+          "expected_ms",
+          "fallback_engine",
+          "fallback_index",
+          "fallback_language_code",
+          "fallback_model",
+          "fallback_source",
+          "fallback_voice",
+          "fatal",
           "from_payload",
-          "message"
+          "language_code",
+          "message",
+          "model",
+          "recovery",
+          "stall_ms",
+          "transport",
+          "voice"
         ],
         "MessageReceiveEvent": [
           "body",

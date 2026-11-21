@@ -1,6 +1,6 @@
 {
   "name": "@signalwire/sdk",
-  "version": "3.12.2",
+  "version": "3.13.0",
   "description": "SignalWire AI Agents SDK for TypeScript/Node.js",
   "keywords": [
     "signalwire",
@@ -34,6 +34,16 @@
       "types": "./dist/livewire/index.d.ts",
       "import": "./dist/livewire/index.js",
       "default": "./dist/livewire/index.js"
+    },
+    "./operations": {
+      "types": "./dist/operations/index.d.ts",
+      "import": "./dist/operations/index.js",
+      "default": "./dist/operations/index.js"
+    },
+    "./operations/infobot": {
+      "types": "./dist/operations/infobot/index.d.ts",
+      "import": "./dist/operations/infobot/index.js",
+      "default": "./dist/operations/infobot/index.js"
     },
     "./package.json": "./package.json"
   },

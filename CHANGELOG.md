@@ -3,6 +3,86 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## 3.13.0 (2026-11-20)
+
+Parity with signalwire-python 3.13.0: `signalwire.operations`, its task
+packs and two prefabs built on them, and fallback voices.
+
+### Added
+
+- `@signalwire/sdk/operations`: an agent written as what it can do for a
+  caller. Each operation is a class that extends `Operation`, with `Field`
+  properties, a `static description` the model reads, and
+  `prepare(call, values)`, which returns a `Change` or throws `Need` or
+  `Refuse`. The SDK generates the tools, steps, gates and the call's record
+  in `global_data`, and runs every change the same way: read back, one yes,
+  the writes, the record. A request made while another change waits is
+  combined with it, set aside, or refused by per-operation hooks.
+  `ServiceAgent` is the prefab; `new Operations(opts).install(agent)` puts
+  it on any `AgentBase`, adding to the agent's own prompt sections, steps
+  and initial step rather than replacing them. Money is exact, kept as the
+  reference's `Decimal` writes it, in the currency each change or the
+  service gives (`currency`, `formatMoney`, `CURRENCIES`, `moneyFormat`);
+  the medium is given (`medium`) or found on each call's first request;
+  every generated string has a key in `DEFAULT_WORDING` that `wording`
+  replaces; the rules change by key; and `namespace` names everything a
+  service generates, so two can share an agent. The record carries a
+  version (`v`). See docs/operations.md.
+- `@signalwire/sdk/operations/infobot`: `InfoBotKnowledge` answers from a
+  corpus with a search you supply (sync or async) and your own ranking and
+  grounding rules, and can take a caller's details for a follow-up;
+  `Continuity` carries a conversation between voice and chat; and
+  `sayIntoCall` speaks on a live call through the REST API.
+- Task packs, against your own backend given as functions: `Appointments`,
+  `Messages` and `Payments` (a card payment the model never hears: the
+  amount comes from your `charge` function, the platform's pay verb takes
+  the card, and the outcome is read from what the platform recorded).
+  `Change.then` tells the model what to do once a change is made.
+- `FrontDeskAgent` (with `Department`) and `PersonalAssistantAgent`: a
+  business's front desk and an assistant for one person, who screens
+  callers and puts them through with a whisper the person accepts with a
+  key, and otherwise takes a message or books time.
+- `Dialer` places an outbound call to an agent only once every check
+  passes (`consented`, `callingHours` read on the callee's own clock, or
+  your own), and otherwise throws `NotPlaced` with the reason and makes no
+  request.
+- `new CallSimulator(agent, { requestFields })` adds fields such as
+  `caller_id_num` to every tool request, as the platform sends them.
+- Fallback voices: a voice can be a list of up to 8 in the
+  `engine.voice:model` form, the first speaking and the rest tried in order
+  when it fails, in `addLanguage()`, `FunctionResult.changeVoice()` and
+  `setMultilingual()`'s languages. `setDefaultVoice()` sets the SWML
+  variable `default_voice` before the AI verb, for every voice the agent
+  leaves out, by language. `CallingErrorEvent` types a voice failure's
+  fields: the voice that failed and why, the one that took over
+  (`fallbackIndex`, `fallbackSource`), and `fatal`.
+- Durations: `setEndOfSpeechTimeout()`, `setSpeechEventTimeout()` and
+  `hold()`'s timeout take strings such as `'1.5s'`, `'500ms'` or `'2m'`, as
+  the AI params counted in milliseconds and `hard_stop_time` do.
+
+TypeScript has no keyword arguments or decorators: options are objects,
+an operation registers with `agent.operation(Class, opts)`, and a lookup is
+`fn(call, args)` with its `fields` given. `prefilled()`, `LegStore` and
+`Dialer.place()` are async.
+
+### Deprecated
+
+- `ConciergeAgent`, whose availability check answers yes for any listed
+  service with no calendar behind it; use `FrontDeskAgent` with
+  `Appointments` and `InfoBotKnowledge`. `ReceptionistAgent`; use
+  `FrontDeskAgent`. `FAQBotAgent`; use `InfoBotKnowledge`. Each still
+  works, and emits a `DeprecationWarning` once when it's made.
+
+### Changed
+
+- `addLanguage()` splits a voice in the `engine.voice:model` form into
+  `voice`, `engine` and `model`, as the reference does; it was sent whole.
+- A vouched tool's `data_supplied_by_user` argument now asks the model
+  whether the user gave the details the call needs themselves. It asked
+  whether every other argument was what the user said, and a model
+  answered that honestly with false for a tool whose arguments include an
+  id it had looked up, so the tool was refused again and again.
+
 ## 3.12.2 (2026-11-20)
 
 Parity with signalwire-python 3.12.2.

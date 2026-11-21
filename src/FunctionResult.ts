@@ -5,6 +5,9 @@
  * hangup, SMS and others). Every mutating method returns `this` for fluent chaining.
  */
 
+import { _pyStrip } from './PyCompat.js';
+import { _voiceChain, type VoiceChain } from './Voices.js';
+
 /**
  * A single SWAIG action object. Each action is keyed by its action name (for
  * example `hangup`, `say` or `SWML`) mapped to that action's payload. `connect()`,
@@ -383,12 +386,19 @@ export class FunctionResult {
    *
    * @param prompt - Instruction for the model to act on before the hold. A
    *   number here is taken as `timeout`, so `hold(120)` keeps working.
-   * @param timeout - Hold duration in seconds, clamped to 0-900 (default 300).
+   * @param timeout - Hold duration in seconds, clamped to 0-900 (default 300), or a
+   *   duration such as `'2m'`, `'1m30s'` or `'1:30'`, which the platform reads (and
+   *   limits) itself.
    * @param step - Step to move to when the call is taken off hold.
    * @param timeoutStep - Step to move to when the hold times out.
    * @returns This instance for chaining.
    */
-  hold(prompt?: string | number, timeout = 300, step?: string, timeoutStep?: string): this {
+  hold(
+    prompt?: string | number,
+    timeout: number | string = 300,
+    step?: string,
+    timeoutStep?: string,
+  ): this {
     let text: string | undefined;
     if (typeof prompt === 'number') {
       timeout = prompt;
@@ -399,7 +409,11 @@ export class FunctionResult {
       this.setToolResponse('status: on hold', text);
       this.postProcess = true;
     }
-    const clamped = Math.max(0, Math.min(timeout, 900));
+    // Clamp a number of seconds to the valid range; a duration string is the platform's to read
+    if (typeof timeout === 'string' && !_pyStrip(timeout)) {
+      throw new Error("timeout must be a number of seconds or a duration such as '2m'");
+    }
+    const clamped = typeof timeout === 'string' ? timeout : Math.max(0, Math.min(timeout, 900));
     if (step === undefined && timeoutStep === undefined) {
       return this.addAction('hold', clamped);
     }
@@ -483,15 +497,13 @@ export class FunctionResult {
    * the rest of the call. If the new voice cannot be opened, the platform falls
    * back to its fallback voice. The platform ignores an empty spec, so the SDK
    * refuses one.
-   * @param voice - Voice spec in `engine.voice:model` form.
+   * @param voice - Voice spec in `engine.voice:model` form, or a list of up to 8,
+   *   the first speaking and the rest its fallbacks, tried in order when it fails.
    * @returns This instance for chaining.
-   * @throws {Error} When `voice` is empty or only whitespace.
+   * @throws {Error} When `voice` is empty or only whitespace, or names more than 8.
    */
-  changeVoice(voice: string): this {
-    if (typeof voice !== 'string' || !voice.trim()) {
-      throw new Error('voice must be a non-empty string');
-    }
-    return this.addAction('change_voice', voice);
+  changeVoice(voice: VoiceChain): this {
+    return this.addAction('change_voice', _voiceChain(voice));
   }
 
   // ── Speech ──────────────────────────────────────────────────────────
@@ -518,20 +530,22 @@ export class FunctionResult {
 
   /**
    * Set the silence after detected speech that finalizes speech recognition.
-   * @param milliseconds - Timeout in milliseconds.
+   * @param milliseconds - Timeout in milliseconds, or a duration such as `'1.5s'`,
+   *   `'500ms'` or `'2m'`.
    * @returns This instance for chaining.
    */
-  setEndOfSpeechTimeout(milliseconds: number): this {
+  setEndOfSpeechTimeout(milliseconds: number | string): this {
     return this.addAction('end_of_speech_timeout', milliseconds);
   }
 
   /**
    * Set the time since the last speech detection event after which speech
    * recognition is finalized. Suits noisy environments.
-   * @param milliseconds - Timeout in milliseconds.
+   * @param milliseconds - Timeout in milliseconds, or a duration such as `'1.5s'`,
+   *   `'500ms'` or `'2m'`.
    * @returns This instance for chaining.
    */
-  setSpeechEventTimeout(milliseconds: number): this {
+  setSpeechEventTimeout(milliseconds: number | string): this {
     return this.addAction('speech_event_timeout', milliseconds);
   }
 

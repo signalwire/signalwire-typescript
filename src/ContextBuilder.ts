@@ -770,6 +770,27 @@ export class Step {
   }
 
   /**
+   * Add to a step another layer made, keeping what it has: `text` goes after
+   * its own (as a section titled `section` when it's written in sections),
+   * and `functions` join its own, in order, once each. For layers that build
+   * on each other's steps, such as the operations module.
+   * @param text - The text to add.
+   * @param functions - The tools to add.
+   * @param section - The section's title, for a step written in sections.
+   * @returns This step for chaining.
+   * @internal
+   */
+  _extend(text: string, functions: readonly string[], section = 'More'): this {
+    if (this.sections.length > 0) {
+      if (text) this.addSection(section, text);
+    } else if (text) {
+      this.setText(this.text ? `${this.text}\n\n${text}` : text);
+    }
+    const had = Array.isArray(this.functions) ? this.functions : [];
+    return this.setFunctions([...new Set([...had, ...functions])]);
+  }
+
+  /**
    * Removes all POM sections and raw text from this step.
    * @returns This step for chaining.
    */

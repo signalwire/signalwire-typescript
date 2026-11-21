@@ -6,6 +6,7 @@
  * Ported from the Python SDK `signalwire.prefabs.concierge.ConciergeAgent`.
  */
 
+import { _warnDeprecated as warnDeprecated } from './deprecated.js';
 import { AgentBase } from '../AgentBase.js';
 import { FunctionResult } from '../FunctionResult.js';
 import type { AgentOptions } from '../types.js';
@@ -38,6 +39,10 @@ export interface ConciergeConfig {
 // ── Agent ───────────────────────────────────────────────────────────────────
 
 /**
+ * Deprecated: its availability check answers yes for any listed service, with no calendar behind
+ * it. Use FrontDeskAgent, with Appointments for bookings and InfoBotKnowledge for amenities and
+ * hours. It still works, and warns when made.
+ *
  * Prefab agent that acts as a virtual concierge for a venue, providing information
  * about services, amenities, hours of operation, availability, and directions.
  *
@@ -61,6 +66,8 @@ export interface ConciergeConfig {
  *
  * await agent.serve({ port: 3000 });
  * ```
+ *
+ * @deprecated Its availability check answers yes for any listed service, with no calendar behind it. Use FrontDeskAgent, with Appointments for bookings and InfoBotKnowledge for amenities and hours.
  */
 export class ConciergeAgent extends AgentBase {
   /** Name of the venue or business. */
@@ -86,6 +93,10 @@ export class ConciergeAgent extends AgentBase {
       usePom: true,
       ...config.agentOptions,
     });
+    warnDeprecated(
+      'ConciergeAgent',
+      'its availability check answers yes for any listed service, with no calendar behind it. Use FrontDeskAgent, with Appointments for bookings and InfoBotKnowledge for amenities and hours.',
+    );
 
     // Store configuration
     this.venueName = config.venueName;

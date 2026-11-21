@@ -15,7 +15,9 @@
     "sourceMap": true,
     "paths": {
       "@signalwire/sdk": ["./src/index.ts"],
-      "@signalwire/sdk/livewire": ["./src/livewire/index.ts"]
+      "@signalwire/sdk/livewire": ["./src/livewire/index.ts"],
+      "@signalwire/sdk/operations": ["./src/operations/index.ts"],
+      "@signalwire/sdk/operations/infobot": ["./src/operations/infobot/index.ts"]
     }
   },
   "include": ["src/**/*"],

@@ -23,6 +23,7 @@ Run `npx sw-tsdocs` for a map of the SDK, `npx sw-tsdocs <topic>` for an area, a
 - [docs/skills_parameter_schema.md](../docs/skills_parameter_schema.md): How skills describe their parameters
 - [docs/third_party_skills.md](../docs/third_party_skills.md): Packaging and loading skills from outside the SDK
 - [docs/prefabs-guide.md](../docs/prefabs-guide.md): Each prefab and its options
+- [docs/operations.md](../docs/operations.md): The front desk, the personal assistant and the task packs they're built from
 - [docs/programmatically_governed_inference.md](../docs/programmatically_governed_inference.md): The discipline itself: why the model gets no authority, and the four constraint layers
 - [docs/developer_pain_points.md](../docs/developer_pain_points.md): The problems the guide cites, what the SDK and platform provide, and what stays yours
 - [tutorial/fred/tutorial/README.md](../tutorial/fred/tutorial/README.md): Fred, the Wikipedia agent

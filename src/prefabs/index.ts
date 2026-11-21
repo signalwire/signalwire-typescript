@@ -25,3 +25,9 @@ export type { ConciergeConfig } from './ConciergeAgent.js';
 // ReceptionistAgent
 export { ReceptionistAgent, createReceptionistAgent } from './ReceptionistAgent.js';
 export type { ReceptionistConfig, ReceptionistDepartment } from './ReceptionistAgent.js';
+
+// Front desk and personal assistant, built on the operations module
+export { Department, FrontDeskAgent } from './FrontDeskAgent.js';
+export type { FrontDeskAgentOptions } from './FrontDeskAgent.js';
+export { PersonalAssistantAgent } from './PersonalAssistantAgent.js';
+export type { PersonalAssistantAgentOptions } from './PersonalAssistantAgent.js';
