@@ -727,6 +727,26 @@ Add a language to the AI verb's `languages`. A `voice` in the `engine.voice:mode
 addLanguage(config: LanguageConfig): this
 ```
 
+#### `setAgentVoice(voice)`
+
+Set the agent's own voice, the AI verb's `voice`, for a language that has none of its own: one voice as `engine.voice:model`, or a list of up to 8, the first speaking and the rest its fallbacks. `null` clears it. Throws on an empty voice, an empty list, or more than 8.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+setAgentVoice(voice: string | readonly string[] | null): this
+```
+
+#### `setFallbackVoice(voice)`
+
+Set the voices tried once every voice of a language, or the agent's, has failed, before the platform's own last resort: the AI verb's `fallback_voice`, one voice or a list of up to 8. `null` clears it. Throws on an empty voice, an empty list, or more than 8.
+
+<!-- snippet: no-compile API signature / type reference, not runnable code -->
+```ts
+setFallbackVoice(voice: string | readonly string[] | null): this
+```
+
+The platform takes `fallback_voice`, and a list as the agent's voice, from its release after 2026-11-21. A platform without it refuses the AI verb, and the call doesn't run, so check your platform has it before using either. One voice as a string in `setAgentVoice()` works everywhere.
+
 #### `setDefaultVoice(voice)`
 
 Set the voice for every voice the agent leaves out: its own, a language's with no voice, a multilingual language's with no voice. The SWML variable `default_voice` is set just before the AI verb (on a per-request copy too), and a voice the agent sets itself wins. `voice` is one voice, a list of up to 8 (the first speaks, the rest are its fallbacks), or an object of language codes to either, with a `default` entry for the rest. A language matches by its exact code, then its base language (`es` for `es-MX`), then `default`. With no multilingual languages of its own, the object's languages become them. `null` clears it. Throws on an empty voice, more than 8, or a language that isn't a code.

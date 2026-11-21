@@ -6830,6 +6830,34 @@
               ],
               "returns": "any"
             },
+            "set_agent_voice": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "voice",
+                  "type": "optional<union<string,list<string>>>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
+            "set_fallback_voice": {
+              "params": [
+                {
+                  "name": "self",
+                  "kind": "self"
+                },
+                {
+                  "name": "voice",
+                  "type": "optional<union<string,list<string>>>",
+                  "required": true
+                }
+              ],
+              "returns": "any"
+            },
             "set_native_functions": {
               "params": [
                 {

@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "generated_from": "signalwire-typescript @ 7b4274b6f130d58d126d9ade01acd3c840be72ad",
+  "generated_from": "signalwire-typescript @ 27b5dd24fdf1229f84d0d90dcc55ffef4701d05d",
   "typescript_version": "6.0.3",
   "modules": {
     "signalwire": {
@@ -670,7 +670,9 @@
           "enable_debug_events",
           "enable_mcp_server",
           "get_language_params",
+          "set_agent_voice",
           "set_default_voice",
+          "set_fallback_voice",
           "set_function_includes",
           "set_global_data",
           "set_internal_fillers",

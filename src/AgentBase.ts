@@ -76,7 +76,12 @@ import type {
   DynamicConfigCallback,
 } from './types.js';
 import type { SwmlRequestData } from './PlatformContracts.js';
-import { _voiceChain, _voicesByLanguage, type VoicesByLanguage } from './Voices.js';
+import {
+  _voiceChain,
+  _voicesByLanguage,
+  type VoiceChain,
+  type VoicesByLanguage,
+} from './Voices.js';
 import type { SwaigRequest, PostPrompt, PostPromptData } from './SwaigContracts.js';
 
 /**
@@ -363,6 +368,9 @@ export class AgentBase extends SWMLService {
   private multilingual: Record<string, unknown> = {};
   /** The SWML variable default_voice, set before the ai verb; null when unset. */
   private defaultVoice: string | string[] | Record<string, string | string[]> | null = null;
+  // The ai verb's own voice and fallback voice (ai.voice, ai.fallback_voice); null when unset
+  private agentVoice: string | string[] | null = null;
+  private fallbackVoice: string | string[] | null = null;
   private pronounce: PronunciationRule[] = [];
   private params: Record<string, unknown> = {};
   private globalData: Record<string, unknown> = {};
@@ -1135,6 +1143,43 @@ export class AgentBase extends SWMLService {
   setLanguages(languages: LanguageConfig[]): this {
     this.languages = [];
     for (const l of languages) this.addLanguage(l);
+    return this;
+  }
+
+  /**
+   * Set the agent's voice, for a language that has none of its own: the ai
+   * verb's `voice`.
+   *
+   * The platform takes a list here from its release after 2026-11-21; a
+   * platform without it refuses the ai verb, so the call doesn't run. One
+   * voice as a string works everywhere.
+   *
+   * @param voice - One voice as `"engine.voice:model"`, or a list of up to 8,
+   *   the first speaking and the rest its fallbacks, tried in order when it
+   *   fails. Null clears it.
+   * @returns This agent instance for chaining.
+   * @throws {Error} For an empty voice, an empty list, or more than 8.
+   */
+  setAgentVoice(voice: VoiceChain | null): this {
+    this.agentVoice = voice === null ? null : _voiceChain(voice);
+    return this;
+  }
+
+  /**
+   * Set the voices tried when every voice of a language, or the agent's, has
+   * failed, before the platform's own last resort: the ai verb's
+   * `fallback_voice`.
+   *
+   * The platform takes `fallback_voice` from its release after 2026-11-21; a
+   * platform without it refuses the ai verb, so the call doesn't run.
+   *
+   * @param voice - One voice as `"engine.voice:model"`, or a list of up to 8,
+   *   tried in order. Null clears it.
+   * @returns This agent instance for chaining.
+   * @throws {Error} For an empty voice, an empty list, or more than 8.
+   */
+  setFallbackVoice(voice: VoiceChain | null): this {
+    this.fallbackVoice = voice === null ? null : _voiceChain(voice, 'fallback_voice');
     return this;
   }
 
@@ -3543,6 +3588,9 @@ export class AgentBase extends SWMLService {
     }
     if (Object.keys(params).length) aiConfig['params'] = params;
     if (Object.keys(this.globalData).length) aiConfig['global_data'] = this.globalData;
+    // The ai verb's own voice and fallback voice, after the rest, where Python puts them
+    if (this.agentVoice !== null) aiConfig['voice'] = this.agentVoice;
+    if (this.fallbackVoice !== null) aiConfig['fallback_voice'] = this.fallbackVoice;
 
     // Debug events
     if (this.debugEventsEnabled) {
@@ -3612,6 +3660,8 @@ export class AgentBase extends SWMLService {
     copy.languages = clone(this.languages);
     copy.multilingual = clone(this.multilingual);
     copy.defaultVoice = clone(this.defaultVoice);
+    copy.agentVoice = clone(this.agentVoice);
+    copy.fallbackVoice = clone(this.fallbackVoice);
     copy.pronounce = clone(this.pronounce);
     copy.params = clone(this.params);
     copy.globalData = clone(this.globalData);

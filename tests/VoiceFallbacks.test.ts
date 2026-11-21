@@ -1,12 +1,13 @@
 /**
  * Fallback voices, the default voice, duration strings, and calling.error's
- * voice fields (signalwire-python 3.13.0), and gather questions the platform
- * says itself (3.14.0).
+ * voice fields (signalwire-python 3.13.0), gather questions the platform
+ * says itself (3.14.0), and the agent's own voice and fallback voice (3.15.0).
  */
 
 import { AgentBase } from '../src/AgentBase.js';
 import { GatherInfo, GatherQuestion } from '../src/ContextBuilder.js';
 import { FunctionResult } from '../src/FunctionResult.js';
+import { SchemaUtils } from '../src/SchemaUtils.js';
 import { CallingErrorEvent } from '../src/relay/RelayEvent.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tests read loose SWML
@@ -271,5 +272,69 @@ describe('gather questions the platform says itself', () => {
   it('exposes say on a question, undefined meaning the gather decides', () => {
     expect(new GatherQuestion({ key: 'k', question: 'Q?' }).say).toBeUndefined();
     expect(new GatherQuestion({ key: 'k', question: 'Q?', say: false }).say).toBe(false);
+  });
+});
+
+describe("the agent's voice and fallback voice", () => {
+  it("are the ai verb's own", () => {
+    const a = agent().setAgentVoice(CHAIN).setFallbackVoice('gcloud.en-US-Neural2-C');
+    const ai = aiOf(a);
+    expect(ai.voice).toEqual(CHAIN);
+    expect(ai.fallback_voice).toBe('gcloud.en-US-Neural2-C');
+    a.setAgentVoice(null).setFallbackVoice(null);
+    expect('voice' in aiOf(a) || 'fallback_voice' in aiOf(a)).toBe(false);
+  });
+
+  it('come after params and global_data, as Python emits them (found in review)', () => {
+    const a = agent()
+      .setParam('temperature', 0.5)
+      .setGlobalData({ account: 'abc' })
+      .setAgentVoice('rime.spore')
+      .setFallbackVoice(CHAIN);
+    const keys = Object.keys(aiOf(a));
+    expect(keys.slice(keys.indexOf('params'))).toEqual([
+      'params',
+      'global_data',
+      'voice',
+      'fallback_voice',
+    ]);
+  });
+
+  it('are checked like every voice field', () => {
+    expect(() => agent().setAgentVoice('  ')).toThrow(
+      'voice must be a non-empty string, or a list of them',
+    );
+    expect(() => agent().setFallbackVoice([])).toThrow(
+      'fallback_voice must name at least one voice',
+    );
+    expect(() => agent().setFallbackVoice(Array(9).fill('rime.spore'))).toThrow(
+      'fallback_voice takes at most 8 voices',
+    );
+    expect(aiOf(agent().setAgentVoice(['rime.spore'])).voice).toEqual(['rime.spore']);
+  });
+
+  it('are carried by the per-request copy, and a change there stays on it', async () => {
+    const a = agent().setAgentVoice('rime.spore').setFallbackVoice(CHAIN);
+    a.setDynamicConfigCallback((_q, _b, _h, copy) => {
+      (copy as AgentBase).setFallbackVoice('rime.luna');
+    });
+    const auth = `Basic ${Buffer.from('u:p').toString('base64')}`;
+    const [, , body] = await a.handleRequest(
+      'POST',
+      'http://localhost/',
+      { authorization: auth },
+      {},
+    );
+    const ai = mainOf(body).find((v) => 'ai' in v).ai;
+    expect(ai.voice).toBe('rime.spore');
+    expect(ai.fallback_voice).toBe('rime.luna');
+    expect(aiOf(a).fallback_voice).toEqual(CHAIN);
+  });
+
+  it("pass the ai verb's key check, which the schema doesn't list yet", () => {
+    const schema = new SchemaUtils();
+    const ai = { prompt: { text: 'Hi' }, voice: CHAIN, fallback_voice: 'rime.spore' };
+    expect(schema.validateVerb('ai', ai)).toEqual({ valid: true, errors: [] });
+    expect(schema.validateVerb('ai', { ...ai, voise: 'x' }).valid).toBe(false);
   });
 });
