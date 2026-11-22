@@ -832,8 +832,7 @@ export class ConferenceEvent extends RelayEvent {
  * voice that took over (the `fallback*` fields): `fallbackIndex` is its place
  * in the chain, 0 the voice that was speaking and the chain's length the
  * platform's last resort, and `fallbackSource` where it came from (`voice`,
- * `fallback_voice` or `platform`), both from the platform's release after
- * 2026-11-21. When no voice is left, `fatal` is true. A
+ * `fallback_voice` or `platform`). When no voice is left, `fatal` is true. A
  * stall adds `stallMs`, `expectedMs`, `transport` and `recovery`. Every field is
  * also in `params`, as sent.
  */

@@ -622,9 +622,7 @@ export class Step {
    * answer still goes through `gather_submit`, the model checking it and
    * doing any confirm read-back, and it asks again in its own words if the
    * answer is unclear or the caller stays silent. A question's own `say`
-   * overrides this. A realtime model asks every question itself. It needs the
-   * platform's release after 2026-11-21; an earlier platform ignores it, and
-   * the model asks.
+   * overrides this. A realtime model asks every question itself.
    *
    * @param opts - Optional output key, completion action, prompt, isolated-default and sayQuestions configuration.
    * @returns This step for chaining.

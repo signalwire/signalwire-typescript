@@ -720,7 +720,7 @@ addPatternHint(opts: { hint: string; pattern: string; replace: string; ignoreCas
 
 #### `addLanguage(config)`
 
-Add a language to the AI verb's `languages`. A `voice` in the `engine.voice:model` form is split into `voice`, `engine` and `model`; a list of up to 8 in that form is sent as it is, the first speaking and the rest its fallbacks, and takes no `engine` or `model`. A list needs the platform's release after 2026-11-21: an earlier platform drops a language whose voice is a list. `speechFillers` and `functionFillers` are emitted as `speech_fillers` and `function_fillers` when both are given, and one alone as `fillers`. `speechModel` is emitted as `speech_model`, and `params` only when it isn't empty. See [LanguageConfig](#languageconfig).
+Add a language to the AI verb's `languages`. A `voice` in the `engine.voice:model` form is split into `voice`, `engine` and `model`; a list of up to 8 in that form is sent as it is, the first speaking and the rest its fallbacks, and takes no `engine` or `model`. `speechFillers` and `functionFillers` are emitted as `speech_fillers` and `function_fillers` when both are given, and one alone as `fillers`. `speechModel` is emitted as `speech_model`, and `params` only when it isn't empty. See [LanguageConfig](#languageconfig).
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
@@ -745,11 +745,9 @@ Set the voices tried once every voice of a language, or the agent's, has failed,
 setFallbackVoice(voice: string | readonly string[] | null): this
 ```
 
-The platform takes `fallback_voice`, and a list as the agent's voice, from its release after 2026-11-21. An earlier platform refuses the AI verb, and the call doesn't run, so check your platform has it before using either. One voice as a string in `setAgentVoice()` works everywhere.
-
 #### `setDefaultVoice(voice)`
 
-Set the voice for every voice the agent leaves out: its own, a language's with no voice, a multilingual language's with no voice. The SWML variable `default_voice` is set just before the AI verb (on a per-request copy too), and a voice the agent sets itself wins. `voice` is one voice, a list of up to 8 (the first speaks, the rest are its fallbacks), or an object of language codes to either, with a `default` entry for the rest. A language matches by its exact code, then its base language (`es` for `es-MX`), then `default`. With no multilingual languages of its own, the object's languages become them. `null` clears it. Throws on an empty voice, more than 8, or a language that isn't a code. It needs the platform's release after 2026-11-21; an earlier platform ignores it.
+Set the voice for every voice the agent leaves out: its own, a language's with no voice, a multilingual language's with no voice. The SWML variable `default_voice` is set just before the AI verb (on a per-request copy too), and a voice the agent sets itself wins. `voice` is one voice, a list of up to 8 (the first speaks, the rest are its fallbacks), or an object of language codes to either, with a `default` entry for the rest. A language matches by its exact code, then its base language (`es` for `es-MX`), then `default`. With no multilingual languages of its own, the object's languages become them. `null` clears it. Throws on an empty voice, more than 8, or a language that isn't a code.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
@@ -1776,7 +1774,7 @@ hold(prompt?: string | number, timeout?: number | string, step?: string, timeout
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `prompt` | `string \| number` | none | Instruction for the model to deliver before the hold. A number here is read as `timeout`, so `hold(120)` still works. |
-| `timeout` | `number \| string` | `300` | Hold length in seconds, clamped to 0 to 900, or a duration such as `'2m'` or `'1:30'`, which the platform reads and limits itself. A duration needs the platform's release after 2026-11-21. A blank string throws. |
+| `timeout` | `number \| string` | `300` | Hold length in seconds, clamped to 0 to 900, or a duration such as `'2m'` or `'1:30'`, which the platform reads and limits itself. A blank string throws. |
 | `step` | `string` | none | Step to move to when the call is taken off hold |
 | `timeoutStep` | `string` | none | Step to move to when the hold times out |
 
@@ -1803,7 +1801,7 @@ console.log(JSON.stringify(result.toDict()));
 | `say` | `(text: string): this` | `{ say: text }` |
 | `playBackgroundFile` | `(filename: string, wait?: boolean): this` | `{ playback_bg: filename }`, or `{ playback_bg: { file, wait: true } }` when `wait` is `true` |
 | `stopBackgroundFile` | `(): this` | `{ stop_playback_bg: true }` |
-| `changeVoice` | `(voice: string \| string[]): this` | `{ change_voice: voice }`. Changes the AI's voice for the rest of the call, from the next batch of speech on; `voice` is in the `engine.voice:model` form a language's voice takes, or a list of up to 8, the first speaking and the rest its fallbacks. A list needs the platform's release after 2026-11-21; an earlier platform leaves the voice as it was. Throws on an empty voice or more than 8 |
+| `changeVoice` | `(voice: string \| string[]): this` | `{ change_voice: voice }`. Changes the AI's voice for the rest of the call, from the next batch of speech on; `voice` is in the `engine.voice:model` form a language's voice takes, or a list of up to 8, the first speaking and the rest its fallbacks. Throws on an empty voice or more than 8 |
 
 ### Speech Actions
 
@@ -1811,8 +1809,8 @@ console.log(JSON.stringify(result.toDict()));
 |--------|-----------|-------|
 | `addDynamicHints` | `(hints: (string \| { pattern: string; replace: string; ignore_case?: boolean })[]): this` | `{ add_dynamic_hints: hints }` |
 | `clearDynamicHints` | `(): this` | `{ clear_dynamic_hints: {} }` |
-| `setEndOfSpeechTimeout` | `(milliseconds: number \| string): this` | `{ end_of_speech_timeout: milliseconds }`; a duration such as `'1.5s'` passes through. A duration needs the platform's release after 2026-11-21: an earlier platform reads only its leading digits, so `'1.5s'` is 1 millisecond. A number means the same everywhere |
-| `setSpeechEventTimeout` | `(milliseconds: number \| string): this` | `{ speech_event_timeout: milliseconds }`; a duration such as `'1.5s'` passes through. A duration needs the platform's release after 2026-11-21: an earlier platform reads only its leading digits, so `'1.5s'` is 1 millisecond. A number means the same everywhere |
+| `setEndOfSpeechTimeout` | `(milliseconds: number \| string): this` | `{ end_of_speech_timeout: milliseconds }`; a duration such as `'1.5s'` passes through |
+| `setSpeechEventTimeout` | `(milliseconds: number \| string): this` | `{ speech_event_timeout: milliseconds }`; a duration such as `'1.5s'` passes through |
 
 ### Data Actions
 
@@ -2445,7 +2443,7 @@ constructor(name: string)
 | `setGatherInfo` | `(opts?: { outputKey?: string; completionAction?: string; prompt?: string; isolated?: boolean; sayQuestions?: boolean }): this` | Start a `gather_info` for the step |
 | `addGatherQuestion` | `(opts: { key: string; question: string; type?: string; confirm?: boolean; prompt?: string; functions?: string[]; isolated?: boolean; expectedAnswer?: ExpectedAnswer; say?: boolean }): this` | Add a question. Throws when `setGatherInfo()` hasn't been called. |
 
-`completionAction` is `'next_step'` or the name of a step in the same context. `isolated` on the gather is the default for its questions, and a question's own `isolated` overrides it. A question's `false` is emitted, so it can override an isolated gather. `sayQuestions` has the platform say each question itself, word for word, and a question's `say` overrides it (`false` is emitted, so the model asks that one). Both need the platform's release after 2026-11-21; an earlier platform ignores them, and the model asks.
+`completionAction` is `'next_step'` or the name of a step in the same context. `isolated` on the gather is the default for its questions, and a question's own `isolated` overrides it. A question's `false` is emitted, so it can override an isolated gather. `sayQuestions` has the platform say each question itself, word for word, and a question's `say` overrides it (`false` is emitted, so the model asks that one).
 
 #### Reset Methods
 

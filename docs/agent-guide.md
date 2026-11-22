@@ -614,8 +614,6 @@ agent.setLanguages([
 
 ### Fallback Voices
 
-Everything in this section needs the platform's release after 2026-11-21. On an earlier platform: a language whose voice is a list is dropped (if none is left, the platform's default voice speaks); `changeVoice()` with a list leaves the voice as it was; `setDefaultVoice()` has no effect; `setAgentVoice()` with a list or any `setFallbackVoice()` makes the platform refuse the AI verb, so the call doesn't run; and `CallingErrorEvent` has no `fallbackIndex` or `fallbackSource`. One voice as a string works on every platform.
-
 A voice can be a list of up to 8 voices in the combined `engine.voice:model` form. The first speaks; the rest are its fallbacks, tried in order when it fails, then the platform's own last resort. A list is sent as it is, so it takes no `engine` or `model`. A single voice in that form is split into `voice`, `engine` and `model`. `FunctionResult.changeVoice()` takes a list too, and so does each voice of `setMultilingual()`'s languages.
 
 ```typescript

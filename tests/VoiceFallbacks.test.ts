@@ -24,6 +24,40 @@ function agent(): AgentBase {
 const mainOf = (swml: string): Json[] => JSON.parse(swml).sections.main;
 const aiOf = (a: AgentBase): Json => mainOf(a.renderSwml()).find((v) => 'ai' in v).ai;
 
+describe('an agent with no voice settings (Python 3.15.1)', () => {
+  it('renders as it always has', () => {
+    // Nothing new is sent unless the agent asks for it. A bare TS agent's
+    // ai verb has been { prompt: { text: '' } } since before the voice
+    // features (3.12.2 renders the same), where Python's is
+    // { prompt: { pom: [] }, params: {} }
+    expect(JSON.parse(new AgentBase({ name: 'v', suppressLogs: true }).renderSwml())).toEqual({
+      version: '1.0.0',
+      sections: { main: [{ answer: {} }, { ai: { prompt: { text: '' } } }] },
+    });
+    const a = agent().addLanguage({
+      name: 'English',
+      code: 'en-US',
+      voice: 'elevenlabs.josh:eleven_turbo_v2_5',
+    });
+    a.setParams({ end_of_speech_timeout: 700, attention_timeout: 15000 });
+    const main = mainOf(a.renderSwml());
+    expect(main[0]).toEqual({ answer: {} });
+    expect(main).toHaveLength(2);
+    const ai = main[1].ai;
+    expect(Object.keys(ai).sort()).toEqual(['languages', 'params', 'prompt']);
+    expect(ai.languages).toEqual([
+      {
+        name: 'English',
+        code: 'en-US',
+        voice: 'josh',
+        engine: 'elevenlabs',
+        model: 'eleven_turbo_v2_5',
+      },
+    ]);
+    expect(ai.params).toEqual({ end_of_speech_timeout: 700, attention_timeout: 15000 });
+  });
+});
+
 describe('fallback voices', () => {
   it('takes a list of voices for a language, as sent', () => {
     const language = aiOf(agent().addLanguage({ name: 'English', code: 'en-US', voice: CHAIN }))

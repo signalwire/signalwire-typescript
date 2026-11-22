@@ -1150,10 +1150,6 @@ export class AgentBase extends SWMLService {
    * Set the agent's voice, for a language that has none of its own: the ai
    * verb's `voice`.
    *
-   * The platform takes a list here from its release after 2026-11-21; a
-   * platform without it refuses the ai verb, so the call doesn't run. One
-   * voice as a string works everywhere.
-   *
    * @param voice - One voice as `"engine.voice:model"`, or a list of up to 8,
    *   the first speaking and the rest its fallbacks, tried in order when it
    *   fails. Null clears it.
@@ -1169,9 +1165,6 @@ export class AgentBase extends SWMLService {
    * Set the voices tried when every voice of a language, or the agent's, has
    * failed, before the platform's own last resort: the ai verb's
    * `fallback_voice`.
-   *
-   * The platform takes `fallback_voice` from its release after 2026-11-21; a
-   * platform without it refuses the ai verb, so the call doesn't run.
    *
    * @param voice - One voice as `"engine.voice:model"`, or a list of up to 8,
    *   tried in order. Null clears it.
@@ -1195,8 +1188,7 @@ export class AgentBase extends SWMLService {
    *   `{ es: 'elevenlabs.lucia', default: 'rime.spore' }`. A language matches by
    *   its exact code, then its base language (`es` for `es-MX`), then `default`.
    *   With no multilingual languages of its own, the object's languages become
-   *   them. Null clears it. It needs the platform's release after 2026-11-21;
-   *   an earlier platform ignores it.
+   *   them. Null clears it.
    * @returns This agent instance for chaining.
    * @throws {Error} For an empty voice, more than 8, or a language that isn't a code.
    */
