@@ -388,7 +388,7 @@ export class FunctionResult {
    *   number here is taken as `timeout`, so `hold(120)` keeps working.
    * @param timeout - Hold duration in seconds, clamped to 0-900 (default 300), or a
    *   duration such as `'2m'`, `'1m30s'` or `'1:30'`, which the platform reads (and
-   *   limits) itself.
+   *   limits) itself; a duration needs the platform's release after 2026-11-21.
    * @param step - Step to move to when the call is taken off hold.
    * @param timeoutStep - Step to move to when the hold times out.
    * @returns This instance for chaining.
@@ -499,6 +499,8 @@ export class FunctionResult {
    * refuses one.
    * @param voice - Voice spec in `engine.voice:model` form, or a list of up to 8,
    *   the first speaking and the rest its fallbacks, tried in order when it fails.
+   *   A list needs the platform's release after 2026-11-21; an earlier platform
+   *   leaves the voice as it was.
    * @returns This instance for chaining.
    * @throws {Error} When `voice` is empty or only whitespace, or names more than 8.
    */
@@ -531,7 +533,9 @@ export class FunctionResult {
   /**
    * Set the silence after detected speech that finalizes speech recognition.
    * @param milliseconds - Timeout in milliseconds, or a duration such as `'1.5s'`,
-   *   `'500ms'` or `'2m'`.
+   *   `'500ms'` or `'2m'`. A duration needs the platform's release after
+   *   2026-11-21: an earlier platform reads only its leading digits, so `'1.5s'`
+   *   is 1 ms.
    * @returns This instance for chaining.
    */
   setEndOfSpeechTimeout(milliseconds: number | string): this {
@@ -542,7 +546,9 @@ export class FunctionResult {
    * Set the time since the last speech detection event after which speech
    * recognition is finalized. Suits noisy environments.
    * @param milliseconds - Timeout in milliseconds, or a duration such as `'1.5s'`,
-   *   `'500ms'` or `'2m'`.
+   *   `'500ms'` or `'2m'`. A duration needs the platform's release after
+   *   2026-11-21: an earlier platform reads only its leading digits, so `'1.5s'`
+   *   is 1 ms.
    * @returns This instance for chaining.
    */
   setSpeechEventTimeout(milliseconds: number | string): this {

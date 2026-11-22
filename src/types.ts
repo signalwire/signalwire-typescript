@@ -114,7 +114,8 @@ export interface LanguageConfig {
    * The language's voice: a name, `engine.voice:model` (split into voice,
    * engine and model), or a list of up to 8 in that form, the first speaking and
    * the rest its fallbacks, tried in order when it fails. A list is sent as it
-   * is, so it takes no `engine` or `model`.
+   * is, so it takes no `engine` or `model`. A list needs the platform's release
+   * after 2026-11-21; an earlier platform drops the language.
    */
   voice?: string | readonly string[];
   /** TTS engine identifier. */

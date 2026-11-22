@@ -1195,7 +1195,8 @@ export class AgentBase extends SWMLService {
    *   `{ es: 'elevenlabs.lucia', default: 'rime.spore' }`. A language matches by
    *   its exact code, then its base language (`es` for `es-MX`), then `default`.
    *   With no multilingual languages of its own, the object's languages become
-   *   them. Null clears it.
+   *   them. Null clears it. It needs the platform's release after 2026-11-21;
+   *   an earlier platform ignores it.
    * @returns This agent instance for chaining.
    * @throws {Error} For an empty voice, more than 8, or a language that isn't a code.
    */

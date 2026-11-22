@@ -3,6 +3,21 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## Unreleased (signalwire-python 3.15.1)
+
+### Fixed
+
+- The docs and JSDoc for fallback voices, `setDefaultVoice()`, duration
+  strings, `CallingErrorEvent`'s `fallbackIndex` and `fallbackSource`, and
+  gather say mode say what they need: the platform's release after
+  2026-11-21. They described all of it as working now. On an earlier
+  platform a language whose voice is a list is dropped, `changeVoice()` with
+  a list and `setDefaultVoice()` have no effect, gather say mode is ignored,
+  and a duration string is read by its leading digits, so
+  `setEndOfSpeechTimeout('1.5s')` is 1 millisecond. A number, and one voice
+  as a string, mean the same on every platform. The API reference's
+  `hold()` signature now shows that `timeout` takes a duration string.
+
 ## 3.15.0 (2026-11-21)
 
 ### Added

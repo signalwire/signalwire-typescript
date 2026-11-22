@@ -524,7 +524,7 @@ hold(prompt?: string | number, timeout?: number | string, step?: string, timeout
 | Parameter     | Type               | Default | Description                                                 |
 |---------------|--------------------|---------|-------------------------------------------------------------|
 | `prompt`      | `string \| number` | none    | Instruction for the model to act on before the hold. A number here is read as `timeout`. |
-| `timeout`     | `number \| string` | `300`   | Hold duration in seconds, clamped to 0 through 900, or a duration such as `'2m'` or `'1:30'`, which the platform reads and limits itself. A blank string throws. |
+| `timeout`     | `number \| string` | `300`   | Hold duration in seconds, clamped to 0 through 900, or a duration such as `'2m'` or `'1:30'`, which the platform reads and limits itself. A duration needs the platform's release after 2026-11-21. A blank string throws. |
 | `step`        | `string`           | none    | Step to move to when the call is taken off hold.            |
 | `timeoutStep` | `string`           | none    | Step to move to when the hold times out.                    |
 
@@ -711,7 +711,7 @@ const result = new FunctionResult('The music is stopped.')
 
 ### changeVoice
 
-Change the AI's voice for the rest of the call (`change_voice`). The voice takes the `engine.voice:model` form a language's voice takes, and may be on another engine; or it's a list of up to 8, the first speaking and the rest its fallbacks. It replaces the current language's voice from the next batch of speech on, never mid-utterance, and stays for that language for the rest of the call. A voice that won't open falls back to the fallback voice.
+Change the AI's voice for the rest of the call (`change_voice`). The voice takes the `engine.voice:model` form a language's voice takes, and may be on another engine; or it's a list of up to 8, the first speaking and the rest its fallbacks. It replaces the current language's voice from the next batch of speech on, never mid-utterance, and stays for that language for the rest of the call. A voice that won't open falls back to the fallback voice. A list needs the platform's release after 2026-11-21; an earlier platform leaves the voice as it was.
 
 <!-- snippet: no-compile API signature reference, not runnable code -->
 ```typescript
@@ -828,7 +828,7 @@ const result = new FunctionResult('The event timeout is set.')
   .setSpeechEventTimeout(3000);
 ```
 
-Both take a duration as well as a number of milliseconds, such as `'1.5s'`, `'500ms'` or `'2m'`. So does every AI param counted in milliseconds (`attention_timeout`, `inactivity_timeout`, `end_of_speech_timeout` and the rest), while `hard_stop_time` and `hold()`'s timeout, counted in seconds, take `'20m'`, `'1h30m'`, `'1.5m'` or `'1:30'`. A bare number keeps its old meaning.
+Both take a duration as well as a number of milliseconds, such as `'1.5s'`, `'500ms'` or `'2m'`. So does every AI param counted in milliseconds (`attention_timeout`, `inactivity_timeout`, `end_of_speech_timeout` and the rest), while `hard_stop_time` and `hold()`'s timeout, counted in seconds, take `'20m'`, `'1h30m'`, `'1.5m'` or `'1:30'`. A bare number keeps its old meaning. Durations need the platform's release after 2026-11-21: an earlier platform reads only a duration's leading digits, so `'1.5s'` there is 1 millisecond. Use a number when the platform may be older.
 
 ## Data Management
 
