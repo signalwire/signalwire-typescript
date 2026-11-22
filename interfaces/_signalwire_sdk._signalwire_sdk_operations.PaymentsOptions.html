@@ -130,7 +130,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">PaymentsOptions</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#beforeidentity">beforeIdentity</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#cardtypes">cardTypes</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#charge">charge</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">call</span><span class="tsd-signature-symbol">:</span> <a href="../classes/_signalwire_sdk._signalwire_sdk_operations.CallContext.html" class="tsd-signature-type tsd-kind-class">CallContext</a><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">payingFor</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#connectorparameters">connectorParameters</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#connectorurl">connectorUrl</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#currency">currency</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#language">language</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#maxattempts">maxAttempts</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#onresult">onResult</a><span class="tsd-signature-symbol">?:</span> (<span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">call</span><span class="tsd-signature-symbol">:</span> <a href="../classes/_signalwire_sdk._signalwire_sdk_operations.CallContext.html" class="tsd-signature-type tsd-kind-class">CallContext</a><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">result</span><span class="tsd-signature-symbol">:</span> <a href="../classes/_signalwire_sdk._signalwire_sdk_operations.PaymentResult.html" class="tsd-signature-type tsd-kind-class">PaymentResult</a><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">unknown</span>) <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#postalcode">postalCode</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#resulttool">resultTool</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#reusable">reusable</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#securitycode">securityCode</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#statekey">stateKey</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#statusurl">statusUrl</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#tool">tool</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#voice">voice</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#wording">wording</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L132">src/operations/payments.ts:132</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L132">src/operations/payments.ts:132</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -166,7 +166,7 @@
 <div class="tsd-comment tsd-typography"><p>True to take payments from callers who aren't identified.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L170">src/operations/payments.ts:170</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L170">src/operations/payments.ts:170</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="cardtypes"><code class="tsd-tag">Optional</code><span>card<wbr/>Types</span><a href="#cardtypes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">cardTypes</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></div>
@@ -174,7 +174,7 @@
 and American Express when null, as <code>FunctionResult.pay</code> takes them.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L162">src/operations/payments.ts:162</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L162">src/operations/payments.ts:162</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="charge"><span>charge</span><a href="#charge" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">charge</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">call</span><span class="tsd-signature-symbol">:</span> <a href="../classes/_signalwire_sdk._signalwire_sdk_operations.CallContext.html" class="tsd-signature-type tsd-kind-class">CallContext</a><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">payingFor</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">unknown</span></div>
@@ -183,28 +183,28 @@ what the caller said they're paying; it may be async, and may throw
 <code>Refuse</code> (nothing owed, not theirs) or <code>Need</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L140">src/operations/payments.ts:140</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L140">src/operations/payments.ts:140</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="connectorparameters"><code class="tsd-tag">Optional</code><span>connector<wbr/>Parameters</span><a href="#connectorparameters" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">connectorParameters</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></div>
 <div class="tsd-comment tsd-typography"><p>More name/value pairs for the connector.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L166">src/operations/payments.ts:166</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L166">src/operations/payments.ts:166</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="connectorurl"><span>connector<wbr/>Url</span><a href="#connectorurl" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">connectorUrl</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Your payment connector, which the platform sends the card to.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L134">src/operations/payments.ts:134</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L134">src/operations/payments.ts:134</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="currency"><code class="tsd-tag">Optional</code><span>currency</span><a href="#currency" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">currency</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></div>
 <div class="tsd-comment tsd-typography"><p>The ISO 4217 code of the amounts; defaults to the service's <code>currency</code>. A payment needs one.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L142">src/operations/payments.ts:142</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L142">src/operations/payments.ts:142</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="language"><code class="tsd-tag">Optional</code><span>language</span><a href="#language" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">language</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></div>
@@ -212,84 +212,84 @@ what the caller said they're paying; it may be async, and may throw
 <code>&quot;en-US&quot;</code>; defaults to the agent's first language. A payment needs one.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L147">src/operations/payments.ts:147</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L147">src/operations/payments.ts:147</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="maxattempts"><code class="tsd-tag">Optional</code><span>max<wbr/>Attempts</span><a href="#maxattempts" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">maxAttempts</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>How many times the caller may try the card. Default 1.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L155">src/operations/payments.ts:155</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L155">src/operations/payments.ts:155</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="onresult"><code class="tsd-tag">Optional</code><span>on<wbr/>Result</span><a href="#onresult" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">onResult</span><span class="tsd-signature-symbol">?:</span> (<span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">call</span><span class="tsd-signature-symbol">:</span> <a href="../classes/_signalwire_sdk._signalwire_sdk_operations.CallContext.html" class="tsd-signature-type tsd-kind-class">CallContext</a><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">result</span><span class="tsd-signature-symbol">:</span> <a href="../classes/_signalwire_sdk._signalwire_sdk_operations.PaymentResult.html" class="tsd-signature-type tsd-kind-class">PaymentResult</a><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">unknown</span>) <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></div>
 <div class="tsd-comment tsd-typography"><p><code>onResult(call, result)</code> gets every <a href="../classes/_signalwire_sdk._signalwire_sdk_operations.PaymentResult.html" class="tsd-kind-class">PaymentResult</a>, for your records; it may be async.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L168">src/operations/payments.ts:168</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L168">src/operations/payments.ts:168</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="postalcode"><code class="tsd-tag">Optional</code><span>postal<wbr/>Code</span><a href="#postalcode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">postalCode</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
 <div class="tsd-comment tsd-typography"><p>Whether the billing postal code is asked for. Default true.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L153">src/operations/payments.ts:153</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L153">src/operations/payments.ts:153</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="resulttool"><code class="tsd-tag">Optional</code><span>result<wbr/>Tool</span><a href="#resulttool" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">resultTool</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>The result tool's name. Default <code>payment_result</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L174">src/operations/payments.ts:174</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L174">src/operations/payments.ts:174</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="reusable"><code class="tsd-tag">Optional</code><span>reusable</span><a href="#reusable" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">reusable</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
 <div class="tsd-comment tsd-typography"><p>True for a token the connector can charge again (a card kept on file), false for one charge. Default false.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L157">src/operations/payments.ts:157</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L157">src/operations/payments.ts:157</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="securitycode"><code class="tsd-tag">Optional</code><span>security<wbr/>Code</span><a href="#securitycode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">securityCode</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
 <div class="tsd-comment tsd-typography"><p>Whether the card's security code is asked for. Default true.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L151">src/operations/payments.ts:151</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L151">src/operations/payments.ts:151</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="statekey"><code class="tsd-tag">Optional</code><span>state<wbr/>Key</span><a href="#statekey" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">stateKey</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Where in <code>call.state</code> the payment under way is kept. Default <code>payments</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L178">src/operations/payments.ts:178</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L178">src/operations/payments.ts:178</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="statusurl"><code class="tsd-tag">Optional</code><span>status<wbr/>Url</span><a href="#statusurl" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">statusUrl</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></div>
 <div class="tsd-comment tsd-typography"><p>Where the platform posts each step of the payment.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L164">src/operations/payments.ts:164</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L164">src/operations/payments.ts:164</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="tool"><code class="tsd-tag">Optional</code><span>tool</span><a href="#tool" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">tool</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>The payment tool's name. Default <code>take_payment</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L172">src/operations/payments.ts:172</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L172">src/operations/payments.ts:172</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="voice"><code class="tsd-tag">Optional</code><span>voice</span><a href="#voice" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">voice</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></div>
 <div class="tsd-comment tsd-typography"><p>The voice of the card prompts; defaults to the agent's first language's voice.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L149">src/operations/payments.ts:149</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L149">src/operations/payments.ts:149</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="wording"><code class="tsd-tag">Optional</code><span>wording</span><a href="#wording" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">wording</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></div>
 <div class="tsd-comment tsd-typography"><p>Words in place of the defaults, by key; the keys are those of <a href="../variables/_signalwire_sdk._signalwire_sdk_operations.PAYMENTS_WORDING.html" class="tsd-kind-variable">PAYMENTS_WORDING</a>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/0e5d689f946ffa1649ee6518fa379063e3c06890/src/operations/payments.ts#L176">src/operations/payments.ts:176</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/payments.ts#L176">src/operations/payments.ts:176</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
