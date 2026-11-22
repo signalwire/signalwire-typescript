@@ -1,6 +1,6 @@
 /**
  * swaig-test's DataMap simulator follows a webhook's redirects as the platform
- * does: mod_openai's parse_webhook (actions.c) sets CURLOPT_FOLLOWLOCATION,
+ * does: it sets CURLOPT_FOLLOWLOCATION,
  * CURLOPT_MAXREDIRS 15 and, for a POST, CURLOPT_POSTREDIR
  * CURL_REDIR_POST_ALL. Every hop is still checked for private addresses.
  * Mirrors signalwire-python's tests/unit/cli/test_datamap_exec_redirects.py
@@ -96,7 +96,7 @@ describe('DataMap webhook redirects, as the platform follows them', () => {
 
 /**
  * A request that fails reports the last status it received as http_code, as
- * the platform does: parse_webhook (actions.c) reads CURLINFO_RESPONSE_CODE
+ * the platform does: it reads CURLINFO_RESPONSE_CODE
  * after curl_easy_perform, failure or not. Mirrors signalwire-python's
  * test_datamap_exec_redirects.py (71dbba8).
  */

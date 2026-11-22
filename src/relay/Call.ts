@@ -41,7 +41,7 @@ import type {
   PlayItem,
 } from './types.js';
 // Canonical RELAY wire param shapes (generated from porting-sdk/relay-protocol/
-// *.params.json — the switchblade source). Method params index into these so
+// *.params.json, the canonical RELAY schemas). Method params index into these so
 // callers get the real field-level types instead of Record<string, unknown>.
 // The SDK fills node_id/call_id/control_id internally, so methods take only the
 // payload-specific members.
@@ -77,7 +77,7 @@ import type {
 // Command param shapes come from the REST calling spec (rest-apis/calling/
 // openapi.yaml), which fully defines each command's nested params (record.audio
 // = beep/format/stereo/…, detect.detect = {type, params}, etc.). The relay
-// protocol.types.generated.ts (switchblade-extracted) under-reports these nested
+// protocol.types.generated.ts (from the RELAY schemas) under-reports these nested
 // objects, so we type the relay Call methods from the complete REST shapes — the
 // same wire command, fully specified. (connect's params are relay-only — see
 // CallingConnectParams above for ringback.)

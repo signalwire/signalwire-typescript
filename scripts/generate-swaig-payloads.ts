@@ -1,7 +1,7 @@
 /**
  * generate-swaig-payloads.ts — typed SWAIG wire-payload + response-action config
  * type generator (SWAIG_PIPELINE §4), from the vendored porting-sdk/swaig-specs/
- * (the AUTHORITATIVE mod_openai engine specs).
+ * (the AUTHORITATIVE AI engine specs).
  *
  * Emits two committed modules:
  *   - src/SwaigContracts.generated.ts — the READ-side payloads a handler RECEIVES:
@@ -31,7 +31,7 @@ import {
 
 /**
  * The typed SWAIG wire payloads (SWAIG_PIPELINE §4), from the vendored
- * porting-sdk/swaig-specs/*.yaml — the AUTHORITATIVE mod_openai engine specs (not
+ * porting-sdk/swaig-specs/*.yaml — the AUTHORITATIVE AI engine specs (not
  * the non-authoritative swml-webhooks derivative). Mirrors the Python reference
  * (`generate_swaig_request` + `generate_post_prompt` in
  * generate_python_rest_types.py): `swaig-request.yaml` → the `SwaigRequest` the
@@ -107,7 +107,7 @@ async function generateSwaigContracts(
     `// AUTO-GENERATED from porting-sdk/swaig-specs/{swaig-request,post-prompt}.yaml — DO NOT EDIT.\n` +
     `// Regenerate with: npx tsx scripts/generate-swaig-payloads.ts\n//\n` +
     `// The typed SWAIG wire payloads (SWAIG_PIPELINE §4) from the AUTHORITATIVE\n` +
-    `// mod_openai engine specs: SwaigRequest is the body a SWAIG function handler\n` +
+    `// AI engine specs: SwaigRequest is the body a SWAIG function handler\n` +
     `// RECEIVES; the PostPrompt tree is the call-end summary payload the\n` +
     `// post-prompt / onSummary callback RECEIVES. Open-shaped READ payloads — every\n` +
     `// field optional, every named type carries a [key: string]: unknown tail so\n` +
@@ -186,7 +186,7 @@ async function main(): Promise<void> {
   const verb = CHECK ? 'checked' : 'generated';
 
   // Typed SWAIG wire payloads (SWAIG_PIPELINE §4) from the vendored swaig-specs/
-  // (the authoritative mod_openai engine specs); skipped cleanly if the swaig-specs
+  // (the authoritative AI engine specs); skipped cleanly if the swaig-specs
   // aren't present in the resolved porting-sdk.
   const swaigReqSpec = path.join(psdk, 'swaig-specs', 'swaig-request.yaml');
   const postPromptSpec = path.join(psdk, 'swaig-specs', 'post-prompt.yaml');

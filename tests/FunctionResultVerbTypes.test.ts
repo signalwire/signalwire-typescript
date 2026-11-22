@@ -4,12 +4,10 @@
  * pay() sends timeout, max_attempts, min_postal_code_length, security_code
  * and postal_code as strings, whatever the bundled schema's types say: the
  * platform's SWML validator requires strings for security_code and
- * postal_code (mod_infrastructure swml_schema.c:2015-2016), and the pay
- * request reads all five as strings (relay.c generate_pay_request,
- * 9199-9203). It checks each input first: an integer, a boolean, or a SWML
+ * postal_code, and the pay request reads all five as strings. It checks each input first: an integer, a boolean, or a SWML
  * variable reference. joinConference() refused max_participants above 250
  * and left out an explicit 250. The platform refuses fewer than 2 members
- * (mod_infrastructure new_conference_controller.c) and has no upper limit, so
+ * and has no upper limit, so
  * any integer of 2 or more is accepted, as the Python SDK does.
  */
 import { FunctionResult } from '../src/FunctionResult.js';

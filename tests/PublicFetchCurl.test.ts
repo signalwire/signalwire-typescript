@@ -1,7 +1,6 @@
 /**
  * _publicFetch's `curl` redirect mode: redirects followed as libcurl follows
- * them with the settings mod_openai's parse_webhook (actions.c) requests a
- * DataMap webhook with (CURLOPT_FOLLOWLOCATION, CURLOPT_MAXREDIRS 15,
+ * them with the settings the platform requests a DataMap webhook with (CURLOPT_FOLLOWLOCATION, CURLOPT_MAXREDIRS 15,
  * CURLOPT_POSTREDIR CURL_REDIR_POST_ALL), with every hop still checked.
  * Mirrors signalwire-python's tests/unit/cli/test_datamap_exec_redirects.py
  * (2716dc2). The default mode is unchanged; tests/PublicFetch.test.ts covers it.

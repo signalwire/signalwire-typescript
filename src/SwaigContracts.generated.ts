@@ -2,7 +2,7 @@
 // Regenerate with: npx tsx scripts/generate-swaig-payloads.ts
 //
 // The typed SWAIG wire payloads (SWAIG_PIPELINE §4) from the AUTHORITATIVE
-// mod_openai engine specs: SwaigRequest is the body a SWAIG function handler
+// AI engine specs: SwaigRequest is the body a SWAIG function handler
 // RECEIVES; the PostPrompt tree is the call-end summary payload the
 // post-prompt / onSummary callback RECEIVES. Open-shaped READ payloads — every
 // field optional, every named type carries a [key: string]: unknown tail so
@@ -24,18 +24,18 @@ export interface SwaigRequest {
   ai_session_id?: string;
   /** Always present. */
   app_name?: string;
-  /** added **only on the data_map path** (`if (sh->data_map)`, `actions.c:2198`). `args` is `argument.parsed[0]` promoted to the top level (`actions.c:2206`); `input` is a shallow self-duplicate of the post_data (`actions.c:2211`). The webhook-URL path does not add these. */
+  /** added **only on the data_map path**. `args` is `argument.parsed[0]` promoted to the top level; `input` is a shallow self-duplicate of the post_data. The webhook-URL path does not add these. */
   args?: string;
   argument?: SwaigArgument;
   /** Always present. */
   argument_desc?: Record<string, unknown>;
   /** Always present. */
   call_id?: string;
-  /** only if `swaig_post_conversation` is set (`actions.c:2134`). `call_log` is redacted when `redact_prompt` is enabled (`actions.c:2137`); `raw_call_log` is the full transcript (`actions.c:2139`). */
+  /** only if `swaig_post_conversation` is set. `call_log` is redacted when `redact_prompt` is enabled; `raw_call_log` is the full transcript. */
   call_log?: unknown[];
-  /** only if the caller-ID channel vars are set (`actions.c:2051`/`2055`). The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`. */
+  /** only if the caller-ID channel vars are set. The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`. */
   caller_id_name?: string;
-  /** only if the caller-ID channel vars are set (`actions.c:2051`/`2055`). The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`. */
+  /** only if the caller-ID channel vars are set. The source channel var for `caller_id_num` is `caller_id_number` — the JSON key is renamed to `caller_id_num`. */
   caller_id_num?: string;
   /** Always present. */
   channel_active?: boolean;
@@ -47,38 +47,38 @@ export interface SwaigRequest {
   content_disposition?: 'SWAIG Function';
   /** Always present. */
   content_type?: 'text/swaig';
-  /** only if configured (`actions.c:2077`). */
+  /** only if configured. */
   conversation_id?: string;
   /** Always present. */
   description?: string;
-  /** only on a hangup-hook/error invocation when `fatal_error_reason` is set (`actions.c:2063-2065`). See CLAUDE.md "Fatal Error Recovery Flow". */
+  /** only on a hangup-hook/error invocation when `fatal_error_reason` is set. */
   error_reason?: string;
-  /** only on a hangup-hook/error invocation when `fatal_error_reason` is set (`actions.c:2063-2065`). See CLAUDE.md "Fatal Error Recovery Flow". */
+  /** only on a hangup-hook/error invocation when `fatal_error_reason` is set. */
   fatal_error?: boolean;
   /** Always present. */
   function?: string;
-  /** only if global data exists (`actions.c:2016`). */
+  /** only if global data exists. */
   global_data?: Record<string, unknown>;
-  /** added **only on the data_map path** (`if (sh->data_map)`, `actions.c:2198`). `args` is `argument.parsed[0]` promoted to the top level (`actions.c:2206`); `input` is a shallow self-duplicate of the post_data (`actions.c:2211`). The webhook-URL path does not add these. */
+  /** added **only on the data_map path**. `args` is `argument.parsed[0]` promoted to the top level; `input` is a shallow self-duplicate of the post_data. The webhook-URL path does not add these. */
   input?: string;
-  /** only if the function has a `meta_data_token` (`actions.c:2085-2093`). `meta_data` is that token's metadata store (empty object if none). */
+  /** only if the function has a `meta_data_token`. `meta_data` is that token's metadata store (empty object if none). */
   meta_data?: Record<string, unknown>;
-  /** only if the function has a `meta_data_token` (`actions.c:2085-2093`). `meta_data` is that token's metadata store (empty object if none). */
+  /** only if the function has a `meta_data_token`. `meta_data` is that token's metadata store (empty object if none). */
   meta_data_token?: string;
-  /** only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set (`actions.c:2040`/`2044`). */
+  /** only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set. */
   project_id?: string;
-  /** only if `swaig_post_conversation` is set (`actions.c:2134`). `call_log` is redacted when `redact_prompt` is enabled (`actions.c:2137`); `raw_call_log` is the full transcript (`actions.c:2139`). */
+  /** only if `swaig_post_conversation` is set. `call_log` is redacted when `redact_prompt` is enabled; `raw_call_log` is the full transcript. */
   raw_call_log?: unknown[];
-  /** only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set (`actions.c:2040`/`2044`). */
+  /** only if the `signalwire_project_id` / `signalwire_space_id` channel vars are set. */
   space_id?: string;
-  /** only if the model gave the call an id (`actions.c:3155-3156`). The `id` of the model's tool call: an OpenAI-style `call_...`, Anthropic's `tool_use` id, the Responses API's `call_id`, Bedrock's `toolUseId`, and for Gemini, which gives none, the one its adapter makes (`call_` + 8 hex digits). A retry of the request after a curl error or a 5xx sends the same body, so the same id; each call the model makes has its own, so a webhook can tell a resend from the model calling again with the same arguments. Absent for a request the module makes on its own (`startup_hook`, `hangup_hook`, `check_for_input`), for a function an in-band `~FN:` directive runs, and when the provider gave no id. On the data_map path it is always the call's own id, never a `global_data` key of that name (`actions.c:3412-3434`). */
+  /** only if the model gave the call an id. The `id` of the model's tool call: an OpenAI-style `call_...`, Anthropic's `tool_use` id, the Responses API's `call_id`, Bedrock's `toolUseId`, and for Gemini, which gives none, the one its adapter makes (`call_` + 8 hex digits). A retry of the request after a curl error or a 5xx sends the same body, so the same id; each call the model makes has its own, so a webhook can tell a resend from the model calling again with the same arguments. Absent for a request the module makes on its own (`startup_hook`, `hangup_hook`, `check_for_input`), for a function an in-band `~FN:` directive runs, and when the provider gave no id. On the data_map path it is always the call's own id, never a `global_data` key of that name. */
   tool_call_id?: string;
   /** Always present. */
   version?: '2.0';
   [key: string]: unknown;
 }
 
-/** Built by ais_get_post_data (ai_utils.c) + openai_post_process (post_process.c). No `version` field. Open shape: conditional fields appear only when their precondition holds. */
+/** The post-prompt callback payload. No `version` field. Open shape: conditional fields appear only when their precondition holds. */
 export interface PostPrompt {
   content_type?: 'text/json';
   content_disposition?: 'agent.summary';

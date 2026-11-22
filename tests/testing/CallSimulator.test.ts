@@ -432,8 +432,8 @@ describe('checkToolMentions (Python 3.9.0)', () => {
 });
 
 // Python 3.10.0: what the model gets after each step's history mode, the
-// "spoken" mode, and the dialogue a gate judges (mod_openai STEP_HISTORY.md;
-// check_steps runs before every request)
+// "spoken" mode, and the dialogue a gate judges (the platform applies step
+// history before every request)
 const contents = (sim: CallSimulator) => sim.modelView().map((e) => e['content']);
 
 describe('modelView', () => {
@@ -869,7 +869,7 @@ describe('gateConversation', () => {
   });
 });
 
-describe('the platform at 7afb159 (found in review)', () => {
+describe('the platform (found in review)', () => {
   function toStep(target: Json): AgentBase {
     const agent = bare();
     agent.defineTool({
@@ -886,7 +886,7 @@ describe('the platform at 7afb159 (found in review)', () => {
     return agent;
   }
 
-  it('gives an end step no history pass (step_management.c)', async () => {
+  it('gives an end step no history pass', async () => {
     const sim = new CallSimulator(toStep({ end: true, history: 'hide' }));
     sim.caller('Please also check my balance');
     await sim.call('go');
@@ -900,7 +900,7 @@ describe('the platform at 7afb159 (found in review)', () => {
     expect(sim.gateConversation()).toEqual(['user: Please also check my balance']);
   });
 
-  it("puts an end step's context prompt before its text, as the engine does (dc20c53)", async () => {
+  it("puts an end step's context prompt before its text, as the engine does", async () => {
     const agent = toStep({ end: true });
     agent.defineContexts().getContext('default')!.setPrompt('You take orders.');
     const sim = new CallSimulator(agent);

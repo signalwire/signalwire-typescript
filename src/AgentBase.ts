@@ -1150,10 +1150,6 @@ export class AgentBase extends SWMLService {
    * Set the agent's voice, for a language that has none of its own: the ai
    * verb's `voice`.
    *
-   * The platform takes a list here from its release after 2026-11-21; a
-   * platform without it refuses the ai verb, so the call doesn't run. One
-   * voice as a string works everywhere.
-   *
    * @param voice - One voice as `"engine.voice:model"`, or a list of up to 8,
    *   the first speaking and the rest its fallbacks, tried in order when it
    *   fails. Null clears it.
@@ -1169,9 +1165,6 @@ export class AgentBase extends SWMLService {
    * Set the voices tried when every voice of a language, or the agent's, has
    * failed, before the platform's own last resort: the ai verb's
    * `fallback_voice`.
-   *
-   * The platform takes `fallback_voice` from its release after 2026-11-21; a
-   * platform without it refuses the ai verb, so the call doesn't run.
    *
    * @param voice - One voice as `"engine.voice:model"`, or a list of up to 8,
    *   tried in order. Null clears it.
@@ -3301,7 +3294,7 @@ export class AgentBase extends SWMLService {
   /**
    * Extract the tool-call arguments from a SWAIG request body.
    *
-   * The real platform (mod_openai) POSTs a tool call with the args nested under
+   * The real platform POSTs a tool call with the args nested under
    * the platform envelope `{"argument": {"parsed": [{...args...}], "raw": "..."}}`
    * — NOT flat. Reading `body.argument` directly hands the handler the WHOLE
    * envelope (`{parsed, raw}`) instead of the args, so a real platform call

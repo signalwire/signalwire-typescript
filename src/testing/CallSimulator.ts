@@ -863,7 +863,7 @@ export class CallSimulator {
     const context = this.context !== null ? (this.contexts[this.context] ?? {}) : {};
     // An end step, or one with a reset, ends steps mode once it's in: it takes
     // no history pass, its text isn't expanded again, and what an isolate step
-    // hid is back (step_management.c)
+    // hid is back
     const hasReset = isRecord(step['reset']);
     const terminal = Boolean(step['end']) || hasReset;
     if (!terminal) this.historyPass();
@@ -874,7 +874,6 @@ export class CallSimulator {
       return;
     }
     // The context's prompt first, then the step's text, end steps included
-    // (mod_openai dc20c53)
     const text = [String(context['prompt'] || ''), String(step['text'] || '')]
       .filter((part) => part)
       .join('\n\n');

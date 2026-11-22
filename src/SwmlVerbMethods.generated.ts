@@ -95,13 +95,13 @@ declare module './SwmlBuilder.js' {
       direction?: string[]; /** Which leg is the customer (turn-end trigger source). */
       customer_role?: string; /** Webhook URL for transcribe events AND sidecar events. */
       url?: string; /** SWAIG functions and MCP servers. */
-      SWAIG?: unknown; /** SWAIG permission overrides — pass-through to mod_openai. */
+      SWAIG?: unknown; /** SWAIG permission overrides — passed through to the AI engine. */
       permissions?: Record<string, unknown>; /** Initial sidecar global_data. */
       global_data?: Record<
         string,
         unknown
       >; /** Speech-recognition hints biasing ASR toward specific terms. */
-      hints?: string[]; /** Tunable knobs (idle_timeout_ms, ai_summary, etc.) — pass-through to mod_openai which validates them strictly. New tunables only land here. */
+      hints?: string[]; /** Tunable knobs (idle_timeout_ms, ai_summary, etc.) — passed through to the AI engine, which validates them strictly. New tunables only land here. */
       params?: Record<string, unknown>; /** Reserved for future runtime sub-actions. */
       action?: unknown;
     }): this;

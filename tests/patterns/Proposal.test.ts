@@ -24,7 +24,7 @@ const dict = (r: { toDict(): unknown }): Json => r.toDict() as Json;
 describe('Proposal.propose', () => {
   it('sets the state before the read-back (Python 3.12.1)', () => {
     // So it's recorded even when the caller talks over the read-back: a say the
-    // caller talks over ends the result's actions (mod_openai actions.c)
+    // caller talks over ends the result's actions
     const result = dict(
       new Proposal('place_order').propose(READ_BACK, { details: { item: 'tea' } }),
     );
@@ -76,8 +76,7 @@ describe('Proposal.propose', () => {
   });
 
   it('turns chaining back on after a refused yes turned it off (Python 3.12.2)', () => {
-    // A gate's backToBackFunctions(false) lasts for the call (mod_openai
-    // ai_back2back_value): the proposal's own results restore the call's
+    // A gate's backToBackFunctions(false) lasts for the call: the proposal's own results restore the call's
     // default, or every later tool result would need words
     const proposal = new Proposal('place_order');
     const onFail = (proposal.confirmGates()[1]!.toDict() as Json)['on_fail'];

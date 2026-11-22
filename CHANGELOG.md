@@ -3,6 +3,20 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## 3.15.1 (2026-11-21)
+
+### Changed
+
+- The docs for `setAgentVoice()` and `setFallbackVoice()` drop their note on
+  platform releases, and an earlier entry here drops the platform commit it
+  cited. Comments, tests, the bundled SWML schema's descriptions and the
+  generated SWAIG, SWML and RELAY types no longer cite the platform's
+  source. The API reference's `hold()` signature shows the duration string
+  its `timeout` has taken since 3.13.0.
+- A test pins what an agent with no voice settings renders, as it always
+  has: a voice given as one string is still sent as its voice, engine and
+  model, and numeric params are still numbers.
+
 ## 3.15.0 (2026-11-21)
 
 ### Added
@@ -13,10 +27,7 @@ follows [Semantic Versioning](https://semver.org/).
   own last resort (`fallback_voice`). Each takes one voice or a list of up
   to 8, and the per-request copy carries both. The AI verb's key check
   accepts both keys, which the published schema doesn't list yet
-  (`PLATFORM_KEYS_AHEAD_OF_SCHEMA`). The platform takes `fallback_voice`,
-  and a list as the agent's voice, from its release after 2026-11-21; a
-  platform without it refuses the AI verb and the call doesn't run. One
-  voice as a string in `setAgentVoice()` works everywhere.
+  (`PLATFORM_KEYS_AHEAD_OF_SCHEMA`).
 
 ## 3.14.0 (2026-11-20)
 
@@ -205,8 +216,8 @@ path that has to load, and the RELAY host.
 Parity with signalwire-python 3.10.3: the `spoken` history mode, and a call
 simulator that shows what the model gets after each step's history mode,
 checked against the platform (end and reset steps, proposal changes).
-The platform behavior below is in mod_openai's release with it (7afb159);
-an engine without it treats `spoken` as `default`.
+A platform release without the behavior below treats `spoken` as
+`default`.
 
 ### Added
 

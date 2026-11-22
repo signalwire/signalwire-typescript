@@ -1,8 +1,8 @@
 /**
  * DataMap.body() sends its data as the webhook's `params`.
  *
- * The platform reads a webhook's request body only from `params`
- * (mod_openai actions.c parse_webhook) and has no `body` field, so a `body`
+ * The platform reads a webhook's request body only from `params` and has no
+ * `body` field, so a `body`
  * key went out with no request body. createSimpleApiTool's `body` option went
  * through body() and had the same problem.
  */

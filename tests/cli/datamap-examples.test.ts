@@ -1,6 +1,6 @@
 /**
  * The DataMap examples, run through swaig-test's simulator: every template
- * resolves at the stage it is in (mod_openai actions.c), so none expands to
+ * resolves at the stage it is in, as the platform resolves it, so none expands to
  * an empty string.
  */
 

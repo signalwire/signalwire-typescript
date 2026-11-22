@@ -15,7 +15,7 @@
  * exactly as the Python oracle produces it (see swaig_http_corpus.py /
  * diff_port_swaig_http._classify — this file mirrors that logic in TS).
  *
- * The platform (mod_openai) POSTs a tool call nested under
+ * The platform POSTs a tool call nested under
  * `argument.parsed[0]`; a handler that receives the whole `{parsed, raw}`
  * envelope (or {}) reds both booleans. AgentBase.extractSwaigArgs unwraps it
  * (TS-6), so both fixtures classify {true, true}.

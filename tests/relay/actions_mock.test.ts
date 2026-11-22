@@ -397,7 +397,7 @@ describe('FaxAction', () => {
 describe('TapAction', () => {
   it('test_tap_journals_calling_tap', async () => {
     const call = await answeredInboundCall('call-tap');
-    // The RELAY wire contract (relay_apis.c: JSON_CHECK(tap, "type,params"))
+    // The RELAY wire contract (the server checks tap for "type,params")
     // REQUIRES tap.params — a tap missing it is rejected -32602 by the server.
     await call.tap(
       { type: 'audio', params: { direction: 'both' } },

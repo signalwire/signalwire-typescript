@@ -1,8 +1,8 @@
 /**
  * The datasphere_serverless skill's webhook output reads the query as
  * ${input.args.query}: in a webhook's output the platform's template data
- * is the response plus `input`, with no `args` at the root (mod_openai
- * actions.c process_data_map), so ${args.query} expanded to nothing.
+ * is the response plus `input`, with no `args` at the root, so ${args.query}
+ * expanded to nothing.
  */
 import { DataSphereServerlessSkill } from '../../src/skills/builtin/datasphere_serverless.js';
 import { executeDataMap } from '../../src/cli/datamap-exec.js';
