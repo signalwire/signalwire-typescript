@@ -1331,8 +1331,7 @@ export class FunctionResult {
       payment_method: opts.paymentMethod ?? 'credit-card',
       // Checked as integers and a boolean, sent as strings: the platform's
       // validator requires strings for security_code and postal_code, and its
-      // pay request reads all five as strings (mod_infrastructure
-      // swml_schema.c, relay.c generate_pay_request).
+      // pay request reads all five as strings.
       timeout: String(swmlInt('timeout', opts.timeout ?? 5)),
       max_attempts: String(swmlInt('max_attempts', opts.maxAttempts ?? 1)),
       security_code: String(swmlBool('security_code', opts.securityCode ?? true)),

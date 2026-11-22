@@ -1,6 +1,6 @@
 /**
  * Step and tool options the platform reads, from signalwire-python 3.8.0:
- * expected_answer (speech_detect.c expected_answer_json), the steps that offer
+ * expected_answer, the steps that offer
  * a tool, and, in later sections, nullable optional arguments and native tools.
  */
 import { AgentBase } from '../src/AgentBase.js';

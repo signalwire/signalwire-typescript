@@ -4,7 +4,7 @@
  * the Bedrock prompt object defines, and setPromptLlmParams() ignored every
  * setting. Mirrors signalwire-python fbd4be7 (B12, B13, B14): the rendered
  * verb is validated against the SWML schema. The platform's Bedrock session
- * (mod_openai bedrock_config.cpp) reads only the prompt's text or pom,
+ * reads only the prompt's text or pom,
  * voice_id, temperature and top_p, so confidence and the penalties are
  * ignored with a warning (signalwire-python 623cf3e).
  */

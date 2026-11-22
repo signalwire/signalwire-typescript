@@ -1304,7 +1304,7 @@ describe('AgentBase', () => {
   // ── SWAIG argument.parsed unwrap (TS-6 / SWAIG-HTTP-INVOKE) ───────────
 
   it('unwraps platform-nested argument.parsed[0] so the handler sees real args', async () => {
-    // The real platform (mod_openai) POSTs a tool call as
+    // The real platform POSTs a tool call as
     // {function, argument: {parsed: [{...args}], raw: "..."}}. Reading
     // body.argument directly would hand the handler {parsed, raw} — empty args.
     let received: Record<string, unknown> | undefined;

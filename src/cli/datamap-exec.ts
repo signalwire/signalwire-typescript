@@ -1,6 +1,6 @@
 /**
  * DataMap execution for swaig-test: runs a DataMap function locally the way
- * the platform runs it (mod_openai's actions.c and swaig.c), so
+ * the platform runs it, so
  * `swaig-test --exec` can test one without a call.
  *
  * The pipeline, as the platform processes a data_map:
@@ -176,7 +176,7 @@ function atoi(text: string): number {
   return match ? Number.parseInt(match[1]!, 10) : 0;
 }
 
-/** mod_openai's cJSON_FSTrue(): JSON true, or a string FreeSWITCH's switch_true() accepts. */
+/** JSON true, or a string FreeSWITCH's switch_true() accepts, as the platform reads a switch. */
 function isTrue(value: unknown): boolean {
   if (value === true) return true;
   if (typeof value !== 'string') return false;
@@ -583,10 +583,9 @@ function findEndBrace(text: string, start: number): number {
 }
 
 /**
- * The value at a template path, or MISSING, as the platform's
- * get_json_object() finds it. Dots separate names, matched without regard to
- * ASCII case. One `[n]` may end a name, and a negative `n` counts from the
- * end. A path ending in a dot doesn't resolve, and an empty path is the whole
+ * The value at a template path, or MISSING, as the platform finds it. Dots
+ * separate names, matched without regard to ASCII case. One `[n]` may end a
+ * name, and a negative `n` counts from the end. A path ending in a dot doesn't resolve, and an empty path is the whole
  * data.
  */
 function lookup(data: unknown, path: string): unknown {
@@ -643,7 +642,7 @@ interface TemplateNote {
   value?: string;
 }
 
-/** Expand `${...}` and `%{...}` templates as the platform's _expand_jsonvars() does. */
+/** Expand `${...}` and `%{...}` templates as the platform does. */
 function expand(
   template: string,
   data: unknown,
@@ -905,7 +904,7 @@ class Run {
   }
 }
 
-/** The first expression result, or MISSING, as get_input_from_expressions() finds it. */
+/** The first expression result, or MISSING, as the platform finds it. */
 function runExpressions(run: Run, expressions: unknown, data: unknown, stage: string): unknown {
   for (const item of Array.isArray(expressions) ? expressions : [expressions]) {
     const reply = parseExpression(run, item, data, stage);
@@ -958,8 +957,7 @@ function buildCallData(
   if (typeof fn['function'] === 'string') data['function'] = fn['function'];
   for (const [key, value] of Object.entries(extra)) replaceItem(data, key, value);
   // The platform merges the function's meta_data over the global data, key
-  // by key, when it loads the function (app_config.c, cJSON_Merge with
-  // replace); a call's meta_data is that object, not one from the call data.
+  // by key, when it loads the function (cJSON_Merge with replace); a call's meta_data is that object, not one from the call data.
   const metaData: Data = {};
   for (const source of [objectItem(data, 'global_data'), fn['meta_data']]) {
     if (!isPlainObject(source)) continue;
@@ -1079,7 +1077,7 @@ function finish(run: Run, response: unknown): unknown {
 }
 
 /**
- * Request the first eligible webhook, as get_input_from_webhooks() does.
+ * Request the first eligible webhook, as the platform does.
  * Returns the reply, with an array wrapped as `{ array: [...] }`, and the
  * webhook when its reply counts as a success.
  */
@@ -1138,7 +1136,7 @@ async function runWebhooks(
   return { reply, match };
 }
 
-/** mod_openai's args_present(): whether any of the named keys is present. */
+/** Whether any of the named keys is present, as the platform checks `require_args`. */
 function anyPresent(keys: unknown, container: unknown): boolean {
   const list = Array.isArray(keys) ? keys : [keys];
   return list.some((k) => typeof k === 'string' && hasItem(container, k));
@@ -1160,7 +1158,7 @@ function failure(reply: unknown, errorKeys: unknown): string {
 }
 
 /**
- * Send one webhook's request as parse_webhook() does, and return its reply,
+ * Send one webhook's request as the platform does, and return its reply,
  * or MISSING when the webhook has no url.
  */
 async function request(
@@ -1317,7 +1315,7 @@ async function request(
   return reply;
 }
 
-/** Build a foreach's text into its output_key, as process_foreach() does. */
+/** Build a foreach's text into its output_key, as the platform does. */
 function processForeach(run: Run, foreach: unknown, data: Data): void {
   const inputKey = stringItem(foreach, 'input_key');
   const outputKey = stringItem(foreach, 'output_key');

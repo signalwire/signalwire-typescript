@@ -3294,7 +3294,7 @@ export class AgentBase extends SWMLService {
   /**
    * Extract the tool-call arguments from a SWAIG request body.
    *
-   * The real platform (mod_openai) POSTs a tool call with the args nested under
+   * The real platform POSTs a tool call with the args nested under
    * the platform envelope `{"argument": {"parsed": [{...args...}], "raw": "..."}}`
    * — NOT flat. Reading `body.argument` directly hands the handler the WHOLE
    * envelope (`{parsed, raw}`) instead of the args, so a real platform call

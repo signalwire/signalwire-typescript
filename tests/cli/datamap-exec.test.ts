@@ -433,8 +433,7 @@ describe('fix pass', () => {
 });
 
 /**
- * The template data of each stage, as the platform builds it (mod_openai
- * actions.c): url, params, top-level expressions and the data_map's own
+ * The template data of each stage, as the platform builds it: url, params, top-level expressions and the data_map's own
  * output read the call data, which has `args` at its root; a webhook's
  * output, expressions and foreach read the response, with the call data
  * under `input`.
@@ -553,7 +552,7 @@ describe('stage template data, as the platform builds it', () => {
   });
 });
 
-/** The webhook flow of mod_openai's get_input_from_webhooks and parse_webhook. */
+/** The webhook flow, as the platform runs it. */
 describe('webhook flow, as the platform runs it', () => {
   /** A fetch that answers each call from `bodies` in turn, recording what it was sent. */
   function sequence(...bodies: string[]) {
@@ -675,7 +674,7 @@ describe('webhook flow, as the platform runs it', () => {
 });
 
 /**
- * The prefix helpers of mod_openai's _expand_jsonvars (swaig.c): `lc:`,
+ * The platform's template prefix helpers: `lc:`,
  * `fmt_ph:` and `enc:`, matched case-insensitively at the start of the
  * template. The platform collects them and applies fmt_ph, then lc, then enc,
  * whatever order they are written in. Anything else before a colon is part of
@@ -732,7 +731,7 @@ describe('prefix helpers, as the platform parses them', () => {
 });
 
 /**
- * `enc:` is FreeSWITCH's switch_url_encode (swaig.c _expand_jsonvars): it
+ * `enc:` is FreeSWITCH's switch_url_encode: it
  * encodes control and non-ASCII bytes and the characters of
  * SWITCH_URL_UNSAFE, leaves every other printable ASCII character, and doesn't
  * encode a `%` that already starts an uppercase `%XX`.
@@ -760,10 +759,9 @@ describe('enc:, as the platform encodes', () => {
 });
 
 /**
- * mod_openai actions.c takes `expressions` and `webhooks` as a list or as a
- * single object. A single expression runs as a one-element list
- * (get_input_from_expressions). A single webhook runs differently
- * (get_input_from_webhooks): its require_args and error_keys aren't checked,
+ * The platform takes `expressions` and `webhooks` as a list or as a single
+ * object. A single expression runs as a one-element list. A single webhook
+ * runs differently: its require_args and error_keys aren't checked,
  * and a failed request doesn't fail it, so its output reads the error
  * response.
  */
@@ -885,9 +883,9 @@ describe('a request that does not complete, as the platform reports it', () => {
 });
 
 /**
- * The simulator follows the platform where it used to differ on purpose
- * (mod_openai actions.c process_data_map and the swaig function call's
- * post_data, swaig.c _expand_jsonvars and get_json_object). Mirrors
+ * The simulator follows the platform where it used to differ on purpose: the
+ * DataMap's stages, the function call's post_data and template expansion.
+ * Mirrors
  * signalwire-python's tests/unit/cli/test_datamap_exec_platform.py and
  * test_datamap_templates.py (9e07f0f).
  */

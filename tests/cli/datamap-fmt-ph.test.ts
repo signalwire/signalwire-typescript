@@ -1,8 +1,7 @@
 /**
  * The simulator's fmt_ph helper, as the platform formats a phone number: with
  * libphonenumber, parsed with US as the default region, in the national
- * format, and INVALID NUMBER for a number it can't validate (mod_openai
- * numbers.cpp format_number, called from swaig.c _expand_jsonvars). The
+ * format, and INVALID NUMBER for a number it can't validate. The
  * simulator formatted only North American numbers and left anything else as
  * it was. With the optional libphonenumber-js package it now does what the
  * platform does; without it, it keeps the North American formatting and says

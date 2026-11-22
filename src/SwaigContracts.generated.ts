@@ -2,7 +2,7 @@
 // Regenerate with: npx tsx scripts/generate-swaig-payloads.ts
 //
 // The typed SWAIG wire payloads (SWAIG_PIPELINE §4) from the AUTHORITATIVE
-// mod_openai engine specs: SwaigRequest is the body a SWAIG function handler
+// AI engine specs: SwaigRequest is the body a SWAIG function handler
 // RECEIVES; the PostPrompt tree is the call-end summary payload the
 // post-prompt / onSummary callback RECEIVES. Open-shaped READ payloads — every
 // field optional, every named type carries a [key: string]: unknown tail so

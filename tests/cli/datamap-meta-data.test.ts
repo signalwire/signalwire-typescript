@@ -1,9 +1,8 @@
 /**
  * A DataMap function's meta_data, as the platform builds it: when it loads the
- * function, mod_openai merges the function's meta_data over the AI's
- * global_data, key by key (app_config.c process_swaig_function, cJSON_Merge
- * with replace), and a call's post_data carries that merged object as
- * meta_data (actions.c). The simulator used the function's meta_data alone.
+ * function, the platform merges the function's meta_data over the AI's
+ * global_data, key by key (cJSON_Merge with replace), and a call's post_data
+ * carries that merged object as meta_data. The simulator used the function's meta_data alone.
  * Mirrors signalwire-python tests/unit/cli/test_datamap_exec_platform.py
  * (71dbba8).
  */

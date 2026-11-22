@@ -1,6 +1,6 @@
 /**
  * Typed SWAIG wire payloads (SWAIG_PIPELINE §4) — the bodies the SignalWire AI
- * engine (mod_openai) POSTs to a SWAIG function's web_hook_url and to
+ * engine POSTs to a SWAIG function's web_hook_url and to
  * post_prompt_url at call end. `SwaigRequest` is what a function handler RECEIVES;
  * the `PostPrompt` tree is the call-summary payload the post-prompt / `onSummary`
  * callback RECEIVES.

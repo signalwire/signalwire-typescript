@@ -1,8 +1,8 @@
 /**
  * Semantic gates: building them, and the platform's rules for them.
  *
- * The platform refuses a whole function when any of its gates breaks a rule
- * (mod_openai semantic_gates.c), so the SDK checks gates by the same rules when
+ * The platform refuses a whole function when any of its gates breaks a rule,
+ * so the SDK checks gates by the same rules when
  * a tool is defined. These tests follow those rules one by one, as the Python
  * SDK's test_semantic_gates.py does.
  */
@@ -587,9 +587,8 @@ describe('a gate with visual_input', () => {
 });
 
 /**
- * A gate's dialogue, history, since, unclear and on_unclear, as the platform's
- * semantic_gates.c reads them (sg_parse_one, on mod_openai's
- * filler_volume_and_steps): dialogue is window or proposal without regard to
+ * A gate's dialogue, history, since, unclear and on_unclear, as the platform
+ * reads them: dialogue is window or proposal without regard to
  * case, history a whole number from 1 to 100, since a mark name, unclear a
  * boolean, and on_unclear an output shaped as on_fail. Every gate of a
  * function must name the same dialogue, history and since, set or not.

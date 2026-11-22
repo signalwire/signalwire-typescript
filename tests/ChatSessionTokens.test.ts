@@ -4,8 +4,8 @@
  * The chat service fetches an agent's SWML under the conversation's id, so the
  * SDK mints that SWML's tokens (each secure function's, and the post-prompt
  * URL's) for the conversation id. It then sends every request under its own
- * runtime call id, with the conversation's id as `conversation_id` (mod_openai
- * ais_get_post_data, and the function post_data in actions.c). Comparing the
+ * runtime call id, with the conversation's id as `conversation_id`, in the
+ * call's post data and each function's. Comparing the
  * token with `call_id` alone refused every secure function call and every
  * post-prompt summary in chat. From signalwire-python #166.
  */

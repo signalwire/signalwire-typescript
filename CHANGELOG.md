@@ -9,7 +9,8 @@ follows [Semantic Versioning](https://semver.org/).
 
 - The docs for `setAgentVoice()` and `setFallbackVoice()` drop their note on
   platform releases, and an earlier entry here drops the platform commit it
-  cited. The API reference's `hold()` signature shows the duration string
+  cited. Comments, tests and the bundled SWML schema's descriptions no
+  longer cite the platform's source. The API reference's `hold()` signature shows the duration string
   its `timeout` has taken since 3.13.0.
 - A test pins what an agent with no voice settings renders, as it always
   has: a voice given as one string is still sent as its voice, engine and
