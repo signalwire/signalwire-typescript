@@ -2,10 +2,10 @@
 // Regenerate with: npx tsx scripts/generate-relay-protocol.ts
 //
 // One interface per RELAY method's params (<Method>Params) and ack result
-// (<Method>Result), from the canonical switchblade wire schemas. Held to the
+// (<Method>Result), from the canonical RELAY wire schemas. Held to the
 // same lint bar as hand-written source (no rule suppressions, no loose types).
 
-/** Wire schema for the JSON payload of `calling.ai_hold` (params). Extracted from switchblade `PublicCallAiHoldParams.cs`. */
+/** Wire schema for the JSON payload of `calling.ai_hold` (params). */
 export interface CallingAiHoldParams {
   async?: boolean | null;
   call_id: string;
@@ -16,7 +16,7 @@ export interface CallingAiHoldParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.ai_message` (params). Extracted from switchblade `PublicCallAiMessageParams.cs`. */
+/** Wire schema for the JSON payload of `calling.ai_message` (params). */
 export interface CallingAiMessageParams {
   async?: boolean | null;
   call_id: string;
@@ -29,7 +29,7 @@ export interface CallingAiMessageParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.ai_unhold` (params). Extracted from switchblade `PublicCallAiUnholdParams.cs`. */
+/** Wire schema for the JSON payload of `calling.ai_unhold` (params). */
 export interface CallingAiUnholdParams {
   async?: boolean | null;
   call_id: string;
@@ -39,7 +39,7 @@ export interface CallingAiUnholdParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.amazon_bedrock` (params). Extracted from switchblade `PublicCallAmazonBedrockParams.cs`. */
+/** Wire schema for the JSON payload of `calling.amazon_bedrock` (params). */
 export interface CallingAmazonBedrockParams {
   SWAIG?: Record<string, unknown>;
   async?: boolean | null;
@@ -54,7 +54,7 @@ export interface CallingAmazonBedrockParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.answer` (params). Extracted from switchblade `PublicCallAnswerParams.cs`. */
+/** Wire schema for the JSON payload of `calling.answer` (params). */
 export interface CallingAnswerParams {
   call_id: string;
   max_duration?: number | null;
@@ -62,7 +62,7 @@ export interface CallingAnswerParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.begin` (params). Extracted from switchblade `PublicCallBeginParams.cs`. */
+/** Wire schema for the JSON payload of `calling.begin` (params). */
 export interface CallingBeginParams {
   device: {
     params?: Record<string, unknown>;
@@ -75,7 +75,7 @@ export interface CallingBeginParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.bind_digit` (params). Extracted from switchblade `PublicCallBindDigitParams.cs`. */
+/** Wire schema for the JSON payload of `calling.bind_digit` (params). */
 export interface CallingBindDigitParams {
   bind_method: string;
   call_id: string;
@@ -88,10 +88,10 @@ export interface CallingBindDigitParams {
   [key: string]: unknown;
 }
 
-/** Placeholder schema for the FreeSWITCH-side `calling.call` method. Registered via `swclt_sess_register_protocol_method(..., "call", ...)` in mod_infrastructure/relay.c but not exposed as a switchblade Params/Result class. The mock accepts any payload for this method. */
+/** Placeholder schema for the server-side `calling.call` method, which has no typed params/result schema. The mock accepts any payload for this method. */
 export type CallingCallParams = Record<string, unknown>;
 
-/** Wire schema for the JSON payload of `calling.clear_digit_bindings` (params). Extracted from switchblade `PublicCallClearDigitBindingsParams.cs`. */
+/** Wire schema for the JSON payload of `calling.clear_digit_bindings` (params). */
 export interface CallingClearDigitBindingsParams {
   call_id: string;
   node_id: string;
@@ -100,7 +100,7 @@ export interface CallingClearDigitBindingsParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.collect` (params). Extracted from switchblade `PublicCallCollectParams.cs`. */
+/** Wire schema for the JSON payload of `calling.collect` (params). */
 export interface CallingCollectParams {
   call_id: string;
   continue?: boolean | null;
@@ -127,7 +127,7 @@ export interface CallingCollectParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.collect.start_input_timers` (params). Extracted from switchblade `PublicCallCollectStartInputTimersParams.cs`. */
+/** Wire schema for the JSON payload of `calling.collect.start_input_timers` (params). */
 export interface CallingCollectStartInputTimersParams {
   call_id: string;
   control_id: string;
@@ -135,7 +135,7 @@ export interface CallingCollectStartInputTimersParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.collect.stop` (params). Extracted from switchblade `PublicCallCollectStopParams.cs`. */
+/** Wire schema for the JSON payload of `calling.collect.stop` (params). */
 export interface CallingCollectStopParams {
   call_id: string;
   control_id: string;
@@ -143,7 +143,7 @@ export interface CallingCollectStopParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.connect` (params). Extracted from switchblade `PublicCallConnectParams.cs`. */
+/** Wire schema for the JSON payload of `calling.connect` (params). */
 export interface CallingConnectParams {
   call_id: string;
   devices: {
@@ -161,21 +161,21 @@ export interface CallingConnectParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.denoise` (params). Extracted from switchblade `PublicCallDenoiseParams.cs`. */
+/** Wire schema for the JSON payload of `calling.denoise` (params). */
 export interface CallingDenoiseParams {
   call_id: string;
   node_id: string;
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.denoise.stop` (params). Extracted from switchblade `PublicCallDenoiseStopParams.cs`. */
+/** Wire schema for the JSON payload of `calling.denoise.stop` (params). */
 export interface CallingDenoiseStopParams {
   call_id: string;
   node_id: string;
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.detect` (params). Extracted from switchblade `PublicCallDetectParams.cs`. */
+/** Wire schema for the JSON payload of `calling.detect` (params). */
 export interface CallingDetectParams {
   call_id: string;
   control_id: string;
@@ -188,7 +188,7 @@ export interface CallingDetectParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.detect.stop` (params). Extracted from switchblade `PublicCallDetectStopParams.cs`. */
+/** Wire schema for the JSON payload of `calling.detect.stop` (params). */
 export interface CallingDetectStopParams {
   call_id: string;
   control_id: string;
@@ -196,7 +196,7 @@ export interface CallingDetectStopParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.dial` (params). Extracted from switchblade `PublicCallDialParams.cs`. */
+/** Wire schema for the JSON payload of `calling.dial` (params). */
 export interface CallingDialParams {
   devices: {
     params?: Record<string, unknown>;
@@ -209,14 +209,14 @@ export interface CallingDialParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.disconnect` (params). Extracted from switchblade `PublicCallDisconnectParams.cs`. */
+/** Wire schema for the JSON payload of `calling.disconnect` (params). */
 export interface CallingDisconnectParams {
   call_id: string;
   node_id: string;
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.echo` (params). Extracted from switchblade `PublicCallEchoParams.cs`. */
+/** Wire schema for the JSON payload of `calling.echo` (params). */
 export interface CallingEchoParams {
   call_id: string;
   node_id: string;
@@ -226,7 +226,7 @@ export interface CallingEchoParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.end` (params). Extracted from switchblade `PublicCallEndParams.cs`. */
+/** Wire schema for the JSON payload of `calling.end` (params). */
 export interface CallingEndParams {
   call_id: string;
   node_id: string;
@@ -234,7 +234,7 @@ export interface CallingEndParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.join_conference` (params). Extracted from switchblade `PublicCallJoinConferenceParams.cs`. */
+/** Wire schema for the JSON payload of `calling.join_conference` (params). */
 export interface CallingJoinConferenceParams {
   acl?: string;
   beep?: string;
@@ -263,7 +263,7 @@ export interface CallingJoinConferenceParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.join_room` (params). Extracted from switchblade `PublicCallJoinRoomParams.cs`. */
+/** Wire schema for the JSON payload of `calling.join_room` (params). */
 export interface CallingJoinRoomParams {
   call_id: string;
   hagrid_json_api_url?: string;
@@ -275,7 +275,7 @@ export interface CallingJoinRoomParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.leave_conference` (params). Extracted from switchblade `PublicCallLeaveConferenceParams.cs`. */
+/** Wire schema for the JSON payload of `calling.leave_conference` (params). */
 export interface CallingLeaveConferenceParams {
   async?: boolean | null;
   call_id: string;
@@ -284,7 +284,7 @@ export interface CallingLeaveConferenceParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.leave_room` (params). Extracted from switchblade `PublicCallLeaveRoomParams.cs`. */
+/** Wire schema for the JSON payload of `calling.leave_room` (params). */
 export interface CallingLeaveRoomParams {
   async?: boolean | null;
   call_id: string;
@@ -292,7 +292,7 @@ export interface CallingLeaveRoomParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.live_transcribe` (params). Extracted from switchblade `PublicCallLiveTranscribeParams.cs`. */
+/** Wire schema for the JSON payload of `calling.live_transcribe` (params). */
 export interface CallingLiveTranscribeParams {
   action: Record<string, unknown>;
   async?: boolean | null;
@@ -302,7 +302,7 @@ export interface CallingLiveTranscribeParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.live_translate` (params). Extracted from switchblade `PublicCallLiveTranslateParams.cs`. */
+/** Wire schema for the JSON payload of `calling.live_translate` (params). */
 export interface CallingLiveTranslateParams {
   action: Record<string, unknown>;
   async?: boolean | null;
@@ -313,14 +313,14 @@ export interface CallingLiveTranslateParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.pass` (params). Extracted from switchblade `PublicCallPassParams.cs`. */
+/** Wire schema for the JSON payload of `calling.pass` (params). */
 export interface CallingPassParams {
   call_id: string;
   node_id: string;
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.pay` (params). Extracted from switchblade `PublicCallPayParams.cs`. */
+/** Wire schema for the JSON payload of `calling.pay` (params). */
 export interface CallingPayParams {
   bank_account_type?: Record<string, unknown>;
   call_id: string;
@@ -360,7 +360,7 @@ export interface CallingPayParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.pay.stop` (params). Extracted from switchblade `PublicCallPayStopParams.cs`. */
+/** Wire schema for the JSON payload of `calling.pay.stop` (params). */
 export interface CallingPayStopParams {
   call_id: string;
   control_id: string;
@@ -368,7 +368,7 @@ export interface CallingPayStopParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play` (params). Extracted from switchblade `PublicCallPlayParams.cs`. */
+/** Wire schema for the JSON payload of `calling.play` (params). */
 export interface CallingPlayParams {
   call_id: string;
   control_id: string;
@@ -381,7 +381,7 @@ export interface CallingPlayParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play.pause` (params). Extracted from switchblade `PublicCallPlayPauseParams.cs`. */
+/** Wire schema for the JSON payload of `calling.play.pause` (params). */
 export interface CallingPlayPauseParams {
   call_id: string;
   control_id: string;
@@ -389,7 +389,7 @@ export interface CallingPlayPauseParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play.resume` (params). Extracted from switchblade `PublicCallPlayResumeParams.cs`. */
+/** Wire schema for the JSON payload of `calling.play.resume` (params). */
 export interface CallingPlayResumeParams {
   call_id: string;
   control_id: string;
@@ -397,7 +397,7 @@ export interface CallingPlayResumeParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play.stop` (params). Extracted from switchblade `PublicCallPlayStopParams.cs`. */
+/** Wire schema for the JSON payload of `calling.play.stop` (params). */
 export interface CallingPlayStopParams {
   call_id: string;
   control_id: string;
@@ -405,7 +405,7 @@ export interface CallingPlayStopParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play.volume` (params). Extracted from switchblade `PublicCallPlayVolumeParams.cs`. */
+/** Wire schema for the JSON payload of `calling.play.volume` (params). */
 export interface CallingPlayVolumeParams {
   call_id: string;
   control_id: string;
@@ -414,7 +414,7 @@ export interface CallingPlayVolumeParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play_and_collect` (params). Extracted from switchblade `PublicCallPlayAndCollectParams.cs`. */
+/** Wire schema for the JSON payload of `calling.play_and_collect` (params). */
 export interface CallingPlayAndCollectParams {
   call_id: string;
   collect: {
@@ -443,7 +443,7 @@ export interface CallingPlayAndCollectParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play_and_collect.stop` (params). Extracted from switchblade `PublicCallPlayAndCollectStopParams.cs`. */
+/** Wire schema for the JSON payload of `calling.play_and_collect.stop` (params). */
 export interface CallingPlayAndCollectStopParams {
   call_id: string;
   control_id: string;
@@ -451,7 +451,7 @@ export interface CallingPlayAndCollectStopParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play_and_collect.volume` (params). Extracted from switchblade `PublicCallPlayAndCollectVolumeParams.cs`. */
+/** Wire schema for the JSON payload of `calling.play_and_collect.volume` (params). */
 export interface CallingPlayAndCollectVolumeParams {
   call_id: string;
   control_id: string;
@@ -460,7 +460,7 @@ export interface CallingPlayAndCollectVolumeParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.queue.enter` (params). Extracted from switchblade `PublicCallQueueEnterParams.cs`. */
+/** Wire schema for the JSON payload of `calling.queue.enter` (params). */
 export interface CallingQueueEnterParams {
   call_id: string;
   control_id: string;
@@ -471,7 +471,7 @@ export interface CallingQueueEnterParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.queue.leave` (params). Extracted from switchblade `PublicCallQueueLeaveParams.cs`. */
+/** Wire schema for the JSON payload of `calling.queue.leave` (params). */
 export interface CallingQueueLeaveParams {
   call_id: string;
   control_id: string;
@@ -482,14 +482,14 @@ export interface CallingQueueLeaveParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.receive` (params). Extracted from switchblade `PublicCallReceiveParams.cs`. */
+/** Wire schema for the JSON payload of `calling.receive` (params). */
 export interface CallingReceiveParams {
   context?: string;
   contexts?: string[];
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.receive_fax` (params). Extracted from switchblade `PublicCallReceiveFaxParams.cs`. */
+/** Wire schema for the JSON payload of `calling.receive_fax` (params). */
 export interface CallingReceiveFaxParams {
   call_id: string;
   control_id: string;
@@ -497,7 +497,7 @@ export interface CallingReceiveFaxParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.receive_fax.stop` (params). Extracted from switchblade `PublicCallReceiveFaxStopParams.cs`. */
+/** Wire schema for the JSON payload of `calling.receive_fax.stop` (params). */
 export interface CallingReceiveFaxStopParams {
   call_id: string;
   control_id: string;
@@ -505,7 +505,7 @@ export interface CallingReceiveFaxStopParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.record` (params). Extracted from switchblade `PublicCallRecordParams.cs`. */
+/** Wire schema for the JSON payload of `calling.record` (params). */
 export interface CallingRecordParams {
   call_id: string;
   control_id: string;
@@ -518,7 +518,7 @@ export interface CallingRecordParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.record.pause` (params). Extracted from switchblade `PublicCallRecordPauseParams.cs`. */
+/** Wire schema for the JSON payload of `calling.record.pause` (params). */
 export interface CallingRecordPauseParams {
   behavior?: string;
   call_id: string;
@@ -527,7 +527,7 @@ export interface CallingRecordPauseParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.record.resume` (params). Extracted from switchblade `PublicCallRecordResumeParams.cs`. */
+/** Wire schema for the JSON payload of `calling.record.resume` (params). */
 export interface CallingRecordResumeParams {
   call_id: string;
   control_id: string;
@@ -535,7 +535,7 @@ export interface CallingRecordResumeParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.record.stop` (params). Extracted from switchblade `PublicCallRecordStopParams.cs`. */
+/** Wire schema for the JSON payload of `calling.record.stop` (params). */
 export interface CallingRecordStopParams {
   call_id: string;
   control_id: string;
@@ -543,7 +543,7 @@ export interface CallingRecordStopParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.refer` (params). Extracted from switchblade `PublicCallReferParams.cs`. */
+/** Wire schema for the JSON payload of `calling.refer` (params). */
 export interface CallingReferParams {
   call_id: string;
   device: {
@@ -557,7 +557,7 @@ export interface CallingReferParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.send_digits` (params). Extracted from switchblade `PublicCallSendDigitsParams.cs`. */
+/** Wire schema for the JSON payload of `calling.send_digits` (params). */
 export interface CallingSendDigitsParams {
   call_id: string;
   control_id: string;
@@ -566,7 +566,7 @@ export interface CallingSendDigitsParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.send_fax` (params). Extracted from switchblade `PublicCallSendFaxParams.cs`. */
+/** Wire schema for the JSON payload of `calling.send_fax` (params). */
 export interface CallingSendFaxParams {
   call_id: string;
   control_id: string;
@@ -577,7 +577,7 @@ export interface CallingSendFaxParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.send_fax.stop` (params). Extracted from switchblade `PublicCallSendFaxStopParams.cs`. */
+/** Wire schema for the JSON payload of `calling.send_fax.stop` (params). */
 export interface CallingSendFaxStopParams {
   call_id: string;
   control_id: string;
@@ -585,7 +585,7 @@ export interface CallingSendFaxStopParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.stream` (params). Extracted from switchblade `PublicCallStreamParams.cs`. */
+/** Wire schema for the JSON payload of `calling.stream` (params). */
 export interface CallingStreamParams {
   async?: boolean | null;
   authorization_bearer_token?: string;
@@ -603,7 +603,7 @@ export interface CallingStreamParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.stream.stop` (params). Extracted from switchblade `PublicCallStreamStopParams.cs`. */
+/** Wire schema for the JSON payload of `calling.stream.stop` (params). */
 export interface CallingStreamStopParams {
   async?: boolean | null;
   call_id: string;
@@ -613,7 +613,7 @@ export interface CallingStreamStopParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.tap` (params). Extracted from switchblade `PublicCallTapParams.cs`. */
+/** Wire schema for the JSON payload of `calling.tap` (params). */
 export interface CallingTapParams {
   call_id: string;
   control_id: string;
@@ -629,7 +629,7 @@ export interface CallingTapParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.tap.stop` (params). Extracted from switchblade `PublicCallTapStopParams.cs`. */
+/** Wire schema for the JSON payload of `calling.tap.stop` (params). */
 export interface CallingTapStopParams {
   call_id: string;
   control_id: string;
@@ -637,7 +637,7 @@ export interface CallingTapStopParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.transfer` (params). Extracted from switchblade `PublicCallTransferParams.cs`. */
+/** Wire schema for the JSON payload of `calling.transfer` (params). */
 export interface CallingTransferParams {
   call_id: string;
   dest: string;
@@ -645,7 +645,7 @@ export interface CallingTransferParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.user_event` (params). Extracted from switchblade `PublicCallUserEventParams.cs`. */
+/** Wire schema for the JSON payload of `calling.user_event` (params). */
 export interface CallingUserEventParams {
   async?: boolean | null;
   call_id: string;
@@ -655,7 +655,7 @@ export interface CallingUserEventParams {
   [key: string]: unknown;
 }
 
-/** Permissive schema for the messaging.send RPC params. Switchblade forwards the JObject as-is to the messaging gateway, so the schema is derived from the Python relay client (``signalwire/relay/client.py:send_message``). At least one of `body` or `media` is required. */
+/** Permissive schema for the messaging.send RPC params. The server forwards the params as-is to the messaging gateway, so the schema is derived from the Python relay client (``signalwire/relay/client.py:send_message``). At least one of `body` or `media` is required. */
 export interface MessagingSendParams {
   body?: string;
   context: string;
@@ -667,7 +667,7 @@ export interface MessagingSendParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the Blade envelope `signalwire.connect` (params). Extracted from switchblade `Messages/ConnectParams.cs`. */
+/** Wire schema for the Blade envelope `signalwire.connect` (params). */
 export interface SignalwireConnectParams {
   agent?: string;
   authentication?: Record<string, unknown>;
@@ -686,13 +686,13 @@ export interface SignalwireConnectParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the Blade envelope `signalwire.disconnect` (params). Extracted from switchblade `Messages/DisconnectParams.cs`. */
+/** Wire schema for the Blade envelope `signalwire.disconnect` (params). */
 export interface SignalwireDisconnectParams {
   restart?: boolean;
   [key: string]: unknown;
 }
 
-/** Wire schema for the Blade envelope `signalwire.execute` (params). Extracted from switchblade `Messages/ExecuteParams.cs`. */
+/** Wire schema for the Blade envelope `signalwire.execute` (params). */
 export interface SignalwireExecuteParams {
   attempted?: string[];
   method: string;
@@ -705,21 +705,21 @@ export interface SignalwireExecuteParams {
   [key: string]: unknown;
 }
 
-/** Wire schema for the Blade envelope `signalwire.ping` (params). Extracted from switchblade `Messages/PingParams.cs`. */
+/** Wire schema for the Blade envelope `signalwire.ping` (params). */
 export interface SignalwirePingParams {
   payload?: string;
   timestamp?: number | null;
   [key: string]: unknown;
 }
 
-/** Wire schema for the Blade envelope `signalwire.reauthenticate` (params). Extracted from switchblade `Messages/ReauthenticateParams.cs`. */
+/** Wire schema for the Blade envelope `signalwire.reauthenticate` (params). */
 export interface SignalwireReauthenticateParams {
   authentication: Record<string, unknown>;
   dpop_token?: string;
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.ai_hold` (result). Extracted from switchblade `PublicCallAiHoldResult.cs`. */
+/** Wire schema for the JSON payload of `calling.ai_hold` (result). */
 export interface CallingAiHoldResult {
   call_id?: string;
   code: string;
@@ -728,7 +728,7 @@ export interface CallingAiHoldResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.ai_message` (result). Extracted from switchblade `PublicCallAiMessageResult.cs`. */
+/** Wire schema for the JSON payload of `calling.ai_message` (result). */
 export interface CallingAiMessageResult {
   call_id?: string;
   code: string;
@@ -737,7 +737,7 @@ export interface CallingAiMessageResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.ai_unhold` (result). Extracted from switchblade `PublicCallAiUnholdResult.cs`. */
+/** Wire schema for the JSON payload of `calling.ai_unhold` (result). */
 export interface CallingAiUnholdResult {
   call_id?: string;
   code: string;
@@ -746,7 +746,7 @@ export interface CallingAiUnholdResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.amazon_bedrock` (result). Extracted from switchblade `PublicCallAmazonBedrockResult.cs`. */
+/** Wire schema for the JSON payload of `calling.amazon_bedrock` (result). */
 export interface CallingAmazonBedrockResult {
   call_id?: string;
   code: string;
@@ -755,7 +755,7 @@ export interface CallingAmazonBedrockResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.answer` (result). Extracted from switchblade `PublicCallAnswerResult.cs`. */
+/** Wire schema for the JSON payload of `calling.answer` (result). */
 export interface CallingAnswerResult {
   code: string;
   data?: Record<string, unknown>;
@@ -763,7 +763,7 @@ export interface CallingAnswerResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.begin` (result). Extracted from switchblade `PublicCallBeginResult.cs`. */
+/** Wire schema for the JSON payload of `calling.begin` (result). */
 export interface CallingBeginResult {
   call_id?: string;
   code: string;
@@ -774,7 +774,7 @@ export interface CallingBeginResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.bind_digit` (result). Extracted from switchblade `PublicCallBindDigitResult.cs`. */
+/** Wire schema for the JSON payload of `calling.bind_digit` (result). */
 export interface CallingBindDigitResult {
   call_id?: string;
   code: string;
@@ -783,10 +783,10 @@ export interface CallingBindDigitResult {
   [key: string]: unknown;
 }
 
-/** Placeholder schema for the FreeSWITCH-side `calling.call` method. Registered via `swclt_sess_register_protocol_method(..., "call", ...)` in mod_infrastructure/relay.c but not exposed as a switchblade Params/Result class. The mock accepts any payload for this method. */
+/** Placeholder schema for the server-side `calling.call` method, which has no typed params/result schema. The mock accepts any payload for this method. */
 export type CallingCallResult = Record<string, unknown>;
 
-/** Wire schema for the JSON payload of `calling.clear_digit_bindings` (result). Extracted from switchblade `PublicCallClearDigitBindingsResult.cs`. */
+/** Wire schema for the JSON payload of `calling.clear_digit_bindings` (result). */
 export interface CallingClearDigitBindingsResult {
   call_id?: string;
   code: string;
@@ -795,7 +795,7 @@ export interface CallingClearDigitBindingsResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.collect` (result). Extracted from switchblade `PublicCallCollectResult.cs`. */
+/** Wire schema for the JSON payload of `calling.collect` (result). */
 export interface CallingCollectResult {
   call_id?: string;
   code: string;
@@ -805,7 +805,7 @@ export interface CallingCollectResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.collect.start_input_timers` (result). Extracted from switchblade `PublicCallCollectStartInputTimersResult.cs`. */
+/** Wire schema for the JSON payload of `calling.collect.start_input_timers` (result). */
 export interface CallingCollectStartInputTimersResult {
   call_id?: string;
   code: string;
@@ -815,7 +815,7 @@ export interface CallingCollectStartInputTimersResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.collect.stop` (result). Extracted from switchblade `PublicCallCollectStopResult.cs`. */
+/** Wire schema for the JSON payload of `calling.collect.stop` (result). */
 export interface CallingCollectStopResult {
   call_id?: string;
   code: string;
@@ -825,7 +825,7 @@ export interface CallingCollectStopResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.connect` (result). Extracted from switchblade `PublicCallConnectResult.cs`. */
+/** Wire schema for the JSON payload of `calling.connect` (result). */
 export interface CallingConnectResult {
   code: string;
   data?: Record<string, unknown>;
@@ -834,7 +834,7 @@ export interface CallingConnectResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.denoise` (result). Extracted from switchblade `PublicCallDenoiseResult.cs`. */
+/** Wire schema for the JSON payload of `calling.denoise` (result). */
 export interface CallingDenoiseResult {
   call_id?: string;
   code: string;
@@ -843,7 +843,7 @@ export interface CallingDenoiseResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.denoise.stop` (result). Extracted from switchblade `PublicCallDenoiseStopResult.cs`. */
+/** Wire schema for the JSON payload of `calling.denoise.stop` (result). */
 export interface CallingDenoiseStopResult {
   call_id?: string;
   code: string;
@@ -852,7 +852,7 @@ export interface CallingDenoiseStopResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.detect` (result). Extracted from switchblade `PublicCallDetectResult.cs`. */
+/** Wire schema for the JSON payload of `calling.detect` (result). */
 export interface CallingDetectResult {
   call_id?: string;
   code: string;
@@ -862,7 +862,7 @@ export interface CallingDetectResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.detect.stop` (result). Extracted from switchblade `PublicCallDetectStopResult.cs`. */
+/** Wire schema for the JSON payload of `calling.detect.stop` (result). */
 export interface CallingDetectStopResult {
   call_id?: string;
   code: string;
@@ -872,7 +872,7 @@ export interface CallingDetectStopResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.dial` (result). Extracted from switchblade `PublicCallDialResult.cs`. */
+/** Wire schema for the JSON payload of `calling.dial` (result). */
 export interface CallingDialResult {
   code: string;
   data?: Record<string, unknown>;
@@ -881,7 +881,7 @@ export interface CallingDialResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.disconnect` (result). Extracted from switchblade `PublicCallDisconnectResult.cs`. */
+/** Wire schema for the JSON payload of `calling.disconnect` (result). */
 export interface CallingDisconnectResult {
   code: string;
   data?: Record<string, unknown>;
@@ -889,7 +889,7 @@ export interface CallingDisconnectResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.echo` (result). Extracted from switchblade `PublicCallEchoResult.cs`. */
+/** Wire schema for the JSON payload of `calling.echo` (result). */
 export interface CallingEchoResult {
   call_id?: string;
   code: string;
@@ -898,7 +898,7 @@ export interface CallingEchoResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.end` (result). Extracted from switchblade `PublicCallEndResult.cs`. */
+/** Wire schema for the JSON payload of `calling.end` (result). */
 export interface CallingEndResult {
   code: string;
   data?: Record<string, unknown>;
@@ -906,7 +906,7 @@ export interface CallingEndResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.join_conference` (result). Extracted from switchblade `PublicCallJoinConferenceResult.cs`. */
+/** Wire schema for the JSON payload of `calling.join_conference` (result). */
 export interface CallingJoinConferenceResult {
   call_id?: string;
   code: string;
@@ -916,7 +916,7 @@ export interface CallingJoinConferenceResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.join_room` (result). Extracted from switchblade `PublicCallJoinRoomResult.cs`. */
+/** Wire schema for the JSON payload of `calling.join_room` (result). */
 export interface CallingJoinRoomResult {
   call_id?: string;
   code: string;
@@ -925,7 +925,7 @@ export interface CallingJoinRoomResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.leave_conference` (result). Extracted from switchblade `PublicCallLeaveConferenceResult.cs`. */
+/** Wire schema for the JSON payload of `calling.leave_conference` (result). */
 export interface CallingLeaveConferenceResult {
   call_id?: string;
   code: string;
@@ -934,7 +934,7 @@ export interface CallingLeaveConferenceResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.leave_room` (result). Extracted from switchblade `PublicCallLeaveRoomResult.cs`. */
+/** Wire schema for the JSON payload of `calling.leave_room` (result). */
 export interface CallingLeaveRoomResult {
   call_id?: string;
   code: string;
@@ -943,7 +943,7 @@ export interface CallingLeaveRoomResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.live_transcribe` (result). Extracted from switchblade `PublicCallLiveTranscribeResult.cs`. */
+/** Wire schema for the JSON payload of `calling.live_transcribe` (result). */
 export interface CallingLiveTranscribeResult {
   call_id?: string;
   code: string;
@@ -952,7 +952,7 @@ export interface CallingLiveTranscribeResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.live_translate` (result). Extracted from switchblade `PublicCallLiveTranslateResult.cs`. */
+/** Wire schema for the JSON payload of `calling.live_translate` (result). */
 export interface CallingLiveTranslateResult {
   call_id?: string;
   code: string;
@@ -961,7 +961,7 @@ export interface CallingLiveTranslateResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.pass` (result). Extracted from switchblade `PublicCallPassResult.cs`. */
+/** Wire schema for the JSON payload of `calling.pass` (result). */
 export interface CallingPassResult {
   call_id?: string;
   code: string;
@@ -970,7 +970,7 @@ export interface CallingPassResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.pay` (result). Extracted from switchblade `PublicCallPayResult.cs`. */
+/** Wire schema for the JSON payload of `calling.pay` (result). */
 export interface CallingPayResult {
   call_id?: string;
   code: string;
@@ -980,7 +980,7 @@ export interface CallingPayResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.pay.stop` (result). Extracted from switchblade `PublicCallPayStopResult.cs`. */
+/** Wire schema for the JSON payload of `calling.pay.stop` (result). */
 export interface CallingPayStopResult {
   call_id?: string;
   code: string;
@@ -990,7 +990,7 @@ export interface CallingPayStopResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play.pause` (result). Extracted from switchblade `PublicCallPlayPauseResult.cs`. */
+/** Wire schema for the JSON payload of `calling.play.pause` (result). */
 export interface CallingPlayPauseResult {
   call_id?: string;
   code: string;
@@ -1000,7 +1000,7 @@ export interface CallingPlayPauseResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play` (result). Extracted from switchblade `PublicCallPlayResult.cs`. */
+/** Wire schema for the JSON payload of `calling.play` (result). */
 export interface CallingPlayResult {
   call_id?: string;
   code: string;
@@ -1010,7 +1010,7 @@ export interface CallingPlayResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play.resume` (result). Extracted from switchblade `PublicCallPlayResumeResult.cs`. */
+/** Wire schema for the JSON payload of `calling.play.resume` (result). */
 export interface CallingPlayResumeResult {
   call_id?: string;
   code: string;
@@ -1020,7 +1020,7 @@ export interface CallingPlayResumeResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play.stop` (result). Extracted from switchblade `PublicCallPlayStopResult.cs`. */
+/** Wire schema for the JSON payload of `calling.play.stop` (result). */
 export interface CallingPlayStopResult {
   call_id?: string;
   code: string;
@@ -1030,7 +1030,7 @@ export interface CallingPlayStopResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play.volume` (result). Extracted from switchblade `PublicCallPlayVolumeResult.cs`. */
+/** Wire schema for the JSON payload of `calling.play.volume` (result). */
 export interface CallingPlayVolumeResult {
   call_id?: string;
   code: string;
@@ -1040,7 +1040,7 @@ export interface CallingPlayVolumeResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play_and_collect` (result). Extracted from switchblade `PublicCallPlayAndCollectResult.cs`. */
+/** Wire schema for the JSON payload of `calling.play_and_collect` (result). */
 export interface CallingPlayAndCollectResult {
   call_id?: string;
   code: string;
@@ -1050,7 +1050,7 @@ export interface CallingPlayAndCollectResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play_and_collect.stop` (result). Extracted from switchblade `PublicCallPlayAndCollectStopResult.cs`. */
+/** Wire schema for the JSON payload of `calling.play_and_collect.stop` (result). */
 export interface CallingPlayAndCollectStopResult {
   call_id?: string;
   code: string;
@@ -1060,7 +1060,7 @@ export interface CallingPlayAndCollectStopResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.play_and_collect.volume` (result). Extracted from switchblade `PublicCallPlayAndCollectVolumeResult.cs`. */
+/** Wire schema for the JSON payload of `calling.play_and_collect.volume` (result). */
 export interface CallingPlayAndCollectVolumeResult {
   call_id?: string;
   code: string;
@@ -1070,7 +1070,7 @@ export interface CallingPlayAndCollectVolumeResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.queue.enter` (result). Extracted from switchblade `PublicCallQueueEnterResult.cs`. */
+/** Wire schema for the JSON payload of `calling.queue.enter` (result). */
 export interface CallingQueueEnterResult {
   call_id?: string;
   code: string;
@@ -1080,7 +1080,7 @@ export interface CallingQueueEnterResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.queue.leave` (result). Extracted from switchblade `PublicCallQueueLeaveResult.cs`. */
+/** Wire schema for the JSON payload of `calling.queue.leave` (result). */
 export interface CallingQueueLeaveResult {
   call_id?: string;
   code: string;
@@ -1090,14 +1090,14 @@ export interface CallingQueueLeaveResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.receive` (result). Extracted from switchblade `PublicCallReceiveResult.cs`. */
+/** Wire schema for the JSON payload of `calling.receive` (result). */
 export interface CallingReceiveResult {
   code: string;
   message?: string;
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.receive_fax` (result). Extracted from switchblade `PublicCallReceiveFaxResult.cs`. */
+/** Wire schema for the JSON payload of `calling.receive_fax` (result). */
 export interface CallingReceiveFaxResult {
   call_id?: string;
   code: string;
@@ -1107,7 +1107,7 @@ export interface CallingReceiveFaxResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.receive_fax.stop` (result). Extracted from switchblade `PublicCallReceiveFaxStopResult.cs`. */
+/** Wire schema for the JSON payload of `calling.receive_fax.stop` (result). */
 export interface CallingReceiveFaxStopResult {
   call_id?: string;
   code: string;
@@ -1117,7 +1117,7 @@ export interface CallingReceiveFaxStopResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.record.pause` (result). Extracted from switchblade `PublicCallRecordPauseResult.cs`. */
+/** Wire schema for the JSON payload of `calling.record.pause` (result). */
 export interface CallingRecordPauseResult {
   call_id?: string;
   code: string;
@@ -1127,7 +1127,7 @@ export interface CallingRecordPauseResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.record` (result). Extracted from switchblade `PublicCallRecordResult.cs`. */
+/** Wire schema for the JSON payload of `calling.record` (result). */
 export interface CallingRecordResult {
   call_id?: string;
   code: string;
@@ -1138,7 +1138,7 @@ export interface CallingRecordResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.record.resume` (result). Extracted from switchblade `PublicCallRecordResumeResult.cs`. */
+/** Wire schema for the JSON payload of `calling.record.resume` (result). */
 export interface CallingRecordResumeResult {
   call_id?: string;
   code: string;
@@ -1148,7 +1148,7 @@ export interface CallingRecordResumeResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.record.stop` (result). Extracted from switchblade `PublicCallRecordStopResult.cs`. */
+/** Wire schema for the JSON payload of `calling.record.stop` (result). */
 export interface CallingRecordStopResult {
   call_id?: string;
   code: string;
@@ -1158,7 +1158,7 @@ export interface CallingRecordStopResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.refer` (result). Extracted from switchblade `PublicCallReferResult.cs`. */
+/** Wire schema for the JSON payload of `calling.refer` (result). */
 export interface CallingReferResult {
   code: string;
   data?: Record<string, unknown>;
@@ -1166,7 +1166,7 @@ export interface CallingReferResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.send_digits` (result). Extracted from switchblade `PublicCallSendDigitsResult.cs`. */
+/** Wire schema for the JSON payload of `calling.send_digits` (result). */
 export interface CallingSendDigitsResult {
   call_id?: string;
   code: string;
@@ -1176,7 +1176,7 @@ export interface CallingSendDigitsResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.send_fax` (result). Extracted from switchblade `PublicCallSendFaxResult.cs`. */
+/** Wire schema for the JSON payload of `calling.send_fax` (result). */
 export interface CallingSendFaxResult {
   call_id?: string;
   code: string;
@@ -1186,7 +1186,7 @@ export interface CallingSendFaxResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.send_fax.stop` (result). Extracted from switchblade `PublicCallSendFaxStopResult.cs`. */
+/** Wire schema for the JSON payload of `calling.send_fax.stop` (result). */
 export interface CallingSendFaxStopResult {
   call_id?: string;
   code: string;
@@ -1196,7 +1196,7 @@ export interface CallingSendFaxStopResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.stream` (result). Extracted from switchblade `PublicCallStreamResult.cs`. */
+/** Wire schema for the JSON payload of `calling.stream` (result). */
 export interface CallingStreamResult {
   call_id?: string;
   code: string;
@@ -1206,7 +1206,7 @@ export interface CallingStreamResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.stream.stop` (result). Extracted from switchblade `PublicCallStreamStopResult.cs`. */
+/** Wire schema for the JSON payload of `calling.stream.stop` (result). */
 export interface CallingStreamStopResult {
   call_id?: string;
   code: string;
@@ -1216,7 +1216,7 @@ export interface CallingStreamStopResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.tap` (result). Extracted from switchblade `PublicCallTapResult.cs`. */
+/** Wire schema for the JSON payload of `calling.tap` (result). */
 export interface CallingTapResult {
   call_id?: string;
   code: string;
@@ -1230,7 +1230,7 @@ export interface CallingTapResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.tap.stop` (result). Extracted from switchblade `PublicCallTapStopResult.cs`. */
+/** Wire schema for the JSON payload of `calling.tap.stop` (result). */
 export interface CallingTapStopResult {
   call_id?: string;
   code: string;
@@ -1240,7 +1240,7 @@ export interface CallingTapStopResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.transfer` (result). Extracted from switchblade `PublicCallTransferResult.cs`. */
+/** Wire schema for the JSON payload of `calling.transfer` (result). */
 export interface CallingTransferResult {
   call_id?: string;
   code: string;
@@ -1249,7 +1249,7 @@ export interface CallingTransferResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the JSON payload of `calling.user_event` (result). Extracted from switchblade `PublicCallUserEventResult.cs`. */
+/** Wire schema for the JSON payload of `calling.user_event` (result). */
 export interface CallingUserEventResult {
   call_id?: string;
   code: string;
@@ -1266,7 +1266,7 @@ export interface MessagingSendResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the Blade envelope `signalwire.connect` (result). Extracted from switchblade `Messages/ConnectResult.cs`. */
+/** Wire schema for the Blade envelope `signalwire.connect` (result). */
 export interface SignalwireConnectResult {
   accesses?: {
     authentication: string;
@@ -1297,12 +1297,12 @@ export interface SignalwireConnectResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the Blade envelope `signalwire.disconnect` (result). Extracted from switchblade `Messages/DisconnectResult.cs`. */
+/** Wire schema for the Blade envelope `signalwire.disconnect` (result). */
 export interface SignalwireDisconnectResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the Blade envelope `signalwire.execute` (result). Extracted from switchblade `Messages/ExecuteResult.cs`. */
+/** Wire schema for the Blade envelope `signalwire.execute` (result). */
 export interface SignalwireExecuteResult {
   requester_nodeid: string;
   responder_nodeid: string;
@@ -1310,14 +1310,14 @@ export interface SignalwireExecuteResult {
   [key: string]: unknown;
 }
 
-/** Wire schema for the Blade envelope `signalwire.ping` (result). Extracted from switchblade `Messages/PingResult.cs`. */
+/** Wire schema for the Blade envelope `signalwire.ping` (result). */
 export interface SignalwirePingResult {
   payload?: string;
   timestamp?: number | null;
   [key: string]: unknown;
 }
 
-/** Wire schema for the Blade envelope `signalwire.reauthenticate` (result). Extracted from switchblade `Messages/ReauthenticateResult.cs`. */
+/** Wire schema for the Blade envelope `signalwire.reauthenticate` (result). */
 export interface SignalwireReauthenticateResult {
   authentication?: string;
   authorization?: Record<string, unknown>;

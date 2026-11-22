@@ -3,9 +3,8 @@
  *
  * Unlike the REST namespaces (one OpenAPI doc with components/schemas), the relay
  * contracts are one standalone JSON-Schema file per method+phase under
- * porting-sdk/relay-protocol/ (extracted from the C# switchblade wire classes —
- * the canonical RELAY source). Emits src/relay/protocol.types.generated.ts: one
- * interface per `*.params.json` (<Method>Params, method inputs) and per
+ * porting-sdk/relay-protocol/ (the canonical RELAY wire schemas). Emits
+ * src/relay/protocol.types.generated.ts: one interface per `*.params.json` (<Method>Params, method inputs) and per
  * `*.result.json` (<Method>Result, the JSON-RPC ack the method resolves to),
  * named from each schema's `x-method`. The schemas are draft-2020-12 JSON Schema,
  * which the shared tsType()/objectBody() machinery already handles.
@@ -51,7 +50,7 @@ async function generateRelayProtocol(dir: string, outPath: string): Promise<numb
     `// AUTO-GENERATED from porting-sdk/relay-protocol/*.{params,result}.json — DO NOT EDIT.\n` +
     `// Regenerate with: npx tsx scripts/generate-relay-protocol.ts\n//\n` +
     `// One interface per RELAY method's params (<Method>Params) and ack result\n` +
-    `// (<Method>Result), from the canonical switchblade wire schemas. Held to the\n` +
+    `// (<Method>Result), from the canonical RELAY wire schemas. Held to the\n` +
     `// same lint bar as hand-written source (no rule suppressions, no loose types).\n\n`;
   const formatted = await formatTs(header + decls.join('\n'), outPath);
   emitFile(outPath, formatted);

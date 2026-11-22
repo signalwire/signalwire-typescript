@@ -9,8 +9,8 @@
  * frame goes over a real WebSocket. Each test asserts both:
  *
  *   1. **Behavioral** — what the SDK exposed back to the developer.
- *   2. **Wire** — what the mock journaled (the schemas come from the
- *      production C# server, so journal-shape assertions confirm we send
+ *   2. **Wire** — what the mock journaled (the schemas describe the
+ *      production RELAY server, so journal-shape assertions confirm we send
  *      what the real RELAY expects).
  */
 

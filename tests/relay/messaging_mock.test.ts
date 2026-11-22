@@ -4,8 +4,8 @@
  * Translated 1:1 from
  *   signalwire-python/tests/unit/relay/test_messaging_mock.py
  *
- * The messaging schemas are permissive (the C# server forwards JObject
- * to the messaging gateway), so the mock validates the wire frame loosely.
+ * The messaging schemas are permissive (the server passes the params
+ * through to the messaging gateway), so the mock validates the wire frame loosely.
  * We still assert the SDK builds the right `messaging.send` shape AND that
  * inbound `messaging.receive` and outbound `messaging.state` events drive
  * the typed Message lifecycle correctly.
