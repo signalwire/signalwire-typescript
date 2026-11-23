@@ -1207,7 +1207,9 @@ export class AgentBase extends SWMLService {
    * ignores `languages`.
    *
    * @param config - The multilingual config object (languages, allowed,
-   *   start_language, min_switch_words, fillers, etc.).
+   *   start_language, min_switch_words, fillers, etc.). It's sent as given:
+   *   unlike the other voice methods, the SDK doesn't check its voices, so a
+   *   list of more than 8 reaches the platform.
    * @returns This agent instance for chaining.
    */
   setMultilingual(config: Record<string, unknown>): this {

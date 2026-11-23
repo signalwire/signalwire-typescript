@@ -14,8 +14,8 @@ import type { _Wording as Wording } from './wording.js';
 export type RecordData = Record<string, unknown>;
 
 /**
- * The `global_data` key the record lives under (`ops_<name>` for an
- * `Operations` given a `name`), so other layers' state sits beside it.
+ * The `global_data` key the record lives under (a service's `namespace` when
+ * it has one), so other layers' state sits beside it.
  */
 export const RECORD = 'ops';
 

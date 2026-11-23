@@ -3,6 +3,7 @@
  */
 
 import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
 import {
   FunctionResult,
   ToolRefusal,
@@ -22,7 +23,13 @@ import {
   type SemanticGate,
 } from './SemanticGate.js';
 
-const ajv = new Ajv({ allErrors: true });
+// Not strict, so a keyword Draft-7 doesn't define (x-*, examples' kin) is
+// ignored rather than failing the compile; strict mode threw, and the soft
+// check behind it was skipped without a word. Formats are checked, as
+// Python's jsonschema-rs checks them; one ajv-formats doesn't know is
+// ignored, quietly.
+const ajv = new Ajv({ allErrors: true, strict: false, logger: false });
+addFormats(ajv);
 
 /**
  * Compiled argument validators, keyed by the schema's JSON, so every call of
@@ -540,6 +547,8 @@ export class SwaigFunction {
    * All JSON Schema constraint keywords are honoured: `required`, `type`,
    * `minLength`, `maxLength`, `pattern`, `format`, `minimum`, `maximum`,
    * `enum`, `anyOf`, `oneOf`, `$ref`, nested object/array validation, etc.
+   * Formats are checked with ajv-formats (`email`, `date-time`, `uri` and the
+   * rest it knows); an unknown format or keyword is ignored.
    *
    * If the schema has no properties, validation is skipped and the args are
    * considered valid — matching Python's early-return path.

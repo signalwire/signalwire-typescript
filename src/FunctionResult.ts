@@ -1323,6 +1323,11 @@ export class FunctionResult {
     validCardTypes?: string;
     parameters?: PaymentParameter[];
     prompts?: PaymentPrompt[];
+    /**
+     * What the AI is told once the payment is done, set as the SWML variable
+     * `ai_response` after the pay verb; `${pay_result}` in it is the payment's
+     * outcome.
+     */
     aiResponse?: string;
   }): this {
     const payParams: Record<string, unknown> = {
