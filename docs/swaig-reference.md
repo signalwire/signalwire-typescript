@@ -1886,7 +1886,7 @@ pay(opts: {
 | `opts.validCardTypes`      | `string`             | `'visa mastercard amex'`              | Space-separated list of accepted card types.                    |
 | `opts.parameters`          | `PaymentParameter[]` | none                                  | Name-value pairs for the payment connector.                     |
 | `opts.prompts`             | `PaymentPrompt[]`    | none                                  | Custom prompts for payment steps.                               |
-| `opts.aiResponse`          | `string`             | Text that references `${pay_result}`  | Set as `ai_response` before the `pay` verb runs.                |
+| `opts.aiResponse`          | `string`             | Text that references `${pay_result}`  | Set as `ai_response` after the `pay` verb, so `${pay_result}` in it is the payment's outcome. |
 
 The SDK sends `timeout`, `max_attempts`, `min_postal_code_length`, `security_code` and `postal_code` as strings, as the platform reads them: its SWML validator requires strings for `security_code` and `postal_code`, and the pay request reads all five as strings. The bundled SWML schema types some of them as integers and booleans, but the platform's own checks win. The SDK checks each input first: `timeout`, `maxAttempts` and `minPostalCodeLength` must be integers or numeric strings, and `securityCode` a boolean or `'true'` or `'false'`. A SWML variable reference such as `'${pay_timeout}'` is sent as written. The default `aiResponse` is `The payment status is ${pay_result}, do not mention anything else about collecting payment if successful.`
 

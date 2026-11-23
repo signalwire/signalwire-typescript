@@ -1992,7 +1992,7 @@ See [SwaigFunctionOptions](#swaigfunctionoptions) for the options.
 
 #### `validateArgs(args)`
 
-Validate arguments against the parameter schema with Ajv. Returns `[true, []]` when the schema has no properties. Every call to the tool runs it first: arguments that don't match are logged as a warning, and the handler still runs, as in the Python SDK.
+Validate arguments against the parameter schema with Ajv, as JSON Schema Draft-7. Draft-7's formats, such as `email`, `date-time` and `uri`, are checked, except `idn-email`, `idn-hostname`, `iri` and `iri-reference`; any other format, and a keyword Ajv doesn't recognize, is ignored (Ajv's own `nullable` still applies). The format checks are close to the Python SDK's, not identical: a few edge cases, such as `a@b` as an email, come out the other way. Returns `[true, []]` when the schema has no properties. Every call to the tool runs it first: arguments that don't match are logged as a warning, and the handler still runs, as in the Python SDK.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
@@ -2305,13 +2305,13 @@ Check the contexts and throw on the first problem. It requires at least one cont
 validate(): void
 ```
 
-#### `stepsOffering(name)`
+#### `stepsOffering(functionName)`
 
-The `[context, step]` pairs whose function list, or a gather question's, names a tool. The functions a step without `setFunctions()` inherits from the step before it aren't counted, since they depend on how the caller got there; its gather questions' own function lists are. When every step lists its functions and none lists a registered tool, rendering the SWML logs a `tool_offered_by_no_step` warning for it, once: the model never gets that tool unless a function result turns it on with `toggleFunctions()`.
+The `[context, step]` pairs whose function list, or a gather question's, names the tool `functionName`. The functions a step without `setFunctions()` inherits from the step before it aren't counted, since they depend on how the caller got there; its gather questions' own function lists are. When every step lists its functions and none lists a registered tool, rendering the SWML logs a `tool_offered_by_no_step` warning for it, once: the model never gets that tool unless a function result turns it on with `toggleFunctions()`.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts
-stepsOffering(name: string): Array<[string, string]>
+stepsOffering(functionName: string): Array<[string, string]>
 ```
 
 Rendering also logs `tool_named_but_not_offered`, once each, for a registered tool named where a step that lists its functions doesn't offer it: its text, its criteria, its context's prompt, a gather question, or a gate's output on one of its tools. The exported `namedTools(text, tools)` finds the names: one with an underscore counts as a whole word anywhere, a one-word name only in backticks or before "(".

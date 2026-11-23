@@ -3,6 +3,29 @@
 All notable changes to `@signalwire/sdk` are documented here. This project
 follows [Semantic Versioning](https://semver.org/).
 
+## 3.15.3 (2026-11-23)
+
+### Fixed
+
+- A tool's soft argument check runs for every schema. Its validator was
+  strict, so a schema with a `format` (`email`, `date-time`, `uri`) or a
+  keyword Ajv doesn't recognize failed to compile, and the check was
+  skipped with only a debug log. Unknown keywords are now ignored, and
+  Draft-7's formats are checked with the new `ajv-formats` dependency, as
+  Python's jsonschema-rs checks them, so `'not-an-email'` for a
+  `format: 'email'` argument warns. `idn-email`, `idn-hostname`, `iri` and
+  `iri-reference` aren't checked, and a few edge cases differ from Python's.
+  Any other format is ignored. (Python 3.15.2 fixed its own silently skipped
+  check.)
+- Docs and JSDoc that disagreed with the code:
+  - `stepsOffering()`'s parameter is `functionName`.
+  - `setMultilingual()` sends its config as given, without the voice checks
+    of the other voice methods.
+  - `Dialer` takes `url` or `swml`, exactly one of them.
+  - The record's key is the service's `namespace` when it has one.
+  - `pay()`'s `aiResponse` is set after the pay verb, not before it, and
+    the JSDoc documents it.
+
 ## 3.15.1 (2026-11-21)
 
 ### Changed

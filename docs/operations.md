@@ -329,7 +329,7 @@ const assistant = new PersonalAssistantAgent({
 
 ## Outbound Calls
 
-`Dialer` places a call to an agent only once every check passes, and otherwise throws `NotPlaced` with the reason and makes no request. A `Callee` carries the number, the callee's own time zone (an IANA name) and what the call is about, which goes to the agent as query parameters of its URL. `consented(lookup)` stops a call with no consent on record or consent withdrawn; `callingHours(start, end, { days })` stops one outside the hours (`'09:00'`, `'20:30'`), read on the callee's own clock. A check of your own is `check(callee, now)` returning a reason or null; `now` is a `Date`. `whyNot(callee)` says what would stop a call without placing it. Pacing, retries and outcomes are your scheduler's: call `place` from it, with `statusUrl` for the call's progress.
+`Dialer` places a call to an agent only once every check passes, and otherwise throws `NotPlaced` with the reason and makes no request. It takes `url`, the agent the call runs, or `swml`, a SWML document to run instead, and exactly one of them. A `Callee` carries the number, the callee's own time zone (an IANA name) and what the call is about, which goes to the agent as query parameters of its URL. `consented(lookup)` stops a call with no consent on record or consent withdrawn; `callingHours(start, end, { days })` stops one outside the hours (`'09:00'`, `'20:30'`), read on the callee's own clock. A check of your own is `check(callee, now)` returning a reason or null; `now` is a `Date`. `whyNot(callee)` says what would stop a call without placing it. Pacing, retries and outcomes are your scheduler's: call `place` from it, with `statusUrl` for the call's progress.
 
 <!-- snippet: no-run places a real outbound call: it needs a project, its credentials and a number to call -->
 
@@ -363,7 +363,7 @@ try {
 
 ## The Call's Record
 
-The record is one `global_data` key, `ops` by default. A service keeps one for its changes, its caller's account, or the medium found on a call's first request; one with only lookups and a `medium` of its own keeps none. Its `v` is `RECORD_VERSION`, which goes up when a key is renamed or changes meaning, never when one is added. These keys are for you to read, in prompts and SWML as `${global_data.ops.<key>}` and in your own code:
+The record is one `global_data` key, `ops` by default. A service keeps one for its changes, its caller's account, or the medium found on a call's first request; one with only lookups and a `medium` of its own keeps none. Its `v` is `RECORD_VERSION` (`import { RECORD_VERSION } from '@signalwire/sdk/operations'`), which goes up when a key is renamed or changes meaning, never when one is added. These keys are for you to read, in prompts and SWML as `${global_data.ops.<key>}` and in your own code:
 
 | Key          | What it holds                                                                                                                                                                                                  |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
