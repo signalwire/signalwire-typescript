@@ -1,6 +1,6 @@
 {
   "name": "@signalwire/sdk",
-  "version": "3.15.1",
+  "version": "3.15.3",
   "description": "SignalWire AI Agents SDK for TypeScript/Node.js",
   "keywords": [
     "signalwire",
