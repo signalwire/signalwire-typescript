@@ -12,7 +12,7 @@ export interface AI {
 
 export interface AIObject {
   /** A key-value object for storing data that persists throughout the AI session. */
-  global_data?: Record<string, Record<string, unknown>>;
+  global_data?: Record<string, unknown>;
   /** Hints help the AI agent understand certain words or phrases better. Words that can commonly be misinterpreted can be added to the hints to help the AI speak more accurately. */
   hints?: (string | Hint)[];
   /** An array of JSON objects defining supported languages in the conversation. */
@@ -206,45 +206,7 @@ export interface AIParams {
   eleven_labs_stability?: number | SWMLVar;
   /** The similarity slider dictates how closely the AI should adhere to the original voice when attempting to replicate it. The higher the similarity, the closer the AI will sound to the original voice. */
   eleven_labs_similarity?: number | SWMLVar;
-  [key: string]:
-    | Record<string, unknown>
-    | boolean
-    | SWMLVar
-    | 'gpt-4o-mini'
-    | 'gpt-4.1-mini'
-    | 'gpt-4.1-nano'
-    | string
-    | string
-    | number
-    | SWMLVar
-    | AttentionTimeout
-    | 0
-    | SWMLVar
-    | number
-    | null
-    | SWMLVar
-    | string
-    | boolean
-    | SWMLVar
-    | ConversationMessage[]
-    | boolean
-    | number
-    | SWMLVar
-    | Direction
-    | SWMLVar
-    | string
-    | SWMLVar
-    | 'markdown'
-    | 'xml'
-    | 'string'
-    | 'original'
-    | SWMLVar
-    | boolean
-    | string[]
-    | SWMLVar
-    | 'international'
-    | 'national'
-    | undefined;
+  [key: string]: unknown;
 }
 
 export type AIPostPrompt = AIPostPromptText | AIPostPromptPom;
@@ -353,7 +315,7 @@ export interface AmazonBedrock {
 
 export interface AmazonBedrockObject {
   /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script */
-  global_data?: Record<string, Record<string, unknown>>;
+  global_data?: Record<string, unknown>;
   /** A JSON object containing parameters as key-value pairs. */
   params?: BedrockParams;
   /** The final set of instructions and configuration settings to send to the agent. */
@@ -519,7 +481,7 @@ export type BedrockSWAIGFunction =
       /** Whether the function is active. **Default:** `true`. */
       active?: boolean | SWMLVar;
       /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-      meta_data?: Record<string, Record<string, unknown>>;
+      meta_data?: Record<string, unknown>;
       /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
       meta_data_token?: string;
       /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
@@ -537,7 +499,7 @@ export type BedrockSWAIGFunction =
       /** Whether the function is active. **Default:** `true`. */
       active?: boolean | SWMLVar;
       /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-      meta_data?: Record<string, Record<string, unknown>>;
+      meta_data?: Record<string, unknown>;
       /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
       meta_data_token?: string;
       /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
@@ -555,7 +517,7 @@ export type BedrockSWAIGFunction =
       /** Whether the function is active. **Default:** `true`. */
       active?: boolean | SWMLVar;
       /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-      meta_data?: Record<string, Record<string, unknown>>;
+      meta_data?: Record<string, unknown>;
       /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
       meta_data_token?: string;
       /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
@@ -573,7 +535,7 @@ export type BedrockSWAIGFunction =
       /** Whether the function is active. **Default:** `true`. */
       active?: boolean | SWMLVar;
       /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-      meta_data?: Record<string, Record<string, unknown>>;
+      meta_data?: Record<string, unknown>;
       /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
       meta_data_token?: string;
       /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
@@ -610,7 +572,7 @@ export interface CallAIMessageRequest {
     /** Parameters for resetting the AI conversation state. When provided, `role` and `message_text` are optional. */
     reset?: CallAIMessageResetParams;
     /** Arbitrary JSON data to merge into the AI session's global data store. */
-    global_data?: Record<string, Record<string, unknown>>;
+    global_data?: Record<string, unknown>;
   };
 }
 
@@ -1357,7 +1319,7 @@ export interface CallUserEventRequest {
   /** An object of parameters that will be utilized by the active command. */
   params: {
     /** Arbitrary JSON event data to fire on the call. */
-    event: Record<string, Record<string, unknown>>;
+    event: Record<string, unknown>;
   };
 }
 
@@ -1778,9 +1740,9 @@ export interface Execute {
     /** Specifies what to execute. The value can be one of: */
     dest: string;
     /** Named parameters to send to section or URL */
-    params?: Record<string, Record<string, unknown>>;
+    params?: Record<string, unknown>;
     /** User-defined metadata, ignored by SignalWire */
-    meta?: Record<string, Record<string, unknown>>;
+    meta?: Record<string, unknown>;
     /** The list of SWML instructions to be executed when the executed section or URL returns */
     on_return?: SWMLMethod[];
     /** Action to take based on the result of the call. This will run once the peer leg of the call has ended. */
@@ -2090,7 +2052,7 @@ export interface HangUpHookSWAIGFunction {
   /** Whether the function is active. **Default:** `true`. */
   active?: boolean | SWMLVar;
   /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-  meta_data?: Record<string, Record<string, unknown>>;
+  meta_data?: Record<string, unknown>;
   /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
   meta_data_token?: string;
   /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
@@ -2439,7 +2401,7 @@ export interface ObjectProperty {
   /** The type of parameter(s) the AI is passing to the function. */
   type: 'object';
   /** The default object value */
-  default?: Record<string, Record<string, unknown>>;
+  default?: Record<string, unknown>;
   /** Nested properties */
   properties?: Record<string, SchemaType>;
   /** Required property names */
@@ -2736,9 +2698,9 @@ export interface Request {
     /** The HTTP method to be used for the request. Can be `GET`, `POST`, `PUT`, or `DELETE`. */
     method: 'GET' | 'POST' | 'PUT' | 'DELETE';
     /** Object containing HTTP headers to set. Valid header values are Accept, Authorization, Content-Type, Range, and custom X- headers. */
-    headers?: Record<string, Record<string, unknown>>;
+    headers?: Record<string, unknown>;
     /** Request body. Content-Type header should be explicitly set, but if not set, the most likely type */
-    body?: string | Record<string, Record<string, unknown>>;
+    body?: string | Record<string, unknown>;
     /** Maximum time in seconds to wait for a response. */
     timeout?: number | SWMLVar;
     /** Maximum time in seconds to wait for a connection. */
@@ -2825,7 +2787,7 @@ export interface SWAIGIncludes {
   /** URL to fetch remote functions and include in your AI application. Authentication can also be set in the url in the format of `username:password@url`. */
   url: string;
   /** User-defined metadata to pass with the remote function request. */
-  meta_data?: Record<string, Record<string, unknown>>;
+  meta_data?: Record<string, unknown>;
 }
 
 export interface SWAIGInternalFiller {
@@ -2957,17 +2919,17 @@ export interface SendSMS {
 
 export interface Set_ {
   /** Set script variables to the specified values. */
-  set: Record<string, Record<string, unknown>>;
+  set: Record<string, unknown>;
 }
 
 export interface SetGlobalDataAction {
   /** A JSON object containing any global data, as a key-value map. This action sets the data in the `global_data` to be globally referenced. */
-  set_global_data: Record<string, Record<string, unknown>>;
+  set_global_data: Record<string, unknown>;
 }
 
 export interface SetMetaDataAction {
   /** A JSON object containing any metadata, as a key-value map. This action sets the data in the `meta_data` to be referenced locally in the function. */
-  set_meta_data: Record<string, Record<string, unknown>>;
+  set_meta_data: Record<string, unknown>;
 }
 
 export interface Sleep {
@@ -3036,7 +2998,7 @@ export interface StartUpHookSWAIGFunction {
   /** Whether the function is active. **Default:** `true`. */
   active?: boolean | SWMLVar;
   /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-  meta_data?: Record<string, Record<string, unknown>>;
+  meta_data?: Record<string, unknown>;
   /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
   meta_data_token?: string;
   /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
@@ -3143,7 +3105,7 @@ export interface SummarizeConversationSWAIGFunction {
   /** Whether the function is active. **Default:** `true`. */
   active?: boolean | SWMLVar;
   /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-  meta_data?: Record<string, Record<string, unknown>>;
+  meta_data?: Record<string, unknown>;
   /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
   meta_data_token?: string;
   /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
@@ -3252,9 +3214,9 @@ export interface Transfer {
     /** Specifies where to transfer to. The value can be one of: */
     dest: string;
     /** Named parameters to send to transfer destination. */
-    params?: Record<string, Record<string, unknown>>;
+    params?: Record<string, unknown>;
     /** User data, ignored by SignalWire. */
-    meta?: Record<string, Record<string, unknown>>;
+    meta?: Record<string, unknown>;
   };
 }
 
@@ -3317,7 +3279,7 @@ export interface UnsetMetaDataAction {
 export interface UserEvent {
   /** Allows the user to set and send events to the connected client on the call. */
   user_event: {
-    event: Record<string, Record<string, unknown>>;
+    event: Record<string, unknown>;
   };
 }
 
@@ -3340,7 +3302,7 @@ export interface UserSWAIGFunction {
   /** Whether the function is active. **Default:** `true`. */
   active?: boolean | SWMLVar;
   /** A powerful and flexible environmental variable which can accept arbitrary data that is set initially in the SWML script or from the SWML set_meta_data action. */
-  meta_data?: Record<string, Record<string, unknown>>;
+  meta_data?: Record<string, unknown>;
   /** Scoping token for meta_data. If not supplied, metadata will be scoped to function's `web_hook_url`. Default is set by SignalWire. */
   meta_data_token?: string;
   /** An object that processes function inputs and executes operations through expressions, webhooks, or direct output. */
@@ -3395,13 +3357,13 @@ export interface Webhook {
     append: string;
   };
   /** Any necessary headers for the API call. */
-  headers?: Record<string, Record<string, unknown>>;
+  headers?: Record<string, unknown>;
   /** The HTTP method (GET, POST, etc.) for the API call. */
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   /** A boolean to determine if the input arguments should be passed as parameters. */
   input_args_as_params?: boolean | SWMLVar;
   /** An object of any necessary parameters for the API call. The key is the parameter name and the value is the parameter value. */
-  params?: Record<string, Record<string, unknown>>;
+  params?: Record<string, unknown>;
   /** A string or array of strings that represent the `arguments` that are required to make the webhook request. */
   require_args?: string | string[];
   /** An object that contains a response and a list of actions to be performed upon completion of the webhook request. */

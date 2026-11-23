@@ -23,7 +23,7 @@ export interface ChatPermissionWithWrite {
 }
 
 /** An arbitrary JSON object available to store stateful application information in. Must be valid JSON and have a maximum size of 2,000 characters. */
-export type ChatState = Record<string, Record<string, unknown>>;
+export type ChatState = Record<string, unknown>;
 
 export interface ChatToken {
   /** The generated Chat Token. */

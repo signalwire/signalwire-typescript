@@ -34,7 +34,7 @@ export interface PubSubPermissionWithWrite {
 }
 
 /** An arbitrary JSON object available to store stateful application information in. Must be valid JSON and have a maximum size of 2,000 characters. */
-export type PubSubState = Record<string, Record<string, unknown>>;
+export type PubSubState = Record<string, unknown>;
 
 export interface PubSubToken {
   /** A PubSub Token to be used to authenticate clients to the PubSub Service. */
