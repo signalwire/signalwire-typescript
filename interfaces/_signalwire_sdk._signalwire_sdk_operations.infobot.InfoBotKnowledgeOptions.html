@@ -131,7 +131,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">InfoBotKnowledgeOptions</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#contact">contact</a><span class="tsd-signature-symbol">?:</span> (<span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">fields</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">unknown</span>) <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#contactanyof">contactAnyOf</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> (<span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span>)<span class="tsd-signature-symbol">[]</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#contactfields">contactFields</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="../classes/_signalwire_sdk._signalwire_sdk_operations.Field.html" class="tsd-signature-type tsd-kind-class">Field</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#contacttool">contactTool</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#context">context</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#description">description</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#grounding">grounding</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#resultlimit">resultLimit</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#search">search</a><span class="tsd-signature-symbol">?:</span> <a href="../types/_signalwire_sdk._signalwire_sdk_operations.infobot.SearchFunction.html" class="tsd-signature-type tsd-kind-type-alias">SearchFunction</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#step">step</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#tool">tool</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#wording">wording</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/infobot/knowledge.ts#L61">src/operations/infobot/knowledge.ts:61</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/41317bcf7327300639cbd9b225144cab1c497ecb/src/operations/infobot/knowledge.ts#L61">src/operations/infobot/knowledge.ts:61</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -161,7 +161,7 @@
 <div class="tsd-comment tsd-typography"><p><code>contact(fields)</code> takes the details the contact tool collects; without it there's no contact tool. May be async.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/infobot/knowledge.ts#L73">src/operations/infobot/knowledge.ts:73</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/41317bcf7327300639cbd9b225144cab1c497ecb/src/operations/infobot/knowledge.ts#L73">src/operations/infobot/knowledge.ts:73</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="contactanyof"><code class="tsd-tag">Optional</code><span>contact<wbr/>Any<wbr/>Of</span><a href="#contactanyof" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">contactAnyOf</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-keyword">readonly</span> (<span class="tsd-signature-keyword">readonly</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span>)<span class="tsd-signature-symbol">[]</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></div>
@@ -169,7 +169,7 @@
 Defaults to the required fields, all of them.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/infobot/knowledge.ts#L85">src/operations/infobot/knowledge.ts:85</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/41317bcf7327300639cbd9b225144cab1c497ecb/src/operations/infobot/knowledge.ts#L85">src/operations/infobot/knowledge.ts:85</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="contactfields"><code class="tsd-tag">Optional</code><span>contact<wbr/>Fields</span><a href="#contactfields" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">contactFields</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="../classes/_signalwire_sdk._signalwire_sdk_operations.Field.html" class="tsd-signature-type tsd-kind-class">Field</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></div>
@@ -177,70 +177,70 @@ Defaults to the required fields, all of them.</p>
 and topic). A field's <code>ask</code> is what the model is told when it's missing.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/infobot/knowledge.ts#L80">src/operations/infobot/knowledge.ts:80</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/41317bcf7327300639cbd9b225144cab1c497ecb/src/operations/infobot/knowledge.ts#L80">src/operations/infobot/knowledge.ts:80</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="contacttool"><code class="tsd-tag">Optional</code><span>contact<wbr/>Tool</span><a href="#contacttool" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">contactTool</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>The contact tool's name. Default <code>collect_contact</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/infobot/knowledge.ts#L75">src/operations/infobot/knowledge.ts:75</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/41317bcf7327300639cbd9b225144cab1c497ecb/src/operations/infobot/knowledge.ts#L75">src/operations/infobot/knowledge.ts:75</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="context"><code class="tsd-tag">Optional</code><span>context</span><a href="#context" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">context</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>The context of the step its tools go in. Default <code>&quot;default&quot;</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/infobot/knowledge.ts#L89">src/operations/infobot/knowledge.ts:89</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/41317bcf7327300639cbd9b225144cab1c497ecb/src/operations/infobot/knowledge.ts#L89">src/operations/infobot/knowledge.ts:89</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="description"><code class="tsd-tag">Optional</code><span>description</span><a href="#description" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">description</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>What the search tool does, as the model reads it.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/infobot/knowledge.ts#L67">src/operations/infobot/knowledge.ts:67</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/41317bcf7327300639cbd9b225144cab1c497ecb/src/operations/infobot/knowledge.ts#L67">src/operations/infobot/knowledge.ts:67</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="grounding"><code class="tsd-tag">Optional</code><span>grounding</span><a href="#grounding" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">grounding</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>The line that goes with the results, unless rules are added.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/infobot/knowledge.ts#L71">src/operations/infobot/knowledge.ts:71</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/41317bcf7327300639cbd9b225144cab1c497ecb/src/operations/infobot/knowledge.ts#L71">src/operations/infobot/knowledge.ts:71</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="resultlimit"><code class="tsd-tag">Optional</code><span>result<wbr/>Limit</span><a href="#resultlimit" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">resultLimit</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>The most results handed to the model. Default 5.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/infobot/knowledge.ts#L69">src/operations/infobot/knowledge.ts:69</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/41317bcf7327300639cbd9b225144cab1c497ecb/src/operations/infobot/knowledge.ts#L69">src/operations/infobot/knowledge.ts:69</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="search"><code class="tsd-tag">Optional</code><span>search</span><a href="#search" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">search</span><span class="tsd-signature-symbol">?:</span> <a href="../types/_signalwire_sdk._signalwire_sdk_operations.infobot.SearchFunction.html" class="tsd-signature-type tsd-kind-type-alias">SearchFunction</a> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></div>
 <div class="tsd-comment tsd-typography"><p><code>search(query)</code> returns the raw results; it may be async. Or call <code>useSearchService</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/infobot/knowledge.ts#L63">src/operations/infobot/knowledge.ts:63</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/41317bcf7327300639cbd9b225144cab1c497ecb/src/operations/infobot/knowledge.ts#L63">src/operations/infobot/knowledge.ts:63</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="step"><code class="tsd-tag">Optional</code><span>step</span><a href="#step" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">step</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>The step its tools go in, made if it isn't there, added to if it is. Default <code>&quot;main&quot;</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/infobot/knowledge.ts#L91">src/operations/infobot/knowledge.ts:91</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/41317bcf7327300639cbd9b225144cab1c497ecb/src/operations/infobot/knowledge.ts#L91">src/operations/infobot/knowledge.ts:91</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="tool"><code class="tsd-tag">Optional</code><span>tool</span><a href="#tool" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">tool</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>The search tool's name. Default <code>search_knowledge</code>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/infobot/knowledge.ts#L65">src/operations/infobot/knowledge.ts:65</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/41317bcf7327300639cbd9b225144cab1c497ecb/src/operations/infobot/knowledge.ts#L65">src/operations/infobot/knowledge.ts:65</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="wording"><code class="tsd-tag">Optional</code><span>wording</span><a href="#wording" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">wording</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></div>
 <div class="tsd-comment tsd-typography"><p>Words in place of the defaults, by key; the keys are those of <a href="../variables/_signalwire_sdk._signalwire_sdk_operations.infobot.KNOWLEDGE_WORDING.html" class="tsd-kind-variable">KNOWLEDGE_WORDING</a>.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/be2e05f222e9825f69132ec98bd9c4f24c3d9c76/src/operations/infobot/knowledge.ts#L87">src/operations/infobot/knowledge.ts:87</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/signalwire/signalwire-typescript/blob/41317bcf7327300639cbd9b225144cab1c497ecb/src/operations/infobot/knowledge.ts#L87">src/operations/infobot/knowledge.ts:87</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
