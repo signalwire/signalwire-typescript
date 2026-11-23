@@ -25,11 +25,28 @@ import {
 
 // Not strict, so a keyword Draft-7 doesn't define (x-*, examples' kin) is
 // ignored rather than failing the compile; strict mode threw, and the soft
-// check behind it was skipped without a word. Formats are checked, as
-// Python's jsonschema-rs checks them; one ajv-formats doesn't know is
-// ignored, quietly.
+// check behind it was skipped without a word. Draft-7's formats are checked,
+// as Python's jsonschema-rs checks them, those ajv-formats has (not
+// idn-email, idn-hostname, iri or iri-reference); any other format is
+// ignored, quietly. Its own keywords (formatMinimum and the rest) aren't
+// added: Draft-7 has none, and one without a format failed the compile.
+const DRAFT7_FORMATS = [
+  'date',
+  'date-time',
+  'time',
+  'email',
+  'hostname',
+  'ipv4',
+  'ipv6',
+  'uri',
+  'uri-reference',
+  'uri-template',
+  'json-pointer',
+  'relative-json-pointer',
+  'regex',
+] as const;
 const ajv = new Ajv({ allErrors: true, strict: false, logger: false });
-addFormats(ajv);
+addFormats(ajv, { formats: [...DRAFT7_FORMATS], keywords: false });
 
 /**
  * Compiled argument validators, keyed by the schema's JSON, so every call of
@@ -547,8 +564,12 @@ export class SwaigFunction {
    * All JSON Schema constraint keywords are honoured: `required`, `type`,
    * `minLength`, `maxLength`, `pattern`, `format`, `minimum`, `maximum`,
    * `enum`, `anyOf`, `oneOf`, `$ref`, nested object/array validation, etc.
-   * Formats are checked with ajv-formats (`email`, `date-time`, `uri` and the
-   * rest it knows); an unknown format or keyword is ignored.
+   * Draft-7's formats are checked with ajv-formats (`email`, `date-time`,
+   * `uri` and the rest, but not `idn-email`, `idn-hostname`, `iri` or
+   * `iri-reference`); any other format, and any keyword Draft-7 doesn't
+   * define, is ignored. Its format checks are close to Python's
+   * jsonschema-rs, not identical: a few edge cases (`a@b` as an email, a
+   * hostname ending in a dot) come out the other way.
    *
    * If the schema has no properties, validation is skipped and the args are
    * considered valid — matching Python's early-return path.

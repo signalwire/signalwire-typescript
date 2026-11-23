@@ -90,13 +90,33 @@ describe('argument validation really runs (Python 3.15.2)', () => {
   it('ignores a format it has no check for, without a warning', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
-      expect(tool({ v: { type: 'string', format: 'idn-email' } }).validateArgs({ v: 'x' })).toEqual(
+      expect(tool({ v: { type: 'string', format: 'x-account' } }).validateArgs({ v: 'x' })).toEqual(
         [true, []],
       );
       expect(warn).not.toHaveBeenCalled();
     } finally {
       warn.mockRestore();
     }
+  });
+
+  it.each([
+    ['uuid', 'x'],
+    ['int32', 2147483648],
+    ['duration', 'x'],
+  ])("doesn't assert %s, which Draft-7 doesn't define (found in review)", (format, value) => {
+    expect(tool({ v: { format } }).validateArgs({ v: value })).toEqual([true, []]);
+  });
+
+  it('ignores formatMinimum and checks the rest, as Python does (found in review)', () => {
+    expect(tool({ v: { type: 'string', formatMinimum: 'a' } }).validateArgs({ v: 3 })).toEqual([
+      false,
+      ["'v' must be string"],
+    ]);
+    expect(
+      tool({ v: { type: 'string', format: 'date', formatMinimum: '2026-01-01' } }).validateArgs({
+        v: '2025-01-01',
+      }),
+    ).toEqual([true, []]);
   });
 
   it('warns on dispatch for a schema with a format', async () => {

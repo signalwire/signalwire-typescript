@@ -1992,7 +1992,7 @@ See [SwaigFunctionOptions](#swaigfunctionoptions) for the options.
 
 #### `validateArgs(args)`
 
-Validate arguments against the parameter schema with Ajv, as JSON Schema Draft-7. Formats such as `email`, `date-time` and `uri` are checked, and a keyword or format it doesn't know is ignored. Returns `[true, []]` when the schema has no properties. Every call to the tool runs it first: arguments that don't match are logged as a warning, and the handler still runs, as in the Python SDK.
+Validate arguments against the parameter schema with Ajv, as JSON Schema Draft-7. Draft-7's formats, such as `email`, `date-time` and `uri`, are checked, except `idn-email`, `idn-hostname`, `iri` and `iri-reference`; any other format, and a keyword Draft-7 doesn't define, is ignored. The format checks are close to the Python SDK's, not identical: a few edge cases, such as `a@b` as an email, come out the other way. Returns `[true, []]` when the schema has no properties. Every call to the tool runs it first: arguments that don't match are logged as a warning, and the handler still runs, as in the Python SDK.
 
 <!-- snippet: no-compile API signature / type reference, not runnable code -->
 ```ts

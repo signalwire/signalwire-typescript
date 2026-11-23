@@ -11,10 +11,12 @@ follows [Semantic Versioning](https://semver.org/).
   strict, so a schema with a `format` (`email`, `date-time`, `uri`) or a
   keyword Draft-7 doesn't define failed to compile, and the check was
   skipped with only a debug log. Unknown keywords are now ignored, and
-  formats are checked with the new `ajv-formats` dependency, as Python's
-  jsonschema-rs checks them, so `'not-an-email'` for a `format: 'email'`
-  argument warns; a format it doesn't know is ignored. (Python 3.15.2 fixed
-  its own silently skipped check.)
+  Draft-7's formats are checked with the new `ajv-formats` dependency, as
+  Python's jsonschema-rs checks them, so `'not-an-email'` for a
+  `format: 'email'` argument warns. `idn-email`, `idn-hostname`, `iri` and
+  `iri-reference` aren't checked, and a few edge cases differ from Python's.
+  Any other format is ignored. (Python 3.15.2 fixed its own silently skipped
+  check.)
 - Docs and JSDoc that disagreed with the code:
   - `stepsOffering()`'s parameter is `functionName`.
   - `setMultilingual()` sends its config as given, without the voice checks
