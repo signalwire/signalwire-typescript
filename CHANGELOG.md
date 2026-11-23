@@ -9,7 +9,7 @@ follows [Semantic Versioning](https://semver.org/).
 
 - A tool's soft argument check runs for every schema. Its validator was
   strict, so a schema with a `format` (`email`, `date-time`, `uri`) or a
-  keyword Draft-7 doesn't define failed to compile, and the check was
+  keyword Ajv doesn't recognize failed to compile, and the check was
   skipped with only a debug log. Unknown keywords are now ignored, and
   Draft-7's formats are checked with the new `ajv-formats` dependency, as
   Python's jsonschema-rs checks them, so `'not-an-email'` for a

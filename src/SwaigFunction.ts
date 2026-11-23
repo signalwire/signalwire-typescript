@@ -566,8 +566,8 @@ export class SwaigFunction {
    * `enum`, `anyOf`, `oneOf`, `$ref`, nested object/array validation, etc.
    * Draft-7's formats are checked with ajv-formats (`email`, `date-time`,
    * `uri` and the rest, but not `idn-email`, `idn-hostname`, `iri` or
-   * `iri-reference`); any other format, and any keyword Draft-7 doesn't
-   * define, is ignored. Its format checks are close to Python's
+   * `iri-reference`); any other format, and any keyword Ajv doesn't recognize,
+   * is ignored (Ajv's own `nullable` still applies). Its format checks are close to Python's
    * jsonschema-rs, not identical: a few edge cases (`a@b` as an email, a
    * hostname ending in a dot) come out the other way.
    *
