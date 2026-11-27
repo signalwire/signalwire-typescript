@@ -976,6 +976,35 @@ describe('AskClaudeSkill', () => {
     expect(tools[0]!.name).toBe('ask_claude');
     expect(tools[0]!.required).toContain('prompt');
   });
+
+  describe('request body', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    async function sentBody(config: Record<string, unknown>) {
+      const fetchMock = vi.fn(
+        async (_url: string, _init: RequestInit) =>
+          new Response(JSON.stringify({ content: [{ type: 'text', text: 'ok' }] })),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+      const skill = createAskClaudeSkill({ api_key: 'test-key', ...config });
+      await skill.getTools()[0]!.handler({ prompt: 'hi' }, {});
+      return JSON.parse(fetchMock.mock.calls[0]![1].body as string);
+    }
+
+    it('defaults to claude-sonnet-5-5 without up-front thinking', async () => {
+      const body = await sentBody({});
+      expect(body.model).toBe('claude-sonnet-5-5');
+      expect(body.thinking).toEqual({ type: 'between_tools' });
+    });
+
+    it('does not send thinking for another configured model', async () => {
+      const body = await sentBody({ model: 'claude-sonnet-4-6' });
+      expect(body.model).toBe('claude-sonnet-4-6');
+      expect(body).not.toHaveProperty('thinking');
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

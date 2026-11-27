@@ -121,7 +121,7 @@ describe('Skill Parameter Schemas', () => {
     it('AskClaudeSkill has model with default', () => {
       const schema = AskClaudeSkill.getParameterSchema();
       expect(schema.model).toBeDefined();
-      expect(schema.model!.default).toBe('claude-sonnet-4-5-20250929');
+      expect(schema.model!.default).toBe('claude-sonnet-5-5');
     });
 
     it('ClaudeSkillsSkill has skills_path required', () => {

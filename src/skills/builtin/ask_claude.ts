@@ -111,7 +111,7 @@ export class AskClaudeSkill extends SkillBase {
       model: {
         type: 'string',
         description: 'The Claude model to use.',
-        default: 'claude-sonnet-4-5-20250929',
+        default: 'claude-sonnet-5-5',
       },
       max_tokens: {
         type: 'number',
@@ -123,7 +123,7 @@ export class AskClaudeSkill extends SkillBase {
 
   /** @returns A single `ask_claude` tool that sends prompts to the Claude API. */
   getTools(): SkillToolDefinition[] {
-    const model = this.getConfig<string>('model', 'claude-sonnet-4-5-20250929');
+    const model = this.getConfig<string>('model', 'claude-sonnet-5-5');
     const maxTokens = this.getConfig<number>('max_tokens', 1024);
 
     return [
@@ -165,6 +165,12 @@ export class AskClaudeSkill extends SkillBase {
               max_tokens: maxTokens,
               messages,
             };
+
+            // Sonnet 5.5 thinks by default, and thinking counts against
+            // max_tokens; turn up-front thinking off for this model.
+            if (model === 'claude-sonnet-5-5') {
+              requestBody['thinking'] = { type: 'between_tools' };
+            }
 
             if (
               systemPrompt &&
