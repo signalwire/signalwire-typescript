@@ -624,12 +624,12 @@ await agent.addSkill(new ClaudeSkillsSkill({ skills_path: '/path/to/skills' }));
 
 ### ask_claude
 
-`AskClaudeSkill` sends a prompt to the Anthropic Messages API and returns the reply. The tool takes a required `prompt` and an optional `system_prompt`. The key comes from `api_key`, or from `ANTHROPIC_API_KEY` when `api_key` isn't set. Setup fails when neither is set.
+`AskClaudeSkill` sends a prompt to the Anthropic Messages API and returns the reply. The tool takes a required `prompt` and an optional `system_prompt`. The key comes from `api_key`, or from `ANTHROPIC_API_KEY` when `api_key` isn't set. Setup fails when neither is set. With `claude-sonnet-5-5`, the request turns up-front thinking off (`thinking: {"type": "between_tools"}`), so `max_tokens` goes to the reply.
 
 | Parameter | Type | Default | Required | Description |
 |---|---|---|---|---|
 | `api_key` | string | none | Yes | Anthropic API key. Falls back to `ANTHROPIC_API_KEY`. |
-| `model` | string | `"claude-sonnet-4-5-20250929"` | No | Model to call |
+| `model` | string | `"claude-sonnet-5-5"` | No | Model to call |
 | `max_tokens` | number | `1024` | No | Maximum tokens in the reply |
 
 This example sets the reply length:
